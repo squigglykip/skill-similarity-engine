@@ -173,7 +173,6 @@ We will use the following branch structure:
 - [x] Verify department filtering functionality
 - [x] Test configuration overrides and custom settings
 - [x] Document any performance bottlenecks for optimization
-- [x] Validate CSV export format standards for Power BI integration
 
 **Job-to-Job Integration Tests:**
 - [x] Test performance with realistic job volumes (35,000+ jobs)
@@ -238,7 +237,6 @@ We will use the following branch structure:
    - [x] Perform end-to-end test with a representative job dataset
    - [x] Validate export file sizes are manageable
    - [x] Verify Power BI import process completes successfully 
-   - [x] Test CSV export format compliance for Power BI integration
    - [ ] Test refresh cycles with incremental job updates
    - [ ] Document integration patterns for future reference
 
@@ -257,10 +255,9 @@ We will use the following branch structure:
 **Testing Deliverables:**
 - [x] Create a test summary document outlining test coverage
 - [ ] *(DEPRIORITIZED)* Document performance benchmarks at various data scales
-- [x] Prepare a troubleshooting guide for common issues
+- [ ] Prepare a troubleshooting guide for common issues
 - [x] Document Power BI integration patterns and best practices
 - [x] Create sample data templates for future testing
-- [x] Reorganize tests into unit, integration, and functional categories
 
 > **Revised Testing Strategy**: Given the lightweight nature of TF-IDF and our confidence in the scalability of the core algorithm, we'll focus more on integration testing and documentation rather than extensive performance optimization. We'll conduct basic performance validation to ensure no unexpected issues arise, but detailed benchmarking is less critical.
 
@@ -269,7 +266,6 @@ We will use the following branch structure:
 - [ ] *(DEPRIORITIZED)* Implement chunking/batching for large matrix calculations
 - [ ] *(DEPRIORITIZED)* Add caching mechanisms for frequently accessed data
 - [x] Optimise memory usage for very large exports (if needed)
-- [x] Validate CSV export format compliance for memory-efficient Power BI loading
 
 ### 5.4 Documentation & Examples (2 days)
 - [x] Complete all docstrings and type annotations
@@ -286,7 +282,6 @@ We will use the following branch structure:
 - [x] Implement efficient data serialisation
 - [x] Add metadata and schema descriptions in exports
 - [x] Ensure exports are optimised for downstream consumption
-- [x] Validate CSV formats meet Power BI integration requirements
 
 ### 6.2 Data Transformation Scripts (2 days) *(REVISED)*
 - [x] Create transformation scripts for converting tabular skill data to required format

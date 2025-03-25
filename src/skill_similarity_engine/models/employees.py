@@ -1,14 +1,16 @@
 """
-Models for representing employees and their skills in the skill similarity engine.
+Models for representing employees in the skill similarity engine.
 
-This module defines the data structures for representing employees, including
-their skills and proficiency levels.
+This module defines the data structures for representing employees, their skills,
+and proficiency levels.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, TYPE_CHECKING
 
-from .jobs import Job, JobArchitecture
+if TYPE_CHECKING:
+    from .jobs import JobArchitecture, Job
+
 from .skills import Skill, SkillTaxonomy
 
 
@@ -120,32 +122,28 @@ class Employee:
         """
         return self.skills.get(skill_id, 0) >= min_proficiency
     
-    def meets_job_requirements(self, job: Job, min_proficiency_ratio: float = 0.8) -> bool:
+    def meets_job_requirements(self, job: 'Job', min_proficiency_ratio: float = 0.7) -> bool:
         """
-        Check if the employee meets the requirements for a specific job.
+        Check if the employee meets the minimum requirements for a job.
         
         Args:
             job: The job to check requirements for
-            min_proficiency_ratio: Minimum ratio of employee's proficiency to required proficiency
+            min_proficiency_ratio: Minimum ratio of required skills that must be met
             
         Returns:
             True if the employee meets the minimum requirements, False otherwise
         """
         if not job.skills:
-            return True  # No skills required for the job
+            return True
         
-        matching_skills = 0
-        required_skills = 0
+        # Count skills where the employee's proficiency meets or exceeds the job requirement
+        matching_skills = sum(
+            1 for skill_id, required_proficiency in job.skills.items()
+            if self.skills.get(skill_id, 0) >= required_proficiency
+        )
         
-        for skill_id, required_proficiency in job.skills.items():
-            if required_proficiency > 0:
-                required_skills += 1
-                employee_proficiency = self.skills.get(skill_id, 0)
-                if employee_proficiency >= required_proficiency * min_proficiency_ratio:
-                    matching_skills += 1
-        
-        # Need at least 70% of the required skills
-        return required_skills == 0 or (matching_skills / required_skills) >= 0.7
+        # Calculate the ratio of matching skills to required skills
+        return matching_skills / len(job.skills) >= min_proficiency_ratio
 
 
 @dataclass
@@ -258,41 +256,44 @@ class EmployeeDatabase:
         """
         return self.employees.get(employee_id)
     
-    def get_employees_by_job(self, job_id: str) -> List[Employee]:
+    def get_employees_by_job(self, job_id: str) -> List['Employee']:
         """
-        Retrieve all employees in a specific job.
+        Retrieve all employees currently assigned to a specific job.
         
         Args:
             job_id: The ID of the job to filter by
             
         Returns:
-            A list of employees in the specified job
+            A list of employees with the specified job
         """
-        return [emp for emp in self.employees.values() if emp.current_job == job_id]
+        return [
+            emp for emp in self.employees.values()
+            if emp.current_job == job_id
+        ]
     
-    def get_employees_with_skill(self, skill_id: str, min_proficiency: int = 1) -> List[Employee]:
+    def get_employees_with_skill(self, skill_id: str, min_proficiency: int = 1) -> List['Employee']:
         """
-        Retrieve all employees with a specific skill at minimum proficiency.
+        Retrieve all employees with a specific skill at minimum proficiency level.
         
         Args:
             skill_id: The ID of the skill to filter by
-            min_proficiency: Minimum proficiency level
+            min_proficiency: Minimum proficiency level to consider
             
         Returns:
-            A list of employees with the specified skill
+            A list of employees with the specified skill at minimum proficiency
         """
         return [
             emp for emp in self.employees.values()
             if emp.has_skill(skill_id, min_proficiency)
         ]
     
-    def get_eligible_employees_for_job(self, job: Job, min_proficiency_ratio: float = 0.8) -> List[Employee]:
+    def get_eligible_employees_for_job(self, job: 'Job', min_proficiency_ratio: float = 0.8) -> List['Employee']:
         """
         Retrieve all employees eligible for a specific job.
         
         Args:
             job: The job to check eligibility for
-            min_proficiency_ratio: Minimum ratio of proficiency to required proficiency
+            min_proficiency_ratio: Minimum ratio of required skills that must be met
             
         Returns:
             A list of employees eligible for the job
@@ -352,4 +353,29 @@ class EmployeeDatabase:
                 "skills": employee.skills
             }
             for employee_id, employee in self.employees.items()
-        } 
+        }
+    
+    @classmethod
+    def from_file(cls, file_path: str, job_architecture: Optional['JobArchitecture'] = None) -> 'EmployeeDatabase':
+        """
+        Load an employee database from a file (CSV or Excel).
+        
+        Args:
+            file_path: Path to the file to load from
+            job_architecture: Optional JobArchitecture for validating job IDs
+            
+        Returns:
+            A new EmployeeDatabase instance loaded from the file
+            
+        Raises:
+            ValueError: If the file type is not supported
+        """
+        from ..data.loaders import EmployeeDatabaseLoader
+        
+        loader = EmployeeDatabaseLoader(job_architecture)
+        if file_path.endswith('.csv'):
+            return loader.load_from_csv(file_path)
+        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+            return loader.load_from_excel(file_path)
+        else:
+            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or Excel files.") 

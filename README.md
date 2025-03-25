@@ -4,6 +4,10 @@
 
 This document outlines the development plan for the NAB Skill Similarity Engine, a system designed to analyse skill similarities between jobs and employees to identify reskilling opportunities. The project will be implemented in phases, with each phase corresponding to a specific git branch.
 
+> **IMPLEMENTATION FOCUS**: The current implementation focuses primarily on **Job-to-Job Similarity Analysis**. This approach aligns with our available data and integration with Power BI for visualisation and reporting. The system generates standardised outputs that feed into relationship models in Power BI, enabling job similarity analysis, career pathway identification, and skill gap analysis between roles.
+
+> **Power BI Integration**: Rather than developing extensive built-in reporting and visualisation capabilities, we've designed the system to output optimised data formats that integrate seamlessly with Power BI's relationship models. This gives analysts maximum flexibility while maintaining a focused codebase.
+
 ## Development Branches
 
 We will use the following branch structure:
@@ -63,8 +67,8 @@ We will use the following branch structure:
 
 ### 2.3 Similarity Matrix Generation (2 days)
 - [ ] Implement job-to-job similarity matrix generation
-- [ ] Implement person-to-job similarity matrix generation
-- [ ] Implement person-to-person similarity matrix generation
+- [ ] *(FUTURE DEVELOPMENT)* Implement person-to-job similarity matrix generation
+- [ ] *(FUTURE DEVELOPMENT)* Implement person-to-person similarity matrix generation
 - [ ] Add performance optimisations for large datasets
 
 ## Phase 3: Gap Analysis
@@ -106,16 +110,16 @@ We will use the following branch structure:
 - [ ] Add clustering options for better visualisation
 
 ### 4.3 Network Graph Visualisation (3 days)
-- [ ] Implement network graph generation in `visualization/networks.py`
-- [ ] Add options for different graph layouts
-- [ ] Implement filtering and highlighting
-- [ ] Add interactive elements (if applicable)
+- [ ] *(FUTURE DEVELOPMENT)* Implement network graph generation in `visualization/networks.py`
+- [ ] *(FUTURE DEVELOPMENT)* Add options for different graph layouts
+- [ ] *(FUTURE DEVELOPMENT)* Implement filtering and highlighting
+- [ ] *(FUTURE DEVELOPMENT)* Add interactive elements (if applicable)
 
 ### 4.4 Workforce Planning Reports (3 days)
 - [ ] Implement aggregate reporting functionality
 - [ ] Create skills gap analysis at organisational level
-- [ ] Add department/team level reporting
-- [ ] Implement future state modelling
+- [ ] *(FUTURE DEVELOPMENT)* Add department/team level reporting
+- [ ] *(FUTURE DEVELOPMENT)* Implement future state modelling
 
 ## Phase 5: CLI & Testing
 
@@ -171,4 +175,6 @@ Total estimated time: 49 working days (~10 weeks)
 - Minimal external dependencies
 - No sensitive data in codebase
 - Cross-platform compatibility (Windows/macOS)
-- Comprehensive documentation 
+- Comprehensive documentation
+- Optimised data exports for Power BI consumption 
+- Support for "Prescribe Skills" model with job-to-job analysis as primary focus 

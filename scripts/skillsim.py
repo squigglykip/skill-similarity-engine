@@ -131,16 +131,13 @@ def version(ctx):
     """
     Display the version information for the Skill Similarity Engine.
     """
+    # Try to get version from the actual package
     try:
-        from importlib.metadata import version as get_version
-        version = get_version("skill_similarity_engine")
-    except ImportError:
-        # For Python < 3.8
-        try:
-            import pkg_resources
-            version = pkg_resources.get_distribution("skill_similarity_engine").version
-        except pkg_resources.DistributionNotFound:
-            version = "unknown (package not installed)"
+        from skill_similarity_engine import __version__
+        version = __version__
+    except (ImportError, AttributeError):
+        # Fallback to a default version
+        version = "0.1.0 (development)"
     
     click.echo(f"Skill Similarity Engine version: {version}")
     click.echo("Copyright (c) 2023 NAB")

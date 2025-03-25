@@ -91,9 +91,14 @@ def cli(ctx, config_file, output_dir):
     default="csv",
     help="Output file format"
 )
+@click.option(
+    "--output-dir", 
+    type=click.Path(),
+    help="Directory for output files"
+)
 @click.pass_context
 def job_similarity(ctx, skill_taxonomy_file, job_architecture_file, department, 
-                   top_n, threshold, cluster, output_format):
+                  top_n, threshold, cluster, output_format, output_dir):
     """
     Calculate job-to-job similarity scores.
     
@@ -108,6 +113,8 @@ def job_similarity(ctx, skill_taxonomy_file, job_architecture_file, department,
         config.similarity.top_n_results = top_n
     if threshold:
         config.similarity.threshold = threshold
+    if output_dir:
+        config.output_dir = output_dir
     
     click.echo("Loading skill taxonomy...")
     taxonomy = SkillTaxonomy.from_file(skill_taxonomy_file)
@@ -167,10 +174,15 @@ def job_similarity(ctx, skill_taxonomy_file, job_architecture_file, department,
     default="csv",
     help="Output file format"
 )
+@click.option(
+    "--output-dir", 
+    type=click.Path(),
+    help="Directory for output files"
+)
 @click.pass_context
 def employee_job_similarity(ctx, skill_taxonomy_file, job_architecture_file, 
                            employee_database_file, department, top_n, 
-                           threshold, output_format):
+                           threshold, output_format, output_dir):
     """
     Calculate employee-to-job similarity scores.
     
@@ -185,6 +197,8 @@ def employee_job_similarity(ctx, skill_taxonomy_file, job_architecture_file,
         config.similarity.top_n_results = top_n
     if threshold:
         config.similarity.threshold = threshold
+    if output_dir:
+        config.output_dir = output_dir
     
     click.echo("Loading skill taxonomy...")
     taxonomy = SkillTaxonomy.from_file(skill_taxonomy_file)
@@ -247,9 +261,14 @@ def employee_job_similarity(ctx, skill_taxonomy_file, job_architecture_file,
     default="csv",
     help="Output file format"
 )
+@click.option(
+    "--output-dir", 
+    type=click.Path(),
+    help="Directory for output files"
+)
 @click.pass_context
 def employee_similarity(ctx, skill_taxonomy_file, employee_database_file, 
-                         department, top_n, threshold, output_format):
+                         department, top_n, threshold, output_format, output_dir):
     """
     Calculate employee-to-employee similarity scores.
     
@@ -263,6 +282,8 @@ def employee_similarity(ctx, skill_taxonomy_file, employee_database_file,
         config.similarity.top_n_results = top_n
     if threshold:
         config.similarity.threshold = threshold
+    if output_dir:
+        config.output_dir = output_dir
     
     click.echo("Loading skill taxonomy...")
     taxonomy = SkillTaxonomy.from_file(skill_taxonomy_file)

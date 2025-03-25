@@ -8,6 +8,7 @@ and skill taxonomies in a hierarchical structure.
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Dict, List, Optional, Set, Tuple
+from collections import defaultdict
 
 
 class SkillType(Enum):
@@ -176,8 +177,8 @@ class SkillTaxonomy:
     """
     skills: Dict[str, Skill] = field(default_factory=dict)
     categories: Dict[str, SkillCategory] = field(default_factory=dict)
-    skills_by_category: Dict[str, Set[str]] = field(default_factory=lambda: Dict[str, Set[str]]())
-    category_hierarchy: Dict[str, Set[str]] = field(default_factory=lambda: Dict[str, Set[str]]())
+    skills_by_category: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
+    category_hierarchy: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
     
     def add_skill(self, skill: Skill) -> None:
         """
@@ -474,4 +475,28 @@ class SkillTaxonomy:
                 }
                 for skill in self.skills.values()
             ]
-        } 
+        }
+    
+    @classmethod
+    def from_file(cls, file_path: str) -> 'SkillTaxonomy':
+        """
+        Load a skill taxonomy from a file (CSV or Excel).
+        
+        Args:
+            file_path: Path to the file to load from
+            
+        Returns:
+            A new SkillTaxonomy instance loaded from the file
+            
+        Raises:
+            ValueError: If the file type is not supported
+        """
+        from ..data.loaders import SkillTaxonomyLoader
+        
+        loader = SkillTaxonomyLoader()
+        if file_path.endswith('.csv'):
+            return loader.load_from_csv(file_path)
+        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+            return loader.load_from_excel(file_path)
+        else:
+            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or Excel files.") 

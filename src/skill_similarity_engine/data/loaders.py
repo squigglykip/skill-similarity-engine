@@ -247,21 +247,35 @@ class JobArchitectureLoader:
                     # Default to ASSOCIATE if invalid
                     pass
             
+            # Parse skills if they're embedded in the row
+            skills_dict = {}
+            if "skills" in row and pd.notna(row["skills"]):
+                skills_str = str(row["skills"])
+                # Handle different delimiter formats
+                if ";" in skills_str:
+                    skill_pairs = skills_str.split(";")
+                elif "," in skills_str:
+                    skill_pairs = skills_str.split(",")
+                else:
+                    skill_pairs = [skills_str]
+                
+                for pair in skill_pairs:
+                    if ":" in pair:
+                        skill_id, proficiency = pair.split(":")
+                        skills_dict[skill_id.strip()] = int(proficiency.strip())
+            
             job = Job(
                 job_id=job_id,
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
-                skills={}  # Will be populated later
+                skills=skills_dict
             )
-            
-            # Initialize empty skills dictionary for this job
-            job_skills[job_id] = {}
             
             # Add job to architecture
             architecture.add_job(job)
         
-        # Load job skills if provided
+        # Load job skills if provided as a separate file
         if job_skills_file:
             job_skills_path = os.path.join(self.base_dir, job_skills_file)
             job_skills_df = pd.read_csv(job_skills_path)
@@ -326,16 +340,30 @@ class JobArchitectureLoader:
                     # Default to ASSOCIATE if invalid
                     pass
             
+            # Parse skills if they're embedded in the row
+            skills_dict = {}
+            if "skills" in row and pd.notna(row["skills"]):
+                skills_str = str(row["skills"])
+                # Handle different delimiter formats
+                if ";" in skills_str:
+                    skill_pairs = skills_str.split(";")
+                elif "," in skills_str:
+                    skill_pairs = skills_str.split(",")
+                else:
+                    skill_pairs = [skills_str]
+                
+                for pair in skill_pairs:
+                    if ":" in pair:
+                        skill_id, proficiency = pair.split(":")
+                        skills_dict[skill_id.strip()] = int(proficiency.strip())
+            
             job = Job(
                 job_id=job_id,
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
-                skills={}  # Will be populated later
+                skills=skills_dict
             )
-            
-            # Initialize empty skills dictionary for this job
-            job_skills[job_id] = {}
             
             # Add job to architecture
             architecture.add_job(job)
@@ -428,20 +456,34 @@ class EmployeeLoader:
             if job_id not in self.job_architecture.jobs:
                 continue
             
+            # Parse skills if they're embedded in the row
+            skills_dict = {}
+            if "skills" in row and pd.notna(row["skills"]):
+                skills_str = str(row["skills"])
+                # Handle different delimiter formats
+                if ";" in skills_str:
+                    skill_pairs = skills_str.split(";")
+                elif "," in skills_str:
+                    skill_pairs = skills_str.split(",")
+                else:
+                    skill_pairs = [skills_str]
+                
+                for pair in skill_pairs:
+                    if ":" in pair:
+                        skill_id, proficiency = pair.split(":")
+                        skills_dict[skill_id.strip()] = int(proficiency.strip())
+            
             employee = Employee(
                 employee_id=employee_id,
                 name=row["name"],
                 current_job=job_id,
-                skills={}  # Will be populated later
+                skills=skills_dict
             )
-            
-            # Initialize empty skills dictionary for this employee
-            employee_skills[employee_id] = {}
             
             # Add employee to database
             database.add_employee(employee)
         
-        # Load employee skills if provided
+        # Load employee skills if provided as a separate file
         if employee_skills_file:
             employee_skills_path = os.path.join(self.base_dir, employee_skills_file)
             employee_skills_df = pd.read_csv(employee_skills_path)
@@ -502,15 +544,29 @@ class EmployeeLoader:
             if job_id not in self.job_architecture.jobs:
                 continue
             
+            # Parse skills if they're embedded in the row
+            skills_dict = {}
+            if "skills" in row and pd.notna(row["skills"]):
+                skills_str = str(row["skills"])
+                # Handle different delimiter formats
+                if ";" in skills_str:
+                    skill_pairs = skills_str.split(";")
+                elif "," in skills_str:
+                    skill_pairs = skills_str.split(",")
+                else:
+                    skill_pairs = [skills_str]
+                
+                for pair in skill_pairs:
+                    if ":" in pair:
+                        skill_id, proficiency = pair.split(":")
+                        skills_dict[skill_id.strip()] = int(proficiency.strip())
+            
             employee = Employee(
                 employee_id=employee_id,
                 name=row["name"],
                 current_job=job_id,
-                skills={}  # Will be populated later
+                skills=skills_dict
             )
-            
-            # Initialize empty skills dictionary for this employee
-            employee_skills[employee_id] = {}
             
             # Add employee to database
             database.add_employee(employee)
