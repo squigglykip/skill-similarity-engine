@@ -19,7 +19,7 @@ from skill_similarity_engine.config.settings import get_config, ConfigFormat
 from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.models.jobs import JobArchitecture
 from skill_similarity_engine.models.employees import EmployeeDatabase
-from skill_similarity_engine.analysis.gap import GapAnalyzer
+from skill_similarity_engine.analysis.gap import SkillGapAnalyzer
 from skill_similarity_engine.visualization.reports import ReportGenerator, ReportConfig
 
 
@@ -151,7 +151,7 @@ def skill_gap_analysis(ctx, skill_taxonomy_file, job_architecture_file,
         employee = employee_db.get_employee(employee_id)
         job = job_arch.get_job(target_job_id)
         
-        gap_analyzer = GapAnalyzer(taxonomy, config.gap_analysis)
+        gap_analyzer = SkillGapAnalyzer(taxonomy, config.gap_analysis)
         gap_analysis = gap_analyzer.analyze_employee_job_gap(employee, job)
         
         if output_format == "csv":

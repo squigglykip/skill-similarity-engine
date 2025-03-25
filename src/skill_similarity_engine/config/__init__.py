@@ -1,1 +1,1 @@
-ÿþ
+"""Config package for application configuration."""

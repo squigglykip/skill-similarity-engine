@@ -264,4 +264,33 @@ class JobArchitecture:
                 "skills": job.skills
             }
             for job_id, job in self.jobs.items()
-        } 
+        }
+    
+    @classmethod
+    def from_file(cls, file_path: str) -> 'JobArchitecture':
+        """
+        Load a job architecture from a file (CSV or Excel).
+        
+        Args:
+            file_path: Path to the file to load from
+            
+        Returns:
+            A new JobArchitecture instance loaded from the file
+            
+        Raises:
+            ValueError: If the file type is not supported or if the SkillTaxonomy is not available
+        """
+        from ..data.loaders import JobArchitectureLoader
+        from .skills import SkillTaxonomy
+        
+        # Create an empty skill taxonomy - the loader doesn't use it for validation
+        # when loading the job architecture directly
+        taxonomy = SkillTaxonomy()
+        
+        loader = JobArchitectureLoader(taxonomy)
+        if file_path.endswith('.csv'):
+            return loader.load_from_csv(file_path)
+        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+            return loader.load_from_excel(file_path)
+        else:
+            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or Excel files.") 
