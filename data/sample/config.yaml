@@ -1,0 +1,67 @@
+# Sample configuration for Skill Similarity Engine
+
+# Data sources
+data:
+  format: "csv"  # Options: csv, json, excel
+  paths:
+    skills_file: "data/sample/skills.csv"
+    jobs_file: "data/sample/jobs.csv"
+    employees_file: "data/sample/employees.csv"
+  
+  # Alternative JSON sources
+  # format: "json"
+  # paths:
+  #   skills_file: "data/sample/skills.json"
+  #   jobs_file: "data/sample/jobs.json"
+  #   employees_file: "data/sample/employees.json"
+
+# Normalisation settings
+normalisation:
+  strategy: "min_max"  # Options: min_max, boolean, tfidf
+  skill_weights:
+    Technical: 1.0
+    Soft: 0.8
+    Domain: 1.2
+  
+  # TF-IDF settings (only used if strategy is "tfidf")
+  tfidf:
+    skill_occurence_penalty: 0.5
+    min_skill_frequency: 0.05
+
+# Similarity calculation settings
+similarity:
+  metric: "cosine"  # Options: cosine, euclidean, jaccard
+  threshold: 0.7  # Minimum similarity score to consider
+  job_job_matrix: true
+  employee_job_matrix: true
+  employee_employee_matrix: false  # Set to false to skip this calculation
+
+# Gap analysis settings
+gap_analysis:
+  min_proficiency_required: 3  # Minimum required proficiency to consider skill as "possessed"
+  development_effort:
+    weight_by_difficulty: true
+    factor_existing_skills: true  # Reduce effort if there's partial proficiency
+    max_skill_gap: 2  # Maximum proficiency gap to consider for reasonable development
+
+# Visualization settings
+visualization:
+  heatmap:
+    cmap: "YlGnBu"  # Matplotlib colormap
+    annotate: true  # Show values in cells
+    cluster: true  # Cluster similar items
+  
+  network:
+    min_edge_weight: 0.7  # Minimum similarity to show as connection
+    layout: "spring"  # Options: spring, circular, random
+    node_size_by_skills: true  # Size nodes by number of skills
+
+# Output settings
+output:
+  directory: "output"
+  formats:
+    - "csv"
+    - "json"
+    - "html"
+  detailed_reports: true
+  summary_reports: true 
