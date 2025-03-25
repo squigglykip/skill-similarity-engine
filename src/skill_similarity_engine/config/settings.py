@@ -109,6 +109,23 @@ class GapAnalysisConfig:
 
 
 @dataclass
+class OpportunityConfig:
+    """
+    Configuration for opportunity identification.
+    
+    Attributes:
+        high_similarity_threshold: Threshold for identifying high similarity opportunities
+        low_gap_threshold: Threshold for identifying low development effort opportunities
+        high_match_percentage: Threshold for identifying good fit opportunities
+        critical_gap_percentage: Threshold for identifying critical skill gaps
+    """
+    high_similarity_threshold: float = 0.8
+    low_gap_threshold: float = 20.0
+    high_match_percentage: float = 80.0
+    critical_gap_percentage: float = 50.0
+
+
+@dataclass
 class AppConfig:
     """
     Main application configuration.
@@ -120,6 +137,7 @@ class AppConfig:
         normalisation: Normalisation configuration
         similarity: Similarity calculation configuration
         gap_analysis: Gap analysis configuration
+        opportunity: Opportunity identification configuration
     """
     environment: str = "development"
     data_dir: str = "data"
@@ -127,6 +145,7 @@ class AppConfig:
     normalisation: NormalisationConfig = field(default_factory=NormalisationConfig)
     similarity: SimilarityConfig = field(default_factory=SimilarityConfig)
     gap_analysis: GapAnalysisConfig = field(default_factory=GapAnalysisConfig)
+    opportunity: OpportunityConfig = field(default_factory=OpportunityConfig)
 
 
 # Configuration schema for validation
@@ -165,6 +184,15 @@ CONFIG_SCHEMA = {
                     "type": "object",
                     "additionalProperties": {"type": "number"}
                 }
+            }
+        },
+        "opportunity": {
+            "type": "object",
+            "properties": {
+                "high_similarity_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+                "low_gap_threshold": {"type": "number", "minimum": 0},
+                "high_match_percentage": {"type": "number", "minimum": 0, "maximum": 100},
+                "critical_gap_percentage": {"type": "number", "minimum": 0, "maximum": 100}
             }
         }
     }
@@ -278,6 +306,22 @@ class ConfigManager:
             
             if "category_weights" in gap_data:
                 self.config.gap_analysis.category_weights.update(gap_data["category_weights"])
+        
+        # Update opportunity config
+        if "opportunity" in config_data:
+            opp_data = config_data["opportunity"]
+            
+            if "high_similarity_threshold" in opp_data:
+                self.config.opportunity.high_similarity_threshold = opp_data["high_similarity_threshold"]
+            
+            if "low_gap_threshold" in opp_data:
+                self.config.opportunity.low_gap_threshold = opp_data["low_gap_threshold"]
+            
+            if "high_match_percentage" in opp_data:
+                self.config.opportunity.high_match_percentage = opp_data["high_match_percentage"]
+            
+            if "critical_gap_percentage" in opp_data:
+                self.config.opportunity.critical_gap_percentage = opp_data["critical_gap_percentage"]
     
     def get_config(self) -> AppConfig:
         """
