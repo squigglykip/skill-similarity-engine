@@ -1,0 +1,31 @@
+skill_id,name,category,subcategory,difficulty
+S001,Python Programming,Technical,Programming Languages,3
+S002,SQL,Technical,Database,3
+S003,Data Analysis,Technical,Analytics,4
+S004,Machine Learning,Technical,Data Science,5
+S005,Data Visualization,Technical,Analytics,3
+S006,Excel,Technical,Office Tools,2
+S007,Tableau,Technical,Data Visualization,3
+S008,PowerBI,Technical,Data Visualization,3
+S009,Project Management,Soft,Management,4
+S010,Communication,Soft,Interpersonal,2
+S011,Problem Solving,Soft,Critical Thinking,4
+S012,Team Leadership,Soft,Leadership,4
+S013,Risk Management,Domain,Finance,4
+S014,Financial Analysis,Domain,Finance,4
+S015,Customer Service,Soft,Interpersonal,2
+S016,Marketing Analytics,Domain,Marketing,4
+S017,Cloud Computing,Technical,Infrastructure,4
+S018,Software Development,Technical,Programming,4
+S019,Agile Methodologies,Technical,Project Management,3
+S020,Statistical Analysis,Technical,Analytics,4
+S021,Business Intelligence,Domain,Analytics,4
+S022,R Programming,Technical,Programming Languages,3
+S023,Java,Technical,Programming Languages,4
+S024,JavaScript,Technical,Programming Languages,3
+S025,Digital Marketing,Domain,Marketing,3
+S026,Product Management,Domain,Product,4
+S027,UX Design,Technical,Design,3
+S028,Cybersecurity,Technical,Security,5
+S029,Accounting,Domain,Finance,4
+S030,Regulatory Compliance,Domain,Legal,4 

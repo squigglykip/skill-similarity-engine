@@ -17,55 +17,55 @@ We will use the following branch structure:
 
 ### 1.1 Project Setup (1 day)
 - [x] Create project structure
-- [ ] Set up development environment
-- [ ] Define initial dependencies in requirements.txt
-- [ ] Configure pyproject.toml
+- [x] Set up development environment
+- [x] Define initial dependencies in requirements.txt
+- [x] Configure pyproject.toml
 
 ### 1.2 Data Models (3 days)
-- [ ] Implement `models/skills.py` for skill taxonomy representation
-- [ ] Implement `models/jobs.py` for job architecture representation
-- [ ] Implement `models/employees.py` for employee data representation
-- [ ] Add type annotations and proper documentation
+- [x] Implement `models/skills.py` for skill taxonomy representation
+- [x] Implement `models/jobs.py` for job architecture representation
+- [x] Implement `models/employees.py` for employee data representation
+- [x] Add type annotations and proper documentation
 
 ### 1.3 Configuration System (2 days)
-- [ ] Implement `config/settings.py` for application configuration
-- [ ] Create YAML/JSON configuration parsers
-- [ ] Implement configuration validation
-- [ ] Add support for environment-specific configurations
+- [x] Implement `config/settings.py` for application configuration
+- [x] Create YAML/JSON configuration parsers
+- [x] Implement configuration validation
+- [x] Add support for environment-specific configurations
 
 ### 1.4 Data Normalisation (3 days)
-- [ ] Implement min-max scaling in `data/normalisers.py`
-- [ ] Implement boolean normalisation
-- [ ] Implement TF-IDF style weighting for rare vs. common skills
-- [ ] Implement configurable importance weights
+- [x] Implement min-max scaling in `data/normalisers.py`
+- [x] Implement boolean normalisation
+- [x] Implement TF-IDF style weighting for rare vs. common skills
+- [x] Implement configurable importance weights
 
 ### 1.5 Data Loaders (2 days)
-- [ ] Implement CSV data loaders in `data/loaders.py`
-- [ ] Implement Excel data loaders
-- [ ] Add data validation and error handling
-- [ ] Create sample data files for testing
+- [x] Implement CSV data loaders in `data/loaders.py`
+- [x] Implement Excel data loaders
+- [x] Add data validation and error handling
+- [x] Create sample data files for testing
 
 ## Phase 2: Similarity Engine
 
 **Branch: `feature/similarity-engine`**
 
 ### 2.1 Vector Representation (3 days)
-- [ ] Implement vector representation for skills in `analysis/vectors.py`
-- [ ] Add support for different vectorisation strategies
-- [ ] Implement dimensionality reduction techniques (optional)
-- [ ] Create utility functions for vector manipulation
+- [x] Implement vector representation for skills in `analysis/vectors.py` (implemented in `similarity/cosine.py`)
+- [x] Add support for different vectorisation strategies
+- [x] Implement dimensionality reduction techniques (optional)
+- [x] Create utility functions for vector manipulation
 
 ### 2.2 Similarity Calculation (3 days)
-- [ ] Implement cosine similarity in `analysis/similarity.py`
+- [x] Implement cosine similarity in `analysis/similarity.py` (implemented in `similarity/cosine.py`)
 - [ ] Implement Euclidean distance
 - [ ] Implement Jaccard similarity
-- [ ] Add threshold configuration options
+- [x] Add threshold configuration options
 
 ### 2.3 Similarity Matrix Generation (2 days)
-- [ ] Implement job-to-job similarity matrix generation
-- [ ] Implement person-to-job similarity matrix generation
-- [ ] Implement person-to-person similarity matrix generation
-- [ ] Add performance optimisations for large datasets
+- [x] Implement job-to-job similarity matrix generation
+- [x] Implement person-to-job similarity matrix generation
+- [x] Implement person-to-person similarity matrix generation
+- [x] Add performance optimisations for large datasets
 
 ## Phase 3: Gap Analysis
 
@@ -145,6 +145,28 @@ We will use the following branch structure:
 - [ ] Create Jupyter notebook examples
 - [ ] Add sample data and configuration files
 
+## Phase 6: Data Transformation Scripts
+
+**Branch: `feature/data-transformation`**
+
+### 6.1 Input Data Transformation (2 days)
+- [ ] Create transformation scripts for converting tabular skill data to condensed format
+- [ ] Implement mapping from raw HRIS data to the required skills structure
+- [ ] Add validation and error reporting for data transformation
+- [ ] Create logging and monitoring for transformation processes
+
+### 6.2 Batch Processing Tools (2 days)
+- [ ] Implement batch processing for large datasets
+- [ ] Add support for incremental updates
+- [ ] Create backup/restore functionality
+- [ ] Implement scheduling options for regular data refreshes
+
+### 6.3 Data Quality Checks (1 day)
+- [ ] Create data quality verification tools
+- [ ] Implement consistency checks across different data sources
+- [ ] Add reporting for missing or anomalous data
+- [ ] Create audit trails for data transformations
+
 ## Dependencies
 
 The following dependencies will be used:
@@ -158,12 +180,13 @@ The following dependencies will be used:
 
 ## Timeline
 
-Total estimated time: 49 working days (~10 weeks)
+Total estimated time: 54 working days (~11 weeks)
 - Phase 1: 11 days
 - Phase 2: 8 days
 - Phase 3: 8 days
 - Phase 4: 10 days
 - Phase 5: 12 days
+- Phase 6: 5 days
 
 ## Technical Constraints
 

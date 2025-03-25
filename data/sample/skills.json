@@ -1,0 +1,182 @@
+{
+  "S001": {
+    "name": "Python Programming",
+    "category": "Technical",
+    "subcategory": "Programming Languages",
+    "difficulty": 3
+  },
+  "S002": {
+    "name": "SQL",
+    "category": "Technical",
+    "subcategory": "Database",
+    "difficulty": 3
+  },
+  "S003": {
+    "name": "Data Analysis",
+    "category": "Technical",
+    "subcategory": "Analytics",
+    "difficulty": 4
+  },
+  "S004": {
+    "name": "Machine Learning",
+    "category": "Technical",
+    "subcategory": "Data Science",
+    "difficulty": 5
+  },
+  "S005": {
+    "name": "Data Visualization",
+    "category": "Technical",
+    "subcategory": "Analytics",
+    "difficulty": 3
+  },
+  "S006": {
+    "name": "Excel",
+    "category": "Technical",
+    "subcategory": "Office Tools",
+    "difficulty": 2
+  },
+  "S007": {
+    "name": "Tableau",
+    "category": "Technical",
+    "subcategory": "Data Visualization",
+    "difficulty": 3
+  },
+  "S008": {
+    "name": "PowerBI",
+    "category": "Technical",
+    "subcategory": "Data Visualization",
+    "difficulty": 3
+  },
+  "S009": {
+    "name": "Project Management",
+    "category": "Soft",
+    "subcategory": "Management",
+    "difficulty": 4
+  },
+  "S010": {
+    "name": "Communication",
+    "category": "Soft",
+    "subcategory": "Interpersonal",
+    "difficulty": 2
+  },
+  "S011": {
+    "name": "Problem Solving",
+    "category": "Soft",
+    "subcategory": "Critical Thinking",
+    "difficulty": 4
+  },
+  "S012": {
+    "name": "Team Leadership",
+    "category": "Soft",
+    "subcategory": "Leadership",
+    "difficulty": 4
+  },
+  "S013": {
+    "name": "Risk Management",
+    "category": "Domain",
+    "subcategory": "Finance",
+    "difficulty": 4
+  },
+  "S014": {
+    "name": "Financial Analysis",
+    "category": "Domain",
+    "subcategory": "Finance",
+    "difficulty": 4
+  },
+  "S015": {
+    "name": "Customer Service",
+    "category": "Soft",
+    "subcategory": "Interpersonal",
+    "difficulty": 2
+  },
+  "S016": {
+    "name": "Marketing Analytics",
+    "category": "Domain",
+    "subcategory": "Marketing",
+    "difficulty": 4
+  },
+  "S017": {
+    "name": "Cloud Computing",
+    "category": "Technical",
+    "subcategory": "Infrastructure",
+    "difficulty": 4
+  },
+  "S018": {
+    "name": "Software Development",
+    "category": "Technical",
+    "subcategory": "Programming",
+    "difficulty": 4
+  },
+  "S019": {
+    "name": "Agile Methodologies",
+    "category": "Technical",
+    "subcategory": "Project Management",
+    "difficulty": 3
+  },
+  "S020": {
+    "name": "Statistical Analysis",
+    "category": "Technical",
+    "subcategory": "Analytics",
+    "difficulty": 4
+  },
+  "S021": {
+    "name": "Business Intelligence",
+    "category": "Domain",
+    "subcategory": "Analytics",
+    "difficulty": 4
+  },
+  "S022": {
+    "name": "R Programming",
+    "category": "Technical",
+    "subcategory": "Programming Languages",
+    "difficulty": 3
+  },
+  "S023": {
+    "name": "Java",
+    "category": "Technical",
+    "subcategory": "Programming Languages",
+    "difficulty": 4
+  },
+  "S024": {
+    "name": "JavaScript",
+    "category": "Technical",
+    "subcategory": "Programming Languages",
+    "difficulty": 3
+  },
+  "S025": {
+    "name": "Digital Marketing",
+    "category": "Domain",
+    "subcategory": "Marketing",
+    "difficulty": 3
+  },
+  "S026": {
+    "name": "Product Management",
+    "category": "Domain",
+    "subcategory": "Product",
+    "difficulty": 4
+  },
+  "S027": {
+    "name": "UX Design",
+    "category": "Technical",
+    "subcategory": "Design",
+    "difficulty": 3
+  },
+  "S028": {
+    "name": "Cybersecurity",
+    "category": "Technical",
+    "subcategory": "Security",
+    "difficulty": 5
+  },
+  "S029": {
+    "name": "Accounting",
+    "category": "Domain",
+    "subcategory": "Finance",
+    "difficulty": 4
+  },
+  "S030": {
+    "name": "Regulatory Compliance",
+    "category": "Domain",
+    "subcategory": "Legal",
+    "difficulty": 4
+  }
+} 
