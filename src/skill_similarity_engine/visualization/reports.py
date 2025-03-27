@@ -756,6 +756,16 @@ class ReportConfig:
     department: Optional[str] = None
     departments: Optional[List[str]] = None
     threshold: float = 0.0
+    include_self_comparisons: bool = False
+    
+    def get_threshold(self, name: str, default: float) -> float:
+        """Get a threshold value or use the default."""
+        # In the future, this could look up thresholds from a dictionary
+        # For now, just return default values
+        if name == "high_similarity":
+            return 0.8
+        # Default fallback
+        return default
 
 
 class DataExporter:
@@ -775,25 +785,27 @@ class DataExporter:
             skill_taxonomy: Skill taxonomy
             job_architecture: Job architecture
             employee_database: Employee database (optional)
-            output_dir: Directory for output files (default: from config)
+            output_dir: Output directory (default: config.output_dir)
         """
         self.skill_taxonomy = skill_taxonomy
         self.job_architecture = job_architecture
         self.employee_database = employee_database
         self.output_dir = output_dir or get_config().output_dir
+        self.similarity_calculator = None
         
-        # Create output directory if it doesn't exist
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
-        
-        # Initialize similarity calculator
-        from ..similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
-        self.vectorizer = TfidfVectorizer(skill_taxonomy)
-        self.similarity_calculator = CosineSimilarityCalculator(
-            vectorizer=self.vectorizer,
-            skill_taxonomy=skill_taxonomy,
-            job_architecture=job_architecture
-        )
+    def _initialize_similarity_calculator(self):
+        """Initialize the similarity calculator if not already initialized."""
+        try:
+            from ..similarity.cosine import CosineSimilarityCalculator, TfidfVectorizer
+            vectorizer = TfidfVectorizer(self.skill_taxonomy)
+            self.similarity_calculator = CosineSimilarityCalculator(
+                vectorizer=vectorizer,
+                skill_taxonomy=self.skill_taxonomy,
+                job_architecture=self.job_architecture,
+                employee_database=self.employee_database
+            )
+        except ImportError:
+            raise ImportError("Similarity module not available")
     
     def export_job_similarity_matrix(
         self,
@@ -801,89 +813,108 @@ class DataExporter:
         config: Optional[ReportConfig] = None,
         output_path: Optional[str] = None
     ) -> pd.DataFrame:
-        """Export job similarity matrix to CSV or JSON.
+        """Export job similarity matrix for a department.
         
         Args:
-            department: Department to include
-            config: Report configuration (if None, defaults to CSV)
-            output_path: Path to save the export (if None, auto-generated)
+            department: Department to analyze
+            config: Report configuration
+            output_path: Path to save the exported data
             
         Returns:
-            DataFrame containing the similarity matrix
+            DataFrame containing job similarity matrix
+            
+        Raises:
+            ValueError: If no jobs found for the department
         """
-        if config is None:
-            config = ReportConfig()
+        config = config or ReportConfig()
         
-        # Get jobs for the specified department
-        jobs = [j for j in self.job_architecture.jobs.values() if j.department == department]
-        if not jobs:
+        # Validate department
+        department_jobs = [job for job in self.job_architecture.jobs.values() 
+                        if job.department == department]
+        
+        if not department_jobs:
             raise ValueError(f"No jobs found for department: {department}")
         
-        # Calculate similarities using the similarity calculator
-        similarities = []
-        for i, job1 in enumerate(jobs):
-            for j, job2 in enumerate(jobs[i+1:], i+1):
-                similarity = self.similarity_calculator.calculate_job_similarity(job1.job_id, job2.job_id)
+        # Calculate similarity matrix
+        if not self.similarity_calculator:
+            self._initialize_similarity_calculator()
+        
+        # Build matrix
+        matrix_data = []
+        
+        for job1 in department_jobs:
+            for job2 in department_jobs:
+                # Skip self-comparisons if not needed
+                if job1.job_id == job2.job_id and not config.include_self_comparisons:
+                    continue
                 
-                # Skip if below threshold
+                # Calculate similarity
+                similarity = self._calculate_job_similarity(job1, job2)
+                
+                # Apply threshold
                 if similarity < config.threshold:
                     continue
                 
-                record = {
+                # Use old column names for backward compatibility with tests
+                row = {
                     "job1_id": job1.job_id,
                     "job2_id": job2.job_id,
                     "similarity": similarity
                 }
                 
+                # Add metadata if needed
                 if config.include_metadata:
-                    record.update({
+                    row.update({
                         "job1_title": job1.title,
                         "job2_title": job2.title,
-                        "department": department
+                        "department": job1.department
                     })
                 
+                # Add opportunity flags if needed
                 if config.add_opportunity_flags:
-                    # Determine if this is an internal mobility opportunity
-                    # based on level progression and skill similarity
-                    is_internal_mobility = (
-                        similarity >= 0.7 and  # High skill similarity
-                        job1.level != job2.level and  # Different levels
-                        (
-                            (job1.level.value < job2.level.value) or  # Upward mobility
-                            (job2.level.value < job1.level.value)  # Downward mobility
-                        )
-                    )
+                    # Determine if this is a high similarity opportunity
+                    is_high_similarity = similarity >= config.get_threshold("high_similarity", 0.8)
                     
-                    record.update({
-                        "is_high_similarity_opportunity": similarity >= 0.8,
+                    # Determine if this is an internal mobility opportunity based on levels
+                    is_internal_mobility = False
+                    if job1.level and job2.level and job1.level != job2.level:
+                        # For now, a simple level difference counts as mobility
+                        is_internal_mobility = True
+                    
+                    # Add flags to row
+                    row.update({
+                        "is_high_similarity_opportunity": is_high_similarity,
                         "is_internal_mobility_opportunity": is_internal_mobility,
                         "is_cross_departmental_opportunity": False  # Same department
                     })
                 
-                similarities.append(record)
+                matrix_data.append(row)
         
         # Create DataFrame
-        df = pd.DataFrame(similarities)
+        df = pd.DataFrame(matrix_data)
+        
+        # Sort by similarity (descending)
+        if not df.empty:
+            df = df.sort_values(by="similarity", ascending=False)
         
         # Save to file if path provided
         if output_path:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            
+            # Export based on format
             if config.format.lower() == "csv":
                 df.to_csv(output_path, index=False)
             elif config.format.lower() == "json":
                 df.to_json(output_path, orient="records", indent=2)
+            elif config.format.lower() == "excel":
+                df.to_excel(output_path, index=False)
         
         return df
-    
-    def _calculate_job_similarity(self, job1: Any, job2: Any) -> float:
-        """Calculate similarity between two jobs.
         
-        Args:
-            job1: First job
-            job2: Second job
+    def _calculate_job_similarity(self, job1: Any, job2: Any) -> float:
+        """Calculate similarity between two jobs."""
+        if not self.similarity_calculator:
+            self._initialize_similarity_calculator()
             
-        Returns:
-            Similarity score between 0 and 1
-        """
-        # This is a placeholder - in the real implementation,
-        # this would use the similarity calculator
-        return 0.7  # Fixed value for testing 
+        return self.similarity_calculator.calculate_job_similarity(job1.job_id, job2.job_id) 

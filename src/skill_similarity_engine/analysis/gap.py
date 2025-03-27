@@ -681,18 +681,22 @@ class TeamGapAnalyzer:
     def identify_critical_skill_gaps(
         self,
         department: Optional[str] = None,
-        min_gap_threshold: float = 2.0
+        min_gap_threshold: Optional[float] = None
     ) -> pd.DataFrame:
         """
         Identify critical skill gaps across a department or the entire organization.
         
         Args:
             department: Department to analyze (all departments if None)
-            min_gap_threshold: Minimum gap threshold to consider critical
+            min_gap_threshold: Minimum gap threshold to consider critical (uses config value if None)
             
         Returns:
             DataFrame with critical skill gaps
         """
+        # Use configuration value if not provided
+        if min_gap_threshold is None:
+            min_gap_threshold = get_config().gap_analysis.min_gap_threshold
+        
         # Get jobs to analyze
         if department:
             jobs = self.job_architecture.get_jobs_by_department(department)

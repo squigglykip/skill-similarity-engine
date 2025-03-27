@@ -178,3 +178,51 @@ Total estimated time: 49 working days (~10 weeks)
 - Comprehensive documentation
 - Optimised data exports for Power BI consumption 
 - Support for "Prescribe Skills" model with job-to-job analysis as primary focus 
+
+# Configuration
+
+The Skill Similarity Engine uses a flexible configuration system that supports different environments:
+
+- **Development**: Default development settings
+- **Testing**: Settings optimized for testing
+- **Production**: Settings optimized for production use
+
+## Using Configuration
+
+To use the configuration system in your code:
+
+```python
+from skill_similarity_engine.config.settings import load_config_for_environment, get_config
+
+# Load configuration (defaults to the environment in default.yaml)
+load_config_for_environment("path/to/config/dir")
+
+# Or for a specific environment
+load_config_for_environment("path/to/config/dir", "production")
+
+# Access configuration
+config = get_config()
+threshold = config.similarity.threshold
+```
+
+## Environment Variables
+
+You can override any configuration setting using environment variables:
+
+```bash
+# Override data directory
+export SSE_DATA_DIR="/custom/data/path"
+
+# Override similarity threshold
+export SSE_SIMILARITY_THRESHOLD="0.75"
+```
+
+## Configuration Files
+
+The configuration is stored in YAML files with a hierarchy:
+
+1. `default.yaml` - Default values for all settings
+2. `[environment].yaml` - Environment-specific overrides
+3. `local.yaml` - Local overrides (not checked into git)
+
+See the `config/README.md` file for details on the configuration structure. 
