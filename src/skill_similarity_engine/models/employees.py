@@ -370,9 +370,9 @@ class EmployeeDatabase:
         Raises:
             ValueError: If the file type is not supported
         """
-        from ..data.loaders import EmployeeDatabaseLoader
+        from ..data.loaders import EmployeeLoader
         
-        loader = EmployeeDatabaseLoader(job_architecture)
+        loader = EmployeeLoader(job_architecture)
         if file_path.endswith('.csv'):
             return loader.load_from_csv(file_path)
         elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):

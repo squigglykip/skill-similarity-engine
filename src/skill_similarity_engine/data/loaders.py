@@ -66,6 +66,36 @@ class SkillTaxonomyLoader:
         skills_path = os.path.join(self.base_dir, skills_file)
         skills_df = pd.read_csv(skills_path)
         
+        # Create category mapping if categories are in skills file
+        category_mapping = {}
+        if "category" in skills_df.columns and "subcategory" in skills_df.columns:
+            # Create main categories
+            for category in skills_df["category"].unique():
+                if pd.notna(category):
+                    category_id = f"C{len(category_mapping) + 1:03d}"
+                    category_mapping[category] = category_id
+                    if not taxonomy.get_category(category_id):
+                        taxonomy.add_category(SkillCategory(
+                            category_id=category_id,
+                            name=category,
+                            description=f"{category} skills and competencies"
+                        ))
+            
+            # Create subcategories
+            for _, row in skills_df.iterrows():
+                if pd.notna(row["subcategory"]):
+                    parent_id = category_mapping.get(row["category"])
+                    if parent_id:
+                        subcategory_id = f"C{len(category_mapping) + 1:03d}"
+                        category_mapping[row["subcategory"]] = subcategory_id
+                        if not taxonomy.get_category(subcategory_id):
+                            taxonomy.add_category(SkillCategory(
+                                category_id=subcategory_id,
+                                name=row["subcategory"],
+                                parent_id=parent_id,
+                                description=f"{row['subcategory']} skills"
+                            ))
+        
         for _, row in skills_df.iterrows():
             # Parse skill type
             skill_type = SkillType.OTHER
@@ -81,11 +111,16 @@ class SkillTaxonomyLoader:
             related_skills = self._parse_list_field(row, "related_skills")
             prerequisites = self._parse_list_field(row, "prerequisites")
             
+            # Get category ID from mapping if available
+            category_id = None
+            if "category" in row and "subcategory" in row:
+                category_id = category_mapping.get(row["subcategory"]) or category_mapping.get(row["category"])
+            
             skill = Skill(
                 skill_id=str(row["skill_id"]),
                 name=row["name"],
                 description=row.get("description", ""),
-                category_id=str(row["category_id"]) if pd.notna(row.get("category_id", None)) else None,
+                category_id=category_id,
                 skill_type=skill_type,
                 aliases=aliases,
                 related_skills=related_skills,

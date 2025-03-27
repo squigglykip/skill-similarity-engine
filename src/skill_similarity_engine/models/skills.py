@@ -9,6 +9,9 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Dict, List, Optional, Set, Tuple
 from collections import defaultdict
+import os
+import pandas as pd
+import json
 
 
 class SkillType(Enum):
@@ -478,25 +481,124 @@ class SkillTaxonomy:
         }
     
     @classmethod
-    def from_file(cls, file_path: str) -> 'SkillTaxonomy':
-        """
-        Load a skill taxonomy from a file (CSV or Excel).
+    def from_file(cls, file_path: str) -> "SkillTaxonomy":
+        """Load a skill taxonomy from a file.
         
         Args:
             file_path: Path to the file to load from
             
         Returns:
-            A new SkillTaxonomy instance loaded from the file
+            A new SkillTaxonomy instance
             
         Raises:
             ValueError: If the file type is not supported
         """
-        from ..data.loaders import SkillTaxonomyLoader
+        # Create a new taxonomy
+        taxonomy = cls()
         
-        loader = SkillTaxonomyLoader()
-        if file_path.endswith('.csv'):
-            return loader.load_from_csv(file_path)
-        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-            return loader.load_from_excel(file_path)
+        # Load categories first
+        categories_path = os.path.join(os.path.dirname(file_path), 'categories.csv')
+        category_name_to_id = {}  # Map category names to IDs
+        
+        if os.path.exists(categories_path):
+            categories_df = pd.read_csv(categories_path)
+            for _, row in categories_df.iterrows():
+                category = SkillCategory(
+                    category_id=row['category_id'],
+                    name=row['name'],
+                    parent_id=row.get('parent_id') if pd.notna(row.get('parent_id')) else None,
+                    description=row.get('description', '')
+                )
+                taxonomy.add_category(category)
+                category_name_to_id[category.name] = category.category_id
+        
+        # Determine file type from extension
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        if file_ext == ".csv":
+            # Load skills from CSV
+            df = pd.read_csv(file_path)
+            
+            for _, row in df.iterrows():
+                # Handle category and subcategory
+                category_name = row.get("category", None)
+                if pd.notna(category_name):
+                    category_id = category_name_to_id.get(category_name)
+                    if not category_id:
+                        # If category doesn't exist, create it
+                        category_id = f"C{len(taxonomy.categories) + 1:03d}"
+                        category = SkillCategory(
+                            category_id=category_id,
+                            name=category_name
+                        )
+                        taxonomy.add_category(category)
+                        category_name_to_id[category_name] = category_id
+                else:
+                    category_id = None
+                
+                # Convert lists from strings if needed
+                aliases = []
+                if pd.notna(row.get("aliases")):
+                    aliases = [a.strip() for a in row["aliases"].split(",") if a.strip()]
+                
+                related_skills = []
+                if pd.notna(row.get("related_skills")):
+                    related_skills = [s.strip() for s in row["related_skills"].split(",") if s.strip()]
+                
+                prerequisites = []
+                if pd.notna(row.get("prerequisites")):
+                    prerequisites = [p.strip() for p in row["prerequisites"].split(",") if p.strip()]
+                
+                skill = Skill(
+                    skill_id=row["skill_id"],
+                    name=row["name"],
+                    description=row.get("description", ""),
+                    category_id=category_id,
+                    skill_type=row.get("skill_type", SkillType.TECHNICAL),
+                    aliases=aliases,
+                    related_skills=related_skills,
+                    prerequisites=prerequisites
+                )
+                taxonomy.add_skill(skill)
+            
+            return taxonomy
+            
+        elif file_ext == ".json":
+            # Load from JSON
+            with open(file_path, "r") as f:
+                data = json.load(f)
+            
+            # Handle dictionary format where keys are skill IDs
+            for skill_id, skill_data in data.items():
+                # Handle category and subcategory
+                category_name = skill_data.get("category")
+                if category_name:
+                    category_id = category_name_to_id.get(category_name)
+                    if not category_id:
+                        # If category doesn't exist, create it
+                        category_id = f"C{len(taxonomy.categories) + 1:03d}"
+                        category = SkillCategory(
+                            category_id=category_id,
+                            name=category_name
+                        )
+                        taxonomy.add_category(category)
+                        category_name_to_id[category_name] = category_id
+                else:
+                    category_id = None
+                
+                skill = Skill(
+                    skill_id=skill_id,  # Use the key as skill_id
+                    name=skill_data["name"],
+                    description=skill_data.get("description", ""),
+                    category_id=category_id,
+                    skill_type=skill_data.get("skill_type", SkillType.TECHNICAL),
+                    aliases=skill_data.get("aliases", []),
+                    related_skills=skill_data.get("related_skills", []),
+                    prerequisites=skill_data.get("prerequisites", [])
+                )
+                taxonomy.add_skill(skill)
+            
+            return taxonomy
+            
         else:
-            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or Excel files.") 
+            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or JSON files.") 

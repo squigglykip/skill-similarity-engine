@@ -437,6 +437,10 @@ class CosineSimilarityCalculator:
             raise ValueError(f"Invalid entity type: {entity_type}. Must be 'job' or 'employee'")
         
         # Calculate pairwise cosine similarity
+        # Note: sklearn's cosine_similarity already handles normalization
         similarity_matrix = sklearn_cosine_similarity(vectors)
+        
+        # Ensure values are within [0, 1] range
+        similarity_matrix = np.clip(similarity_matrix, 0, 1)
         
         return similarity_matrix, ids 

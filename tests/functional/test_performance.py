@@ -15,9 +15,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-# Add the root directory to the path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / 'src'))
+# Add the src directory to the Python path
+src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.models.jobs import JobArchitecture

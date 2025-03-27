@@ -6,15 +6,17 @@ This test verifies that the gap analysis functionality works correctly with smal
 It tests skill gap identification and development effort calculation.
 """
 
-import os
 import sys
+import os
+
+# Add the src directory to the Python path
+src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
 import tempfile
 import unittest
 from pathlib import Path
-
-# Add the src directory to the path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 from skill_similarity_engine.models.skills import SkillTaxonomy, Skill, SkillCategory
 from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel

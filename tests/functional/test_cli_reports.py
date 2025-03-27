@@ -6,8 +6,8 @@ This test verifies that the export functionality works correctly with small test
 including job similarity exports, employee similarity exports, and skill gap analysis exports.
 """
 
-import os
 import sys
+import os
 import tempfile
 import unittest
 import subprocess
@@ -15,9 +15,10 @@ import json
 import pandas as pd
 from pathlib import Path
 
-# Add the src directory to the path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / 'src'))
+# Add the src directory to the Python path
+src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 from skill_similarity_engine.models.skills import SkillTaxonomy, Skill
 from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
@@ -85,7 +86,7 @@ class TestCliReports(unittest.TestCase):
         )
         
         # Path to the CLI script
-        self.script_path = PROJECT_ROOT / "scripts" / "generate_reports.py"
+        self.script_path = Path(__file__).parent.parent.parent / "scripts" / "generate_reports.py"
         
     def tearDown(self):
         """Clean up temporary directory."""

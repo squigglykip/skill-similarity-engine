@@ -151,6 +151,8 @@ We will use the following branch structure:
 
 > **Testing Focus**: Since our implementation prioritises Job-to-Job Similarity Analysis, our testing efforts will concentrate on validating the accuracy, performance, and usefulness of job similarity outputs for Power BI integration.
 
+> **Deployment Pipeline Methodology**: To ensure a robust, production-grade implementation of the Job-to-Job Similarity functionality, we will follow a staged deployment pipeline with clear quality gates between environments (Development → Testing → Staging → Production). This industry-standard approach ensures that only thoroughly tested code advances to production, with appropriate validation at each stage.
+
 #### 5.2.1 Functional Testing (2 days)
 - [x] Test CLI scripts with sample data
 - [x] Verify data loading and validation
@@ -262,7 +264,78 @@ We will use the following branch structure:
 - [x] Create sample data templates for future testing
 - [x] Reorganize tests into unit, integration, and functional categories
 
+#### 5.2.7 Additional Testing Tasks *(NEW)*
+
+The following additional testing tasks will further strengthen the system's reliability and ensure smooth integration with downstream consumers:
+
+**Expanded Test Coverage:**
+- [ ] Complete remaining unit tests for the `test_models.py` and `test_data.py` modules
+- [x] Implement integration tests for the visualisation module in `test_visualisation.py`
+- [x] Add functional tests for analysis workflows in `test_analysis.py`
+- [ ] Create test workflows for the full job-to-job similarity pipeline
+
+**CI/CD Integration:**
+- [ ] Set up automated test runs as part of continuous integration
+- [ ] Implement code coverage reporting
+- [ ] Add linting checks to enforce code quality standards
+- [ ] Create automated build and test documentation
+
+**Data Quality Testing:**
+- [ ] Implement tests for validating input data quality
+- [ ] Create tests for verifying output data consistency
+- [ ] Add tests for error handling with malformed input data
+- [ ] Implement schema validation tests for CSV and JSON outputs
+
+**Power BI Integration Assurance:**
+- [ ] Develop specific tests for validating Power BI import processes
+- [ ] Create tests that verify correct relationship structure in exported data
+- [ ] Implement tests for checking metadata fields required by Power BI
+- [ ] Add tests for validating incremental data update patterns
+
+> **Implementation Note**: These additional tests will be structured according to the established test categorization: unit tests for isolated components, integration tests for component interactions, and functional tests for end-to-end workflows.
+
 > **Revised Testing Strategy**: Given the lightweight nature of TF-IDF and our confidence in the scalability of the core algorithm, we'll focus more on integration testing and documentation rather than extensive performance optimization. We'll conduct basic performance validation to ensure no unexpected issues arise, but detailed benchmarking is less critical.
+
+#### 5.2.8 Staged Deployment Implementation *(NEW)*
+
+**Development Environment Quality Gates:**
+- [ ] Implement comprehensive unit test suite for all core components
+- [ ] Set up linting and static code analysis
+- [ ] Create peer code review process
+- [ ] Define technical debt and bug severity thresholds
+
+**Testing Environment Tasks:**
+- [ ] Set up dedicated testing environment with larger datasets
+- [ ] Implement automated test pipelines for all test categories
+- [ ] Create test data validation utilities
+- [ ] Develop boundary condition and edge case test suite
+
+**Staging Environment Implementation:**
+- [ ] Configure staging environment mirroring production
+- [ ] Set up procedures for testing with production data subsets
+- [ ] Create validation workflow with domain experts
+- [ ] Implement user acceptance testing process
+- [ ] Develop performance benchmarking utilities for realistic loads
+
+**Production Readiness:**
+- [ ] Create deployment scripts and procedures
+- [ ] Implement monitoring and logging framework
+- [ ] Establish backup and recovery procedures
+- [ ] Develop version tagging and release notes process
+- [ ] Create user feedback collection mechanism
+
+**Quality Gates and Metrics:**
+- [ ] Define code coverage targets (aim for >80% for core functionality)
+- [ ] Establish performance benchmarks for key operations
+- [ ] Set memory usage thresholds for various data scales
+- [ ] Create data quality validation framework
+- [ ] Implement automatic quality report generation
+
+**Promotion Process Implementation:**
+- [ ] Create test result collection and reporting tool
+- [ ] Define sign-off workflow for environment promotion
+- [ ] Implement verification procedures for successful deployments
+- [ ] Develop rollback mechanisms for failed deployments
 
 ### 5.3 Performance Optimisation (3 days) *(REVISED)*
 - [ ] *(DEPRIORITIZED)* Address performance bottlenecks identified during testing
@@ -294,19 +367,118 @@ We will use the following branch structure:
 - [x] Add validation and error reporting for data transformation
 - [ ] Focus on scalability for large dataset processing
 
-### 6.3 Production Deployment Preparation (1 day) *(NEW)*
+### 6.3 Configuration System Enhancements (3 days) *(NEW)*
+- [ ] Design comprehensive configuration schema for all configurable parameters
+- [ ] Implement YAML-based configuration with hierarchical structure
+- [ ] Move hardcoded thresholds, weights, and flags to configuration
+- [ ] Create configuration validation and error reporting
+- [ ] Add CLI support for configuration management
+- [ ] Develop sample configuration files for different use cases
+- [ ] Update components to use centralized configuration
+
+### 6.4 Production Deployment Preparation (1 day) *(NEW)*
 - [ ] Create deployment documentation
 - [ ] Implement logging for production environments
 - [ ] Add configuration templates for different environments (dev, test, prod)
 - [ ] Create backup and recovery procedures
 
-### 6.4 Data Quality Checks (1 day)
-- [ ] Create data quality verification tools
-- [ ] Implement consistency checks across different data sources
-- [ ] Add reporting for missing or anomalous data
-- [ ] Create audit trails for data transformations
+### 6.5 HRIS Integration *(NEW)*
+- [ ] Develop mappings from HRIS job codes to internal job architecture
+- [ ] Create data extraction scripts for HRIS integration
+- [ ] Implement validation for HRIS data structure compatibility
+- [ ] Build incremental update workflow for job architecture changes
+- [ ] Document HRIS synchronisation procedures and scheduling
+
+### 6.6 Power BI Integration Finalisation *(NEW)*
+- [ ] Finalise data schema documentation for Power BI developers
+- [ ] Create reference relationship models for Power BI implementation
+- [ ] Develop sample DAX measures for common analyses
+- [ ] Document refresh and update procedures
+- [ ] Create user guide for working with exported data in Power BI
 
 > **IMPLEMENTATION NOTE**: Phase 6 work will concentrate on optimizing job-to-job similarity data for Power BI consumption, ensuring proper relationship modeling between jobs and skills.
+
+## Phase 7: Interactive CLI Implementation
+
+**Branch: `feature/interactive-cli`**
+
+### 7.1 Interactive CLI Framework (2 days)
+- [ ] Create interactive CLI module structure
+- [ ] Implement welcome screen and main flow sequence
+- [ ] Add styled console output with rich library
+- [ ] Set up questionary/PyInquirer for interactive prompts
+
+### 7.2 User Flow Implementation (3 days)
+- [ ] Build analysis type selection interface
+- [ ] Implement input file selection with validation
+- [ ] Create output preferences configuration flow
+- [ ] Develop analysis parameters selection screens
+- [ ] Add summary confirmation before proceeding with analysis
+
+### 7.3 Progress Tracking (2 days)
+- [ ] Implement progress bars for time-consuming operations
+- [ ] Add spinners for operations without percentage completion
+- [ ] Include elapsed time indicators for long-running processes
+- [ ] Create step-by-step progress indicators
+
+### 7.4 Integration with Core Analysis (2 days)
+- [ ] Connect interactive CLI to existing analysis functions
+- [ ] Ensure proper data flow between CLI and core functionality
+- [ ] Implement progress tracking hooks in core analysis code
+- [ ] Add thorough error handling and validation
+
+### 7.5 Testing and Polish (2 days)
+- [ ] Create test cases for interactive CLI
+- [ ] Test with various input conditions and edge cases
+- [ ] Polish user experience and refine error messages
+- [ ] Add comprehensive help documentation
+
+### 7.6 Documentation and Examples (1 day)
+- [ ] Update README with interactive CLI usage instructions
+- [ ] Create example scripts showcasing interactive functionality
+- [ ] Add detailed comments and docstrings
+- [ ] Include troubleshooting section for common issues
+
+### Technical Implementation Details
+
+#### Code Structure
+```
+skill_similarity_engine/
+├── cli/
+│   ├── __init__.py
+│   ├── interactive.py    <- New file for interactive CLI
+│   └── utils.py          <- CLI utilities
+├── visualization/        <- Existing visualization code
+├── models/               <- Existing data models
+├── analysis/             <- Existing analysis code
+├── similarity/           <- Existing similarity calculation
+└── __main__.py           <- Updated entry point
+```
+
+#### Interface Flow Design
+The interactive CLI will follow this sequence:
+1. Welcome screen
+2. Analysis type selection (focus on job-to-job similarity)
+3. Input file selection (jobs data and skills taxonomy)
+4. Output preferences (directory, format, filename)
+5. Analysis parameters (similarity method, normalization, threshold)
+6. Summary confirmation before proceeding
+7. Progress tracking for each step
+8. Final summary with output file locations
+
+#### Error Handling
+- Validate file paths and formats before processing
+- Provide clear, user-friendly error messages
+- Allow users to retry when inputs are invalid
+- Gracefully handle process interruptions
+
+#### Integration Points
+The interactive CLI will integrate with existing code at these points:
+- Data loading and validation
+- Similarity calculation
+- Gap analysis
+- Visualization generation
+- Report generation
 
 ## Dependencies
 
@@ -322,13 +494,14 @@ The following dependencies will be used:
 
 ## Timeline
 
-Total estimated time: 57 working days (~11-12 weeks)
+Total estimated time: 68 working days
 - Phase 1: 11 days - **COMPLETED**
 - Phase 2: 8 days - **COMPLETED** (with some deferred items)
 - Phase 3: 8 days - **COMPLETED**
 - Phase 4: 13 days - **COMPLETED**
-- Phase 5: 11 days - **IN PROGRESS** (CLI completed, core testing completed, documentation in progress)
-- Phase 6: 6 days - **PENDING**
+- Phase 5: 11 days - **IN PROGRESS** (CLI completed, core testing completed, documentation in progress, additional testing ongoing)
+- Phase 6: 10 days - **PENDING** (expanded scope with HRIS and Power BI integration)
+- Phase 7: 12 days - **PLANNED** (Interactive CLI implementation)
 
 ## Technical Constraints
 
@@ -350,4 +523,11 @@ The core Job-to-Job Similarity Analysis functionality has been fully implemented
 4. Handles realistic job volumes and skill taxonomies
 5. Produces clean outputs ready for Power BI integration
 
-Remaining work is primarily focused on documentation, edge case handling, and production preparation. The system is on track to meet all requirements, with efficient and scalable performance for the primary job similarity use case. 
+Remaining work is primarily focused on:
+1. **Testing** - Completing additional test cases to ensure robustness and reliability
+2. **Production Readiness** - Implementing logging, error handling, and deployment documentation
+3. **Integration** - Finalising HRIS data mappings and Power BI integration patterns
+4. **Data Quality** - Implementing data validation and quality checks
+5. **Documentation** - Completing comprehensive guides for system usage and integration
+
+With these final pieces in place, the system will be fully production-ready and positioned to deliver significant value through job similarity analysis and skill gap identification. The focus on Job-to-Job similarity provides immediate value while establishing a foundation for future employee-centric analyses once individual skill data becomes available. 
