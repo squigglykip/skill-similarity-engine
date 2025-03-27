@@ -1,0 +1,7 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J007,Software Engineer,Technology,J015,IT Support Specialist,IT,0.0
+J007,Software Engineer,Technology,J016,Cybersecurity Analyst,IT,0.13017762677435804
+J008,Senior Software Engineer,Technology,J015,IT Support Specialist,IT,0.2778272925255135
+J008,Senior Software Engineer,Technology,J016,Cybersecurity Analyst,IT,0.45005286998346
+J009,UI/UX Designer,Technology,J015,IT Support Specialist,IT,0.23687777185606657
+J009,UI/UX Designer,Technology,J016,Cybersecurity Analyst,IT,0.0
