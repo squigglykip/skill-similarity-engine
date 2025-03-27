@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from ..config.settings import get_config
 from ..models.employees import EmployeeDatabase
@@ -82,7 +83,6 @@ class VisualisationManager:
         self._data_exporter = DataExporter(
             skill_taxonomy=skill_taxonomy,
             job_architecture=job_architecture,
-            employee_database=employee_database,
             output_dir=self.output_dir
         )
         
@@ -98,40 +98,192 @@ class VisualisationManager:
     
     def generate_job_similarity_heatmap(
         self,
-        department: Optional[str] = None,
-        top_n: Optional[int] = None,
-        cluster: bool = False,
+        department: str,
         save_to_file: bool = True,
-        file_path: Optional[str] = None
-    ) -> plt.Figure:
-        """
-        Generate a heatmap of job similarities.
+        output_path: Optional[str] = None,
+        color_scheme: str = "viridis",
+        figsize: tuple = (10, 8),
+        dpi: int = 300
+    ) -> str:
+        """Generate a heatmap visualization of job similarities.
         
         Args:
-            department: Department to filter by (all departments if None)
-            top_n: Number of top jobs to include (all jobs if None)
-            cluster: Whether to cluster similar jobs together
-            save_to_file: Whether to save the visualisation to a file
-            file_path: Path to save the heatmap image
+            department: Department to include
+            save_to_file: Whether to save the plot to a file
+            output_path: Path to save the heatmap (if None, auto-generated)
+            color_scheme: Matplotlib colormap name
+            figsize: Figure size (width, height)
+            dpi: Dots per inch for the output image
             
         Returns:
-            Matplotlib figure
+            Path to the generated heatmap image
         """
-        config = HeatmapConfig(
-            title="Job Similarity Heatmap",
-            cmap="viridis",
-            mask_diagonal=True,
-            cluster=cluster,
-            vmin=0.0,
-            vmax=1.0
+        # Get job similarities
+        df = self._data_exporter.export_job_similarity_matrix(
+            department=department,
+            config=ReportConfig(format="csv")
         )
         
-        return self._similarity_heatmap_generator.generate_job_similarity_heatmap(
-            department=department,
-            top_n=top_n,
-            config=config,
-            file_path=file_path if save_to_file else None
+        # Create pivot table for heatmap
+        pivot_df = df.pivot(
+            index="job1_id",
+            columns="job2_id",
+            values="similarity"
         )
+        
+        # Generate heatmap
+        plt.figure(figsize=figsize)
+        sns.heatmap(
+            pivot_df,
+            cmap=color_scheme,
+            vmin=0,
+            vmax=1,
+            annot=True,
+            fmt=".2f"
+        )
+        plt.title(f"Job Similarity Heatmap - {department}")
+        plt.tight_layout()
+        
+        # Save the plot if requested
+        if save_to_file:
+            if output_path is None:
+                output_path = os.path.join(
+                    self.output_dir,
+                    f"job_similarity_heatmap_{department}.png"
+                )
+            plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
+            plt.close()
+            return output_path
+        return None
+    
+    def generate_hexbin_visualization(
+        self,
+        department: str,
+        output_path: Optional[str] = None,
+        color_scheme: str = "viridis",
+        figsize: tuple = (10, 8),
+        dpi: int = 300
+    ) -> str:
+        """Generate a hexbin visualization of job similarities.
+        
+        Args:
+            department: Department to visualize
+            output_path: Path to save the visualization (if None, auto-generated)
+            color_scheme: Matplotlib colormap name
+            figsize: Figure size (width, height)
+            dpi: Dots per inch for the output image
+            
+        Returns:
+            Path to the generated visualization
+        """
+        # Get job similarities for the department
+        df = self._data_exporter.export_job_similarity_matrix(
+            department=department,
+            config=ReportConfig(format="csv")
+        )
+        
+        # Create numeric coordinates from job IDs
+        unique_jobs = pd.concat([df["job1_id"], df["job2_id"]]).unique()
+        job_to_idx = {job: idx for idx, job in enumerate(unique_jobs)}
+        
+        # Convert job IDs to numeric coordinates
+        x_coords = df["job1_id"].map(job_to_idx)
+        y_coords = df["job2_id"].map(job_to_idx)
+        
+        # Create hexbin plot
+        plt.figure(figsize=figsize)
+        plt.hexbin(
+            x_coords,
+            y_coords,
+            C=df["similarity"],
+            cmap=color_scheme,
+            gridsize=20
+        )
+        plt.colorbar(label="Similarity")
+        plt.title(f"Job Similarity Hexbin - {department}")
+        plt.xlabel("Job 1")
+        plt.ylabel("Job 2")
+        plt.tight_layout()
+        
+        # Save the plot if requested
+        if output_path is None:
+            output_path = os.path.join(
+                self.output_dir,
+                f"job_similarity_hexbin_{department}.png"
+            )
+        plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
+        plt.close()
+        return output_path
+    
+    def generate_gap_analysis_heatmap(
+        self,
+        department: str,
+        save_to_file: bool = True,
+        output_path: Optional[str] = None,
+        color_scheme: str = "viridis",
+        figsize: tuple = (10, 8),
+        dpi: int = 300
+    ) -> str:
+        """Generate a gap analysis heatmap visualization.
+        
+        Args:
+            department: Department to analyze
+            save_to_file: Whether to save the plot to a file
+            output_path: Path to save the heatmap (if None, auto-generated)
+            color_scheme: Matplotlib colormap name
+            figsize: Figure size (width, height)
+            dpi: Dots per inch for the output image
+            
+        Returns:
+            Path to the generated heatmap image
+            
+        Raises:
+            ValueError: If employee database is not provided
+        """
+        if not self._gap_heatmap_generator:
+            raise ValueError("Employee database is required for gap analysis")
+        
+        # Generate gap analysis heatmap
+        return self._gap_heatmap_generator.generate_heatmap(
+            department=department,
+            save_to_file=save_to_file,
+            output_path=output_path,
+            color_scheme=color_scheme,
+            figsize=figsize,
+            dpi=dpi
+        )
+    
+    def export_job_similarity_matrix(
+        self,
+        department: str,
+        output_path: Optional[str] = None,
+        threshold: float = 0.0
+    ) -> pd.DataFrame:
+        """Export job similarity matrix to CSV.
+        
+        Args:
+            department: Department to include
+            output_path: Path to save the CSV file (if None, auto-generated)
+            threshold: Minimum similarity threshold
+            
+        Returns:
+            DataFrame containing the similarity matrix
+        """
+        # Get job similarities
+        df = self._data_exporter.export_job_similarity_matrix(
+            department=department,
+            config=ReportConfig(format="csv")
+        )
+        
+        # Apply threshold if specified
+        if threshold > 0:
+            df = df[df["similarity"] >= threshold]
+        
+        # Save to CSV if path provided
+        if output_path:
+            df.to_csv(output_path, index=False)
+        
+        return df
     
     def generate_employee_similarity_heatmap(
         self,
@@ -480,47 +632,6 @@ class VisualisationManager:
         )
     
     # Power BI Export Methods
-    
-    def export_job_similarity_matrix(
-        self,
-        departments: Optional[List[str]] = None,
-        threshold: Optional[float] = None,
-        format: str = "csv",
-        include_metadata: bool = True,
-        add_opportunity_flags: bool = True,
-        high_similarity_threshold: Optional[float] = None,
-        output_path: Optional[str] = None
-    ) -> pd.DataFrame:
-        """
-        Export job similarity matrix data for Power BI.
-        
-        Args:
-            departments: Departments to filter by (all departments if None)
-            threshold: Similarity threshold (export all similarities if None)
-            format: Export format ('csv', 'excel', or 'json')
-            include_metadata: Whether to include metadata columns
-            add_opportunity_flags: Whether to add opportunity flag columns
-            high_similarity_threshold: Threshold for high similarity (0.0-1.0)
-                If None, uses the value from the global config
-            output_path: Path to save the exported data
-            
-        Returns:
-            DataFrame with job similarity data
-        """
-        config = ReportConfig(
-            include_metadata=include_metadata,
-            format=format,
-            include_names=True,
-            add_opportunity_flags=add_opportunity_flags,
-            high_similarity_threshold=high_similarity_threshold
-        )
-        
-        return self._data_exporter.export_job_similarity_matrix(
-            departments=departments,
-            threshold=threshold,
-            config=config,
-            output_path=output_path
-        )
     
     def export_employee_similarity_matrix(
         self,

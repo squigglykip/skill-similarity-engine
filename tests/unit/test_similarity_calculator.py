@@ -6,22 +6,29 @@ These tests focus on testing the similarity calculator in isolation
 with minimal dependencies on other components.
 """
 
-import unittest
 import sys
 import os
+import numpy as np
+import pandas as pd
+
+# Add the src directory to the Python path
+src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-# Add the src directory to the path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / 'src'))
-
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
 from skill_similarity_engine.similarity.cosine import TfidfVectorizer
+from skill_similarity_engine.models.skills import Skill, SkillTaxonomy
+from skill_similarity_engine.models.jobs import Job, JobArchitecture, JobLevel
+from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
 
 
 class TestCosineSimilarityCalculator(unittest.TestCase):
-    """Unit tests for CosineSimilarityCalculator class."""
+    """Unit tests for CosineSimilarityCalculator class using mocks."""
     
     def setUp(self):
         """Set up test environment with mocks."""
@@ -59,39 +66,46 @@ class TestCosineSimilarityCalculator(unittest.TestCase):
         self.assertEqual(self.calculator.skill_taxonomy, self.mock_skill_taxonomy)
         self.assertEqual(self.calculator.job_architecture, self.mock_job_architecture)
     
-    @patch('skill_similarity_engine.similarity.cosine.cosine_similarity')
+    @patch('skill_similarity_engine.similarity.cosine.sklearn_cosine_similarity')
     def test_cosine_similarity_called(self, mock_cosine_similarity):
         """Test that sklearn's cosine_similarity is called correctly."""
         # Configure mock to return a known value
-        mock_cosine_similarity.return_value = [[0.75]]
+        # The correct format is a 2D array
+        mock_cosine_similarity.return_value = np.array([[0.75]])
         
-        # Call the calculator
-        result = self.calculator.calculate_similarity(
-            {'S001': 3, 'S002': 3},
-            {'S001': 2, 'S003': 4}
-        )
+        # Mock the job vectors
+        self.calculator.job_vectors = {
+            'J001': np.array([0.5, 0.5, 0.0]),
+            'J002': np.array([0.4, 0.0, 0.6])
+        }
+        
+        # Call the function that should use our mocked sklearn_cosine_similarity
+        result = self.calculator.calculate_job_similarity('J001', 'J002')
         
         # Verify cosine_similarity was called
         self.assertTrue(mock_cosine_similarity.called)
-        # Verify the return value is as expected
+        # Verify the result is as expected
         self.assertEqual(result, 0.75)
     
     def test_calculate_job_similarity(self):
         """Test job similarity calculation by ID."""
-        # Add vectorized skills mock
-        self.mock_job_1.skill_vector = Mock()
-        self.mock_job_2.skill_vector = Mock()
-        self.mock_job_1.skill_vector.cosine_similarity.return_value = 0.65
+        # We need to mock the job vectors, not the job objects
+        # Use numpy arrays instead of lists to allow reshape
+        self.calculator.job_vectors = {
+            'J001': np.array([0.5, 0.5, 0.0]),
+            'J002': np.array([0.4, 0.0, 0.6])
+        }
         
-        # Calculate similarity
-        result = self.calculator.calculate_job_similarity('J001', 'J002')
-        
-        # Verify the job architecture was used to get jobs
-        self.mock_job_architecture.get_job.assert_any_call('J001')
-        self.mock_job_architecture.get_job.assert_any_call('J002')
-        
-        # Verify the result
-        self.assertEqual(result, 0.65)
+        # Mock the sklearn_cosine_similarity function to return a predictable value
+        with patch('skill_similarity_engine.similarity.cosine.sklearn_cosine_similarity') as mock_cosine:
+            # The correct format is a 2D array
+            mock_cosine.return_value = np.array([[0.65]])
+            
+            # Calculate similarity
+            result = self.calculator.calculate_job_similarity('J001', 'J002')
+            
+            # Verify the result
+            self.assertEqual(result, 0.65)
     
     def test_job_not_found(self):
         """Test handling of non-existent job IDs."""
@@ -107,8 +121,105 @@ class TestCosineSimilarityCalculator(unittest.TestCase):
         # Calculate similarity of job with itself
         result = self.calculator.calculate_job_similarity('J001', 'J001')
         
-        # Verify the result
-        self.assertEqual(result, 1.0)
+        # Verify the result using assertAlmostEqual instead of assertEqual for floating point comparison
+        self.assertAlmostEqual(result, 1.0, places=10)
+
+
+class TestCosineSimilarityCalculatorWithRealData(unittest.TestCase):
+    """Unit tests for CosineSimilarityCalculator using real sample data."""
+    
+    def setUp(self):
+        """Set up test environment with real sample data."""
+        # Get the path to sample data
+        sample_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'sample')
+        
+        # Load skill taxonomy from sample data
+        self.taxonomy = SkillTaxonomy()
+        skills_df = pd.read_csv(os.path.join(sample_dir, 'skills.csv'))
+        for _, row in skills_df.iterrows():
+            self.taxonomy.add_skill(Skill(skill_id=row['skill_id'], name=row['name']))
+        
+        # Load job architecture from sample data
+        self.job_arch = JobArchitecture()
+        jobs_df = pd.read_csv(os.path.join(sample_dir, 'jobs.csv'))
+        for _, row in jobs_df.iterrows():
+            # Convert skills string to dictionary
+            skills_dict = {}
+            if pd.notna(row['skills']):  # Check if skills field is not NaN
+                skills_list = row['skills'].split(',')
+                for skill in skills_list:
+                    skill_id, level = skill.split(':')
+                    skills_dict[skill_id] = int(level)
+            
+            job = Job(
+                job_id=row['job_id'],
+                title=row['title'],
+                department=row['department'],
+                level=JobLevel(row['level']),
+                skills=skills_dict
+            )
+            self.job_arch.add_job(job)
+        
+        # Initialize the vectorizer and similarity calculator
+        self.vectorizer = TfidfVectorizer(self.taxonomy)
+        self.calculator = CosineSimilarityCalculator(
+            vectorizer=self.vectorizer,
+            skill_taxonomy=self.taxonomy,
+            job_architecture=self.job_arch
+        )
+    
+    def test_calculator_initialization_with_real_data(self):
+        """Test that the calculator is initialized correctly with real data."""
+        self.assertEqual(self.calculator.vectorizer, self.vectorizer)
+        self.assertEqual(self.calculator.skill_taxonomy, self.taxonomy)
+        self.assertEqual(self.calculator.job_architecture, self.job_arch)
+        
+        # Check that we have loaded some data
+        self.assertGreater(len(self.taxonomy.skills), 0)
+        self.assertGreater(len(self.job_arch.jobs), 0)
+    
+    def test_calculate_job_similarity_with_real_data(self):
+        """Test job similarity calculation with real data."""
+        # Get two jobs from our sample data
+        job_ids = list(self.job_arch.jobs.keys())
+        if len(job_ids) >= 2:
+            job1_id, job2_id = job_ids[:2]
+            
+            # Calculate similarity
+            similarity = self.calculator.calculate_job_similarity(job1_id, job2_id)
+            
+            # Verify the result is between 0 and 1
+            self.assertGreaterEqual(similarity, 0.0)
+            self.assertLessEqual(similarity, 1.0)
+    
+    def test_identical_jobs_with_real_data(self):
+        """Test that identical jobs have similarity of 1.0 with real data."""
+        # Get a job from our sample data
+        job_ids = list(self.job_arch.jobs.keys())
+        if job_ids:
+            job_id = job_ids[0]
+            
+            # Calculate similarity of job with itself
+            similarity = self.calculator.calculate_job_similarity(job_id, job_id)
+            
+            # Verify the result is 1.0
+            self.assertAlmostEqual(similarity, 1.0, places=10)
+    
+    def test_job_not_found_with_real_data(self):
+        """Test handling of non-existent job IDs with real data."""
+        with self.assertRaises(ValueError):
+            self.calculator.calculate_job_similarity('NON_EXISTENT', 'ALSO_NON_EXISTENT')
+    
+    def test_similarity_matrix_with_real_data(self):
+        """Test generating similarity matrix with real data."""
+        # Calculate similarity matrix
+        matrix, job_ids = self.calculator.calculate_similarity_matrix("job")
+        
+        # Verify matrix properties
+        self.assertIsInstance(matrix, np.ndarray)
+        self.assertEqual(matrix.shape, (len(job_ids), len(job_ids)))
+        self.assertTrue(np.allclose(matrix.diagonal(), 1.0))  # Diagonal should be 1.0
+        self.assertTrue(np.all(matrix >= 0) and np.all(matrix <= 1))  # All values between 0 and 1
 
 
 if __name__ == '__main__':

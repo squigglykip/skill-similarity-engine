@@ -6,16 +6,17 @@ This script tests the basic functionality of the CLI commands using small sample
 to ensure that the commands can be executed without errors.
 """
 
-import os
 import sys
+import os
 import subprocess
 import tempfile
 import shutil
 from pathlib import Path
 
-# Add the root directory to the path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+# Add the src directory to the Python path
+src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 # Create a small sample data directory
 SAMPLE_DATA_DIR = Path(tempfile.mkdtemp())
