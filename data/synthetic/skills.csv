@@ -1,0 +1,101 @@
+skill_id,name,category,subcategory,difficulty
+S00001,Customer Service Design,Soft,Interpersonal,3
+S00002,Advanced Team Leadership,Soft,Leadership,3
+S00003,Python Programming G,Technical,Programming Languages,4
+S00004,Advanced Problem Solving,Soft,Critical Thinking,5
+S00005,Team Leadership Design,Soft,Leadership,3
+S00006,Tactical Analytics,Technical,Analytics,3
+S00007,Programming Languages Applications,Technical,Programming Languages,5
+S00008,Python Programming Application,Technical,Programming Languages,4
+S00009,Machine Learning Development,Technical,Data Science,3
+S00010,Java Development,Technical,Programming Languages,4
+S00011,Excel Strategy,Technical,Office Tools,3
+S00012,Statistical Analysis T,Technical,Analytics,3
+S00013,Tactical Database,Technical,Database,3
+S00014,Analytics Management,Technical,Analytics,1
+S00015,Interpersonal Management,Soft,Interpersonal,1
+S00016,Advanced Finance,Domain,Finance,2
+S00017,Analytics Analysis,Technical,Analytics,2
+S00018,Statistical Analysis Management,Technical,Analytics,3
+S00019,Database Implementation,Technical,Database,2
+S00020,Modern Project Management,Technical,Project Management,2
+S00021,Advanced Marketing Analytics,Domain,Risk,4
+S00022,Excel Development,Domain,Banking,3
+S00023,Excel Application,Technical,Office Tools,3
+S00024,JavaScript Application,Domain,Banking,2
+S00025,Strategic Leadership,Soft,Leadership,2
+S00026,PowerBI Design,Technical,Data Visualization,3
+S00027,Cloud Computing Analysis,Technical,Infrastructure,2
+S00028,Database Applications,Technical,Database,3
+S00029,Marketing Design,Domain,Marketing,2
+S00030,Programming Languages Applications Z,Technical,Programming Languages,3
+S00031,Machine Learning Optimization,Technical,Data Science,2
+S00032,Finance Management,Domain,Finance,5
+S00033,SQL 3,Technical,Database,3
+S00034,Tableau M,Technical,Data Visualization,2
+S00035,Customer Service Analysis,Soft,Interpersonal,4
+S00036,Advanced R Programming,Technical,Programming Languages,2
+S00037,R Programming Strategy,Technical,Programming Languages,3
+S00038,JavaScript Design,Technical,Programming Languages,1
+S00039,Critical Thinking Management,Soft,Critical Thinking,2
+S00040,Advanced Management,Soft,Management,3
+S00041,Advanced Customer Service,Soft,Interpersonal,4
+S00042,Tactical Interpersonal,Soft,Interpersonal,3
+S00043,Modern Critical Thinking,Soft,Critical Thinking,3
+S00044,SQL Optimization,Technical,Database,3
+S00045,Corporate Analytics,Technical,Analytics,2
+S00046,Accounting Development,Domain,Finance,2
+S00047,Tactical Marketing,Domain,Marketing,3
+S00048,Infrastructure Management,Technical,Infrastructure,4
+S00049,Corporate Office Tools,Technical,Office Tools,3
+S00050,Project Management Management,Soft,Management,1
+S00051,Statistical Analysis Strategy,Technical,Analytics,3
+S00052,R Programming Development,Technical,Programming Languages,3
+S00053,Risk Management Development,Domain,Finance,2
+S00054,Marketing Analytics Implementation,Domain,Marketing,4
+S00055,Customer Service G,Soft,Interpersonal,4
+S00056,Problem Solving V,Soft,Critical Thinking,4
+S00057,Machine Learning 1,Technical,Data Science,2
+S00058,Modern Risk,Domain,Risk,3
+S00059,Cloud Computing Strategy,Technical,Infrastructure,3
+S00060,Statistical Analysis T Q,Technical,Analytics,4
+S00061,Consumer Programming Languages,Technical,Programming Languages,3
+S00062,Advanced Programming Languages,Technical,Programming Languages,3
+S00063,Team Leadership Strategy,Soft,Leadership,2
+S00064,Data Visualization Management,Technical,Analytics,2
+S00065,Tactical Banking,Domain,Banking,4
+S00066,Financial Analysis Management,Domain,Finance,4
+S00067,SQL Development,Technical,Database,3
+S00068,Programming Languages Strategy,Technical,Programming Languages,4
+S00069,Advanced R Programming J,Technical,Programming Languages,3
+S00070,Office Tools Development,Technical,Office Tools,2
+S00071,PowerBI Application,Domain,Banking,3
+S00072,Statistical Analysis Design,Domain,Banking,5
+S00073,Risk Development,Domain,Risk,3
+S00074,Database Design,Technical,Database,5
+S00075,Finance Analysis,Domain,Finance,1
+S00076,Advanced Database,Technical,Database,4
+S00077,UX Design Management,Domain,Banking,3
+S00078,Consumer Finance,Domain,Finance,3
+S00079,Data Analysis L,Technical,Analytics,3
+S00080,Cloud Computing Management,Technical,Infrastructure,1
+S00081,Advanced Database T,Technical,Database,3
+S00082,Enterprise Data Visualization,Technical,Data Visualization,3
+S00083,Accounting Management,Domain,Risk,4
+S00084,R Programming Development V,Technical,Programming Languages,2
+S00085,Marketing Analytics Management,Domain,Marketing,2
+S00086,Customer Service Analysis N,Soft,Interpersonal,2
+S00087,Communication Management,Soft,Interpersonal,4
+S00088,Modern Data Visualization,Technical,Data Visualization,3
+S00089,PowerBI Optimization,Technical,Data Visualization,2
+S00090,Communication Application,Soft,Interpersonal,4
+S00091,Communication Management H,Soft,Interpersonal,3
+S00092,Risk Management 2,Domain,Finance,4
+S00093,Financial Analysis Implementation,Domain,Finance,2
+S00094,Cloud Computing Implementation,Technical,Infrastructure,3
+S00095,Analytics Design,Technical,Analytics,3
+S00096,Python Programming Optimization,Technical,Programming Languages,2
+S00097,Interpersonal Applications,Soft,Interpersonal,3
+S00098,JavaScript Application O,Domain,Banking,3
+S00099,Strategic Banking,Domain,Banking,3
+S00100,Corporate Leadership,Soft,Leadership,3

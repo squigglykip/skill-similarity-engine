@@ -62,6 +62,19 @@ We will use the following branch structure:
 - [ ] Implement Euclidean distance *(deferred - cosine similarity provides sufficient results)*
 - [ ] Implement Jaccard similarity *(deferred - cosine similarity provides sufficient results)*
 - [x] Add threshold configuration options
+- [x] Implement Pay Scale Area-adjusted similarity calculator *(NEW)* 
+
+#### 2.2.1 Pay Scale Area Methodology *(NEW)*
+- [x] Develop adjustment methodology to account for seniority in similarity calculations
+- [x] Implement `PSAAdjustedSimilarityCalculator` wrapper for base calculator
+- [x] Create configurable adjustment factors for different PSA level gaps
+- [x] Test impact on career progression analysis and pathway identification
+- [x] Document methodology for incorporating implicit proficiency via Pay Scale Area
+
+This enhancement addresses the real-world scenario where explicit proficiency levels are not available in HRIS data. Instead, we use Pay Scale Area (job seniority) as a proxy for skill proficiency, ensuring that:
+- Jobs with similar skill sets but vastly different seniority levels receive appropriately reduced similarity scores
+- Career progression pathways favor appropriate level jumps (1-2 levels) over extreme jumps
+- Similarity scores reflect organizational reality where skills at different seniority levels represent different proficiency
 
 ### 2.3 Similarity Matrix Generation (2 days)
 - [x] Implement job-to-job similarity matrix generation
@@ -202,6 +215,7 @@ We will use the following branch structure:
 - [x] Validate opportunity flag logic for job transitions
 - [x] Test skill gap identification between job pairs
 - [x] Verify development effort calculations for job transitions
+- [x] Test Pay Scale Area-adjusted similarity calculations *(NEW)*
 
 #### 5.2.4 Performance and Scalability Testing *(NEW)*
 - [x] *(LIMITED)* Benchmark job similarity calculation with progressively larger datasets
@@ -285,6 +299,8 @@ The following additional testing tasks will further strengthen the system's reli
 - [ ] Create tests for verifying output data consistency
 - [ ] Add tests for error handling with malformed input data
 - [ ] Implement schema validation tests for CSV and JSON outputs
+- [x] Test the impact of Pay Scale Area on similarity scores *(NEW)*
+- [x] Validate career progression pathway generation with PSA adjustment *(NEW)*
 
 **Power BI Integration Assurance:**
 - [ ] Develop specific tests for validating Power BI import processes
@@ -292,11 +308,28 @@ The following additional testing tasks will further strengthen the system's reli
 - [ ] Implement tests for checking metadata fields required by Power BI
 - [ ] Add tests for validating incremental data update patterns
 
-> **Implementation Note**: These additional tests will be structured according to the established test categorization: unit tests for isolated components, integration tests for component interactions, and functional tests for end-to-end workflows.
+#### 5.2.8 HRIS Translation Testing *(NEW)*
+- [ ] Develop comprehensive tests for the HRIS data translation layer
+- [ ] Test handling of various data formats and field naming conventions
+- [ ] Validate mapping dictionaries for completeness and accuracy
+- [ ] Test field normalisation for edge cases and inconsistent formats
+- [ ] Verify error handling for malformed or unexpected HRIS data
+- [ ] Develop regression tests to ensure translation stability over time
+- [ ] Test incremental update workflows with simulated HRIS changes
+- [ ] Create performance benchmarks for translation layer overhead
 
-> **Revised Testing Strategy**: Given the lightweight nature of TF-IDF and our confidence in the scalability of the core algorithm, we'll focus more on integration testing and documentation rather than extensive performance optimization. We'll conduct basic performance validation to ensure no unexpected issues arise, but detailed benchmarking is less critical.
+#### 5.2.9 Configuration System Testing *(NEW)*
+- [ ] Test configuration validation logic for all parameters
+- [ ] Verify configuration presets for different analysis scenarios
+- [ ] Test configuration override capabilities via CLI arguments
+- [ ] Validate error messages for invalid configuration values
+- [ ] Test impact of configuration changes on analysis outputs
+- [ ] Verify documentation accuracy for all configuration options
+- [ ] Test configuration persistence across system upgrades
 
-#### 5.2.8 Staged Deployment Implementation *(NEW)*
+> **Implementation Note**: These additional testing categories ensure the robustness of both the HRIS data translation layer and configuration management system, which are critical for production deployments.
+
+#### 5.2.10 Staged Deployment Implementation *(NEW)*
 
 **Development Environment Quality Gates:**
 - [ ] Implement comprehensive unit test suite for all core components
@@ -383,11 +416,14 @@ The following additional testing tasks will further strengthen the system's reli
 - [ ] Create backup and recovery procedures
 
 ### 6.5 HRIS Integration *(NEW)*
-- [ ] Develop mappings from HRIS job codes to internal job architecture
-- [ ] Create data extraction scripts for HRIS integration
-- [ ] Implement validation for HRIS data structure compatibility
-- [ ] Build incremental update workflow for job architecture changes
-- [ ] Document HRIS synchronisation procedures and scheduling
+- [ ] Develop HRIS data translation layer to standardise naming conventions
+- [ ] Create mapping dictionaries between HRIS job codes and internal architecture
+- [ ] Implement field normalisation for inconsistent data formats
+- [ ] Build data validation to catch anomalies in HRIS exports
+- [ ] Create detailed documentation of all HRIS-to-internal mappings
+- [ ] Develop incremental update workflow for job architecture changes
+- [ ] Implement configurable refresh schedules for HRIS data synchronisation
+- [ ] Design error handling and notification process for translation failures
 
 ### 6.6 Power BI Integration Finalisation *(NEW)*
 - [ ] Finalise data schema documentation for Power BI developers
@@ -395,6 +431,32 @@ The following additional testing tasks will further strengthen the system's reli
 - [ ] Develop sample DAX measures for common analyses
 - [ ] Document refresh and update procedures
 - [ ] Create user guide for working with exported data in Power BI
+
+### 6.7 Configuration Control Room *(NEW)*
+- [ ] Create centralised configuration management system
+- [ ] Develop comprehensive YAML-based configuration with detailed documentation
+- [ ] Extract all hardcoded thresholds, weights, and parameters to configuration
+- [ ] Implement the following configuration categories:
+  - [ ] Similarity thresholds for opportunity identification
+  - [ ] PSA adjustment factors for career progression
+  - [ ] Skill importance weightings by category
+  - [ ] Visualisation preferences and colour schemes
+  - [ ] Export format specifications
+  - [ ] Performance tuning parameters
+- [ ] Create configuration validation with helpful error messages
+- [ ] Develop configuration presets for different analysis scenarios
+- [ ] Add configuration override capabilities via CLI arguments
+- [ ] Create user-friendly documentation for all configuration options
+
+### 6.8 Real-World Data Testing *(NEW)*
+- [ ] Perform complete end-to-end testing with real HRIS data
+- [ ] Create validation reports comparing outputs with expected results
+- [ ] Test HRIS data translation layer with edge cases
+- [ ] Validate memory usage and performance with full-scale data
+- [ ] Conduct usability testing with intended end users
+- [ ] Gather feedback and implement necessary refinements
+- [ ] Document any remaining data quality issues or constraints
+- [ ] Finalise implementation recommendations based on testing results
 
 > **IMPLEMENTATION NOTE**: Phase 6 work will concentrate on optimizing job-to-job similarity data for Power BI consumption, ensuring proper relationship modeling between jobs and skills.
 
@@ -531,3 +593,156 @@ Remaining work is primarily focused on:
 5. **Documentation** - Completing comprehensive guides for system usage and integration
 
 With these final pieces in place, the system will be fully production-ready and positioned to deliver significant value through job similarity analysis and skill gap identification. The focus on Job-to-Job similarity provides immediate value while establishing a foundation for future employee-centric analyses once individual skill data becomes available. 
+
+## Phase 8: Implementation Details *(NEW)*
+
+### 8.1 HRIS Translation Layer Implementation *(NEW)*
+
+The HRIS Translation Layer will serve as a critical interface between the raw HRIS data and our standardised internal data model. This ensures that the system can adapt to changes in the source data format without requiring modifications to the core analysis components.
+
+#### 8.1.1 Key Components
+
+1. **Field Mapping Dictionary**
+   - Map HRIS field names to internal model attribute names
+   - Handle multiple possible source field names for each internal attribute
+   - Support regex patterns for complex field identification
+
+2. **Data Normalisation Functions**
+   - Standardise job titles and department names
+   - Normalise Pay Scale Area designations across different formats
+   - Convert inconsistent date formats to standard representation
+   - Handle multiple delimiters and separators in source data
+
+3. **Validation Rules**
+   - Define required fields and validation criteria
+   - Implement data quality checks with configurable strictness
+   - Create warning and error reporting mechanisms
+   - Allow override options for exceptional cases
+
+4. **Translation Workflow**
+   - Pre-processing step for raw HRIS data
+   - Detect and report anomalies for manual review
+   - Generate standardised intermediate files
+   - Maintain audit trail of transformations applied
+
+#### 8.1.2 Implementation Approach
+
+The translation layer will be implemented as a distinct module with the following characteristics:
+
+```python
+# Conceptual implementation of the HRIS translator
+class HRISTranslator:
+    def __init__(self, config_path="configs/hris_mapping.yaml"):
+        # Load configuration from YAML file
+        self.field_mappings = load_mappings(config_path)
+        self.validators = build_validators(config_path)
+        self.normalizers = build_normalizers(config_path)
+    
+    def translate(self, input_file, output_file, format="csv"):
+        # Load raw HRIS data
+        data = self.load_data(input_file)
+        
+        # Apply field mappings
+        mapped_data = self.map_fields(data)
+        
+        # Normalise data values
+        normalized_data = self.normalize_data(mapped_data)
+        
+        # Validate the translated data
+        validation_results = self.validate(normalized_data)
+        
+        # Save to standardised format
+        self.save_data(normalized_data, output_file, format)
+        
+        # Return validation results
+        return validation_results
+```
+
+This modular approach will allow for easy updates when HRIS data formats change, without impacting the core analysis components.
+
+### 8.2 Configuration Control Room Implementation *(NEW)*
+
+The Configuration Control Room will serve as a central hub for managing all configurable aspects of the system, making it easy to adjust parameters without code changes and ensuring transparency in how the system behaves.
+
+#### 8.2.1 Key Components
+
+1. **YAML Configuration Structure**
+   - Hierarchical organisation of parameters
+   - Detailed documentation for each parameter
+   - Type validation and range constraints
+   - Default values and recommended ranges
+
+2. **Configuration Categories**
+   - Analysis Parameters (thresholds, weights, scaling factors)
+   - Visualisation Settings (colour schemes, plot sizes, formats)
+   - System Settings (performance tuning, logging levels)
+   - Integration Parameters (file paths, API endpoints)
+   - User Interface Options (display preferences, language)
+
+3. **Configuration Management**
+   - Version control for configurations
+   - Environment-specific settings (dev, test, production)
+   - User-specific overrides
+   - Audit logging of configuration changes
+
+4. **Configuration Interface**
+   - Command-line parameter override capability
+   - Interactive configuration editor
+   - Configuration validation utility
+   - Configuration documentation generator
+
+#### 8.2.2 Implementation Approach
+
+The configuration system will be implemented as a central service with the following design:
+
+```python
+# Conceptual implementation of the Configuration Manager
+class ConfigManager:
+    _instance = None  # Singleton pattern
+    
+    @classmethod
+    def get_instance(cls, config_path=None):
+        if cls._instance is None:
+            cls._instance = ConfigManager(config_path)
+        return cls._instance
+    
+    def __init__(self, config_path="configs/main_config.yaml"):
+        # Load base configuration
+        self.config = self.load_config(config_path)
+        
+        # Load environment-specific overrides
+        env = os.environ.get("ENV", "development")
+        self.apply_environment_config(env)
+        
+        # Initialize validators
+        self.validators = self.build_validators()
+    
+    def get(self, path, default=None):
+        """Get configuration value using dot notation path"""
+        keys = path.split('.')
+        value = self.config
+        for key in keys:
+            if key not in value:
+                return default
+            value = value[key]
+        return value
+    
+    def set(self, path, value):
+        """Set configuration value using dot notation path"""
+        keys = path.split('.')
+        config = self.config
+        for key in keys[:-1]:
+            if key not in config:
+                config[key] = {}
+            config = config[key]
+        
+        # Validate before setting
+        self.validate_value(path, value)
+        config[keys[-1]] = value
+    
+    def export_documentation(self, output_path):
+        """Generate human-readable documentation of all config options"""
+        # Implementation details...
+```
+
+This centralised approach ensures that all components access a consistent configuration and that changes are propagated appropriately throughout the system. 
