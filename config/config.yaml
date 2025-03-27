@@ -1,0 +1,85 @@
+# Main configuration file for the Skill Similarity Engine
+# This file contains all settings for the application
+
+# Version information
+version: "0.1.0"
+
+# Directory paths
+data_dir: "data"
+output_dir: "output"
+
+# Normalisation settings
+normalisation:
+  # Whether to use min-max scaling for proficiency levels (0-5 -> 0-1)
+  use_min_max_scaling: true
+  
+  # Whether to use boolean normalisation (has/doesn't have skill)
+  use_boolean_normalisation: false
+  
+  # Whether to use TF-IDF style weighting (rare skills get higher weight)
+  use_tfidf_weighting: true
+  
+  # Weights for different skill categories
+  importance_weights:
+    Technical: 1.0
+    Soft: 1.0
+    Domain: 1.0
+    Methodology: 1.0
+    Tool: 1.0
+    Certification: 1.0
+    Other: 1.0
+
+# Similarity calculation settings
+similarity:
+  # Similarity calculation method: cosine, euclidean, or jaccard
+  method: "cosine"
+  
+  # Minimum similarity threshold for considering matches (0.0-1.0)
+  threshold: 0.5
+  
+  # Number of top similarity results to return
+  top_n_results: 5
+
+# Gap analysis settings
+gap_analysis:
+  # Minimum ratio of employee's proficiency to required proficiency
+  min_proficiency_ratio: 0.8
+  
+  # Weight given to skill difficulty in development effort
+  skill_difficulty_factor: 1.0
+  
+  # Minimum gap threshold to consider critical in team analysis
+  min_gap_threshold: 0.2
+  
+  # Weights for different skill categories in development effort
+  category_weights:
+    Technical: 1.0
+    Soft: 0.8
+    Domain: 0.7
+    Methodology: 0.9
+    Tool: 0.6
+    Certification: 0.5
+    Other: 0.5
+
+# Opportunity identification settings
+opportunity:
+  # Threshold for identifying high similarity opportunities (0.0-1.0)
+  high_similarity_threshold: 0.8
+  
+  # Threshold for identifying low development effort opportunities
+  low_gap_threshold: 20.0
+  
+  # Threshold for identifying good fit opportunities (percentage)
+  high_match_percentage: 80.0
+  
+  # Threshold for identifying critical skill gaps (percentage)
+  critical_gap_percentage: 50.0
+  
+  # Threshold for identifying critical skill gaps (percentage)
+  critical_skill_gap_threshold: 0.4
+
+# Future extensions (all disabled by default)
+future_extensions:
+  seniority_weight: 0.0
+  role_track_weight: 0.0
+  location_weight: 0.0 

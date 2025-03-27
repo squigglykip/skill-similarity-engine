@@ -124,11 +124,23 @@ class VisualisationManager:
             config=ReportConfig(format="csv")
         )
         
+        # Determine column naming scheme (support both old and new formats)
+        if "job1_id" in df.columns and "job2_id" in df.columns:
+            job1_col = "job1_id"
+            job2_col = "job2_id"
+            sim_col = "similarity"
+        elif "job_id_1" in df.columns and "job_id_2" in df.columns:
+            job1_col = "job_id_1"
+            job2_col = "job_id_2"
+            sim_col = "similarity_score" if "similarity_score" in df.columns else "similarity"
+        else:
+            raise ValueError(f"Required columns not found in DataFrame. Columns: {df.columns}")
+        
         # Create pivot table for heatmap
         pivot_df = df.pivot(
-            index="job1_id",
-            columns="job2_id",
-            values="similarity"
+            index=job1_col,
+            columns=job2_col,
+            values=sim_col
         )
         
         # Generate heatmap
@@ -182,20 +194,32 @@ class VisualisationManager:
             config=ReportConfig(format="csv")
         )
         
+        # Determine column naming scheme (support both old and new formats)
+        if "job1_id" in df.columns and "job2_id" in df.columns:
+            job1_col = "job1_id"
+            job2_col = "job2_id"
+            sim_col = "similarity"
+        elif "job_id_1" in df.columns and "job_id_2" in df.columns:
+            job1_col = "job_id_1"
+            job2_col = "job_id_2"
+            sim_col = "similarity_score" if "similarity_score" in df.columns else "similarity"
+        else:
+            raise ValueError(f"Required columns not found in DataFrame. Columns: {df.columns}")
+        
         # Create numeric coordinates from job IDs
-        unique_jobs = pd.concat([df["job1_id"], df["job2_id"]]).unique()
+        unique_jobs = pd.concat([df[job1_col], df[job2_col]]).unique()
         job_to_idx = {job: idx for idx, job in enumerate(unique_jobs)}
         
         # Convert job IDs to numeric coordinates
-        x_coords = df["job1_id"].map(job_to_idx)
-        y_coords = df["job2_id"].map(job_to_idx)
+        x_coords = df[job1_col].map(job_to_idx)
+        y_coords = df[job2_col].map(job_to_idx)
         
         # Create hexbin plot
         plt.figure(figsize=figsize)
         plt.hexbin(
             x_coords,
             y_coords,
-            C=df["similarity"],
+            C=df[sim_col],
             cmap=color_scheme,
             gridsize=20
         )

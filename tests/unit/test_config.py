@@ -2,17 +2,15 @@
 """
 Unit tests for the configuration module.
 
-These tests verify the functionality of the configuration system, including
-loading, validation, and accessing configuration settings.
+These tests verify the functionality of the simplified configuration system,
+using a single YAML config file.
 """
 
 import os
 import sys
 import unittest
 import tempfile
-import json
 import yaml
-import jsonschema
 from unittest.mock import patch, MagicMock
 
 # Add the src directory to the Python path
@@ -21,7 +19,6 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 from skill_similarity_engine.config.settings import (
-    ConfigFormat,
     NormalisationConfig,
     SimilarityConfig,
     GapAnalysisConfig,
@@ -33,26 +30,6 @@ from skill_similarity_engine.config.settings import (
     get_data_path,
     get_output_path
 )
-
-
-class TestConfigFormat(unittest.TestCase):
-    """Test the ConfigFormat enum and its methods."""
-    
-    def test_from_file_extension_yaml(self):
-        """Test determining config format from YAML file extension."""
-        self.assertEqual(ConfigFormat.from_file_extension("config.yaml"), ConfigFormat.YAML)
-        self.assertEqual(ConfigFormat.from_file_extension("config.yml"), ConfigFormat.YAML)
-        self.assertEqual(ConfigFormat.from_file_extension("/path/to/config.yaml"), ConfigFormat.YAML)
-    
-    def test_from_file_extension_json(self):
-        """Test determining config format from JSON file extension."""
-        self.assertEqual(ConfigFormat.from_file_extension("config.json"), ConfigFormat.JSON)
-        self.assertEqual(ConfigFormat.from_file_extension("/path/to/config.json"), ConfigFormat.JSON)
-    
-    def test_from_file_extension_invalid(self):
-        """Test handling invalid file extensions."""
-        with self.assertRaises(ValueError):
-            ConfigFormat.from_file_extension("config.txt")
 
 
 class TestConfigClasses(unittest.TestCase):
@@ -133,7 +110,7 @@ class TestConfigManager(unittest.TestCase):
         # Create a test YAML config file
         config_path = os.path.join(self.temp_dir.name, "test_config.yaml")
         config_data = {
-            "environment": "testing",
+            "version": "0.1.0",
             "data_dir": "test_data",
             "output_dir": "test_output",
             "similarity": {
@@ -150,75 +127,19 @@ class TestConfigManager(unittest.TestCase):
         manager.load_config(config_path)
         
         # Verify config was loaded correctly
-        config = manager.get_config()
-        self.assertEqual(config.environment, "testing")
+        config = manager.config
+        self.assertEqual(config.version, "0.1.0")
         self.assertEqual(config.data_dir, "test_data")
         self.assertEqual(config.output_dir, "test_output")
         self.assertEqual(config.similarity.method, "cosine")
         self.assertEqual(config.similarity.threshold, 0.7)
         self.assertEqual(config.similarity.top_n_results, 5)  # Default value
     
-    def test_load_config_json(self):
-        """Test loading config from JSON file."""
-        # Create a test JSON config file
-        config_path = os.path.join(self.temp_dir.name, "test_config.json")
-        config_data = {
-            "environment": "production",
-            "data_dir": "prod_data",
-            "output_dir": "prod_output",
-            "gap_analysis": {
-                "min_proficiency_ratio": 0.9
-            }
-        }
-        
-        with open(config_path, "w") as f:
-            json.dump(config_data, f)
-        
-        # Load the config
-        manager = ConfigManager()
-        manager.load_config(config_path)
-        
-        # Verify config was loaded correctly
-        config = manager.get_config()
-        self.assertEqual(config.environment, "production")
-        self.assertEqual(config.data_dir, "prod_data")
-        self.assertEqual(config.output_dir, "prod_output")
-        self.assertEqual(config.gap_analysis.min_proficiency_ratio, 0.9)
-        self.assertEqual(config.gap_analysis.skill_difficulty_factor, 1.0)  # Default value
-    
-    def test_invalid_config_format(self):
-        """Test handling of invalid config format."""
-        # Create a test file with invalid extension
-        config_path = os.path.join(self.temp_dir.name, "test_config.txt")
-        with open(config_path, "w") as f:
-            f.write("invalid config format")
-        
-        # Attempt to load the config
-        manager = ConfigManager()
-        with self.assertRaises(ValueError):
-            manager.load_config(config_path)
-    
-    def test_invalid_config_content(self):
-        """Test handling of invalid config content."""
-        # Create a test YAML file with invalid content
-        config_path = os.path.join(self.temp_dir.name, "test_config.yaml")
-        with open(config_path, "w") as f:
-            f.write("environment: invalid_env")  # Invalid environment value
-        
-        # Patch the validate_config method to use the actual exception
-        with patch('jsonschema.validate') as mock_validate:
-            mock_validate.side_effect = jsonschema.exceptions.ValidationError("Invalid config")
-            
-            # Attempt to load the config
-            manager = ConfigManager()
-            with self.assertRaises(jsonschema.exceptions.ValidationError):
-                manager.load_config(config_path)
-    
     def test_get_data_path(self):
         """Test getting data path."""
         # Set up config with custom data directory
         manager = ConfigManager()
-        config = manager.get_config()
+        config = manager.config
         config.data_dir = "test_data"
         
         # Get data path
@@ -229,7 +150,7 @@ class TestConfigManager(unittest.TestCase):
         """Test getting output path."""
         # Set up config with custom output directory
         manager = ConfigManager()
-        config = manager.get_config()
+        config = manager.config
         config.output_dir = "test_output"
         
         # Get output path
@@ -248,75 +169,40 @@ class TestConfigHelperFunctions(unittest.TestCase):
         # Create a test YAML config file
         config_path = os.path.join(self.temp_dir.name, "test_config.yaml")
         config_data = {
-            "environment": "testing",
-            "data_dir": "test_data",
-            "output_dir": "test_output"
+            "version": "0.1.0",
+            "data_dir": "custom_data",
+            "output_dir": "custom_output",
         }
+        
         with open(config_path, "w") as f:
             yaml.dump(config_data, f)
         
-        # Reset ConfigManager singleton for each test
-        ConfigManager._instance = None
-        
-        # Create actual config manager
+        # Load the config
         self.config_path = config_path
+        load_config(config_path)
     
     def tearDown(self):
         """Clean up temporary directory."""
         self.temp_dir.cleanup()
-        
-        # Reset ConfigManager singleton
+        # Reset ConfigManager singleton after each test
         ConfigManager._instance = None
     
-    def test_load_config_helper(self):
-        """Test the load_config helper function."""
-        # Call the helper function
-        load_config(self.config_path)
-        
-        # Get config from the helper function after loading
+    def test_get_config(self):
+        """Test get_config function."""
         config = get_config()
-        
-        # Verify the config was loaded correctly
-        self.assertEqual(config.environment, "testing")
-        self.assertEqual(config.data_dir, "test_data")
-        self.assertEqual(config.output_dir, "test_output")
+        self.assertEqual(config.version, "0.1.0")
+        self.assertEqual(config.data_dir, "custom_data")
+        self.assertEqual(config.output_dir, "custom_output")
     
-    def test_get_config_helper(self):
-        """Test the get_config helper function."""
-        # First load a config
-        load_config(self.config_path)
-        
-        # Then get the config
-        config = get_config()
-        
-        # Verify results
-        self.assertEqual(config.environment, "testing")
-        self.assertEqual(config.data_dir, "test_data")
-        self.assertEqual(config.output_dir, "test_output")
+    def test_get_data_path(self):
+        """Test get_data_path function."""
+        data_path = get_data_path("test_file.csv")
+        self.assertEqual(data_path, os.path.join("custom_data", "test_file.csv"))
     
-    def test_get_data_path_helper(self):
-        """Test the get_data_path helper function."""
-        # First load a config
-        load_config(self.config_path)
-        
-        # Call the helper function
-        path = get_data_path("test_file.csv")
-        
-        # Verify results - use os.path.join to handle platform-specific path separators
-        expected_path = os.path.join("test_data", "test_file.csv")
-        self.assertEqual(path, expected_path)
-    
-    def test_get_output_path_helper(self):
-        """Test the get_output_path helper function."""
-        # First load a config
-        load_config(self.config_path)
-        
-        # Call the helper function
-        path = get_output_path("test_report.csv")
-        
-        # Verify results - use os.path.join to handle platform-specific path separators
-        expected_path = os.path.join("test_output", "test_report.csv")
-        self.assertEqual(path, expected_path)
+    def test_get_output_path(self):
+        """Test get_output_path function."""
+        output_path = get_output_path("test_report.csv")
+        self.assertEqual(output_path, os.path.join("custom_output", "test_report.csv"))
 
 
 if __name__ == "__main__":
