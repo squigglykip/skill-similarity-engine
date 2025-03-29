@@ -1,0 +1,3 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J004,Business Analyst,Business,J005,Financial Analyst,Finance,0.22437949203055413
+J004,Business Analyst,Business,J006,Senior Financial Analyst,Finance,0.18145890683202448

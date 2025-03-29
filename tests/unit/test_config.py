@@ -144,7 +144,11 @@ class TestConfigManager(unittest.TestCase):
         
         # Get data path
         data_path = manager.get_data_path("test_file.csv")
-        self.assertEqual(data_path, os.path.join("test_data", "test_file.csv"))
+        
+        # Check if the path contains the expected relative path at the end
+        self.assertTrue(data_path.endswith(os.path.join("test_data", "test_file.csv")))
+        # Verify it is an absolute path
+        self.assertTrue(os.path.isabs(data_path))
     
     def test_get_output_path(self):
         """Test getting output path."""
@@ -155,7 +159,11 @@ class TestConfigManager(unittest.TestCase):
         
         # Get output path
         output_path = manager.get_output_path("test_report.csv")
-        self.assertEqual(output_path, os.path.join("test_output", "test_report.csv"))
+        
+        # Check if the path contains the expected relative path at the end
+        self.assertTrue(output_path.endswith(os.path.join("test_output", "test_report.csv")))
+        # Verify it is an absolute path
+        self.assertTrue(os.path.isabs(output_path))
 
 
 class TestConfigHelperFunctions(unittest.TestCase):
@@ -197,12 +205,20 @@ class TestConfigHelperFunctions(unittest.TestCase):
     def test_get_data_path(self):
         """Test get_data_path function."""
         data_path = get_data_path("test_file.csv")
-        self.assertEqual(data_path, os.path.join("custom_data", "test_file.csv"))
+        
+        # Check if the path contains the expected relative path at the end
+        self.assertTrue(data_path.endswith(os.path.join("custom_data", "test_file.csv")))
+        # Verify it is an absolute path
+        self.assertTrue(os.path.isabs(data_path))
     
     def test_get_output_path(self):
         """Test get_output_path function."""
         output_path = get_output_path("test_report.csv")
-        self.assertEqual(output_path, os.path.join("custom_output", "test_report.csv"))
+        
+        # Check if the path contains the expected relative path at the end
+        self.assertTrue(output_path.endswith(os.path.join("custom_output", "test_report.csv")))
+        # Verify it is an absolute path
+        self.assertTrue(os.path.isabs(output_path))
 
 
 if __name__ == "__main__":

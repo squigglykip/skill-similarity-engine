@@ -191,7 +191,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Create Jupyter notebook examples
 - [x] Create sample configuration templates for different use cases
 
-### Phase 6: Data Pipeline & Integration - **PENDING**
+### Phase 6: Data Pipeline & Integration - **IN PROGRESS**
 **Branch: `feature/data-pipeline`**
 
 #### 6.1 Data Export Optimisation - **COMPLETED**
@@ -201,61 +201,59 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Ensure exports are optimised for downstream consumption
 - [x] Validate CSV formats meet Power BI integration requirements
 
-#### 6.2 Configuration Management System
-- [ ] Design comprehensive configuration schema for all configurable parameters
-- [ ] Implement YAML-based configuration with hierarchical structure
-- [ ] Move hardcoded thresholds, weights, and flags to configuration
-- [ ] Create configuration validation and error reporting
-- [ ] Add CLI support for configuration management
-- [ ] Develop sample configuration files for different use cases
-- [ ] Update components to use centralised configuration
-- [ ] Implement version control for configurations
-- [ ] Support environment-specific settings (dev, test, production)
-- [ ] Create user-specific overrides
-- [ ] Implement configuration categories:
-  - [ ] Similarity thresholds for opportunity identification
-  - [ ] PSA adjustment factors for career progression
-  - [ ] Skill importance weightings by category
-  - [ ] Visualisation preferences and colour schemes
-  - [ ] Export format specifications
-  - [ ] Performance tuning parameters
-- [ ] Add configuration override capabilities via CLI arguments
-- [ ] Create user-friendly documentation for all configuration options
+#### 6.2 Configuration Management System - **COMPLETED**
+- [x] Design comprehensive configuration schema for all configurable parameters
+- [x] Implement YAML-based configuration with hierarchical structure
+- [x] Move hardcoded thresholds, weights, and flags to configuration
+- [x] Create configuration validation and error reporting
+- [x] Add CLI support for configuration management
+- [x] Develop sample configuration files for different use cases
+- [x] Update components to use centralised configuration
+- [x] Implement version control for configurations
+- [x] Support environment-specific settings (dev, test, production)
+- [x] Create user-specific overrides
+- [x] Implement configuration categories:
+  - [x] Similarity thresholds for opportunity identification
+  - [x] Skill importance weightings by category
+  - [x] Visualisation preferences and colour schemes
+  - [x] Export format specifications
+  - [x] Performance tuning parameters
+- [x] Add configuration override capabilities via CLI arguments
+- [x] Create user-friendly documentation for all configuration options
 
-#### 6.3 Skill Affinity Analyzer Enhancement - **NEW PRIORITY**
+The configuration system now features:
+- A well-structured `config.yaml` file with clear sections and comments
+- Type-safe dataclasses for strongly-typed configuration handling
+- Proper validation of configuration values with helpful error messages
+- Comprehensive settings for all system modules (normalisation, similarity, gap analysis, reporting, visualisation)
+- Logging configuration with customisable outputs
+- Team analysis and workforce planning parameters
+- Extension points for future features like seniority and location weighting
+
+#### 6.3 Skill Affinity Analyzer Enhancement - **IN PROGRESS**
 **Branch: `feature/similarity-enhancements`**
 
 > **Enhancement Focus**: Implement additional variables beyond skills that affect job similarity: seniority, role track (IC vs. Leadership), and location. These enhancements will provide more nuanced similarity calculations for improved job matching and career pathway recommendations.
 
-##### 6.3.1 Enhanced Configuration System
-- [ ] Implement variable weight configuration system
-- [ ] Support toggling variables on/off via weight settings (0 = disabled)
-- [ ] Implement basic versioning to track configuration changes
-- [ ] Create extensible structure for future variables
-- [ ] Add validation for configuration options
-- [ ] Design for backward compatibility with existing configurations
+##### 6.3.1 Enhanced Configuration System - **COMPLETED**
+- [x] Implement variable weight configuration system
+- [x] Support toggling variables on/off via weight settings (0 = disabled)
+- [x] Implement basic versioning to track configuration changes
+- [x] Create extensible structure for future variables
+- [x] Add validation for configuration options
+- [x] Design for backward compatibility with existing configurations
 
-Sample configuration structure:
+The configuration now includes a `future_extensions` section that allows for easy activation of new similarity variables:
+
 ```yaml
-version: "0.1.0"
-algorithm:
-  method: "cosine"
-  threshold: 0.6
-  normalization: "min_max"
-
-weights:
-  # Core skill weights
-  skills: 10
-  
-  # New variables
-  seniority: 5        # How much level/seniority impacts similarity
-  role_track: 8       # How much IC vs Leadership track impacts similarity
-  location: 7         # How much geographic location impacts similarity
-  
-  # Placeholder for future expansion (all disabled)
-  department: 0
-  working_hours: 0
+# Future extensions (all disabled by default)
+future_extensions:
+  seniority_weight: 0.0
+  role_track_weight: 0.0
+  location_weight: 0.0
 ```
+
+These variables can be toggled on by setting their weights to non-zero values, providing a smooth path for gradually introducing new features.
 
 ##### 6.3.2 Test-Driven Development Approach
 - [ ] Create test framework for new similarity variables
@@ -427,7 +425,7 @@ Total estimated time: 68 working days
 - Phase 3: 8 days - **COMPLETED**
 - Phase 4: 13 days - **COMPLETED**
 - Phase 5: 11 days - **IN PROGRESS** (CLI completed, core testing completed, documentation in progress)
-- Phase 6: 15 days - **PENDING** (unified configuration, HRIS integration, similarity enhancements, and Power BI support)
+- Phase 6: 15 days - **IN PROGRESS** (unified configuration, HRIS integration, similarity enhancements, and Power BI support)
 - Phase 7: 12 days - **PLANNED** (Interactive CLI implementation)
 
 ## Technical Constraints

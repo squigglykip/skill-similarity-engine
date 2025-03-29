@@ -1,0 +1,21 @@
+job_id,title,department,level,num_skills,cluster
+J001,Data Analyst,Analytics,Associate,7,1
+J002,Senior Data Analyst,Analytics,Senior,9,1
+J003,Data Scientist,Analytics,Mid-level,7,1
+J004,Business Analyst,Business,Associate,8,0
+J005,Financial Analyst,Finance,Associate,6,1
+J006,Senior Financial Analyst,Finance,Senior,7,1
+J007,Software Engineer,Technology,Mid-level,6,1
+J008,Senior Software Engineer,Technology,Senior,8,1
+J009,UI/UX Designer,Technology,Mid-level,5,0
+J010,Product Manager,Product,Senior,7,0
+J011,Marketing Specialist,Marketing,Associate,5,0
+J012,Senior Marketing Specialist,Marketing,Senior,6,0
+J013,HR Coordinator,HR,Associate,3,0
+J014,HR Business Partner,HR,Senior,5,0
+J015,IT Support Specialist,IT,Associate,5,0
+J016,Cybersecurity Analyst,IT,Mid-level,5,1
+J017,Business Intelligence Analyst,Analytics,Mid-level,7,1
+J018,Risk Analyst,Risk,Associate,5,1
+J019,Digital Marketing Specialist,Marketing,Mid-level,5,0
+J020,Project Manager,Project Management,Mid-level,5,0

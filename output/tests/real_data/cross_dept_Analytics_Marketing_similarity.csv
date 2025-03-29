@@ -1,0 +1,13 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J001,Data Analyst,Analytics,J011,Marketing Specialist,Marketing,0.11169760937965333
+J001,Data Analyst,Analytics,J012,Senior Marketing Specialist,Marketing,0.10660556441432985
+J001,Data Analyst,Analytics,J019,Digital Marketing Specialist,Marketing,0.09740581557339244
+J002,Senior Data Analyst,Analytics,J011,Marketing Specialist,Marketing,0.08389686810418902
+J002,Senior Data Analyst,Analytics,J012,Senior Marketing Specialist,Marketing,0.08007219694776081
+J002,Senior Data Analyst,Analytics,J019,Digital Marketing Specialist,Marketing,0.07316220022190083
+J003,Data Scientist,Analytics,J011,Marketing Specialist,Marketing,0.06081307402656918
+J003,Data Scientist,Analytics,J012,Senior Marketing Specialist,Marketing,0.05804074157341604
+J003,Data Scientist,Analytics,J019,Digital Marketing Specialist,Marketing,0.053031995098026544
+J017,Business Intelligence Analyst,Analytics,J011,Marketing Specialist,Marketing,0.09266080074491215
+J017,Business Intelligence Analyst,Analytics,J012,Senior Marketing Specialist,Marketing,0.08843660143987384
+J017,Business Intelligence Analyst,Analytics,J019,Digital Marketing Specialist,Marketing,0.2863002245242106

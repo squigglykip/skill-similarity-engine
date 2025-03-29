@@ -26,14 +26,14 @@ class HeatmapConfig:
     def __init__(
         self,
         title: str = "",
-        cmap: str = "viridis",
-        figsize: Tuple[int, int] = (10, 8),
-        annot: bool = True,
-        fmt: str = ".2f",
-        linewidths: float = 0.5,
-        cbar: bool = True,
-        mask_diagonal: bool = False,
-        cluster: bool = False,
+        cmap: Optional[str] = None,
+        figsize: Optional[Tuple[int, int]] = None,
+        annot: Optional[bool] = None,
+        fmt: Optional[str] = None,
+        linewidths: Optional[float] = None,
+        cbar: Optional[bool] = None,
+        mask_diagonal: Optional[bool] = None,
+        cluster: Optional[bool] = None,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None
     ):
@@ -53,17 +53,21 @@ class HeatmapConfig:
             vmin: Minimum value for colormap
             vmax: Maximum value for colormap
         """
+        # Get default settings from config
+        config = get_config().heatmaps
+        
         self.title = title
-        self.cmap = cmap
-        self.figsize = figsize
-        self.annot = annot
-        self.fmt = fmt
-        self.linewidths = linewidths
-        self.cbar = cbar
-        self.mask_diagonal = mask_diagonal
-        self.cluster = cluster
+        self.cmap = cmap if cmap is not None else config.default_colormap
+        self.figsize = figsize if figsize is not None else config.default_figsize
+        self.annot = annot if annot is not None else config.show_annotations
+        self.fmt = fmt if fmt is not None else config.annotation_format
+        self.linewidths = linewidths if linewidths is not None else config.line_width
+        self.cbar = cbar if cbar is not None else config.show_colorbar
+        self.mask_diagonal = mask_diagonal if mask_diagonal is not None else config.mask_diagonal
+        self.cluster = cluster if cluster is not None else config.cluster_by_default
         self.vmin = vmin
         self.vmax = vmax
+        self.dpi = config.dpi
 
 
 class HeatmapGenerator:
@@ -181,7 +185,7 @@ class HeatmapGenerator:
             output_path = os.path.join(self.output_dir, file_path)
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
-            fig.savefig(output_path, dpi=300, bbox_inches='tight')
+            fig.savefig(output_path, dpi=config.dpi, bbox_inches='tight')
         
         return fig
 
@@ -311,7 +315,7 @@ class SimilarityHeatmapGenerator:
         file_path: Optional[str] = None
     ) -> plt.Figure:
         """
-        Generate a heatmap of employee similarities.
+        Generate a heatmap of employee similarities.s
         
         Args:
             department: Department to filter by (all departments if None)

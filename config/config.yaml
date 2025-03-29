@@ -5,8 +5,18 @@
 version: "0.1.0"
 
 # Directory paths
-data_dir: "data"
-output_dir: "output"
+data_dir: "./data"
+output_dir: "./output"
+
+# Logging settings
+logging:
+  level: "INFO"
+  log_dir: "./logs"
+  log_file: "skill_similarity_engine.log"
+  console_output: true
+  file_output: true
+  max_file_size_mb: 10
+  backup_count: 5
 
 # Normalisation settings
 normalisation:
@@ -35,7 +45,7 @@ similarity:
   method: "cosine"
   
   # Minimum similarity threshold for considering matches (0.0-1.0)
-  threshold: 0.5
+  threshold: 0.7
   
   # Number of top similarity results to return
   top_n_results: 5
@@ -43,7 +53,7 @@ similarity:
 # Gap analysis settings
 gap_analysis:
   # Minimum ratio of employee's proficiency to required proficiency
-  min_proficiency_ratio: 0.8
+  min_proficiency_ratio: 0.65
   
   # Weight given to skill difficulty in development effort
   skill_difficulty_factor: 1.0
@@ -53,9 +63,9 @@ gap_analysis:
   
   # Weights for different skill categories in development effort
   category_weights:
-    Technical: 1.0
-    Soft: 0.8
-    Domain: 0.7
+    Technical: 0.6
+    Soft: 0.3
+    Domain: 0.1
     Methodology: 0.9
     Tool: 0.6
     Certification: 0.5
@@ -77,6 +87,44 @@ opportunity:
   
   # Threshold for identifying critical skill gaps (percentage)
   critical_skill_gap_threshold: 0.4
+
+# Report configuration
+reporting:
+  include_headers: true
+  date_format: "%Y-%m-%d"
+  float_format: "%.2f"
+  include_index: false
+  encoding: "utf-8"
+  json_indent: 2
+
+# Heatmap visualization settings
+heatmaps:
+  default_colormap: "viridis"
+  default_figsize: [10, 8]
+  show_annotations: true
+  annotation_format: ".2f"
+  line_width: 0.5
+  show_colorbar: true
+  mask_diagonal: false
+  cluster_by_default: false
+  dpi: 300
+
+# Team gap analysis settings
+team_analysis:
+  fully_covered_weight: 1.0
+  partially_covered_weight: 0.5
+  reskilling_difficulty_levels:
+    1: "Very Easy"
+    2: "Easy"
+    3: "Moderate"
+    4: "Difficult"
+    5: "Very Difficult"
+
+# Workforce planning settings
+workforce:
+  critical_skill_threshold: 3.0
+  max_skills_in_report: 20
+  department_skill_coverage_threshold: 75.0
 
 # Future extensions (all disabled by default)
 future_extensions:

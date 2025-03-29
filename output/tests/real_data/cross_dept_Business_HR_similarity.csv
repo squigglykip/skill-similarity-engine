@@ -1,0 +1,3 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J004,Business Analyst,Business,J013,HR Coordinator,HR,0.5643443288169453
+J004,Business Analyst,Business,J014,HR Business Partner,HR,0.41219175241555883

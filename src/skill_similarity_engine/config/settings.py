@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 
 
 # Environment variable prefix for overriding settings
@@ -43,6 +43,18 @@ class ConfigFormat(Enum):
             return cls.JSON
         else:
             raise ValueError(f"Unsupported file extension: {extension}")
+
+
+@dataclass
+class LoggingConfig:
+    """Configuration for application logging."""
+    level: str = "INFO"
+    log_dir: str = "logs"
+    log_file: str = "skill_similarity_engine.log"
+    console_output: bool = True
+    file_output: bool = True
+    max_file_size_mb: int = 10
+    backup_count: int = 5
 
 
 @dataclass
@@ -98,6 +110,53 @@ class OpportunityConfig:
 
 
 @dataclass
+class ReportingConfig:
+    """Configuration for report generation."""
+    include_headers: bool = True
+    date_format: str = "%Y-%m-%d"
+    float_format: str = "%.2f"
+    include_index: bool = False
+    encoding: str = "utf-8"
+    json_indent: int = 2
+
+
+@dataclass
+class HeatmapConfig:
+    """Configuration for heatmap visualizations."""
+    default_colormap: str = "viridis"
+    default_figsize: Tuple[int, int] = (10, 8)
+    show_annotations: bool = True
+    annotation_format: str = ".2f"
+    line_width: float = 0.5
+    show_colorbar: bool = True
+    mask_diagonal: bool = False
+    cluster_by_default: bool = False
+    dpi: int = 300
+
+
+@dataclass
+class TeamAnalysisConfig:
+    """Configuration for team gap analysis."""
+    fully_covered_weight: float = 1.0
+    partially_covered_weight: float = 0.5
+    reskilling_difficulty_levels: Dict[int, str] = field(default_factory=lambda: {
+        1: "Very Easy",
+        2: "Easy",
+        3: "Moderate", 
+        4: "Difficult",
+        5: "Very Difficult"
+    })
+
+
+@dataclass
+class WorkforceConfig:
+    """Configuration for workforce planning."""
+    critical_skill_threshold: float = 3.0
+    max_skills_in_report: int = 20
+    department_skill_coverage_threshold: float = 75.0
+
+
+@dataclass
 class FutureExtensionConfig:
     """Configuration for future extensions (disabled by default)."""
     seniority_weight: float = 0.0
@@ -111,10 +170,15 @@ class AppConfig:
     version: str = "0.1.0"
     data_dir: str = "data"
     output_dir: str = "output"
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
     normalisation: NormalisationConfig = field(default_factory=NormalisationConfig)
     similarity: SimilarityConfig = field(default_factory=SimilarityConfig)
     gap_analysis: GapAnalysisConfig = field(default_factory=GapAnalysisConfig)
     opportunity: OpportunityConfig = field(default_factory=OpportunityConfig)
+    reporting: ReportingConfig = field(default_factory=ReportingConfig)
+    heatmaps: HeatmapConfig = field(default_factory=HeatmapConfig)
+    team_analysis: TeamAnalysisConfig = field(default_factory=TeamAnalysisConfig)
+    workforce: WorkforceConfig = field(default_factory=WorkforceConfig)
     future_extensions: FutureExtensionConfig = field(default_factory=FutureExtensionConfig)
     environment: str = "development"
 
@@ -171,6 +235,24 @@ class ConfigManager:
         if 'environment' in config_data:
             self._config.environment = config_data['environment']
         
+        # Set logging config
+        if 'logging' in config_data:
+            log_config = config_data['logging']
+            if 'level' in log_config:
+                self._config.logging.level = log_config['level']
+            if 'log_dir' in log_config:
+                self._config.logging.log_dir = log_config['log_dir']
+            if 'log_file' in log_config:
+                self._config.logging.log_file = log_config['log_file']
+            if 'console_output' in log_config:
+                self._config.logging.console_output = log_config['console_output']
+            if 'file_output' in log_config:
+                self._config.logging.file_output = log_config['file_output']
+            if 'max_file_size_mb' in log_config:
+                self._config.logging.max_file_size_mb = log_config['max_file_size_mb']
+            if 'backup_count' in log_config:
+                self._config.logging.backup_count = log_config['backup_count']
+                
         # Set normalisation config
         if 'normalisation' in config_data:
             norm_config = config_data['normalisation']
@@ -228,6 +310,64 @@ class ConfigManager:
             if 'critical_skill_gap_threshold' in opp_config:
                 self._config.opportunity.critical_skill_gap_threshold = opp_config['critical_skill_gap_threshold']
         
+        # Set reporting config
+        if 'reporting' in config_data:
+            rep_config = config_data['reporting']
+            if 'include_headers' in rep_config:
+                self._config.reporting.include_headers = rep_config['include_headers']
+            if 'date_format' in rep_config:
+                self._config.reporting.date_format = rep_config['date_format']
+            if 'float_format' in rep_config:
+                self._config.reporting.float_format = rep_config['float_format']
+            if 'include_index' in rep_config:
+                self._config.reporting.include_index = rep_config['include_index']
+            if 'encoding' in rep_config:
+                self._config.reporting.encoding = rep_config['encoding']
+            if 'json_indent' in rep_config:
+                self._config.reporting.json_indent = rep_config['json_indent']
+                
+        # Set heatmap config
+        if 'heatmaps' in config_data:
+            hm_config = config_data['heatmaps']
+            if 'default_colormap' in hm_config:
+                self._config.heatmaps.default_colormap = hm_config['default_colormap']
+            if 'default_figsize' in hm_config:
+                self._config.heatmaps.default_figsize = tuple(hm_config['default_figsize'])
+            if 'show_annotations' in hm_config:
+                self._config.heatmaps.show_annotations = hm_config['show_annotations']
+            if 'annotation_format' in hm_config:
+                self._config.heatmaps.annotation_format = hm_config['annotation_format']
+            if 'line_width' in hm_config:
+                self._config.heatmaps.line_width = hm_config['line_width']
+            if 'show_colorbar' in hm_config:
+                self._config.heatmaps.show_colorbar = hm_config['show_colorbar']
+            if 'mask_diagonal' in hm_config:
+                self._config.heatmaps.mask_diagonal = hm_config['mask_diagonal']
+            if 'cluster_by_default' in hm_config:
+                self._config.heatmaps.cluster_by_default = hm_config['cluster_by_default']
+            if 'dpi' in hm_config:
+                self._config.heatmaps.dpi = hm_config['dpi']
+                
+        # Set team analysis config
+        if 'team_analysis' in config_data:
+            team_config = config_data['team_analysis']
+            if 'fully_covered_weight' in team_config:
+                self._config.team_analysis.fully_covered_weight = team_config['fully_covered_weight']
+            if 'partially_covered_weight' in team_config:
+                self._config.team_analysis.partially_covered_weight = team_config['partially_covered_weight']
+            if 'reskilling_difficulty_levels' in team_config:
+                self._config.team_analysis.reskilling_difficulty_levels = team_config['reskilling_difficulty_levels']
+                
+        # Set workforce config
+        if 'workforce' in config_data:
+            wf_config = config_data['workforce']
+            if 'critical_skill_threshold' in wf_config:
+                self._config.workforce.critical_skill_threshold = wf_config['critical_skill_threshold']
+            if 'max_skills_in_report' in wf_config:
+                self._config.workforce.max_skills_in_report = wf_config['max_skills_in_report']
+            if 'department_skill_coverage_threshold' in wf_config:
+                self._config.workforce.department_skill_coverage_threshold = wf_config['department_skill_coverage_threshold']
+        
         # Set future extensions config
         if 'future_extensions' in config_data:
             ext_config = config_data['future_extensions']
@@ -238,8 +378,7 @@ class ConfigManager:
             if 'location_weight' in ext_config:
                 self._config.future_extensions.location_weight = ext_config['location_weight']
                 
-        # Validate the config (simplified for now)
-        # In a real implementation, more thorough validation would be done
+        # Validate the config
         self._validate_config()
         
     def _validate_config(self):
@@ -249,105 +388,111 @@ class ConfigManager:
         Raises:
             ValueError: If validation fails
         """
-        # For now, we'll just do some basic checks
-        # A real implementation would use jsonschema or similar
-        if self._config.similarity.threshold < 0 or self._config.similarity.threshold > 1:
-            raise ValueError("Similarity threshold must be between 0 and 1")
-            
+        # Ensure data_dir and output_dir are valid
+        data_dir = Path(self._config.data_dir)
+        output_dir = Path(self._config.output_dir)
+        
+        # Create output directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
     def get_data_path(self, relative_path=""):
         """
-        Get the absolute path to a file in the data directory.
+        Get the absolute path to a data file or directory.
         
         Args:
             relative_path: Relative path within the data directory
             
         Returns:
-            Path to the file
+            Absolute path
         """
-        config = self.get_config()
-        data_dir = config.data_dir
+        # Convert to Path objects to handle path concatenation properly
+        data_dir = Path(self._config.data_dir)
         
-        # For test compatibility, just return the joined path as a string
-        if relative_path:
-            return os.path.join(data_dir, relative_path)
-        return data_dir
+        # Handle absolute and relative paths
+        if os.path.isabs(self._config.data_dir):
+            # If data_dir is absolute, use it directly
+            full_path = data_dir / relative_path
+        else:
+            # If data_dir is relative, resolve it relative to the current working directory
+            full_path = Path.cwd() / data_dir / relative_path
+        
+        return str(full_path)
     
     def get_output_path(self, relative_path=""):
         """
-        Get the absolute path to a file in the output directory.
+        Get the absolute path to an output file or directory.
         
         Args:
             relative_path: Relative path within the output directory
             
         Returns:
-            Path to the file
+            Absolute path
         """
-        config = self.get_config()
-        output_dir = config.output_dir
+        # Convert to Path objects to handle path concatenation properly
+        output_dir = Path(self._config.output_dir)
         
-        # For test compatibility, just return the joined path as a string
-        if relative_path:
-            return os.path.join(output_dir, relative_path)
-        return output_dir
+        # Handle absolute and relative paths
+        if os.path.isabs(self._config.output_dir):
+            # If output_dir is absolute, use it directly
+            full_path = output_dir / relative_path
+        else:
+            # If output_dir is relative, resolve it relative to the current working directory
+            full_path = Path.cwd() / output_dir / relative_path
+        
+        # Create directory if it doesn't exist
+        if relative_path and not os.path.splitext(relative_path)[1]:  # No extension, assume it's a directory
+            full_path.mkdir(parents=True, exist_ok=True)
+        else:
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        return str(full_path)
 
 
-# Global instance of the config manager
+# Global ConfigManager instance
 _config_manager = ConfigManager()
 
 
 def load_config(config_file):
-    """Load configuration from the specified file."""
+    """
+    Load configuration from a file.
+    
+    Args:
+        config_file: Path to the configuration file
+    """
     _config_manager.load_config(config_file)
 
 
-def load_config_for_environment(config_dir, environment=None):
-    """
-    Load configuration for the specified environment.
-    For backwards compatibility with existing code.
-    
-    Args:
-        config_dir: Directory containing configuration files
-        environment: Environment to load (development, testing, production)
-    """
-    config_file = os.path.join(config_dir, "config.yaml")
-    
-    # In tests, the file might not exist - just set the environment
-    if not os.path.exists(config_file):
-        if environment:
-            _config_manager.config.environment = environment
-        return
-        
-    load_config(config_file)
-    if environment:
-        _config_manager.config.environment = environment
-
-
 def get_config():
-    """Get the current configuration."""
-    return _config_manager.config
+    """
+    Get the current configuration.
+    
+    Returns:
+        Current AppConfig instance
+    """
+    return _config_manager.get_config()
 
 
 def get_data_path(relative_path=""):
     """
-    Get the absolute path to a file in the data directory.
+    Get the absolute path to a data file or directory.
     
     Args:
         relative_path: Relative path within the data directory
         
     Returns:
-        Path to the file
+        Absolute path
     """
     return _config_manager.get_data_path(relative_path)
 
 
 def get_output_path(relative_path=""):
     """
-    Get the absolute path to a file in the output directory.
+    Get the absolute path to an output file or directory.
     
     Args:
         relative_path: Relative path within the output directory
         
     Returns:
-        Path to the file
+        Absolute path
     """
     return _config_manager.get_output_path(relative_path)

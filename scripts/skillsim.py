@@ -15,12 +15,12 @@ from pathlib import Path
 # Add the src directory to the path so we can import our package
 src_path = str(Path(__file__).parent.parent / 'src')
 sys.path.insert(0, src_path)
-from skill_similarity_engine.config.settings import get_config, ConfigFormat, AppConfig
+from skill_similarity_engine.config.settings import get_config, ConfigFormat, AppConfig, load_config
 
 
 @click.group()
 @click.option(
-    "--config-file", 
+    "--config",
     "-c", 
     type=click.Path(exists=True),
     help="Path to configuration file (YAML or JSON)"
@@ -37,7 +37,7 @@ from skill_similarity_engine.config.settings import get_config, ConfigFormat, Ap
     help="Enable/disable verbose output"
 )
 @click.pass_context
-def cli(ctx, config_file, output_dir, verbose):
+def cli(ctx, config, output_dir, verbose):
     """
     Skill Similarity Engine - Workforce Analytics Tool.
     
@@ -50,25 +50,29 @@ def cli(ctx, config_file, output_dir, verbose):
     ctx.obj["verbose"] = verbose
     
     # Load configuration
-    if config_file:
-        config_format = ConfigFormat.from_file_extension(config_file)
-        config = get_config(config_file, config_format)
+    if config:
+        try:
+            load_config(config)
+            config_obj = get_config()
+        except Exception as e:
+            click.echo(f"Error loading configuration: {e}", err=True)
+            ctx.exit(2)
     else:
-        config = get_config()
+        config_obj = get_config()
     
     # Override output directory if specified
     if output_dir:
-        config.output_dir = output_dir
+        config_obj.output_dir = output_dir
     
     # Create output directory if it doesn't exist
-    os.makedirs(config.output_dir, exist_ok=True)
+    os.makedirs(config_obj.output_dir, exist_ok=True)
     
     # Store configuration in context
-    ctx.obj["config"] = config
+    ctx.obj["config"] = config_obj
     
     if verbose:
-        click.echo(f"Using configuration: {config_file or 'default'}")
-        click.echo(f"Output directory: {config.output_dir}")
+        click.echo(f"Using configuration: {config or 'default'}")
+        click.echo(f"Output directory: {config_obj.output_dir}")
 
 
 # Import commands from other CLI scripts
@@ -79,6 +83,9 @@ from generate_reports import (
     employee_similarity_export, workforce_planning_export
 )
 
+# Import configuration commands
+from skill_similarity_engine.cli.config_cmd import config_group
+
 # Add commands to the main CLI
 cli.add_command(job_similarity)
 cli.add_command(employee_job_similarity)
@@ -87,6 +94,7 @@ cli.add_command(skill_gap_analysis)
 cli.add_command(job_similarity_export)
 cli.add_command(employee_similarity_export)
 cli.add_command(workforce_planning_export)
+cli.add_command(config_group)
 
 
 @cli.command()

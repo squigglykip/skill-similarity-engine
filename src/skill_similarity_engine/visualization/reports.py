@@ -42,12 +42,12 @@ class ReportConfiguration:
         indent: Indentation for JSON files
     """
     output_dir: str = field(default_factory=lambda: get_config().output_dir)
-    include_headers: bool = True
-    date_format: str = "%Y-%m-%d"
-    float_format: str = "%.2f"
-    index: bool = False
-    encoding: str = "utf-8"
-    indent: int = 2
+    include_headers: bool = field(default_factory=lambda: get_config().reporting.include_headers)
+    date_format: str = field(default_factory=lambda: get_config().reporting.date_format)
+    float_format: str = field(default_factory=lambda: get_config().reporting.float_format)
+    index: bool = field(default_factory=lambda: get_config().reporting.include_index)
+    encoding: str = field(default_factory=lambda: get_config().reporting.encoding)
+    indent: int = field(default_factory=lambda: get_config().reporting.json_indent)
 
 
 class ReportGenerator:
