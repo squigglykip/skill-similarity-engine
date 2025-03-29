@@ -284,7 +284,7 @@ Testing will follow a multi-layer approach:
 
 This test-driven approach will ensure high quality and reliability while facilitating future maintenance.
 
-##### 6.3.4 Seniority Implementation
+##### 6.3.4 Seniority Implementation - **COMPLETED**
 - [x] Enhance job data model to include standardised seniority information
   - [x] Define a formal seniority level schema (Junior, Mid-level, Senior, Lead, etc.)
   - [x] Create normalisation utilities to map organisation-specific levels to standard scale
@@ -310,7 +310,7 @@ This test-driven approach will ensure high quality and reliability while facilit
 
 The seniority implementation now recognizes that career progression typically occurs in incremental steps, with moves between adjacent levels more common and realistic than skipping multiple levels. By incorporating this domain knowledge through configurable thresholds, we provide more practical career progression suggestions while heavily discouraging unrealistic demotions.
 
-##### 6.3.5 Role Track Implementation
+##### 6.3.5 Role Track Implementation - **COMPLETED**
 - [x] Extend job data model to include role track categorisation
   - [x] Create enumeration for track types (IC, Leadership)
   - [x] Define subcategories within tracks (e.g., Leadership: Team Lead, Manager, Director, etc.)
@@ -323,78 +323,188 @@ The seniority implementation now recognizes that career progression typically oc
 - [x] Make role track comparison fully configurable
   - [x] Move role track similarity thresholds to configuration system
   - [x] Allow fine-tuning of same-track vs different-track similarities
-- [ ] Develop unit and integration tests
-  - [ ] Test transitions within same track
-  - [ ] Test transitions across tracks
-  - [ ] Test compatibility with seniority calculations
+- [x] Develop unit and integration tests
+  - [x] Test transitions within same track
+  - [x] Test transitions across tracks
+  - [x] Test compatibility with seniority calculations
 
 The role track implementation acknowledges that career progression typically follows patterns where Individual Contributors may progress to Leadership roles, but transitions in the opposite direction are less common. All role track similarity thresholds are now configurable, allowing organisations to adjust the system to their specific career paths and progression policies.
 
-##### 6.3.6 Location Implementation
+##### 6.3.6 Location Implementation - **IN PROGRESS** (Branch: feature/similiarity-enhancement-location)
+
+###### Overview
+The location implementation recognises that geographic proximity significantly affects job transition practicality. Our enhanced approach focuses on "displacement" rather than binary location matching, acknowledging that most employees are unwilling to relocate between cities for internal roles unless for exceptional career opportunities.
+
+###### 6.3.6.1 Location Data Model Enhancement - **COMPLETED**
 - [x] Add location attributes to job data model
   - [x] Create flexible schema supporting different location specificity (suburb/city/state/country)
-  - [x] Implement geocoding capabilities (optional enhancement)
   - [x] Design normalisation for inconsistent address formats
-- [x] Develop location similarity algorithm
-  - [x] Implement exact matching for same location
-  - [x] Create proximity scoring for nearby locations
-  - [x] Add distance-based scoring for remote locations
-  - [x] Handle special cases like remote work and multiple locations
-- [x] Make location comparison fully configurable
+
+###### 6.3.6.2 Basic Location Similarity - **COMPLETED**
+- [x] Implement exact matching for same location
+- [x] Make location comparison configurable
   - [x] Move location similarity thresholds to configuration system
   - [x] Allow adjustment of same-location vs different-location similarities
-- [ ] Implement test suite
-  - [ ] Test exact location matches
-  - [ ] Test proximity-based matching
-  - [ ] Test handling of incomplete or missing location data
 
-The location implementation recognizes that geographic proximity significantly affects job transition practicality. By incorporating configurable location similarity thresholds, we can prioritize transitions that don't require relocation while still showing non-local opportunities at lower similarity scores when appropriate. The configuration system enables fine-tuning of these parameters without code changes.
+###### 6.3.6.3 Global Geo-Context Implementation - **IN PROGRESS**
+- [ ] Develop region-specific address parsing and standardisation
+  - [ ] Create utility for standardising street addresses across multiple countries
+  - [ ] Implement postcode/ZIP validation for key countries (Australia, India, Vietnam, UK, etc.)
+  - [ ] Handle common address abbreviations across different contexts
+  - [ ] Support different address formats (e.g., UK, India, Vietnam, Singapore formats)
+- [ ] Implement international proximity rules
+  - [ ] Define similarity thresholds for cross-country job comparisons
+  - [ ] Prioritise domestic relocations over international
+  - [ ] Create regional clusters (APAC, Europe, Americas) for similarity scoring
+- [ ] Create NAB-specific global location mapping
+  - [ ] Map all NAB office locations globally to standardised addresses
+  - [ ] Identify primary business hubs across countries (Melbourne, Sydney, London, Bengaluru, etc.)
+  - [ ] Categorise international locations by business function and importance
 
-##### 6.3.7 Variable Integration Framework
+###### 6.3.6.4 Geocoding and Distance Calculation - **IN PROGRESS**
+- [ ] Implement geocoding capability
+  - [ ] Create address-to-coordinates conversion utility
+  - [ ] Handle partial location information (missing street number, etc.)
+  - [ ] Implement geocoding service fallback options
+  - [ ] Support international address formats and locales
+- [ ] Build Haversine distance calculation module
+  - [ ] Implement pure Python Haversine formula calculation
+  - [ ] Add caching for common location pairs
+  - [ ] Create distance matrix generation for batch processing
+  - [ ] Handle international dateline and Earth curvature for global distances
+- [ ] Develop distance-to-similarity conversion
+  - [ ] Create exponential decay function based on commute realities
+  - [ ] Implement configurable distance thresholds (e.g., 5km, 10km, 25km)
+  - [ ] Tune similarity scores to match practical commute preferences
+  - [ ] Add special handling for cross-country distances
+
+###### 6.3.6.5 Commute-Based Similarity Model - **PLANNED**
+- [ ] Develop realistic commute-based similarity scoring
+  - [ ] Create distance bands with corresponding similarity scores
+    - [ ] Same building/campus: 1.0
+    - [ ] Walking distance (<2km): 0.9
+    - [ ] Short commute (2-10km): 0.7-0.8
+    - [ ] Medium commute (10-25km): 0.4-0.6
+    - [ ] Long commute (25-50km): 0.2-0.3
+    - [ ] Different city/same country: 0.1
+    - [ ] Different country/same region: 0.05
+    - [ ] Different global region: 0.0
+  - [ ] Adjust scores based on public transport accessibility in different cities
+  - [ ] Consider typical traffic patterns for major global cities
+  - [ ] Account for international relocation practicality by job level
+
+###### 6.3.6.6 Address Validation and Experimentation - **PLANNED**
+- [ ] Create test framework for address validation
+  - [ ] Implement unit tests with sample addresses from multiple countries
+  - [ ] Test address normalisation with variations across different formats
+  - [ ] Validate postal code systems across different countries
+- [ ] Build experimentation module for Haversine accuracy
+  - [ ] Create comparison between Haversine and real-world commute times
+  - [ ] Test with known location pairs across different countries
+  - [ ] Validate against Google Maps API data for international routes
+- [ ] Develop visualization tools for distance-based similarity
+  - [ ] Create heatmap visualization of location similarities
+  - [ ] Build distance matrix reports for NAB's global locations
+  - [ ] Generate CSV exports for Power BI integration with country filters
+
+###### 6.3.6.7 Edge Case Handling - **PLANNED**
+- [ ] Implement handling for special location types
+  - [ ] Manage "Remote" or "Work from home" locations with country context
+  - [ ] Handle multiple work locations across countries (e.g., split time between India and Australia)
+  - [ ] Manage temporary assignments, secondments and international rotations
+  - [ ] Account for visa/work permit constraints in similarity calculations
+- [ ] Create fallback mechanisms for missing location data
+  - [ ] Implement city-level matching when street address is unavailable
+  - [ ] Use postal code proximity when geocoding fails
+  - [ ] Default to country-level comparison for unfamiliar international locations
+  - [ ] Handle transliteration issues in non-Latin address formats
+
+###### 6.3.6.8 International Banking Context - **PLANNED**
+- [ ] Implement NAB-specific global location considerations
+  - [ ] Identify key NAB business hubs and locations across all countries
+  - [ ] Create special handling for locations with specific financial services capabilities
+  - [ ] Add weightings for global function concentration by location
+  - [ ] Recognise regional centres of excellence (e.g., technology in India, trading in London)
+- [ ] Develop global business context understanding
+  - [ ] Define similarity for roles across international boundaries
+  - [ ] Implement special rules for global roles vs regional roles
+  - [ ] Create handling for headquarters vs satellite office transitions
+  - [ ] Factor in international career path expectations at different career levels
+- [ ] Create international mobility context
+  - [ ] Develop tiered scoring for roles typically offering international mobility
+  - [ ] Adjust similarity based on historical relocation patterns
+  - [ ] Map executive and senior leadership roles with higher international mobility expectations
+
+##### 6.3.7 Variable Integration Framework - **COMPLETED**
 - [x] Create weighted variable integration system
-  - [x] Design extensible pattern for adding future variables
-  - [x] Implement normalized score combination algorithm
-  - [x] Create comprehensive logging of factor contributions
+- [x] Design extensible pattern for adding future variables
+- [x] Implement normalized score combination algorithm
+- [x] Create comprehensive logging of factor contributions
 - [x] Implement adjustment controls
-  - [x] Create configurable weighting system
-  - [x] Add minimum threshold options
-  - [x] Develop variable-specific tuning parameters
+- [x] Create configurable weighting system
+- [x] Add minimum threshold options
+- [x] Develop variable-specific tuning parameters
 - [x] Test combined operation
-  - [x] Verify correct weighting application
-  - [x] Test boundary cases (all variables at max/min)
-  - [x] Validate stability with different weight combinations
+- [x] Verify correct weighting application
+- [x] Test boundary cases (all variables at max/min)
+- [x] Validate stability with different weight combinations
 
 This framework provides a flexible, configuration-driven foundation not only for the three immediate variables but also for future extensions, ensuring the system can evolve with organisational needs. All aspects of the similarity calculations are now configurable through the configuration system, allowing for detailed tuning without code changes.
 
 ##### 6.3.8 CLI Integration and User Experience
 - [ ] Enhance CLI to support new variables
-  - [ ] Add commands to toggle variables on/off
-  - [ ] Implement options to adjust weights interactively
-  - [ ] Create commands to display relative impact of variables
+- [ ] Add commands to toggle variables on/off
+- [ ] Implement options to adjust weights interactively
+- [ ] Create commands to display relative impact of variables
 - [ ] Develop visualization enhancements
-  - [ ] Add visualization of variable contributions to similarity scores
-  - [ ] Create specialized views for each variable
-  - [ ] Implement interactive exploration of variable effects
+- [ ] Add visualization of variable contributions to similarity scores
+- [ ] Create specialized views for each variable
+- [ ] Implement interactive exploration of variable effects
 - [ ] Update documentation
-  - [ ] Create comprehensive guide to variable configuration
-  - [ ] Document expected effects of each variable
-  - [ ] Provide example configurations for different use cases
+- [ ] Create comprehensive guide to variable configuration
+- [ ] Document expected effects of each variable
+- [ ] Provide example configurations for different use cases
 
 User-friendly tools will make these complex enhancements accessible to business users, enabling them to explore and optimize the similarity model for their organization's specific needs.
 
-##### 6.3.9 Integration Tests & Documentation
-- [ ] Test combined operation of all three variables
-  - [ ] Create comprehensive test scenarios
-  - [ ] Develop test data with complete variable coverage
-  - [ ] Implement performance testing for enhanced calculations
-- [ ] Update documentation
-  - [ ] Create detailed reference for each variable
-  - [ ] Document integration patterns and best practices
-  - [ ] Provide configuration templates for common scenarios
+##### 6.3.9 Integration Tests & Documentation - **IN PROGRESS**
+- [x] Test combined operation of all three variables
+- [x] Create comprehensive test scenarios
+- [x] Develop test data with complete variable coverage
+- [x] Implement performance testing for enhanced calculations
+- [x] Update documentation
+- [x] Create detailed reference for each variable
+- [x] Document integration patterns and best practices
+- [x] Provide configuration templates for common scenarios
 - [ ] Develop validation framework
-  - [ ] Create tools to measure improvement in similarity accuracy
-  - [ ] Implement A/B comparison with skills-only approach
-  - [ ] Design metrics for evaluating enhancement impacts
+- [ ] Create tools to measure improvement in similarity accuracy
+- [ ] Implement A/B comparison with skills-only approach
+- [ ] Design metrics for evaluating enhancement impacts
+
+##### 6.3.10 Enhanced Configuration Structure - **COMPLETED**
+- [x] Redesign configuration file structure with clear sections and comprehensive documentation
+- [x] Implement structured headings with descriptive separators
+- [x] Add detailed explanations for each configuration parameter
+- [x] Group related parameters into logical sections
+- [x] Enhance configuration documentation
+- [x] Add detailed parameter descriptions and rationale
+- [x] Include example values and valid ranges
+- [x] Provide real-world impact explanations for different settings
+- [x] Improve YAML readability and maintainability
+- [x] Use consistent formatting and indentation
+- [x] Implement clear separation between configuration sections
+- [x] Add comprehensive comments explaining parameter purposes
+- [x] Create versioning system for tracking configuration changes
+- [x] Add explicit configuration version identifiers
+- [x] Document backward compatibility considerations
+- [x] Create upgrade path for existing configurations
+
+The enhancement to the configuration structure has delivered several benefits:
+1. **Improved readability** - Clear section headers and descriptive comments make the configuration easier to understand
+2. **Better documentation** - Each parameter now has detailed explanations of its purpose and impact
+3. **More maintainable** - Logical grouping and consistent formatting make updates simpler
+4. **Self-explanatory** - New users can understand the configuration without extensive external documentation
+5. **Future-proof** - The structure allows for easy addition of new parameters and sections
 
 #### 6.4 HRIS Data Integration
 - [ ] Develop HRIS data translation layer to standardise naming conventions
@@ -434,45 +544,143 @@ User-friendly tools will make these complex enhancements accessible to business 
 - [ ] Document any remaining data quality issues or constraints
 - [ ] Finalise implementation recommendations based on testing results
 
-### Phase 7: Interactive CLI Implementation - **PLANNED**
-**Branch: `feature/interactive-cli`**
+### Phase 7: CLI Implementation & Production Readiness - **PLANNED**
+**Branch: `feature/cli-production-readiness`**
 
-#### 7.1 Interactive CLI Framework
-- [ ] Create interactive CLI module structure
-- [ ] Implement welcome screen and main flow sequence
-- [ ] Add styled console output with rich library
-- [ ] Set up questionary/PyInquirer for interactive prompts
+#### 7.1 Core CLI Framework Enhancements - **PLANNED**
+- [ ] Expand current CLI functionality
+  - [ ] Ensure consistent interface across all commands
+  - [ ] Add comprehensive error handling and user feedback
+  - [ ] Implement progress tracking for long-running operations
+  - [ ] Add logging with configurable verbosity levels
+  - [ ] Create unified entry point for all operations
+- [ ] Create "quick start" convenience commands
+  - [ ] Implement shortcuts for common operation combinations
+  - [ ] Add preset configuration profiles for different analysis types
+  - [ ] Create wizards for first-time users to generate configurations
 
-#### 7.2 User Flow Implementation
-- [ ] Build analysis type selection interface
-- [ ] Implement input file selection with validation
-- [ ] Create output preferences configuration flow
-- [ ] Develop analysis parameters selection screens
-- [ ] Add summary confirmation before proceeding with analysis
+#### 7.2 Local Production Usage Preparation - **PLANNED**
+- [ ] Create workspace structure for NAB local usage
+  - [ ] Design standard directory structure for inputs and outputs
+  - [ ] Develop workspace initialization and validation commands
+  - [ ] Create templates for NAB-specific data formats
+  - [ ] Build safeguards to prevent accidental data corruption
+- [ ] Implement batch processing for large NAB datasets
+  - [ ] Add incremental processing capability for large job datasets
+  - [ ] Create checkpointing for long-running analyses
+  - [ ] Implement memory-efficient processing for constrained environments
+  - [ ] Add retry mechanisms for handling transient failures
+- [ ] Design Windows-specific deployment considerations
+  - [ ] Create batch files (.bat) for common operations
+  - [ ] Implement Windows-friendly path handling
+  - [ ] Add Windows Task Scheduler templates for regular execution
+  - [ ] Ensure compatibility with corporate Windows security policies
 
-#### 7.3 Progress Tracking
-- [ ] Implement progress bars for time-consuming operations
-- [ ] Add spinners for operations without percentage completion
-- [ ] Include elapsed time indicators for long-running processes
-- [ ] Create step-by-step progress indicators
+#### 7.3 Data Workflow Integration - **PLANNED**
+- [ ] Develop data input/output pipeline
+  - [ ] Create standardized input data validators
+  - [ ] Add support for Excel files (common in NAB business environment)
+  - [ ] Implement CSV with headers format for Power BI compatibility
+  - [ ] Add data transformation utilities for various NAB input formats
+- [ ] Build Power BI integration utilities
+  - [ ] Create output formats optimized for Power BI consumption
+  - [ ] Develop Power BI templates for common visualizations
+  - [ ] Add metadata to outputs for improved Power BI discoverability
+  - [ ] Create refresh sequence documentation for Power BI datasets
+- [ ] Design data versioning and archiving system
+  - [ ] Implement output naming conventions with timestamps
+  - [ ] Create utilities for comparing results across multiple runs
+  - [ ] Add automated archiving of previous analysis results
+  - [ ] Build data provenance tracking to maintain audit trail
 
-#### 7.4 Integration with Core Analysis
-- [ ] Connect interactive CLI to existing analysis functions
-- [ ] Ensure proper data flow between CLI and core functionality
-- [ ] Implement progress tracking hooks in core analysis code
-- [ ] Add thorough error handling and validation
+#### 7.4 Ad-hoc Analysis Toolkit - **PLANNED**
+- [ ] Create specialized commands for one-off analyses
+  - [ ] Implement targeted department analysis
+  - [ ] Add job family comparison tools
+  - [ ] Build role progression path analysis
+  - [ ] Develop skill gap identification for targeted roles
+- [ ] Develop analysis customization options
+  - [ ] Add runtime parameter overrides for quick experimentation
+  - [ ] Create temporary configuration modification commands
+  - [ ] Implement "what-if" simulation capabilities
+  - [ ] Build comparison mode between different parameter sets
+- [ ] Implement ad-hoc reporting
+  - [ ] Create executive summary generation for key findings
+  - [ ] Add visualization generation for common metrics
+  - [ ] Build export to presentation formats (e.g., PowerPoint)
+  - [ ] Implement customizable report templates
 
-#### 7.5 Testing and Polish
-- [ ] Create test cases for interactive CLI
-- [ ] Test with various input conditions and edge cases
-- [ ] Polish user experience and refine error messages
-- [ ] Add comprehensive help documentation
+#### 7.5 User Experience & Documentation - **PLANNED**
+- [ ] Enhance user feedback and assistance
+  - [ ] Create comprehensive inline help for all commands
+  - [ ] Add contextual hints for common errors
+  - [ ] Implement interactive examples for first-time users
+  - [ ] Build configuration validation with helpful error messages
+- [ ] Develop comprehensive user documentation
+  - [ ] Create step-by-step workflow guides for common NAB use cases
+  - [ ] Add troubleshooting section with solutions to common issues
+  - [ ] Develop reference documentation for all parameters
+  - [ ] Build documentation for output file formats
+- [ ] Create NAB-specific usage guides
+  - [ ] Document recommended practices for NAB environment
+  - [ ] Add examples using realistic NAB data patterns (anonymized)
+  - [ ] Create departmental guides for different NAB business units
+  - [ ] Build integration guides for NAB's existing analytics tools
 
-#### 7.6 Documentation and Examples
-- [ ] Update README with interactive CLI usage instructions
-- [ ] Create example scripts showcasing interactive functionality
-- [ ] Add detailed comments and docstrings
-- [ ] Include troubleshooting section for common issues
+#### 7.6 Testing & Quality Assurance - **PLANNED**
+- [ ] Implement comprehensive CLI testing
+  - [ ] Create end-to-end test workflows with realistic data volumes
+  - [ ] Add validation tests for all output formats
+  - [ ] Implement boundary testing for edge cases
+  - [ ] Build performance benchmarks for laptop environments
+- [ ] Create user acceptance testing plan
+  - [ ] Develop test scenarios for NAB business users
+  - [ ] Build feedback collection mechanism
+  - [ ] Create validation checklist for outputs
+  - [ ] Design test data representative of NAB's environment
+- [ ] Implement system verification utilities
+  - [ ] Create diagnostic commands for environment validation
+  - [ ] Add dependency checks for required libraries
+  - [ ] Build self-test capabilities to verify installation
+  - [ ] Implement system resource requirement verification
+
+#### 7.7 Transition from Testing to Production - **PLANNED**
+- [ ] Create transition workflow
+  - [ ] Design process for moving from test data to production data
+  - [ ] Build validation steps for ensuring quality with real data
+  - [ ] Create rollback procedures for problematic analyses
+  - [ ] Develop controlled deployment process for new functionality
+- [ ] Implement phased rollout approach
+  - [ ] Create limited scope initial deployment plan
+  - [ ] Design expansion strategy for adding departments incrementally
+  - [ ] Build metrics for tracking adoption and usage
+  - [ ] Develop success criteria for each deployment phase
+- [ ] Establish ongoing maintenance procedures
+  - [ ] Create process for configuration updates
+  - [ ] Design approach for incorporating user feedback
+  - [ ] Build strategy for periodic retraining/recalibration
+  - [ ] Develop documentation for regular maintenance tasks
+
+### Implementation Details & Timeline
+
+The CLI implementation will focus on creating a robust, user-friendly interface that can be reliably run on standard NAB laptops without requiring cloud infrastructure. The design will prioritize:
+
+1. **Reliability**: Ensuring consistent results with appropriate error handling
+2. **Usability**: Making the tool accessible to non-technical users
+3. **Performance**: Optimizing for reasonable performance on standard hardware
+4. **Integration**: Seamless connection to existing NAB tools like Power BI
+5. **Maintainability**: Easy to update and extend as requirements evolve
+
+**Timeline**: 15 working days
+- Core CLI Enhancements: 3 days
+- Local Production Preparation: 3 days
+- Data Workflow Integration: 3 days
+- Ad-hoc Analysis Toolkit: 2 days
+- User Experience & Documentation: 2 days
+- Testing & Quality Assurance: 1 day
+- Transition Planning: 1 day
+
+This phase will establish the skill similarity engine as a practical, production-ready tool that can be used on an ad-hoc basis by NAB P&C to generate valuable insights without requiring complex infrastructure or cloud deployment.
 
 ### Technical Implementation Details
 
@@ -522,7 +730,7 @@ Total estimated time: 68 working days
 - Phase 4: 13 days - **COMPLETED**
 - Phase 5: 11 days - **IN PROGRESS** (CLI completed, core testing completed, documentation in progress)
 - Phase 6: 15 days - **IN PROGRESS** (unified configuration, HRIS integration, similarity enhancements, and Power BI support)
-- Phase 7: 12 days - **PLANNED** (Interactive CLI implementation)
+- Phase 7: 15 days - **PLANNED** (CLI implementation & production readiness)
 
 ## Technical Constraints
 
