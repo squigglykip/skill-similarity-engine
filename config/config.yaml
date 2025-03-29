@@ -126,25 +126,6 @@ workforce:
   max_skills_in_report: 20
   department_skill_coverage_threshold: 75.0
 
-# Future extensions (all disabled by default)
-future_extensions:
-  # Enhancement component weights (0.0 = disabled, higher values increase influence)
-  seniority_weight: 1.0
-  role_track_weight: 0.0
-  location_weight: 0.0
-  
-  # Seniority similarity thresholds (career progression settings)
-  seniority_same_level_similarity: 1.0     # Similarity when seniority levels are the same
-  seniority_one_up_similarity: 0.7         # Similarity when target job is one level higher
-  seniority_up_step_penalty: 0.1           # Penalty per level for multiple levels up
-  seniority_one_down_similarity: 0.1       # Similarity when target job is one level lower
-  seniority_down_similarity: 0.0           # Similarity when target job is multiple levels lower
-  
-  # Role track similarity thresholds
-  role_track_same_similarity: 1.0          # Similarity when role tracks are the same
-  role_track_different_similarity: 0.5     # Similarity when target is leadership (from IC)
-  role_track_regression_similarity: 0.1    # Similarity when target is IC (from leadership)
-  
-  # Location similarity thresholds  
-  location_same_similarity: 1.0            # Similarity when locations are the same
-  location_different_similarity: 0.3       # Similarity when locations are different 
+# Similarity enhancement factors configuration
+# This section is loaded from an external file
+similarity_enhancement_factors_file: "config/similarity_enhancement_factors.yaml" 

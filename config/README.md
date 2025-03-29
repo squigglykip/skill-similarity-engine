@@ -98,4 +98,74 @@ The configuration system includes placeholder sections for future extensions:
 - **role_track** - Settings for role track-based similarity
 - **location** - Settings for location-based similarity
 
-These sections are currently disabled (weight=0) but can be enabled in future versions. 
+These sections are currently disabled (weight=0) but can be enabled in future versions.
+
+# Configuration Management
+
+## Overview
+
+The configuration system for the Skill Similarity Engine is designed to be flexible and modular, allowing for easy customisation of various components of the application.
+
+## Configuration Files
+
+### Main Configuration: `config.yaml`
+
+The main configuration file contains all settings for the application, including:
+
+- Version information
+- Directory paths
+- Logging settings
+- Normalisation settings
+- Similarity calculation settings
+- Gap analysis settings
+- Opportunity identification settings
+- Report configuration
+- Heatmap visualization settings
+- Team gap analysis settings 
+- Workforce planning settings
+
+### Similarity Enhancement Factors: `similarity_enhancement_factors.yaml`
+
+The similarity enhancement factors configuration file contains settings for additional factors that enhance the basic skill-based similarity matching. These settings are separated to make them easier to adjust without modifying the main configuration.
+
+The similarity_enhancement_factors.yaml file includes:
+
+- Enhancement component weights (seniority, role track, location)
+- Seniority similarity thresholds
+- Role track similarity thresholds
+- Location similarity thresholds
+
+## Using External Configuration
+
+The main config.yaml file can either contain the enhancement factors settings directly or reference an external file:
+
+```yaml
+# Option 1: Include enhancement factors directly in config.yaml
+future_extensions:
+  seniority_weight: 1.0
+  role_track_weight: 0.0
+  # ... other settings
+
+# Option 2: Reference an external file
+similarity_enhancement_factors_file: "config/similarity_enhancement_factors.yaml"
+```
+
+## Modifying Configuration
+
+When updating the configuration:
+
+1. For stable features, modify the main `config.yaml` file
+2. For enhancement factors, modify the `similarity_enhancement_factors.yaml` file
+
+## Default Values
+
+If settings are not specified in the configuration files, the application will use sensible defaults defined in the `AppConfig` class.
+
+## Path Resolution
+
+Paths in the configuration files can be either:
+
+- Relative: resolved relative to the current working directory
+- Absolute: used directly
+
+The external similarity_enhancement_factors_file path is resolved relative to the main configuration file's location. 

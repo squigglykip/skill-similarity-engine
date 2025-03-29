@@ -385,19 +385,117 @@ class ConfigManager:
             if 'department_skill_coverage_threshold' in wf_config:
                 self._config.workforce.department_skill_coverage_threshold = wf_config['department_skill_coverage_threshold']
         
-        # Set future extensions config
+        # Handle future extensions config - either from main config or from external file
         if 'future_extensions' in config_data:
+            # Load directly from the main config
             ext_config = config_data['future_extensions']
-            if 'seniority_weight' in ext_config:
-                self._config.future_extensions.seniority_weight = ext_config['seniority_weight']
-            if 'role_track_weight' in ext_config:
-                self._config.future_extensions.role_track_weight = ext_config['role_track_weight']
-            if 'location_weight' in ext_config:
-                self._config.future_extensions.location_weight = ext_config['location_weight']
+            self._load_future_extensions(ext_config)
+        elif 'future_extensions_file' in config_data or 'similarity_enhancement_factors_file' in config_data:
+            # Load from external file
+            ext_file_path = config_data.get('similarity_enhancement_factors_file') or config_data.get('future_extensions_file')
+            
+            # Handle relative paths
+            if not os.path.isabs(ext_file_path):
+                # If config_file is a path, use its directory as base
+                if hasattr(config_file, 'parent'):  # Path object
+                    base_dir = config_file.parent
+                else:  # String
+                    base_dir = os.path.dirname(os.path.abspath(config_file))
+                    
+                # Check if path contains forward slashes in a Windows environment
+                if os.name == 'nt' and '/' in ext_file_path:
+                    # Replace forward slashes with backslashes for Windows
+                    ext_file_path = ext_file_path.replace('/', '\\')
                 
+                ext_file_path = os.path.join(base_dir, ext_file_path)
+            
+            # Load the external config file
+            try:
+                ext_config_format = ConfigFormat.from_file_extension(ext_file_path)
+                with open(ext_file_path, 'r') as f:
+                    if ext_config_format == ConfigFormat.YAML:
+                        ext_config = yaml.safe_load(f)
+                    else:  # JSON
+                        import json
+                        ext_config = json.load(f)
+                
+                # Apply the external config
+                self._load_future_extensions(ext_config)
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to load similarity enhancement factors from {ext_file_path}: {e}")
+                # Continue with default values
+        
         # Validate the config
         self._validate_config()
         
+    def _load_future_extensions(self, ext_config):
+        """
+        Load future extensions configuration.
+        
+        Args:
+            ext_config: Dictionary with future extensions configuration
+        """
+        if 'seniority_weight' in ext_config:
+            self._config.future_extensions.seniority_weight = ext_config['seniority_weight']
+        if 'role_track_weight' in ext_config:
+            self._config.future_extensions.role_track_weight = ext_config['role_track_weight']
+        if 'location_weight' in ext_config:
+            self._config.future_extensions.location_weight = ext_config['location_weight']
+        
+        # Load seniority similarity settings
+        if 'seniority_same_level_similarity' in ext_config:
+            self._config.future_extensions.seniority_same_level_similarity = ext_config['seniority_same_level_similarity']
+        if 'seniority_one_up_similarity' in ext_config:
+            self._config.future_extensions.seniority_one_up_similarity = ext_config['seniority_one_up_similarity']
+        if 'seniority_up_step_penalty' in ext_config:
+            self._config.future_extensions.seniority_up_step_penalty = ext_config['seniority_up_step_penalty']
+        if 'seniority_one_down_similarity' in ext_config:
+            self._config.future_extensions.seniority_one_down_similarity = ext_config['seniority_one_down_similarity']
+        if 'seniority_down_similarity' in ext_config:
+            self._config.future_extensions.seniority_down_similarity = ext_config['seniority_down_similarity']
+        
+        # Load role track similarity settings
+        if 'role_track_same_similarity' in ext_config:
+            self._config.future_extensions.role_track_same_similarity = ext_config['role_track_same_similarity']
+        if 'role_track_different_similarity' in ext_config:
+            self._config.future_extensions.role_track_different_similarity = ext_config['role_track_different_similarity']
+        if 'role_track_regression_similarity' in ext_config:
+            self._config.future_extensions.role_track_regression_similarity = ext_config['role_track_regression_similarity']
+        
+        # Load location similarity settings
+        if 'location_same_similarity' in ext_config:
+            self._config.future_extensions.location_same_similarity = ext_config['location_same_similarity']
+        if 'location_different_similarity' in ext_config:
+            self._config.future_extensions.location_different_similarity = ext_config['location_different_similarity']
+    
+    def load_similarity_enhancement_factors(self, file_path):
+        """
+        Load similarity enhancement factors directly from a file.
+        
+        Args:
+            file_path: Path to the similarity enhancement factors file
+        """
+        if not os.path.exists(file_path):
+            import logging
+            logging.warning(f"Similarity enhancement factors file does not exist: {file_path}")
+            return
+            
+        try:
+            ext_config_format = ConfigFormat.from_file_extension(file_path)
+            with open(file_path, 'r') as f:
+                if ext_config_format == ConfigFormat.YAML:
+                    ext_config = yaml.safe_load(f)
+                else:  # JSON
+                    import json
+                    ext_config = json.load(f)
+            
+            # Apply the external config
+            self._load_future_extensions(ext_config)
+        except Exception as e:
+            import logging
+            logging.warning(f"Failed to load similarity enhancement factors from {file_path}: {e}")
+    
     def _validate_config(self):
         """
         Validate the configuration.
