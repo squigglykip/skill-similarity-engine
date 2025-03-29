@@ -1,0 +1,11 @@
+Job ID,Title,Department,Level,Seniority,Role Track,Location,Similarity
+J002,Senior Data Analyst,Analytics,Senior,4,Individual Contributor,London,0.8909459739518544
+J003,Data Scientist,Analytics,Mid-level,3,Individual Contributor,London,0.8180520324230164
+J004,Business Analyst,Business,Associate,2,Individual Contributor,Remote,0.8053132613071693
+J017,Business Intelligence Analyst,Analytics,Mid-level,3,Individual Contributor,London,0.805144951775211
+J018,Risk Analyst,Risk,Associate,2,Individual Contributor,London,0.746152570067349
+J005,Financial Analyst,Finance,Associate,2,Individual Contributor,Edinburgh,0.6817971491190488
+J013,HR Coordinator,HR,Associate,2,Individual Contributor,London,0.6675215379004401
+J007,Software Engineer,Technology,Mid-level,3,Individual Contributor,London,0.6619035623319335
+J016,Cybersecurity Analyst,IT,Mid-level,3,Individual Contributor,London,0.6589310276185855
+J015,IT Support Specialist,IT,Associate,2,Individual Contributor,London,0.6569975597777329

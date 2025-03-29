@@ -1,191 +1,191 @@
 job1_id,job2_id,job1_title,job2_title,job1_psa,job2_psa,psa_diff,base_similarity,adjusted_similarity,adjustment_factor
-J00179,J00037,Junior Mortgage Specialist,Principal Customer Service Representative,PSA1,PSA4,3,0.34992710611188255,0.17496355305594127,0.5
-J00179,J00067,Junior Mortgage Specialist,Teller K,PSA1,PSA2,1,0.5455447255899809,0.4909902530309828,0.9
-J00179,J00083,Junior Mortgage Specialist,Customer Service Representative,PSA1,PSA2,1,0.19047619047619044,0.1714285714285714,0.9
-J00179,J00148,Junior Mortgage Specialist,Banking Associate,PSA1,PSA2,1,0.24209101306752095,0.21788191176076888,0.9
-J00179,J00163,Junior Mortgage Specialist,Mortgage Specialist F,PSA1,PSA2,1,0.4364357804719847,0.39279220242478624,0.9
-J00179,J00200,Junior Mortgage Specialist,Principal Personal Banker,PSA1,PSA4,3,0.0,0.0,1.0
-J00179,J00063,Junior Mortgage Specialist,Banking Operations T,PSA1,PSA2,1,0.0,0.0,1.0
-J00179,J00053,Junior Mortgage Specialist,Senior Loan Officer U,PSA1,PSA3,2,0.1951800145897066,0.1366260102127946,0.7
-J00179,J00174,Junior Mortgage Specialist,Banking Operations D,PSA1,PSA2,1,0.0,0.0,1.0
-J00179,J00147,Junior Mortgage Specialist,Account Manager T,PSA1,PSA2,1,0.21821789023599236,0.19639610121239312,0.9
-J00179,J00040,Junior Mortgage Specialist,Junior Teller,PSA1,PSA1,0,0.0,0.0,1.0
-J00179,J00113,Junior Mortgage Specialist,Mortgage Specialist,PSA1,PSA2,1,0.21821789023599236,0.19639610121239312,0.9
-J00179,J00102,Junior Mortgage Specialist,Junior Banking Advisor,PSA1,PSA1,0,0.0,0.0,1.0
-J00179,J00164,Junior Mortgage Specialist,Personal Banker,PSA1,PSA2,1,0.0,0.0,1.0
-J00179,J00171,Junior Mortgage Specialist,Mortgage Specialist Lead W,PSA1,PSA5,4,0.16876735764295622,0.050630207292886864,0.3
-J00179,J00120,Junior Mortgage Specialist,Junior Personal Banker,PSA1,PSA1,0,0.0,0.0,1.0
-J00179,J00031,Junior Mortgage Specialist,Principal Account Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00179,J00154,Junior Mortgage Specialist,Senior Loan Officer C,PSA1,PSA3,2,0.5175491695067655,0.3622844186547359,0.7
-J00179,J00136,Junior Mortgage Specialist,Principal Relationship Manager,PSA1,PSA4,3,0.15877683720748895,0.07938841860374447,0.5
-J00037,J00067,Principal Customer Service Representative,Teller K,PSA4,PSA2,2,0.20044593143431827,0.14031215200402278,0.7
-J00037,J00083,Principal Customer Service Representative,Customer Service Representative,PSA4,PSA2,2,0.17496355305594127,0.12247448713915889,0.7
-J00037,J00148,Principal Customer Service Representative,Banking Associate,PSA4,PSA2,2,0.22237479499833035,0.15566235649883123,0.7
-J00037,J00163,Principal Customer Service Representative,Mortgage Specialist F,PSA4,PSA2,2,0.40089186286863654,0.28062430400804556,0.7
-J00037,J00200,Principal Customer Service Representative,Principal Personal Banker,PSA4,PSA4,0,0.15398682993655985,0.15398682993655985,1.0
-J00037,J00063,Principal Customer Service Representative,Banking Operations T,PSA4,PSA2,2,0.26244532958391187,0.1837117307087383,0.7
-J00037,J00053,Principal Customer Service Representative,Senior Loan Officer U,PSA4,PSA3,1,0.5378528742004771,0.48406758678042944,0.9
-J00037,J00174,Principal Customer Service Representative,Banking Operations D,PSA4,PSA2,2,0.0,0.0,1.0
-J00037,J00147,Principal Customer Service Representative,Account Manager T,PSA4,PSA2,2,0.20044593143431827,0.14031215200402278,0.7
-J00037,J00040,Principal Customer Service Representative,Junior Teller,PSA4,PSA1,3,0.0,0.0,1.0
-J00037,J00113,Principal Customer Service Representative,Mortgage Specialist,PSA4,PSA2,2,0.40089186286863654,0.28062430400804556,0.7
-J00037,J00102,Principal Customer Service Representative,Junior Banking Advisor,PSA4,PSA1,3,0.0,0.0,1.0
-J00037,J00164,Principal Customer Service Representative,Personal Banker,PSA4,PSA2,2,0.0,0.0,1.0
-J00037,J00171,Principal Customer Service Representative,Mortgage Specialist Lead W,PSA4,PSA5,1,0.3100454335972811,0.279040890237553,0.9000000000000001
-J00037,J00120,Principal Customer Service Representative,Junior Personal Banker,PSA4,PSA1,3,0.0,0.0,1.0
-J00037,J00031,Principal Customer Service Representative,Principal Account Manager,PSA4,PSA4,0,0.0,0.0,1.0
-J00037,J00154,Principal Customer Service Representative,Senior Loan Officer C,PSA4,PSA3,1,0.1901597073139162,0.1711437365825246,0.9
-J00037,J00136,Principal Customer Service Representative,Principal Relationship Manager,PSA4,PSA4,0,0.145845837799237,0.145845837799237,1.0
-J00067,J00083,Teller K,Customer Service Representative,PSA2,PSA2,0,0.4364357804719847,0.4364357804719847,1.0
-J00067,J00148,Teller K,Banking Associate,PSA2,PSA2,0,0.0,0.0,1.0
-J00067,J00163,Teller K,Mortgage Specialist F,PSA2,PSA2,0,0.5,0.5,1.0
-J00067,J00200,Teller K,Principal Personal Banker,PSA2,PSA4,2,0.0,0.0,1.0
-J00067,J00063,Teller K,Banking Operations T,PSA2,PSA2,0,0.0,0.0,1.0
-J00067,J00053,Teller K,Senior Loan Officer U,PSA2,PSA3,1,0.0,0.0,1.0
-J00067,J00174,Teller K,Banking Operations D,PSA2,PSA2,0,0.0,0.0,1.0
-J00067,J00147,Teller K,Account Manager T,PSA2,PSA2,0,0.25,0.25,1.0
-J00067,J00040,Teller K,Junior Teller,PSA2,PSA1,1,0.0,0.0,1.0
-J00067,J00113,Teller K,Mortgage Specialist,PSA2,PSA2,0,0.25,0.25,1.0
-J00067,J00102,Teller K,Junior Banking Advisor,PSA2,PSA1,1,0.0,0.0,1.0
-J00067,J00164,Teller K,Personal Banker,PSA2,PSA2,0,0.0,0.0,1.0
-J00067,J00171,Teller K,Mortgage Specialist Lead W,PSA2,PSA5,3,0.38669459561826547,0.19334729780913273,0.5
-J00067,J00120,Teller K,Junior Personal Banker,PSA2,PSA1,1,0.0,0.0,1.0
-J00067,J00031,Teller K,Principal Account Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00067,J00154,Teller K,Senior Loan Officer C,PSA2,PSA3,1,0.7115124735378853,0.6403612261840967,0.9
-J00067,J00136,Teller K,Principal Relationship Manager,PSA2,PSA4,2,0.18190171877724975,0.1273312031440748,0.7
-J00083,J00148,Customer Service Representative,Banking Associate,PSA2,PSA2,0,0.36313651960128146,0.36313651960128146,1.0
-J00083,J00163,Customer Service Representative,Mortgage Specialist F,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
-J00083,J00200,Customer Service Representative,Principal Personal Banker,PSA2,PSA4,2,0.0,0.0,1.0
-J00083,J00063,Customer Service Representative,Banking Operations T,PSA2,PSA2,0,0.28571428571428564,0.28571428571428564,1.0
-J00083,J00053,Customer Service Representative,Senior Loan Officer U,PSA2,PSA3,1,0.2927700218845599,0.26349301969610395,0.9
-J00083,J00174,Customer Service Representative,Banking Operations D,PSA2,PSA2,0,0.0,0.0,1.0
-J00083,J00147,Customer Service Representative,Account Manager T,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
-J00083,J00040,Customer Service Representative,Junior Teller,PSA2,PSA1,1,0.0,0.0,1.0
-J00083,J00113,Customer Service Representative,Mortgage Specialist,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
-J00083,J00102,Customer Service Representative,Junior Banking Advisor,PSA2,PSA1,1,0.0,0.0,1.0
-J00083,J00164,Customer Service Representative,Personal Banker,PSA2,PSA2,0,0.0,0.0,1.0
-J00083,J00171,Customer Service Representative,Mortgage Specialist Lead W,PSA2,PSA5,3,0.33753471528591245,0.16876735764295622,0.5
-J00083,J00120,Customer Service Representative,Junior Personal Banker,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
-J00083,J00031,Customer Service Representative,Principal Account Manager,PSA2,PSA4,2,0.23816525581123338,0.16671567906786336,0.7
-J00083,J00154,Customer Service Representative,Senior Loan Officer C,PSA2,PSA3,1,0.20701966780270625,0.18631770102243564,0.9
-J00083,J00136,Customer Service Representative,Principal Relationship Manager,PSA2,PSA4,2,0.15877683720748895,0.11114378604524225,0.7
-J00148,J00163,Banking Associate,Mortgage Specialist F,PSA2,PSA2,0,0.2773500981126146,0.2773500981126146,1.0
-J00148,J00200,Banking Associate,Principal Personal Banker,PSA2,PSA4,2,0.0,0.0,1.0
-J00148,J00063,Banking Associate,Banking Operations T,PSA2,PSA2,0,0.24209101306752095,0.24209101306752095,1.0
-J00148,J00053,Banking Associate,Senior Loan Officer U,PSA2,PSA3,1,0.7442084075352507,0.6697875667817257,0.9
-J00148,J00174,Banking Associate,Banking Operations D,PSA2,PSA2,0,0.24209101306752095,0.24209101306752095,1.0
-J00148,J00147,Banking Associate,Account Manager T,PSA2,PSA2,0,0.0,0.0,1.0
-J00148,J00040,Banking Associate,Junior Teller,PSA2,PSA1,1,0.3076923076923077,0.27692307692307694,0.9
-J00148,J00113,Banking Associate,Mortgage Specialist,PSA2,PSA2,0,0.0,0.0,1.0
-J00148,J00102,Banking Associate,Junior Banking Advisor,PSA2,PSA1,1,0.3076923076923077,0.27692307692307694,0.9
-J00148,J00164,Banking Associate,Personal Banker,PSA2,PSA2,0,0.1386750490563073,0.1386750490563073,1.0
-J00148,J00171,Banking Associate,Mortgage Specialist Lead W,PSA2,PSA5,3,0.0,0.0,1.0
-J00148,J00120,Banking Associate,Junior Personal Banker,PSA2,PSA1,1,0.3076923076923077,0.27692307692307694,0.9
-J00148,J00031,Banking Associate,Principal Account Manager,PSA2,PSA4,2,0.20180183819889375,0.1412612867392256,0.7
-J00148,J00154,Banking Associate,Senior Loan Officer C,PSA2,PSA3,1,0.0,0.0,1.0
-J00148,J00136,Banking Associate,Principal Relationship Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00163,J00200,Mortgage Specialist F,Principal Personal Banker,PSA2,PSA4,2,0.0,0.0,1.0
-J00163,J00063,Mortgage Specialist F,Banking Operations T,PSA2,PSA2,0,0.0,0.0,1.0
-J00163,J00053,Mortgage Specialist F,Senior Loan Officer U,PSA2,PSA3,1,0.22360679774997896,0.20124611797498107,0.9
-J00163,J00174,Mortgage Specialist F,Banking Operations D,PSA2,PSA2,0,0.0,0.0,1.0
-J00163,J00147,Mortgage Specialist F,Account Manager T,PSA2,PSA2,0,0.25,0.25,1.0
-J00163,J00040,Mortgage Specialist F,Junior Teller,PSA2,PSA1,1,0.0,0.0,1.0
-J00163,J00113,Mortgage Specialist F,Mortgage Specialist,PSA2,PSA2,0,0.25,0.25,1.0
-J00163,J00102,Mortgage Specialist F,Junior Banking Advisor,PSA2,PSA1,1,0.0,0.0,1.0
-J00163,J00164,Mortgage Specialist F,Personal Banker,PSA2,PSA2,0,0.0,0.0,1.0
-J00163,J00171,Mortgage Specialist F,Mortgage Specialist Lead W,PSA2,PSA5,3,0.19334729780913273,0.09667364890456637,0.5
-J00163,J00120,Mortgage Specialist F,Junior Personal Banker,PSA2,PSA1,1,0.0,0.0,1.0
-J00163,J00031,Mortgage Specialist F,Principal Account Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00163,J00154,Mortgage Specialist F,Senior Loan Officer C,PSA2,PSA3,1,0.4743416490252569,0.4269074841227312,0.9
-J00163,J00136,Mortgage Specialist F,Principal Relationship Manager,PSA2,PSA4,2,0.18190171877724975,0.1273312031440748,0.7
-J00200,J00063,Principal Personal Banker,Banking Operations T,PSA4,PSA2,2,0.5867386940384682,0.41071708582692773,0.7
-J00200,J00053,Principal Personal Banker,Senior Loan Officer U,PSA4,PSA3,1,0.17177950029416048,0.15460155026474443,0.9
-J00200,J00174,Principal Personal Banker,Banking Operations D,PSA4,PSA2,2,0.16763962686813377,0.11734773880769363,0.7
-J00200,J00147,Principal Personal Banker,Account Manager T,PSA4,PSA2,2,0.0,0.0,1.0
-J00200,J00040,Principal Personal Banker,Junior Teller,PSA4,PSA1,3,0.0,0.0,1.0
-J00200,J00113,Principal Personal Banker,Mortgage Specialist,PSA4,PSA2,2,0.3841106397986879,0.2688774478590815,0.7
-J00200,J00102,Principal Personal Banker,Junior Banking Advisor,PSA4,PSA1,3,0.0,0.0,1.0
-J00200,J00164,Principal Personal Banker,Personal Banker,PSA4,PSA2,2,0.19205531989934396,0.13443872392954076,0.7
-J00200,J00171,Principal Personal Banker,Mortgage Specialist Lead W,PSA4,PSA5,1,0.2970670170592537,0.2673603153533283,0.9
-J00200,J00120,Principal Personal Banker,Junior Personal Banker,PSA4,PSA1,3,0.0,0.0,1.0
-J00200,J00031,Principal Personal Banker,Principal Account Manager,PSA4,PSA4,0,0.1397407711600208,0.1397407711600208,1.0
-J00200,J00154,Principal Personal Banker,Senior Loan Officer C,PSA4,PSA3,1,0.0,0.0,1.0
-J00200,J00136,Principal Personal Banker,Principal Relationship Manager,PSA4,PSA4,0,0.0,0.0,1.0
-J00063,J00053,Banking Operations T,Senior Loan Officer U,PSA2,PSA3,1,0.4879500364742665,0.4391550328268399,0.9
-J00063,J00174,Banking Operations T,Banking Operations D,PSA2,PSA2,0,0.0,0.0,1.0
-J00063,J00147,Banking Operations T,Account Manager T,PSA2,PSA2,0,0.0,0.0,1.0
-J00063,J00040,Banking Operations T,Junior Teller,PSA2,PSA1,1,0.0,0.0,1.0
-J00063,J00113,Banking Operations T,Mortgage Specialist,PSA2,PSA2,0,0.32732683535398854,0.32732683535398854,1.0
-J00063,J00102,Banking Operations T,Junior Banking Advisor,PSA2,PSA1,1,0.0,0.0,1.0
-J00063,J00164,Banking Operations T,Personal Banker,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
-J00063,J00171,Banking Operations T,Mortgage Specialist Lead W,PSA2,PSA5,3,0.2531510364644343,0.12657551823221716,0.5
-J00063,J00120,Banking Operations T,Junior Personal Banker,PSA2,PSA1,1,0.0,0.0,1.0
-J00063,J00031,Banking Operations T,Principal Account Manager,PSA2,PSA4,2,0.31755367441497784,0.22228757209048447,0.7
-J00063,J00154,Banking Operations T,Senior Loan Officer C,PSA2,PSA3,1,0.0,0.0,1.0
-J00063,J00136,Banking Operations T,Principal Relationship Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00053,J00174,Senior Loan Officer U,Banking Operations D,PSA3,PSA2,1,0.1951800145897066,0.17566201313073596,0.9
-J00053,J00147,Senior Loan Officer U,Account Manager T,PSA3,PSA2,1,0.0,0.0,1.0
-J00053,J00040,Senior Loan Officer U,Junior Teller,PSA3,PSA1,2,0.2480694691784169,0.17364862842489182,0.7
-J00053,J00113,Senior Loan Officer U,Mortgage Specialist,PSA3,PSA2,1,0.22360679774997896,0.20124611797498107,0.9
-J00053,J00102,Senior Loan Officer U,Junior Banking Advisor,PSA3,PSA1,2,0.2480694691784169,0.17364862842489182,0.7
-J00053,J00164,Senior Loan Officer U,Personal Banker,PSA3,PSA2,1,0.0,0.0,1.0
-J00053,J00171,Senior Loan Officer U,Mortgage Specialist Lead W,PSA3,PSA5,2,0.17293508046684677,0.12105455632679274,0.7
-J00053,J00120,Senior Loan Officer U,Junior Personal Banker,PSA3,PSA1,2,0.2480694691784169,0.17364862842489182,0.7
-J00053,J00031,Senior Loan Officer U,Principal Account Manager,PSA3,PSA4,1,0.16269784336399212,0.14642805902759293,0.9000000000000001
-J00053,J00154,Senior Loan Officer U,Senior Loan Officer C,PSA3,PSA3,0,0.0,0.0,1.0
-J00053,J00136,Senior Loan Officer U,Principal Relationship Manager,PSA3,PSA4,1,0.0,0.0,1.0
-J00174,J00147,Banking Operations D,Account Manager T,PSA2,PSA2,0,0.0,0.0,1.0
-J00174,J00040,Banking Operations D,Junior Teller,PSA2,PSA1,1,0.4841820261350419,0.43576382352153775,0.9
-J00174,J00113,Banking Operations D,Mortgage Specialist,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
-J00174,J00102,Banking Operations D,Junior Banking Advisor,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
-J00174,J00164,Banking Operations D,Personal Banker,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
-J00174,J00171,Banking Operations D,Mortgage Specialist Lead W,PSA2,PSA5,3,0.16876735764295622,0.08438367882147811,0.5
-J00174,J00120,Banking Operations D,Junior Personal Banker,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00174,J00039,Banking Operations D,Senior Personal Banker H,PSA2,PSA3,1,0.22131333406899523,0.1991820006620957,0.9
+J00174,J00179,Banking Operations D,Junior Mortgage Specialist,PSA2,PSA1,1,0.0,0.0,1.0
+J00174,J00020,Banking Operations D,Teller,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
+J00174,J00012,Banking Operations D,Banking Operations,PSA2,PSA2,0,0.19047619047619044,0.19047619047619044,1.0
+J00174,J00083,Banking Operations D,Customer Service Representative,PSA2,PSA2,0,0.0,0.0,1.0
 J00174,J00031,Banking Operations D,Principal Account Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00174,J00154,Banking Operations D,Senior Loan Officer C,PSA2,PSA3,1,0.0,0.0,1.0
-J00174,J00136,Banking Operations D,Principal Relationship Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00147,J00040,Account Manager T,Junior Teller,PSA2,PSA1,1,0.0,0.0,1.0
-J00147,J00113,Account Manager T,Mortgage Specialist,PSA2,PSA2,0,0.5,0.5,1.0
-J00147,J00102,Account Manager T,Junior Banking Advisor,PSA2,PSA1,1,0.0,0.0,1.0
-J00147,J00164,Account Manager T,Personal Banker,PSA2,PSA2,0,0.0,0.0,1.0
-J00147,J00171,Account Manager T,Mortgage Specialist Lead W,PSA2,PSA5,3,0.4350314200705486,0.2175157100352743,0.5
-J00147,J00120,Account Manager T,Junior Personal Banker,PSA2,PSA1,1,0.0,0.0,1.0
-J00147,J00031,Account Manager T,Principal Account Manager,PSA2,PSA4,2,0.18190171877724973,0.1273312031440748,0.7000000000000001
-J00147,J00154,Account Manager T,Senior Loan Officer C,PSA2,PSA3,1,0.23717082451262844,0.2134537420613656,0.9
-J00147,J00136,Account Manager T,Principal Relationship Manager,PSA2,PSA4,2,0.7882407813680823,0.5517685469576575,0.7
-J00040,J00113,Junior Teller,Mortgage Specialist,PSA1,PSA2,1,0.0,0.0,1.0
-J00040,J00102,Junior Teller,Junior Banking Advisor,PSA1,PSA1,0,0.6153846153846154,0.6153846153846154,1.0
-J00040,J00164,Junior Teller,Personal Banker,PSA1,PSA2,1,0.2773500981126146,0.24961508830135312,0.9
-J00040,J00171,Junior Teller,Mortgage Specialist Lead W,PSA1,PSA5,4,0.0,0.0,1.0
-J00040,J00120,Junior Teller,Junior Personal Banker,PSA1,PSA1,0,0.3076923076923077,0.3076923076923077,1.0
-J00040,J00031,Junior Teller,Principal Account Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00040,J00154,Junior Teller,Senior Loan Officer C,PSA1,PSA3,2,0.0,0.0,1.0
-J00040,J00136,Junior Teller,Principal Relationship Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00113,J00102,Mortgage Specialist,Junior Banking Advisor,PSA2,PSA1,1,0.0,0.0,1.0
-J00113,J00164,Mortgage Specialist,Personal Banker,PSA2,PSA2,0,0.0,0.0,1.0
+J00174,J00165,Banking Operations D,Junior Account Manager,PSA2,PSA1,1,0.0,0.0,1.0
+J00174,J00156,Banking Operations D,Banking Advisor Manager,PSA2,PSA5,3,0.1574083562935881,0.07870417814679405,0.5
+J00174,J00172,Banking Operations D,Principal Branch Manager,PSA2,PSA4,2,0.33527925373626755,0.23469547761538725,0.7
+J00174,J00063,Banking Operations D,Banking Operations T,PSA2,PSA2,0,0.0,0.0,1.0
+J00174,J00081,Banking Operations D,Junior Loan Officer,PSA2,PSA1,1,0.0,0.0,1.0
+J00174,J00166,Banking Operations D,Personal Banker D,PSA2,PSA2,0,0.19047619047619044,0.19047619047619044,1.0
+J00174,J00121,Banking Operations D,Junior Fraud Specialist I,PSA2,PSA1,1,0.36313651960128146,0.3268228676411533,0.9
+J00174,J00103,Banking Operations D,Junior Fraud Specialist,PSA2,PSA1,1,0.4841820261350419,0.43576382352153775,0.9
+J00174,J00170,Banking Operations D,Mortgage Specialist Lead,PSA2,PSA5,3,0.0,0.0,1.0
+J00174,J00113,Banking Operations D,Mortgage Specialist,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
+J00174,J00151,Banking Operations D,Senior Banking Advisor,PSA2,PSA3,1,0.0,0.0,1.0
+J00174,J00171,Banking Operations D,Mortgage Specialist Lead W,PSA2,PSA5,3,0.16876735764295622,0.08438367882147811,0.5
+J00174,J00010,Banking Operations D,Junior Customer Service Representative,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00039,J00179,Senior Personal Banker H,Junior Mortgage Specialist,PSA3,PSA1,2,0.22131333406899525,0.15491933384829668,0.7
+J00039,J00020,Senior Personal Banker H,Teller,PSA3,PSA2,1,0.50709255283711,0.45638329755339896,0.9
+J00039,J00012,Senior Personal Banker H,Banking Operations,PSA3,PSA2,1,0.22131333406899523,0.1991820006620957,0.9
+J00039,J00083,Senior Personal Banker H,Customer Service Representative,PSA3,PSA2,1,0.0,0.0,1.0
+J00039,J00031,Senior Personal Banker H,Principal Account Manager,PSA3,PSA4,1,0.0,0.0,1.0
+J00039,J00165,Senior Personal Banker H,Junior Account Manager,PSA3,PSA1,2,0.22131333406899523,0.15491933384829665,0.7
+J00039,J00156,Senior Personal Banker H,Banking Advisor Manager,PSA3,PSA5,2,0.0914459913718425,0.06401219396028975,0.7
+J00039,J00172,Senior Personal Banker H,Principal Branch Manager,PSA3,PSA4,1,0.12985309660494151,0.11686778694444737,0.9
+J00039,J00063,Senior Personal Banker H,Banking Operations T,PSA3,PSA2,1,0.0,0.0,1.0
+J00039,J00081,Senior Personal Banker H,Junior Loan Officer,PSA3,PSA1,2,0.253546276418555,0.17748239349298847,0.7
+J00039,J00166,Senior Personal Banker H,Personal Banker D,PSA3,PSA2,1,0.0,0.0,1.0
+J00039,J00121,Senior Personal Banker H,Junior Fraud Specialist I,PSA3,PSA1,2,0.5625686771261945,0.39379807398833616,0.7
+J00039,J00103,Senior Personal Banker H,Junior Fraud Specialist,PSA3,PSA1,2,0.28128433856309726,0.19689903699416808,0.7
+J00039,J00170,Senior Personal Banker H,Mortgage Specialist Lead,PSA3,PSA5,2,0.14175398238766682,0.09922778767136677,0.7
+J00039,J00113,Senior Personal Banker H,Mortgage Specialist,PSA3,PSA2,1,0.0,0.0,1.0
+J00039,J00151,Senior Personal Banker H,Senior Banking Advisor,PSA3,PSA3,0,0.22190115272469205,0.22190115272469205,1.0
+J00039,J00171,Senior Personal Banker H,Mortgage Specialist Lead W,PSA3,PSA5,2,0.0,0.0,1.0
+J00039,J00010,Senior Personal Banker H,Junior Customer Service Representative,PSA3,PSA1,2,0.0,0.0,1.0
+J00179,J00020,Junior Mortgage Specialist,Teller,PSA1,PSA2,1,0.0,0.0,1.0
+J00179,J00012,Junior Mortgage Specialist,Banking Operations,PSA1,PSA2,1,0.0,0.0,1.0
+J00179,J00083,Junior Mortgage Specialist,Customer Service Representative,PSA1,PSA2,1,0.19047619047619044,0.1714285714285714,0.9
+J00179,J00031,Junior Mortgage Specialist,Principal Account Manager,PSA1,PSA4,3,0.0,0.0,1.0
+J00179,J00165,Junior Mortgage Specialist,Junior Account Manager,PSA1,PSA1,0,0.0,0.0,1.0
+J00179,J00156,Junior Mortgage Specialist,Banking Advisor Manager,PSA1,PSA5,4,0.33449275712387466,0.1003478271371624,0.3
+J00179,J00172,Junior Mortgage Specialist,Principal Branch Manager,PSA1,PSA4,3,0.16763962686813377,0.08381981343406689,0.5
+J00179,J00063,Junior Mortgage Specialist,Banking Operations T,PSA1,PSA2,1,0.0,0.0,1.0
+J00179,J00081,Junior Mortgage Specialist,Junior Loan Officer,PSA1,PSA1,0,0.0,0.0,1.0
+J00179,J00166,Junior Mortgage Specialist,Personal Banker D,PSA1,PSA2,1,0.0,0.0,1.0
+J00179,J00121,Junior Mortgage Specialist,Junior Fraud Specialist I,PSA1,PSA1,0,0.0,0.0,1.0
+J00179,J00103,Junior Mortgage Specialist,Junior Fraud Specialist,PSA1,PSA1,0,0.0,0.0,1.0
+J00179,J00170,Junior Mortgage Specialist,Mortgage Specialist Lead,PSA1,PSA5,4,0.45750901087167745,0.13725270326150324,0.3
+J00179,J00113,Junior Mortgage Specialist,Mortgage Specialist,PSA1,PSA2,1,0.21821789023599236,0.19639610121239312,0.9
+J00179,J00151,Junior Mortgage Specialist,Senior Banking Advisor,PSA1,PSA3,2,0.0,0.0,1.0
+J00179,J00171,Junior Mortgage Specialist,Mortgage Specialist Lead W,PSA1,PSA5,4,0.16876735764295622,0.050630207292886864,0.3
+J00179,J00010,Junior Mortgage Specialist,Junior Customer Service Representative,PSA1,PSA1,0,0.0,0.0,1.0
+J00020,J00012,Teller,Banking Operations,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
+J00020,J00083,Teller,Customer Service Representative,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
+J00020,J00031,Teller,Principal Account Manager,PSA2,PSA4,2,0.0,0.0,1.0
+J00020,J00165,Teller,Junior Account Manager,PSA2,PSA1,1,0.21821789023599236,0.19639610121239312,0.9
+J00020,J00156,Teller,Banking Advisor Manager,PSA2,PSA5,3,0.0,0.0,1.0
+J00020,J00172,Teller,Principal Branch Manager,PSA2,PSA4,2,0.0,0.0,1.0
+J00020,J00063,Teller,Banking Operations T,PSA2,PSA2,0,0.0,0.0,1.0
+J00020,J00081,Teller,Junior Loan Officer,PSA2,PSA1,1,0.25,0.225,0.9
+J00020,J00166,Teller,Personal Banker D,PSA2,PSA2,0,0.0,0.0,1.0
+J00020,J00121,Teller,Junior Fraud Specialist I,PSA2,PSA1,1,0.5547001962252291,0.49923017660270624,0.9
+J00020,J00103,Teller,Junior Fraud Specialist,PSA2,PSA1,1,0.41602514716892186,0.37442263245202967,0.9
+J00020,J00170,Teller,Mortgage Specialist Lead,PSA2,PSA5,3,0.0,0.0,1.0
+J00020,J00113,Teller,Mortgage Specialist,PSA2,PSA2,0,0.0,0.0,1.0
+J00020,J00151,Teller,Senior Banking Advisor,PSA2,PSA3,1,0.2187974872468418,0.19691773852215763,0.9
+J00020,J00171,Teller,Mortgage Specialist Lead W,PSA2,PSA5,3,0.0,0.0,1.0
+J00020,J00010,Teller,Junior Customer Service Representative,PSA2,PSA1,1,0.0,0.0,1.0
+J00012,J00083,Banking Operations,Customer Service Representative,PSA2,PSA2,0,0.0,0.0,1.0
+J00012,J00031,Banking Operations,Principal Account Manager,PSA2,PSA4,2,0.15877683720748892,0.11114378604524223,0.7
+J00012,J00165,Banking Operations,Junior Account Manager,PSA2,PSA1,1,0.19047619047619044,0.1714285714285714,0.9
+J00012,J00156,Banking Operations,Banking Advisor Manager,PSA2,PSA5,3,0.23611253444038213,0.11805626722019107,0.5
+J00012,J00172,Banking Operations,Principal Branch Manager,PSA2,PSA4,2,0.16763962686813377,0.11734773880769363,0.7
+J00012,J00063,Banking Operations,Banking Operations T,PSA2,PSA2,0,0.19047619047619044,0.19047619047619044,1.0
+J00012,J00081,Banking Operations,Junior Loan Officer,PSA2,PSA1,1,0.21821789023599236,0.19639610121239312,0.9
+J00012,J00166,Banking Operations,Personal Banker D,PSA2,PSA2,0,0.19047619047619044,0.19047619047619044,1.0
+J00012,J00121,Banking Operations,Junior Fraud Specialist I,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00012,J00103,Banking Operations,Junior Fraud Specialist,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00012,J00170,Banking Operations,Mortgage Specialist Lead,PSA2,PSA5,3,0.0,0.0,1.0
+J00012,J00113,Banking Operations,Mortgage Specialist,PSA2,PSA2,0,0.0,0.0,1.0
+J00012,J00151,Banking Operations,Senior Banking Advisor,PSA2,PSA3,1,0.38196420844753814,0.3437677876027843,0.8999999999999999
+J00012,J00171,Banking Operations,Mortgage Specialist Lead W,PSA2,PSA5,3,0.0,0.0,1.0
+J00012,J00010,Banking Operations,Junior Customer Service Representative,PSA2,PSA1,1,0.0,0.0,1.0
+J00083,J00031,Customer Service Representative,Principal Account Manager,PSA2,PSA4,2,0.23816525581123338,0.16671567906786336,0.7
+J00083,J00165,Customer Service Representative,Junior Account Manager,PSA2,PSA1,1,0.19047619047619044,0.1714285714285714,0.9
+J00083,J00156,Customer Service Representative,Banking Advisor Manager,PSA2,PSA5,3,0.0,0.0,1.0
+J00083,J00172,Customer Service Representative,Principal Branch Manager,PSA2,PSA4,2,0.33527925373626755,0.23469547761538725,0.7
+J00083,J00063,Customer Service Representative,Banking Operations T,PSA2,PSA2,0,0.28571428571428564,0.28571428571428564,1.0
+J00083,J00081,Customer Service Representative,Junior Loan Officer,PSA2,PSA1,1,0.0,0.0,1.0
+J00083,J00166,Customer Service Representative,Personal Banker D,PSA2,PSA2,0,0.19047619047619044,0.19047619047619044,1.0
+J00083,J00121,Customer Service Representative,Junior Fraud Specialist I,PSA2,PSA1,1,0.0,0.0,1.0
+J00083,J00103,Customer Service Representative,Junior Fraud Specialist,PSA2,PSA1,1,0.12104550653376048,0.10894095588038444,0.9
+J00083,J00170,Customer Service Representative,Mortgage Specialist Lead,PSA2,PSA5,3,0.18300360434867097,0.09150180217433548,0.5
+J00083,J00113,Customer Service Representative,Mortgage Specialist,PSA2,PSA2,0,0.21821789023599236,0.21821789023599236,1.0
+J00083,J00151,Customer Service Representative,Senior Banking Advisor,PSA2,PSA3,1,0.0,0.0,1.0
+J00083,J00171,Customer Service Representative,Mortgage Specialist Lead W,PSA2,PSA5,3,0.33753471528591245,0.16876735764295622,0.5
+J00083,J00010,Customer Service Representative,Junior Customer Service Representative,PSA2,PSA1,1,0.0,0.0,1.0
+J00031,J00165,Principal Account Manager,Junior Account Manager,PSA4,PSA1,3,0.0,0.0,1.0
+J00031,J00156,Principal Account Manager,Banking Advisor Manager,PSA4,PSA5,1,0.0,0.0,1.0
+J00031,J00172,Principal Account Manager,Principal Branch Manager,PSA4,PSA4,0,0.0,0.0,1.0
+J00031,J00063,Principal Account Manager,Banking Operations T,PSA4,PSA2,2,0.31755367441497784,0.22228757209048447,0.7
+J00031,J00081,Principal Account Manager,Junior Loan Officer,PSA4,PSA1,3,0.18190171877724973,0.09095085938862486,0.5
+J00031,J00166,Principal Account Manager,Personal Banker D,PSA4,PSA2,2,0.0,0.0,1.0
+J00031,J00121,Principal Account Manager,Junior Fraud Specialist I,PSA4,PSA1,3,0.0,0.0,1.0
+J00031,J00103,Principal Account Manager,Junior Fraud Specialist,PSA4,PSA1,3,0.0,0.0,1.0
+J00031,J00170,Principal Account Manager,Mortgage Specialist Lead,PSA4,PSA5,1,0.0,0.0,1.0
+J00031,J00113,Principal Account Manager,Mortgage Specialist,PSA4,PSA2,2,0.18190171877724973,0.1273312031440748,0.7000000000000001
+J00031,J00151,Principal Account Manager,Senior Banking Advisor,PSA4,PSA3,1,0.15919855597737562,0.14327870037963805,0.9
+J00031,J00171,Principal Account Manager,Mortgage Specialist Lead W,PSA4,PSA5,1,0.0,0.0,1.0
+J00031,J00010,Principal Account Manager,Junior Customer Service Representative,PSA4,PSA1,3,0.0,0.0,1.0
+J00165,J00156,Junior Account Manager,Banking Advisor Manager,PSA1,PSA5,4,0.0,0.0,1.0
+J00165,J00172,Junior Account Manager,Principal Branch Manager,PSA1,PSA4,3,0.33527925373626755,0.16763962686813377,0.5
+J00165,J00063,Junior Account Manager,Banking Operations T,PSA1,PSA2,1,0.0,0.0,1.0
+J00165,J00081,Junior Account Manager,Junior Loan Officer,PSA1,PSA1,0,0.4364357804719847,0.4364357804719847,1.0
+J00165,J00166,Junior Account Manager,Personal Banker D,PSA1,PSA2,1,0.8095238095238093,0.7285714285714284,0.9
+J00165,J00121,Junior Account Manager,Junior Fraud Specialist I,PSA1,PSA1,0,0.24209101306752095,0.24209101306752095,1.0
+J00165,J00103,Junior Account Manager,Junior Fraud Specialist,PSA1,PSA1,0,0.0,0.0,1.0
+J00165,J00170,Junior Account Manager,Mortgage Specialist Lead,PSA1,PSA5,4,0.0,0.0,1.0
+J00165,J00113,Junior Account Manager,Mortgage Specialist,PSA1,PSA2,1,0.0,0.0,1.0
+J00165,J00151,Junior Account Manager,Senior Banking Advisor,PSA1,PSA3,2,0.19098210422376907,0.13368747295663835,0.7000000000000001
+J00165,J00171,Junior Account Manager,Mortgage Specialist Lead W,PSA1,PSA5,4,0.16876735764295622,0.050630207292886864,0.3
+J00165,J00010,Junior Account Manager,Junior Customer Service Representative,PSA1,PSA1,0,0.0,0.0,1.0
+J00156,J00172,Banking Advisor Manager,Principal Branch Manager,PSA5,PSA4,1,0.13853636010366266,0.1246827240932964,0.9
+J00156,J00063,Banking Advisor Manager,Banking Operations T,PSA5,PSA2,3,0.1574083562935881,0.07870417814679405,0.5
+J00156,J00081,Banking Advisor Manager,Junior Loan Officer,PSA5,PSA1,4,0.0,0.0,1.0
+J00156,J00166,Banking Advisor Manager,Personal Banker D,PSA5,PSA2,3,0.1574083562935881,0.07870417814679405,0.5
+J00156,J00121,Banking Advisor Manager,Junior Fraud Specialist I,PSA5,PSA1,4,0.0,0.0,1.0
+J00156,J00103,Banking Advisor Manager,Junior Fraud Specialist,PSA5,PSA1,4,0.2000625293121422,0.06001875879364266,0.3
+J00156,J00170,Banking Advisor Manager,Mortgage Specialist Lead,PSA5,PSA5,0,0.2552057835537044,0.2552057835537044,1.0
+J00156,J00113,Banking Advisor Manager,Mortgage Specialist,PSA5,PSA2,3,0.0,0.0,1.0
+J00156,J00151,Banking Advisor Manager,Senior Banking Advisor,PSA5,PSA3,2,0.21043525375147956,0.1473046776260357,0.7
+J00156,J00171,Banking Advisor Manager,Mortgage Specialist Lead W,PSA5,PSA5,0,0.0,0.0,1.0
+J00156,J00010,Banking Advisor Manager,Junior Customer Service Representative,PSA5,PSA1,4,0.4001250586242844,0.12003751758728531,0.3
+J00172,J00063,Principal Branch Manager,Banking Operations T,PSA4,PSA2,2,0.0,0.0,1.0
+J00172,J00081,Principal Branch Manager,Junior Loan Officer,PSA4,PSA1,3,0.19205531989934396,0.09602765994967198,0.5
+J00172,J00166,Principal Branch Manager,Personal Banker D,PSA4,PSA2,2,0.33527925373626755,0.23469547761538725,0.7
+J00172,J00121,Principal Branch Manager,Junior Fraud Specialist I,PSA4,PSA1,3,0.0,0.0,1.0
+J00172,J00103,Principal Branch Manager,Junior Fraud Specialist,PSA4,PSA1,3,0.0,0.0,1.0
+J00172,J00170,Principal Branch Manager,Mortgage Specialist Lead,PSA4,PSA5,1,0.16106294372980764,0.1449566493568269,0.9000000000000001
+J00172,J00113,Principal Branch Manager,Mortgage Specialist,PSA4,PSA2,2,0.19205531989934396,0.13443872392954076,0.7
+J00172,J00151,Principal Branch Manager,Senior Banking Advisor,PSA4,PSA3,1,0.0,0.0,1.0
+J00172,J00171,Principal Branch Manager,Mortgage Specialist Lead W,PSA4,PSA5,1,0.2970670170592537,0.2673603153533283,0.9
+J00172,J00010,Principal Branch Manager,Junior Customer Service Representative,PSA4,PSA1,3,0.0,0.0,1.0
+J00063,J00081,Banking Operations T,Junior Loan Officer,PSA2,PSA1,1,0.0,0.0,1.0
+J00063,J00166,Banking Operations T,Personal Banker D,PSA2,PSA2,0,0.0,0.0,1.0
+J00063,J00121,Banking Operations T,Junior Fraud Specialist I,PSA2,PSA1,1,0.0,0.0,1.0
+J00063,J00103,Banking Operations T,Junior Fraud Specialist,PSA2,PSA1,1,0.0,0.0,1.0
+J00063,J00170,Banking Operations T,Mortgage Specialist Lead,PSA2,PSA5,3,0.0,0.0,1.0
+J00063,J00113,Banking Operations T,Mortgage Specialist,PSA2,PSA2,0,0.32732683535398854,0.32732683535398854,1.0
+J00063,J00151,Banking Operations T,Senior Banking Advisor,PSA2,PSA3,1,0.0,0.0,1.0
+J00063,J00171,Banking Operations T,Mortgage Specialist Lead W,PSA2,PSA5,3,0.2531510364644343,0.12657551823221716,0.5
+J00063,J00010,Banking Operations T,Junior Customer Service Representative,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00081,J00166,Junior Loan Officer,Personal Banker D,PSA1,PSA2,1,0.21821789023599236,0.19639610121239312,0.9
+J00081,J00121,Junior Loan Officer,Junior Fraud Specialist I,PSA1,PSA1,0,0.2773500981126146,0.2773500981126146,1.0
+J00081,J00103,Junior Loan Officer,Junior Fraud Specialist,PSA1,PSA1,0,0.0,0.0,1.0
+J00081,J00170,Junior Loan Officer,Mortgage Specialist Lead,PSA1,PSA5,4,0.0,0.0,1.0
+J00081,J00113,Junior Loan Officer,Mortgage Specialist,PSA1,PSA2,1,0.25,0.225,0.9
+J00081,J00151,Junior Loan Officer,Senior Banking Advisor,PSA1,PSA3,2,0.4375949744936836,0.3063164821455785,0.7
+J00081,J00171,Junior Loan Officer,Mortgage Specialist Lead W,PSA1,PSA5,4,0.0,0.0,1.0
+J00081,J00010,Junior Loan Officer,Junior Customer Service Representative,PSA1,PSA1,0,0.0,0.0,1.0
+J00166,J00121,Personal Banker D,Junior Fraud Specialist I,PSA2,PSA1,1,0.0,0.0,1.0
+J00166,J00103,Personal Banker D,Junior Fraud Specialist,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00166,J00170,Personal Banker D,Mortgage Specialist Lead,PSA2,PSA5,3,0.0,0.0,1.0
+J00166,J00113,Personal Banker D,Mortgage Specialist,PSA2,PSA2,0,0.0,0.0,1.0
+J00166,J00151,Personal Banker D,Senior Banking Advisor,PSA2,PSA3,1,0.0,0.0,1.0
+J00166,J00171,Personal Banker D,Mortgage Specialist Lead W,PSA2,PSA5,3,0.16876735764295622,0.08438367882147811,0.5
+J00166,J00010,Personal Banker D,Junior Customer Service Representative,PSA2,PSA1,1,0.24209101306752095,0.21788191176076888,0.9
+J00121,J00103,Junior Fraud Specialist I,Junior Fraud Specialist,PSA1,PSA1,0,0.6153846153846154,0.6153846153846154,1.0
+J00121,J00170,Junior Fraud Specialist I,Mortgage Specialist Lead,PSA1,PSA5,4,0.0,0.0,1.0
+J00121,J00113,Junior Fraud Specialist I,Mortgage Specialist,PSA1,PSA2,1,0.1386750490563073,0.12480754415067656,0.9
+J00121,J00151,Junior Fraud Specialist I,Senior Banking Advisor,PSA1,PSA3,2,0.24273401821882046,0.1699138127531743,0.7
+J00121,J00171,Junior Fraud Specialist I,Mortgage Specialist Lead W,PSA1,PSA5,4,0.10724978403434375,0.032174935210303124,0.3
+J00121,J00010,Junior Fraud Specialist I,Junior Customer Service Representative,PSA1,PSA1,0,0.0,0.0,1.0
+J00103,J00170,Junior Fraud Specialist,Mortgage Specialist Lead,PSA1,PSA5,4,0.0,0.0,1.0
+J00103,J00113,Junior Fraud Specialist,Mortgage Specialist,PSA1,PSA2,1,0.0,0.0,1.0
+J00103,J00151,Junior Fraud Specialist,Senior Banking Advisor,PSA1,PSA3,2,0.0,0.0,1.0
+J00103,J00171,Junior Fraud Specialist,Mortgage Specialist Lead W,PSA1,PSA5,4,0.0,0.0,1.0
+J00103,J00010,Junior Fraud Specialist,Junior Customer Service Representative,PSA1,PSA1,0,0.3076923076923077,0.3076923076923077,1.0
+J00170,J00113,Mortgage Specialist Lead,Mortgage Specialist,PSA5,PSA2,3,0.20965696734438363,0.10482848367219182,0.5
+J00170,J00151,Mortgage Specialist Lead,Senior Banking Advisor,PSA5,PSA3,2,0.0,0.0,1.0
+J00170,J00171,Mortgage Specialist Lead,Mortgage Specialist Lead W,PSA5,PSA5,0,0.16214643241157664,0.16214643241157664,1.0
+J00170,J00010,Mortgage Specialist Lead,Junior Customer Service Representative,PSA5,PSA1,4,0.0,0.0,1.0
+J00113,J00151,Mortgage Specialist,Senior Banking Advisor,PSA2,PSA3,1,0.2187974872468418,0.19691773852215763,0.9
 J00113,J00171,Mortgage Specialist,Mortgage Specialist Lead W,PSA2,PSA5,3,0.5800418934273982,0.2900209467136991,0.5
-J00113,J00120,Mortgage Specialist,Junior Personal Banker,PSA2,PSA1,1,0.0,0.0,1.0
-J00113,J00031,Mortgage Specialist,Principal Account Manager,PSA2,PSA4,2,0.18190171877724973,0.1273312031440748,0.7000000000000001
-J00113,J00154,Mortgage Specialist,Senior Loan Officer C,PSA2,PSA3,1,0.23717082451262844,0.2134537420613656,0.9
-J00113,J00136,Mortgage Specialist,Principal Relationship Manager,PSA2,PSA4,2,0.3638034375544995,0.2546624062881496,0.7
-J00102,J00164,Junior Banking Advisor,Personal Banker,PSA1,PSA2,1,0.0,0.0,1.0
-J00102,J00171,Junior Banking Advisor,Mortgage Specialist Lead W,PSA1,PSA5,4,0.0,0.0,1.0
-J00102,J00120,Junior Banking Advisor,Junior Personal Banker,PSA1,PSA1,0,0.3076923076923077,0.3076923076923077,1.0
-J00102,J00031,Junior Banking Advisor,Principal Account Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00102,J00154,Junior Banking Advisor,Senior Loan Officer C,PSA1,PSA3,2,0.0,0.0,1.0
-J00102,J00136,Junior Banking Advisor,Principal Relationship Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00164,J00171,Personal Banker,Mortgage Specialist Lead W,PSA2,PSA5,3,0.0,0.0,1.0
-J00164,J00120,Personal Banker,Junior Personal Banker,PSA2,PSA1,1,0.0,0.0,1.0
-J00164,J00031,Personal Banker,Principal Account Manager,PSA2,PSA4,2,0.18190171877724973,0.1273312031440748,0.7000000000000001
-J00164,J00154,Personal Banker,Senior Loan Officer C,PSA2,PSA3,1,0.0,0.0,1.0
-J00164,J00136,Personal Banker,Principal Relationship Manager,PSA2,PSA4,2,0.0,0.0,1.0
-J00171,J00120,Mortgage Specialist Lead W,Junior Personal Banker,PSA5,PSA1,4,0.0,0.0,1.0
-J00171,J00031,Mortgage Specialist Lead W,Principal Account Manager,PSA5,PSA4,1,0.0,0.0,1.0
-J00171,J00154,Mortgage Specialist Lead W,Senior Loan Officer C,PSA5,PSA3,2,0.18342535215472291,0.12839774650830604,0.7000000000000001
-J00171,J00136,Mortgage Specialist Lead W,Principal Relationship Manager,PSA5,PSA4,1,0.31653185213176216,0.28487866691858593,0.8999999999999999
-J00120,J00031,Junior Personal Banker,Principal Account Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00120,J00154,Junior Personal Banker,Senior Loan Officer C,PSA1,PSA3,2,0.2631174057921088,0.18418218405447614,0.7
-J00120,J00136,Junior Personal Banker,Principal Relationship Manager,PSA1,PSA4,3,0.0,0.0,1.0
-J00031,J00154,Principal Account Manager,Senior Loan Officer C,PSA4,PSA3,1,0.0,0.0,1.0
-J00031,J00136,Principal Account Manager,Principal Relationship Manager,PSA4,PSA4,0,0.3088235294117647,0.3088235294117647,1.0
-J00154,J00136,Senior Loan Officer C,Principal Relationship Manager,PSA3,PSA4,1,0.17256712249065836,0.15531041024159253,0.9
+J00113,J00010,Mortgage Specialist,Junior Customer Service Representative,PSA2,PSA1,1,0.0,0.0,1.0
+J00151,J00171,Senior Banking Advisor,Mortgage Specialist Lead W,PSA3,PSA5,2,0.0,0.0,1.0
+J00151,J00010,Senior Banking Advisor,Junior Customer Service Representative,PSA3,PSA1,2,0.0,0.0,1.0
+J00171,J00010,Mortgage Specialist Lead W,Junior Customer Service Representative,PSA5,PSA1,4,0.0,0.0,1.0

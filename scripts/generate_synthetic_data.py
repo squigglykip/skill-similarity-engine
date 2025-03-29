@@ -107,6 +107,102 @@ SKILL_CATEGORIES = [
     {"category": "Domain", "subcategory": "Risk", "weight": 0.03},
 ]
 
+# Role track distribution (leadership vs individual contributor)
+ROLE_TRACK_DISTRIBUTION = {
+    "Individual Contributor": 0.85,  # 85% are ICs
+    "Leadership": 0.15,             # 15% are in leadership roles
+}
+
+# Location distribution by department
+LOCATION_DISTRIBUTION = {
+    "Retail Banking": {
+        "London": 0.35,
+        "Manchester": 0.20,
+        "Birmingham": 0.15,
+        "Edinburgh": 0.10,
+        "Glasgow": 0.10,
+        "Leeds": 0.05,
+        "Remote": 0.05
+    },
+    "Technology": {
+        "London": 0.50,
+        "Manchester": 0.20,
+        "Edinburgh": 0.15,
+        "Remote": 0.15
+    },
+    "Finance": {
+        "London": 0.60,
+        "Edinburgh": 0.30,
+        "Manchester": 0.08,
+        "Remote": 0.02
+    },
+    "HR": {
+        "London": 0.45,
+        "Manchester": 0.15,
+        "Leeds": 0.20,
+        "Edinburgh": 0.15,
+        "Remote": 0.05
+    },
+    "Operations": {
+        "Leeds": 0.30,
+        "Glasgow": 0.25,
+        "Manchester": 0.20,
+        "London": 0.15,
+        "Remote": 0.10
+    },
+    "Marketing": {
+        "London": 0.40,
+        "Manchester": 0.35,
+        "Edinburgh": 0.15,
+        "Remote": 0.10
+    },
+    "Analytics": {
+        "London": 0.55,
+        "Manchester": 0.25,
+        "Edinburgh": 0.15,
+        "Remote": 0.05
+    },
+    "Legal": {
+        "London": 0.75,
+        "Edinburgh": 0.20,
+        "Remote": 0.05
+    },
+    "Risk": {
+        "London": 0.60,
+        "Edinburgh": 0.30,
+        "Manchester": 0.10
+    },
+    "Executive": {
+        "London": 0.90,
+        "Edinburgh": 0.10
+    }
+}
+
+# Default location distribution for departments not specified above
+DEFAULT_LOCATION_DISTRIBUTION = {
+    "London": 0.50,
+    "Manchester": 0.20,
+    "Edinburgh": 0.15,
+    "Leeds": 0.05,
+    "Glasgow": 0.05,
+    "Remote": 0.05
+}
+
+# Mapping from job level to seniority (1-7 scale)
+LEVEL_TO_SENIORITY_MAP = {
+    "Entry": 1,
+    "Associate": 2,
+    "Mid-level": 3,
+    "Senior": 4,
+    "Lead": 5,
+    "Manager": 5,
+    "Director": 6,
+    "Executive": 7
+}
+
+# Leadership levels (to determine role track)
+LEADERSHIP_LEVELS = {"Lead", "Manager", "Director", "Executive"}
+
 class SyntheticDataGenerator:
     """Generate synthetic data for the skill similarity engine."""
     
@@ -237,7 +333,7 @@ class SyntheticDataGenerator:
         print(f"Generated {len(self.skills)} skills")
     
     def generate_jobs(self):
-        """Generate synthetic jobs data."""
+        """Generate synthetic jobs data with enhanced attributes."""
         num_jobs = self.config["num_jobs"]
         print(f"Generating {num_jobs} synthetic jobs...")
         
@@ -345,6 +441,22 @@ class SyntheticDataGenerator:
             # Determine pay scale area based on job level
             pay_scale_area = JOB_LEVEL_TO_PSA_MAP[level]
             
+            # Determine seniority based on level (1-7 scale)
+            seniority = LEVEL_TO_SENIORITY_MAP.get(level, 3)
+            
+            # Determine role track
+            # Leadership roles are based on level and some probability
+            is_leadership_level = level in LEADERSHIP_LEVELS
+            leadership_probability = 0.9 if is_leadership_level else 0.05
+            is_leadership = random.random() < leadership_probability
+            role_track = "Leadership" if is_leadership else "Individual Contributor"
+            
+            # Determine location based on department
+            location_dist = LOCATION_DISTRIBUTION.get(department, DEFAULT_LOCATION_DISTRIBUTION)
+            locations = list(location_dist.keys())
+            location_weights = list(location_dist.values())
+            location = np.random.choice(locations, p=location_weights)
+            
             # Generate job title
             base_titles = job_title_templates.get(department, ["Specialist", "Analyst", "Associate"])
             base_title = random.choice(base_titles)
@@ -414,7 +526,10 @@ class SyntheticDataGenerator:
                 "department": department,
                 "level": level,
                 "pay_scale_area": pay_scale_area,
-                "skills": skills_str
+                "skills": skills_str,
+                "seniority": seniority,
+                "role_track": role_track,
+                "location": location
             }
         
         print(f"Generated {len(self.jobs)} jobs")
@@ -543,7 +658,7 @@ class SyntheticDataGenerator:
         
         jobs_json_path = os.path.join(output_dir, "jobs.json")
         with open(jobs_json_path, 'w') as f:
-            json.dump(list(self.jobs.values()), f, indent=2)
+            json.dump(self.jobs, f, indent=2)
         
         # Save employees
         employees_df = pd.DataFrame.from_dict(self.employees, orient='index')
@@ -552,7 +667,7 @@ class SyntheticDataGenerator:
         
         employees_json_path = os.path.join(output_dir, "employees.json")
         with open(employees_json_path, 'w') as f:
-            json.dump(list(self.employees.values()), f, indent=2)
+            json.dump(self.employees, f, indent=2)
         
         # Generate stats
         stats = {
@@ -561,12 +676,22 @@ class SyntheticDataGenerator:
             "employee_count": len(self.employees),
             "department_counts": defaultdict(int),
             "level_counts": defaultdict(int),
-            "skill_category_counts": defaultdict(int)
+            "skill_category_counts": defaultdict(int),
+            "seniority_counts": defaultdict(int),
+            "role_track_counts": defaultdict(int),
+            "location_counts": defaultdict(int)
         }
         
         for job in self.jobs.values():
             stats["department_counts"][job["department"]] += 1
             stats["level_counts"][job["level"]] += 1
+            # Count the new attributes
+            if "seniority" in job:
+                stats["seniority_counts"][job["seniority"]] += 1
+            if "role_track" in job:
+                stats["role_track_counts"][job["role_track"]] += 1
+            if "location" in job:
+                stats["location_counts"][job["location"]] += 1
         
         for skill in self.skills.values():
             stats["skill_category_counts"][skill["category"]] += 1
@@ -579,11 +704,31 @@ class SyntheticDataGenerator:
                 **stats,
                 "department_counts": dict(stats["department_counts"]),
                 "level_counts": dict(stats["level_counts"]),
-                "skill_category_counts": dict(stats["skill_category_counts"])
+                "skill_category_counts": dict(stats["skill_category_counts"]),
+                "seniority_counts": dict(stats["seniority_counts"]),
+                "role_track_counts": dict(stats["role_track_counts"]),
+                "location_counts": dict(stats["location_counts"])
             }
             json.dump(serializable_stats, f, indent=2)
         
-        print(f"Data saved to {output_dir}")
+        # Generate a summary of the new attributes
+        print("\nEnhanced Attribute Statistics:")
+        print("  Seniority Distribution:")
+        for seniority, count in sorted(stats["seniority_counts"].items()):
+            percent = (count / len(self.jobs)) * 100
+            print(f"    Level {seniority}: {count} jobs ({percent:.1f}%)")
+        
+        print("\n  Role Track Distribution:")
+        for role_track, count in sorted(stats["role_track_counts"].items()):
+            percent = (count / len(self.jobs)) * 100
+            print(f"    {role_track}: {count} jobs ({percent:.1f}%)")
+        
+        print("\n  Location Distribution:")
+        for location, count in sorted(stats["location_counts"].items(), key=lambda x: x[1], reverse=True):
+            percent = (count / len(self.jobs)) * 100
+            print(f"    {location}: {count} jobs ({percent:.1f}%)")
+        
+        print(f"\nData saved to {output_dir}")
         print(f"  - Skills: {skills_csv_path}")
         print(f"  - Jobs: {jobs_csv_path}")
         print(f"  - Employees: {employees_csv_path}")

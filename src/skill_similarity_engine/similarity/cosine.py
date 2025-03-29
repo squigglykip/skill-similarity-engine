@@ -13,9 +13,14 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
 
+from ..config.settings import ConfigManager
 from ..models.employees import Employee, EmployeeDatabase
-from ..models.jobs import Job, JobArchitecture
+from ..models.jobs import Job, JobArchitecture, RoleTrack
 from ..models.skills import Skill, SkillTaxonomy
+
+# Constants for similarity calculations
+MAX_SENIORITY_DIFFERENCE = 6  # Maximum difference between seniority levels (1-7)
+MAX_LOCATION_SIMILARITY = 1.0  # Maximum similarity score for location
 
 
 @dataclass
@@ -173,6 +178,7 @@ class CosineSimilarityCalculator:
         employee_database: The employee database containing all employees
         job_vectors: Cached TF-IDF vectors for jobs
         employee_vectors: Cached TF-IDF vectors for employees
+        config_manager: Configuration manager for similarity settings
     """
     vectorizer: TfidfVectorizer
     skill_taxonomy: SkillTaxonomy
@@ -180,6 +186,7 @@ class CosineSimilarityCalculator:
     employee_database: Optional[EmployeeDatabase] = None
     job_vectors: Dict[str, np.ndarray] = field(default_factory=dict)
     employee_vectors: Dict[str, np.ndarray] = field(default_factory=dict)
+    config_manager: ConfigManager = field(default_factory=ConfigManager)
     
     def __post_init__(self):
         """Initialize the calculator by fitting the vectorizer and caching vectors."""
@@ -197,14 +204,14 @@ class CosineSimilarityCalculator:
     
     def calculate_job_similarity(self, job1_id: str, job2_id: str) -> float:
         """
-        Calculate the similarity between two jobs.
+        Calculate the similarity between two jobs, including enhancements for seniority, role track, and location.
         
         Args:
             job1_id: ID of the first job
             job2_id: ID of the second job
             
         Returns:
-            Cosine similarity score between the two jobs
+            Weighted similarity score between the two jobs
             
         Raises:
             ValueError: If any of the job IDs are not found
@@ -215,10 +222,163 @@ class CosineSimilarityCalculator:
         if job2_id not in self.job_vectors:
             raise ValueError(f"Job with ID {job2_id} not found")
         
+        # Get jobs
+        job1 = self.job_architecture.jobs[job1_id]
+        job2 = self.job_architecture.jobs[job2_id]
+        
+        # Calculate base similarity using skills
         vector1 = self.job_vectors[job1_id].reshape(1, -1)
         vector2 = self.job_vectors[job2_id].reshape(1, -1)
+        skill_similarity = float(sklearn_cosine_similarity(vector1, vector2)[0, 0])
         
-        return float(sklearn_cosine_similarity(vector1, vector2)[0, 0])
+        # Get extension weights from config
+        config = self.config_manager.get_config()
+        seniority_weight = config.future_extensions.seniority_weight
+        role_track_weight = config.future_extensions.role_track_weight
+        location_weight = config.future_extensions.location_weight
+        
+        # Get total weight excluding base skills weight (which is always 1.0)
+        extension_weight_sum = seniority_weight + role_track_weight + location_weight
+        
+        # If no enhancements are enabled, return the plain skill similarity
+        if extension_weight_sum == 0:
+            return skill_similarity
+        
+        # Calculate the weight for skills in the final weighted average
+        skill_weight = 1.0
+        
+        # Calculate weighted components
+        weighted_skill_similarity = skill_similarity * skill_weight
+        weighted_seniority_similarity = 0.0
+        weighted_role_track_similarity = 0.0
+        weighted_location_similarity = 0.0
+        
+        # Calculate seniority similarity if enabled
+        if seniority_weight > 0:
+            seniority_similarity = self._calculate_seniority_similarity(job1, job2)
+            weighted_seniority_similarity = seniority_similarity * seniority_weight
+        
+        # Calculate role track similarity if enabled
+        if role_track_weight > 0:
+            role_track_similarity = self._calculate_role_track_similarity(job1, job2)
+            weighted_role_track_similarity = role_track_similarity * role_track_weight
+        
+        # Calculate location similarity if enabled
+        if location_weight > 0:
+            location_similarity = self._calculate_location_similarity(job1, job2)
+            weighted_location_similarity = location_similarity * location_weight
+        
+        # Calculate weighted average similarity
+        total_weight = skill_weight + extension_weight_sum
+        weighted_similarity = (
+            weighted_skill_similarity + 
+            weighted_seniority_similarity + 
+            weighted_role_track_similarity + 
+            weighted_location_similarity
+        ) / total_weight
+        
+        return weighted_similarity
+    
+    def _calculate_seniority_similarity(self, job1: Job, job2: Job) -> float:
+        """
+        Calculate similarity based on seniority levels, favouring career progression.
+        
+        Args:
+            job1: First job (the reference job)
+            job2: Second job (the job being compared to)
+            
+        Returns:
+            Similarity score based on seniority (0-1 range)
+            
+        Note:
+            This implementation strongly favours career progression using configurable thresholds.
+            Typically, same level and one step up are favourably scored, while steps down are penalised.
+        """
+        # Get configuration values
+        config = self.config_manager.get_config().future_extensions
+        
+        # Calculate difference in seniority (positive if job2 is higher level)
+        seniority_diff = job2.seniority - job1.seniority
+        
+        # Same level = highest similarity
+        if seniority_diff == 0:
+            return config.seniority_same_level_similarity
+        
+        # One step up = good similarity
+        elif seniority_diff == 1:
+            return config.seniority_one_up_similarity
+        
+        # Multiple steps up = moderate similarity decreasing with distance
+        elif seniority_diff > 1:
+            # Similarity decreases based on the configured step penalty
+            return max(0.0, config.seniority_one_up_similarity - ((seniority_diff - 1) * config.seniority_up_step_penalty))
+        
+        # Any step down = extremely low similarity (effectively eliminating demotion recommendations)
+        else:
+            # Apply a severe penalty for any downward movement
+            abs_diff = abs(seniority_diff)
+            if abs_diff == 1:
+                return config.seniority_one_down_similarity
+            else:
+                return config.seniority_down_similarity
+    
+    def _calculate_role_track_similarity(self, job1: Job, job2: Job) -> float:
+        """
+        Calculate similarity based on role tracks, favouring natural career progression.
+        
+        Args:
+            job1: First job (the reference job)
+            job2: Second job (the job being compared to)
+            
+        Returns:
+            Similarity score based on role tracks (0-1 range)
+            
+        Note:
+            This implementation considers career progression patterns:
+            - Same role track = full similarity
+            - IC to Leadership (career progression) = good similarity
+            - Leadership to IC (demotion) = poor similarity
+        """
+        # Get configuration values
+        config = self.config_manager.get_config().future_extensions
+        
+        # Same role track = full similarity
+        if job1.role_track == job2.role_track:
+            return config.role_track_same_similarity
+        
+        # Different role tracks - direction matters
+        if job1.role_track == RoleTrack.INDIVIDUAL_CONTRIBUTOR and job2.role_track == RoleTrack.LEADERSHIP:
+            # IC to Leadership is a natural career progression
+            return config.role_track_different_similarity
+        else:
+            # Leadership to IC is typically a demotion/regression
+            # This should be heavily penalized
+            return config.role_track_regression_similarity
+    
+    def _calculate_location_similarity(self, job1: Job, job2: Job) -> float:
+        """
+        Calculate similarity based on location.
+        
+        Args:
+            job1: First job
+            job2: Second job
+            
+        Returns:
+            Similarity score based on location (0-1 range)
+        """
+        # Get configuration values
+        config = self.config_manager.get_config().future_extensions
+        
+        # If either location is empty, don't penalize
+        if not job1.location or not job2.location:
+            return config.location_same_similarity
+        
+        # Same location = full similarity
+        if job1.location.lower() == job2.location.lower():
+            return config.location_same_similarity
+        
+        # Different locations get lower similarity
+        return config.location_different_similarity
     
     def calculate_employee_similarity(self, employee1_id: str, employee2_id: str) -> float:
         """
@@ -278,7 +438,7 @@ class CosineSimilarityCalculator:
     
     def find_similar_jobs(self, job_id: str, top_n: int = 5) -> List[Tuple[str, float]]:
         """
-        Find the most similar jobs to a given job.
+        Find the most similar jobs to a given job, using enhanced similarity.
         
         Args:
             job_id: ID of the job to find similar jobs for
@@ -293,13 +453,11 @@ class CosineSimilarityCalculator:
         if job_id not in self.job_vectors:
             raise ValueError(f"Job with ID {job_id} not found")
         
-        job_vector = self.job_vectors[job_id].reshape(1, -1)
-        
         # Calculate similarity with all other jobs
         similarities = []
-        for other_id, other_vector in self.job_vectors.items():
+        for other_id in self.job_architecture.jobs.keys():
             if other_id != job_id:  # Skip self
-                similarity = float(sklearn_cosine_similarity(job_vector, other_vector.reshape(1, -1))[0, 0])
+                similarity = self.calculate_job_similarity(job_id, other_id)
                 similarities.append((other_id, similarity))
         
         # Sort by similarity score in descending order
@@ -421,9 +579,22 @@ class CosineSimilarityCalculator:
             ValueError: If entity_type is invalid or employee database is not set for employee matrix
         """
         if entity_type.lower() == "job":
-            # Get all job vectors in consistent order
-            ids = list(self.job_vectors.keys())
-            vectors = np.array([self.job_vectors[job_id] for job_id in ids])
+            # Get all job IDs in consistent order
+            ids = list(self.job_architecture.jobs.keys())
+            
+            # Initialize matrix
+            n_jobs = len(ids)
+            similarity_matrix = np.zeros((n_jobs, n_jobs))
+            
+            # Calculate pairwise similarities with our enhanced similarity
+            for i in range(n_jobs):
+                for j in range(n_jobs):
+                    if i == j:
+                        # Self-similarity is always 1.0
+                        similarity_matrix[i, j] = 1.0
+                    else:
+                        # Calculate enhanced similarity
+                        similarity_matrix[i, j] = self.calculate_job_similarity(ids[i], ids[j])
             
         elif entity_type.lower() == "employee":
             if not self.employee_database:
@@ -433,12 +604,11 @@ class CosineSimilarityCalculator:
             ids = list(self.employee_vectors.keys())
             vectors = np.array([self.employee_vectors[employee_id] for employee_id in ids])
             
+            # Calculate pairwise cosine similarity
+            similarity_matrix = sklearn_cosine_similarity(vectors)
+            
         else:
             raise ValueError(f"Invalid entity type: {entity_type}. Must be 'job' or 'employee'")
-        
-        # Calculate pairwise cosine similarity
-        # Note: sklearn's cosine_similarity already handles normalization
-        similarity_matrix = sklearn_cosine_similarity(vectors)
         
         # Ensure values are within [0, 1] range
         similarity_matrix = np.clip(similarity_matrix, 0, 1)

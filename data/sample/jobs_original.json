@@ -11,10 +11,7 @@
       "S006": 4,
       "S020": 3,
       "S021": 3
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J002": {
     "title": "Senior Data Analyst",
@@ -30,10 +27,7 @@
       "S020": 4,
       "S021": 4,
       "S022": 3
-    },
-    "seniority": 4,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J003": {
     "title": "Data Scientist",
@@ -47,10 +41,7 @@
       "S005": 3,
       "S020": 5,
       "S022": 4
-    },
-    "seniority": 3,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J004": {
     "title": "Business Analyst",
@@ -65,10 +56,7 @@
       "S011": 4,
       "S015": 3,
       "S021": 3
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "Remote"
+    }
   },
   "J005": {
     "title": "Financial Analyst",
@@ -81,10 +69,7 @@
       "S014": 4,
       "S020": 3,
       "S029": 4
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "Edinburgh"
+    }
   },
   "J006": {
     "title": "Senior Financial Analyst",
@@ -98,10 +83,7 @@
       "S020": 4,
       "S029": 5,
       "S030": 4
-    },
-    "seniority": 4,
-    "role_track": "Individual Contributor",
-    "location": "Edinburgh"
+    }
   },
   "J007": {
     "title": "Software Engineer",
@@ -114,10 +96,7 @@
       "S023": 4,
       "S024": 3,
       "S019": 4
-    },
-    "seniority": 3,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J008": {
     "title": "Senior Software Engineer",
@@ -132,10 +111,7 @@
       "S023": 5,
       "S024": 4,
       "S028": 3
-    },
-    "seniority": 4,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J009": {
     "title": "UI/UX Designer",
@@ -147,10 +123,7 @@
       "S010": 4,
       "S011": 4,
       "S015": 3
-    },
-    "seniority": 3,
-    "role_track": "Individual Contributor",
-    "location": "Remote"
+    }
   },
   "J010": {
     "title": "Product Manager",
@@ -164,10 +137,7 @@
       "S015": 4,
       "S019": 4,
       "S026": 5
-    },
-    "seniority": 4,
-    "role_track": "Leadership",
-    "location": "Manchester"
+    }
   },
   "J011": {
     "title": "Marketing Specialist",
@@ -179,10 +149,7 @@
       "S015": 5,
       "S016": 3,
       "S025": 4
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "Manchester"
+    }
   },
   "J012": {
     "title": "Senior Marketing Specialist",
@@ -195,10 +162,7 @@
       "S015": 5,
       "S016": 5,
       "S025": 5
-    },
-    "seniority": 4,
-    "role_track": "Individual Contributor",
-    "location": "Manchester"
+    }
   },
   "J013": {
     "title": "HR Coordinator",
@@ -208,10 +172,7 @@
       "S006": 3,
       "S010": 5,
       "S015": 5
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "Leeds"
+    }
   },
   "J014": {
     "title": "HR Business Partner",
@@ -223,10 +184,7 @@
       "S010": 5,
       "S012": 4,
       "S015": 5
-    },
-    "seniority": 4,
-    "role_track": "Individual Contributor",
-    "location": "Remote"
+    }
   },
   "J015": {
     "title": "IT Support Specialist",
@@ -238,10 +196,7 @@
       "S015": 5,
       "S017": 3,
       "S028": 3
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J016": {
     "title": "Cybersecurity Analyst",
@@ -253,10 +208,7 @@
       "S017": 4,
       "S028": 5,
       "S030": 4
-    },
-    "seniority": 3,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J017": {
     "title": "Business Intelligence Analyst",
@@ -270,10 +222,7 @@
       "S007": 5,
       "S008": 5,
       "S021": 5
-    },
-    "seniority": 3,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J018": {
     "title": "Risk Analyst",
@@ -285,10 +234,7 @@
       "S013": 4,
       "S030": 4,
       "S020": 3
-    },
-    "seniority": 2,
-    "role_track": "Individual Contributor",
-    "location": "London"
+    }
   },
   "J019": {
     "title": "Digital Marketing Specialist",
@@ -300,10 +246,7 @@
       "S010": 4,
       "S016": 4,
       "S025": 5
-    },
-    "seniority": 3,
-    "role_track": "Individual Contributor",
-    "location": "Remote"
+    }
   },
   "J020": {
     "title": "Project Manager",
@@ -315,9 +258,6 @@
       "S011": 4,
       "S012": 4,
       "S019": 5
-    },
-    "seniority": 3,
-    "role_track": "Leadership",
-    "location": "London"
+    }
   }
-}
+} 
