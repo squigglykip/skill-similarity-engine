@@ -28,7 +28,7 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 from skill_similarity_engine.models.skills import SkillTaxonomy, Skill
-from skill_similarity_engine.models.jobs import JobArchitecture, Job
+from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
 from skill_similarity_engine.data.loaders import JobArchitectureLoader
 from skill_similarity_engine.similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
 
@@ -261,10 +261,9 @@ class TestLargeScalePerformance(unittest.TestCase):
             
             # Create new skill with similar properties but unique ID
             synthetic_skills[skill_id] = Skill(
-                id=skill_id,
+                skill_id=skill_id,
                 name=f"Synthetic Skill {i+1}",
-                category=template_skill.category,
-                subcategory=template_skill.subcategory,
+                category_id=template_skill.category_id,
                 description=f"Synthetic skill {i+1} for performance testing"
             )
         
@@ -300,11 +299,10 @@ class TestLargeScalePerformance(unittest.TestCase):
                 
                 # Create the job
                 synthetic_jobs[job_id] = Job(
-                    id=job_id,
+                    job_id=job_id,
                     title=f"Synthetic Job {i+1}",
-                    description=f"Synthetic job {i+1} for performance testing",
                     department=f"Department {i % 10 + 1}",
-                    level=f"Level {i % 5 + 1}",
+                    level=JobLevel.MID_LEVEL,  # Use proper enum value
                     skills=skills
                 )
             

@@ -73,8 +73,8 @@ class TestJobSimilarityWorkflow(unittest.TestCase):
         """Test the complete workflow from data loading to visualization."""
         # Step 1: Load data from CSV files
         try:
-            skill_taxonomy = SkillTaxonomy.from_file(self.skills_csv)
-            job_architecture = JobArchitecture.from_file(self.jobs_csv)
+            skill_taxonomy = SkillTaxonomy.from_file(str(self.skills_csv))
+            job_architecture = JobArchitecture.from_file(str(self.jobs_csv))
             
             self.assertEqual(len(skill_taxonomy.skills), 5)
             self.assertEqual(len(job_architecture.jobs), 3)

@@ -10,17 +10,14 @@ import logging.handlers
 from pathlib import Path
 from typing import Optional
 
-# Default log directory (create if it doesn't exist)
-DEFAULT_LOG_DIR = Path("logs")
-DEFAULT_LOG_FILE = "skill_similarity_engine.log"
-
+from .settings import get_config
 
 def setup_logging(
-    log_level: str = "INFO",
+    log_level: Optional[str] = None,
     log_file: Optional[str] = None,
     log_dir: Optional[str] = None,
-    console_output: bool = True,
-    file_output: bool = True,
+    console_output: Optional[bool] = None,
+    file_output: Optional[bool] = None,
 ) -> logging.Logger:
     """
     Configure logging for the application.
@@ -35,6 +32,16 @@ def setup_logging(
     Returns:
         Configured logger instance
     """
+    # Get logging configuration from config
+    config = get_config().logging
+    
+    # Use provided values or defaults from config
+    log_level = log_level or config.level
+    log_file = log_file or config.log_file
+    log_dir = log_dir or config.log_dir
+    console_output = console_output if console_output is not None else config.console_output
+    file_output = file_output if file_output is not None else config.file_output
+    
     # Create logger
     logger = logging.getLogger("skill_similarity_engine")
     
@@ -64,20 +71,19 @@ def setup_logging(
     # Add file handler if requested
     if file_output:
         # Determine log directory and file
-        log_directory = Path(log_dir) if log_dir else DEFAULT_LOG_DIR
-        log_file_name = log_file if log_file else DEFAULT_LOG_FILE
+        log_directory = Path(log_dir)
         
         # Create directory if it doesn't exist
         log_directory.mkdir(parents=True, exist_ok=True)
         
         # Full path to log file
-        log_path = log_directory / log_file_name
+        log_path = log_directory / log_file
         
         # Create file handler with rotation
         file_handler = logging.handlers.RotatingFileHandler(
             log_path,
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=5,
+            maxBytes=config.max_file_size_mb * 1024 * 1024,  # Convert to bytes
+            backupCount=config.backup_count,
             encoding="utf-8",
         )
         file_handler.setFormatter(detailed_formatter)

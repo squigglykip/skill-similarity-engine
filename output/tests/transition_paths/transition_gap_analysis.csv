@@ -1,0 +1,6 @@
+source_id,source_title,target_id,target_title,similarity,gap_count,avg_gap,max_gap,total_gap
+J005,Financial Analyst,J006,Senior Financial Analyst,0.934704493719253,6,1.5,4,9.0
+J006,Senior Financial Analyst,J005,Financial Analyst,0.934704493719253,0,0.0,0,0.0
+J001,Data Analyst,J002,Senior Data Analyst,0.9335630522987819,6,1.6666666666666667,3,10.0
+J002,Senior Data Analyst,J001,Data Analyst,0.9335630522987819,0,0.0,0,0.0
+J007,Software Engineer,J008,Senior Software Engineer,0.9119183935177099,7,1.7142857142857142,4,12.0

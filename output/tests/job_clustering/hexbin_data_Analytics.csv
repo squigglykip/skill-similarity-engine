@@ -1,0 +1,5 @@
+job_id,job_title,department,x,y
+J001,Data Analyst,Analytics,1.0,0.0
+J002,Senior Data Analyst,Analytics,6.123233995736766e-17,1.0
+J003,Data Scientist,Analytics,-1.0,1.2246467991473532e-16
+J017,Business Intelligence Analyst,Analytics,-1.8369701987210297e-16,-1.0

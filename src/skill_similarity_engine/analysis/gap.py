@@ -421,6 +421,26 @@ class SkillGapAnalyzer:
         
         return effort
     
+    def get_reskilling_difficulty_label(self, difficulty_score: float) -> str:
+        """
+        Get a human-readable label for a reskilling difficulty score.
+        
+        Args:
+            difficulty_score: Reskilling difficulty score (1-5)
+            
+        Returns:
+            Human-readable difficulty label
+        """
+        # Round to nearest integer
+        rounded_score = round(difficulty_score)
+        
+        # Clamp to valid range
+        score_key = max(1, min(5, rounded_score))
+        
+        # Get label from config
+        difficulty_levels = get_config().team_analysis.reskilling_difficulty_levels
+        return difficulty_levels.get(score_key, f"Level {score_key}")
+    
     def generate_job_transition_report(
         self,
         employee_id: str,
@@ -584,6 +604,10 @@ class TeamGapAnalyzer:
             job_architecture,
             employee_database
         )
+        # Get team analysis configuration
+        team_config = get_config().team_analysis
+        self.fully_covered_weight = team_config.fully_covered_weight
+        self.partially_covered_weight = team_config.partially_covered_weight
     
     def analyze_team_skill_coverage(
         self,
@@ -681,7 +705,8 @@ class TeamGapAnalyzer:
     def identify_critical_skill_gaps(
         self,
         department: Optional[str] = None,
-        min_gap_threshold: Optional[float] = None
+        min_gap_threshold: Optional[float] = None,
+        max_skills: Optional[int] = None
     ) -> pd.DataFrame:
         """
         Identify critical skill gaps across a department or the entire organization.
@@ -689,13 +714,17 @@ class TeamGapAnalyzer:
         Args:
             department: Department to analyze (all departments if None)
             min_gap_threshold: Minimum gap threshold to consider critical (uses config value if None)
+            max_skills: Maximum number of skills to include in results (uses config value if None)
             
         Returns:
             DataFrame with critical skill gaps
         """
-        # Use configuration value if not provided
+        # Use configuration values if not provided
+        config = get_config()
         if min_gap_threshold is None:
-            min_gap_threshold = get_config().gap_analysis.min_gap_threshold
+            min_gap_threshold = config.gap_analysis.min_gap_threshold
+        if max_skills is None:
+            max_skills = config.workforce.max_skills_in_report
         
         # Get jobs to analyze
         if department:

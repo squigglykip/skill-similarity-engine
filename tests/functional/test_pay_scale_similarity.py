@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+from sklearn.feature_extraction.text import TfidfVectorizer as SklearnTfidfVectorizer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -30,6 +31,95 @@ from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
 from skill_similarity_engine.data.loaders import JobArchitectureLoader
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
 
+# Custom TfidfVectorizer for testing
+class TfidfVectorizer:
+    """
+    A wrapper around sklearn's TfidfVectorizer that works with our job architecture.
+    This is a simplified version for testing purposes.
+    """
+    def __init__(self, **kwargs):
+        self.vectorizer = SklearnTfidfVectorizer(**kwargs)
+        self.job_vectors = {}
+        self.skill_ids = []
+
+    def fit(self, job_architecture):
+        """
+        Fit the vectorizer to a job architecture.
+        
+        Args:
+            job_architecture: JobArchitecture object containing jobs with skills
+        """
+        # Create a set of all skill IDs across all jobs
+        all_skill_ids = set()
+        for job in job_architecture.jobs.values():
+            all_skill_ids.update(job.skills.keys())
+        
+        # Convert to sorted list for consistent indexing
+        self.skill_ids = sorted(list(all_skill_ids))
+        
+        # No actual fitting needed for our simple implementation
+        return self
+
+    def transform(self, job_architecture):
+        """
+        Transform job architecture to vectors.
+        
+        Args:
+            job_architecture: JobArchitecture object containing jobs with skills
+            
+        Returns:
+            dict: Mapping of job IDs to skill vectors
+        """
+        # Create a sparse vector for each job
+        job_vectors = {}
+        
+        for job_id, job in job_architecture.jobs.items():
+            # Create a vector where the index is the position of the skill in skill_ids
+            vector = np.zeros(len(self.skill_ids))
+            
+            for i, skill_id in enumerate(self.skill_ids):
+                # If the job has this skill, set its value to the proficiency
+                if skill_id in job.skills:
+                    vector[i] = job.skills[skill_id] / 5.0  # Normalize to 0-1 range
+            
+            # Store the vector
+            job_vectors[job_id] = vector
+        
+        self.job_vectors = job_vectors
+        return job_vectors
+
+    def transform_job(self, job):
+        """
+        Transform a single job to a vector.
+        
+        Args:
+            job: Job object containing skills
+            
+        Returns:
+            numpy.ndarray: Vector representation of the job
+        """
+        # Create a vector where the index is the position of the skill in skill_ids
+        vector = np.zeros(len(self.skill_ids))
+        
+        for i, skill_id in enumerate(self.skill_ids):
+            # If the job has this skill, set its value to the proficiency
+            if skill_id in job.skills:
+                vector[i] = job.skills[skill_id] / 5.0  # Normalize to 0-1 range
+        
+        return vector
+
+    def fit_transform(self, job_architecture):
+        """
+        Fit to data, then transform it.
+        
+        Args:
+            job_architecture: JobArchitecture object
+            
+        Returns:
+            dict: Mapping of job IDs to skill vectors
+        """
+        self.fit(job_architecture)
+        return self.transform(job_architecture)
 
 class PSAAdjustedSimilarityCalculator:
     """
@@ -182,7 +272,7 @@ class TestPayScaleSimilarity(unittest.TestCase):
         
         # Initialize similarity calculators
         cls.base_calculator = CosineSimilarityCalculator(
-            vectorizer=None,  # Will be initialized within the calculator
+            vectorizer=TfidfVectorizer(),  # Use our custom TfidfVectorizer
             skill_taxonomy=cls.skill_taxonomy,
             job_architecture=cls.job_architecture
         )

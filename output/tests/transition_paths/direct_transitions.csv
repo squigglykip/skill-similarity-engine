@@ -1,0 +1,41 @@
+source_id,source_title,source_department,target_id,target_title,target_department,similarity
+J001,Data Analyst,Analytics,J002,Senior Data Analyst,Analytics,0.9335630522987819
+J001,Data Analyst,Analytics,J003,Data Scientist,Analytics,0.7083009225309693
+J001,Data Analyst,Analytics,J004,Business Analyst,Business,0.6509039963474331
+J001,Data Analyst,Analytics,J017,Business Intelligence Analyst,Analytics,0.6946165934081955
+J002,Senior Data Analyst,Analytics,J001,Data Analyst,Analytics,0.9335630522987819
+J002,Senior Data Analyst,Analytics,J003,Data Scientist,Analytics,0.8670224197827974
+J002,Senior Data Analyst,Analytics,J017,Business Intelligence Analyst,Analytics,0.6516352124510747
+J003,Data Scientist,Analytics,J001,Data Analyst,Analytics,0.7083009225309693
+J003,Data Scientist,Analytics,J002,Senior Data Analyst,Analytics,0.8670224197827974
+J004,Business Analyst,Business,J001,Data Analyst,Analytics,0.6509039963474331
+J004,Business Analyst,Business,J013,HR Coordinator,HR,0.6445311516523585
+J005,Financial Analyst,Finance,J006,Senior Financial Analyst,Finance,0.934704493719253
+J005,Financial Analyst,Finance,J018,Risk Analyst,Risk,0.6715191366878168
+J006,Senior Financial Analyst,Finance,J005,Financial Analyst,Finance,0.934704493719253
+J006,Senior Financial Analyst,Finance,J018,Risk Analyst,Risk,0.7934767838971875
+J007,Software Engineer,Technology,J008,Senior Software Engineer,Technology,0.9119183935177099
+J008,Senior Software Engineer,Technology,J007,Software Engineer,Technology,0.9119183935177099
+J010,Product Manager,Product,J014,HR Business Partner,HR,0.6725756241606687
+J010,Product Manager,Product,J020,Project Manager,Project Management,0.838643679508982
+J011,Marketing Specialist,Marketing,J012,Senior Marketing Specialist,Marketing,0.9246347900384753
+J011,Marketing Specialist,Marketing,J013,HR Coordinator,HR,0.676481425202546
+J011,Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7600000000000001
+J012,Senior Marketing Specialist,Marketing,J011,Marketing Specialist,Marketing,0.9246347900384753
+J012,Senior Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7738791177495934
+J013,HR Coordinator,HR,J004,Business Analyst,Business,0.6445311516523585
+J013,HR Coordinator,HR,J011,Marketing Specialist,Marketing,0.676481425202546
+J013,HR Coordinator,HR,J014,HR Business Partner,HR,0.8153660901385149
+J013,HR Coordinator,HR,J015,IT Support Specialist,IT,0.8525371202334081
+J014,HR Business Partner,HR,J010,Product Manager,Product,0.6725756241606687
+J014,HR Business Partner,HR,J013,HR Coordinator,HR,0.8153660901385149
+J014,HR Business Partner,HR,J015,IT Support Specialist,IT,0.698244239508786
+J015,IT Support Specialist,IT,J013,HR Coordinator,HR,0.8525371202334081
+J015,IT Support Specialist,IT,J014,HR Business Partner,HR,0.698244239508786
+J017,Business Intelligence Analyst,Analytics,J001,Data Analyst,Analytics,0.6946165934081955
+J017,Business Intelligence Analyst,Analytics,J002,Senior Data Analyst,Analytics,0.6516352124510747
+J018,Risk Analyst,Risk,J005,Financial Analyst,Finance,0.6715191366878168
+J018,Risk Analyst,Risk,J006,Senior Financial Analyst,Finance,0.7934767838971875
+J019,Digital Marketing Specialist,Marketing,J011,Marketing Specialist,Marketing,0.7600000000000001
+J019,Digital Marketing Specialist,Marketing,J012,Senior Marketing Specialist,Marketing,0.7738791177495934
+J020,Project Manager,Project Management,J010,Product Manager,Product,0.838643679508982
