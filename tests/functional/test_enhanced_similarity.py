@@ -100,8 +100,15 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
         # Create vectorizer
         cls.vectorizer = TfidfVectorizer(cls.skill_taxonomy)
         
-        # Create config manager
+        # Create a ConfigManager and load enhancement factors from the config file
         cls.config_manager = ConfigManager()
+        
+        # Fix the path to use correct path separator for Windows
+        config_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "config")
+        enhancement_factors_path = os.path.join(config_dir, "similarity_enhancement_factors.yaml")
+        
+        cls.config_manager.load_similarity_enhancement_factors(enhancement_factors_path)
+        cls.real_config_values = cls.config_manager.config.future_extensions
         
         # Initialize calculator
         cls.calculator = CosineSimilarityCalculator(
@@ -189,6 +196,13 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
         
         The test creates a many-to-many comparison between all jobs in the dataset.
         """
+        # Create a temporary directory for test config files
+        import tempfile
+        from pathlib import Path
+        
+        temp_dir = tempfile.TemporaryDirectory()
+        config_path = Path(temp_dir.name)
+        
         # Test different weight combinations
         weight_scenarios = [
             {
@@ -232,92 +246,137 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
         # Store all pairwise similarity results in a consolidated dataframe
         consolidated_results = []
         
-        # For each weight scenario
-        for scenario in weight_scenarios:
-            # Set weights
-            self.config_manager.config.future_extensions.seniority_weight = scenario["weights"]["seniority"]
-            self.config_manager.config.future_extensions.role_track_weight = scenario["weights"]["role_track"]
-            self.config_manager.config.future_extensions.location_weight = scenario["weights"]["location"]
-            
-            # Create a subgraph of the job architecture with just the sample jobs
-            sub_architecture = JobArchitecture()
-            for job in sample_jobs:
-                sub_architecture.add_job(job)
-            
-            # Create a calculator with the subset of jobs
-            calculator = CosineSimilarityCalculator(
-                vectorizer=self.vectorizer,
-                skill_taxonomy=self.skill_taxonomy,
-                job_architecture=sub_architecture,
-                config_manager=self.config_manager
-            )
-            
-            # Calculate similarity matrix
-            matrix, ids = calculator.calculate_similarity_matrix("job")
-            
-            # Calculate average similarity
-            avg_similarity = np.mean(matrix) if matrix.size > 0 else 0
-            
-            # Count high similarity pairs (>0.7)
-            high_sim_count = np.sum(matrix > 0.7)
-            
-            # Record results
-            results.append({
-                "scenario": scenario["name"],
-                "description": scenario["description"],
-                "avg_similarity": avg_similarity,
-                "high_similarity_count": high_sim_count,
-                "matrix": matrix,
-                "job_ids": ids
-            })
-            
-            # Create a heatmap visualization
-            self._create_similarity_heatmap(
-                matrix, 
-                ids, 
-                f"{scenario['name']}_heatmap.png",
-                scenario["description"]
-            )
-            
-            # Add pairwise results to consolidated dataframe
-            for i in range(len(ids)):
-                job1_id = ids[i]
-                job1 = self.job_architecture.jobs[job1_id]
+        try:
+            # For each weight scenario
+            for scenario in weight_scenarios:
+                # Create a temporary future_extensions config file
+                import yaml
                 
-                for j in range(len(ids)):
-                    if i != j:  # Skip self-similarity
-                        job2_id = ids[j]
-                        job2 = self.job_architecture.jobs[job2_id]
-                        
-                        similarity = matrix[i, j]
-                        
-                        # Calculate individual component similarities for more detailed analysis
-                        seniority_similarity = calculator._calculate_seniority_similarity(job1, job2)
-                        role_track_similarity = calculator._calculate_role_track_similarity(job1, job2)
-                        location_similarity = calculator._calculate_location_similarity(job1, job2)
-                        
-                        consolidated_results.append({
-                            "Scenario": scenario["description"],
-                            "Job1_ID": job1_id,
-                            "Job1_Title": job1.title,
-                            "Job1_Department": job1.department,
-                            "Job1_Seniority": job1.seniority,
-                            "Job1_RoleTrack": job1.role_track.value,
-                            "Job1_Location": job1.location,
-                            "Job2_ID": job2_id,
-                            "Job2_Title": job2.title,
-                            "Job2_Department": job2.department,
-                            "Job2_Seniority": job2.seniority, 
-                            "Job2_RoleTrack": job2.role_track.value,
-                            "Job2_Location": job2.location,
-                            "Similarity": similarity,
-                            "Seniority_Weight": scenario["weights"]["seniority"],
-                            "RoleTrack_Weight": scenario["weights"]["role_track"],
-                            "Location_Weight": scenario["weights"]["location"],
-                            "Seniority_Similarity": seniority_similarity,
-                            "RoleTrack_Similarity": role_track_similarity,
-                            "Location_Similarity": location_similarity
-                        })
+                # Prepare the extensions config - include all the default parameters
+                # but override the weights according to the scenario
+                extensions_config = {
+                    # Enhancement component weights
+                    "seniority_weight": scenario["weights"]["seniority"],
+                    "role_track_weight": scenario["weights"]["role_track"],
+                    "location_weight": scenario["weights"]["location"],
+                    
+                    # Seniority similarity thresholds - keep defaults
+                    "seniority_same_level_similarity": self.config_manager.config.future_extensions.seniority_same_level_similarity,
+                    "seniority_one_up_similarity": self.config_manager.config.future_extensions.seniority_one_up_similarity,
+                    "seniority_up_step_penalty": self.config_manager.config.future_extensions.seniority_up_step_penalty,
+                    "seniority_one_down_similarity": self.config_manager.config.future_extensions.seniority_one_down_similarity,
+                    "seniority_down_similarity": self.config_manager.config.future_extensions.seniority_down_similarity,
+                    
+                    # Role track similarity thresholds - keep defaults
+                    "role_track_same_similarity": self.config_manager.config.future_extensions.role_track_same_similarity,
+                    "role_track_different_similarity": self.config_manager.config.future_extensions.role_track_different_similarity,
+                    "role_track_regression_similarity": self.config_manager.config.future_extensions.role_track_regression_similarity,
+                    
+                    # Location similarity thresholds - keep defaults
+                    "location_same_similarity": self.config_manager.config.future_extensions.location_same_similarity,
+                    "location_different_similarity": self.config_manager.config.future_extensions.location_different_similarity,
+                }
+                
+                # Write the extensions config to a file
+                ext_file_path = config_path / f"{scenario['name']}_extensions.yaml"
+                with open(ext_file_path, "w") as f:
+                    yaml.dump(extensions_config, f)
+                
+                # Create a main config file that references the extensions file
+                main_config = {
+                    "version": "0.1.0",
+                    "future_extensions_file": str(ext_file_path)
+                }
+                
+                main_config_path = config_path / f"{scenario['name']}_config.yaml"
+                with open(main_config_path, "w") as f:
+                    yaml.dump(main_config, f)
+                
+                # Load the config
+                self.config_manager.load_config(str(main_config_path))
+                
+                # Create a subgraph of the job architecture with just the sample jobs
+                sub_architecture = JobArchitecture()
+                for job in sample_jobs:
+                    sub_architecture.add_job(job)
+                
+                # Create a calculator with the subset of jobs
+                calculator = CosineSimilarityCalculator(
+                    vectorizer=self.vectorizer,
+                    skill_taxonomy=self.skill_taxonomy,
+                    job_architecture=sub_architecture,
+                    config_manager=self.config_manager
+                )
+                
+                # Calculate similarity matrix
+                matrix, ids = calculator.calculate_similarity_matrix("job")
+                
+                # Calculate average similarity
+                avg_similarity = np.mean(matrix) if matrix.size > 0 else 0
+                
+                # Count high similarity pairs (>0.7)
+                high_sim_count = np.sum(matrix > 0.7)
+                
+                # Record results
+                results.append({
+                    "scenario": scenario["name"],
+                    "description": scenario["description"],
+                    "avg_similarity": avg_similarity,
+                    "high_similarity_count": high_sim_count,
+                    "matrix": matrix,
+                    "job_ids": ids
+                })
+                
+                # Create a heatmap visualization
+                self._create_similarity_heatmap(
+                    matrix, 
+                    ids, 
+                    f"{scenario['name']}_heatmap.png",
+                    scenario["description"]
+                )
+                
+                # Add pairwise results to consolidated dataframe
+                for i in range(len(ids)):
+                    job1_id = ids[i]
+                    job1 = self.job_architecture.jobs[job1_id]
+                    
+                    for j in range(len(ids)):
+                        if i != j:  # Skip self-similarity
+                            job2_id = ids[j]
+                            job2 = self.job_architecture.jobs[job2_id]
+                            
+                            similarity = matrix[i, j]
+                            
+                            # Calculate individual component similarities for more detailed analysis
+                            seniority_similarity = calculator._calculate_seniority_similarity(job1, job2)
+                            role_track_similarity = calculator._calculate_role_track_similarity(job1, job2)
+                            location_similarity = calculator._calculate_location_similarity(job1, job2)
+                            
+                            consolidated_results.append({
+                                "Scenario": scenario["description"],
+                                "Job1_ID": job1_id,
+                                "Job1_Title": job1.title,
+                                "Job1_Department": job1.department,
+                                "Job1_Seniority": job1.seniority,
+                                "Job1_RoleTrack": job1.role_track.value,
+                                "Job1_Location": job1.location,
+                                "Job2_ID": job2_id,
+                                "Job2_Title": job2.title,
+                                "Job2_Department": job2.department,
+                                "Job2_Seniority": job2.seniority, 
+                                "Job2_RoleTrack": job2.role_track.value,
+                                "Job2_Location": job2.location,
+                                "Similarity": similarity,
+                                "Seniority_Weight": scenario["weights"]["seniority"],
+                                "RoleTrack_Weight": scenario["weights"]["role_track"],
+                                "Location_Weight": scenario["weights"]["location"],
+                                "Seniority_Similarity": seniority_similarity,
+                                "RoleTrack_Similarity": role_track_similarity,
+                                "Location_Similarity": location_similarity
+                            })
+        finally:
+            # Clean up temporary directory
+            temp_dir.cleanup()
         
         # Create a consolidated dataframe with all pairwise similarities
         consolidated_df = pd.DataFrame(consolidated_results)
@@ -359,6 +418,14 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
         
         The test creates a one-to-many comparison (one reference job compared to many target jobs).
         """
+        # Create a temporary directory for test config files
+        import tempfile
+        from pathlib import Path
+        import yaml
+        
+        temp_dir = tempfile.TemporaryDirectory()
+        config_path = Path(temp_dir.name)
+        
         # Get a test job
         test_job_id = list(self.job_architecture.jobs.keys())[0]
         test_job = self.job_architecture.jobs[test_job_id]
@@ -405,59 +472,100 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
         all_results = {}
         all_similar_jobs = []
         
-        # For each scenario
-        for scenario in scenarios:
-            # Set weights
-            self.config_manager.config.future_extensions.seniority_weight = scenario["weights"]["seniority"]
-            self.config_manager.config.future_extensions.role_track_weight = scenario["weights"]["role_track"]
-            self.config_manager.config.future_extensions.location_weight = scenario["weights"]["location"]
-            
-            # Find similar jobs
-            similar_jobs = self.calculator.find_similar_jobs(test_job_id, top_n=10)
-            
-            # Store results
-            all_results[scenario["name"]] = similar_jobs
-            
-            # Create a more detailed DataFrame for analysis
-            similar_jobs_df = pd.DataFrame([
-                {
-                    "Job ID": job_id,
-                    "Title": self.job_architecture.jobs[job_id].title,
-                    "Department": self.job_architecture.jobs[job_id].department,
-                    "Level": self.job_architecture.jobs[job_id].level.value,
-                    "Seniority": self.job_architecture.jobs[job_id].seniority,
-                    "Role Track": self.job_architecture.jobs[job_id].role_track.value,
-                    "Location": self.job_architecture.jobs[job_id].location,
-                    "Similarity": similarity
+        try:
+            # For each scenario
+            for scenario in scenarios:
+                # Prepare the extensions config
+                extensions_config = {
+                    # Enhancement component weights
+                    "seniority_weight": scenario["weights"]["seniority"],
+                    "role_track_weight": scenario["weights"]["role_track"],
+                    "location_weight": scenario["weights"]["location"],
+                    
+                    # Seniority similarity thresholds - keep defaults
+                    "seniority_same_level_similarity": self.config_manager.config.future_extensions.seniority_same_level_similarity,
+                    "seniority_one_up_similarity": self.config_manager.config.future_extensions.seniority_one_up_similarity,
+                    "seniority_up_step_penalty": self.config_manager.config.future_extensions.seniority_up_step_penalty,
+                    "seniority_one_down_similarity": self.config_manager.config.future_extensions.seniority_one_down_similarity,
+                    "seniority_down_similarity": self.config_manager.config.future_extensions.seniority_down_similarity,
+                    
+                    # Role track similarity thresholds - keep defaults
+                    "role_track_same_similarity": self.config_manager.config.future_extensions.role_track_same_similarity,
+                    "role_track_different_similarity": self.config_manager.config.future_extensions.role_track_different_similarity,
+                    "role_track_regression_similarity": self.config_manager.config.future_extensions.role_track_regression_similarity,
+                    
+                    # Location similarity thresholds - keep defaults
+                    "location_same_similarity": self.config_manager.config.future_extensions.location_same_similarity,
+                    "location_different_similarity": self.config_manager.config.future_extensions.location_different_similarity,
                 }
-                for job_id, similarity in similar_jobs
-            ])
-            
-            # Save to CSV
-            similar_jobs_df.to_csv(
-                self.output_dir / f"similar_jobs_{scenario['name']}.csv", 
-                index=False
-            )
-            
-            # Add to consolidated results
-            for job_id, similarity in similar_jobs:
-                job = self.job_architecture.jobs[job_id]
-                all_similar_jobs.append({
-                    "Scenario": scenario["description"],
-                    "Job_ID": job_id,
-                    "Title": job.title,
-                    "Department": job.department,
-                    "Level": job.level.value,
-                    "Seniority": job.seniority,
-                    "Role_Track": job.role_track.value,
-                    "Location": job.location,
-                    "Similarity": similarity,
-                    "Seniority_Weight": scenario["weights"]["seniority"],
-                    "RoleTrack_Weight": scenario["weights"]["role_track"],
-                    "Location_Weight": scenario["weights"]["location"],
-                    "Reference_Job": test_job_id,
-                    "Reference_Title": test_job.title,
-                })
+                
+                # Write the extensions config to a file
+                ext_file_path = config_path / f"{scenario['name']}_extensions.yaml"
+                with open(ext_file_path, "w") as f:
+                    yaml.dump(extensions_config, f)
+                
+                # Create a main config file that references the extensions file
+                main_config = {
+                    "version": "0.1.0",
+                    "future_extensions_file": str(ext_file_path)
+                }
+                
+                main_config_path = config_path / f"{scenario['name']}_config.yaml"
+                with open(main_config_path, "w") as f:
+                    yaml.dump(main_config, f)
+                
+                # Load the config
+                self.config_manager.load_config(str(main_config_path))
+                
+                # Find similar jobs
+                similar_jobs = self.calculator.find_similar_jobs(test_job_id, top_n=10)
+                
+                # Store results
+                all_results[scenario["name"]] = similar_jobs
+                
+                # Create a more detailed DataFrame for analysis
+                similar_jobs_df = pd.DataFrame([
+                    {
+                        "Job ID": job_id,
+                        "Title": self.job_architecture.jobs[job_id].title,
+                        "Department": self.job_architecture.jobs[job_id].department,
+                        "Level": self.job_architecture.jobs[job_id].level.value,
+                        "Seniority": self.job_architecture.jobs[job_id].seniority,
+                        "Role Track": self.job_architecture.jobs[job_id].role_track.value,
+                        "Location": self.job_architecture.jobs[job_id].location,
+                        "Similarity": similarity
+                    }
+                    for job_id, similarity in similar_jobs
+                ])
+                
+                # Save to CSV
+                similar_jobs_df.to_csv(
+                    self.output_dir / f"similar_jobs_{scenario['name']}.csv", 
+                    index=False
+                )
+                
+                # Add to consolidated results
+                for job_id, similarity in similar_jobs:
+                    job = self.job_architecture.jobs[job_id]
+                    all_similar_jobs.append({
+                        "Scenario": scenario["description"],
+                        "Job_ID": job_id,
+                        "Title": job.title,
+                        "Department": job.department,
+                        "Level": job.level.value,
+                        "Seniority": job.seniority,
+                        "Role_Track": job.role_track.value,
+                        "Location": job.location,
+                        "Similarity": similarity,
+                        "Seniority_Weight": scenario["weights"]["seniority"],
+                        "RoleTrack_Weight": scenario["weights"]["role_track"],
+                        "Location_Weight": scenario["weights"]["location"],
+                        "Reference_Job": test_job_id,
+                        "Reference_Title": test_job.title,
+                    })
+        finally:
+            # Clean up temporary directory
+            temp_dir.cleanup()
         
         # Create a consolidated DataFrame for all scenarios
         all_similar_jobs_df = pd.DataFrame(all_similar_jobs)

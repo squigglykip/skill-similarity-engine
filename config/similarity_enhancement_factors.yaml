@@ -1,0 +1,86 @@
+# Similarity Enhancement Factors Configuration
+# ==========================================
+#
+# This file contains settings for factors that enhance the basic skill-based similarity matching.
+# Each factor can be weighted differently to influence the overall similarity calculation between jobs.
+# These factors allow for more nuanced career path recommendations and succession planning.
+
+# ==========================================
+# ENHANCEMENT COMPONENT WEIGHTS
+# ==========================================
+# These weights determine how much each factor influences the overall similarity score.
+# Setting a weight to 0.0 disables that factor completely.
+# Higher values increase the influence of that factor on the final similarity calculation.
+# Values are generally in the range of 0.0 to 1.0, but can be higher for stronger influence.
+
+seniority_weight: 1.0     # Controls how much career progression (seniority levels) affects similarity
+role_track_weight: 1.0    # Controls how much role track (IC vs leadership) affects similarity
+location_weight: 0.0      # Controls how much geographical location affects similarity
+
+# ==========================================
+# SENIORITY SIMILARITY THRESHOLDS
+# ==========================================
+# These settings control how similar jobs at different seniority levels are considered.
+# The system uses these values to calculate similarity adjustments based on career progression.
+# Values range from 0.0 (completely dissimilar) to 1.0 (identical).
+
+# Similarity when comparing jobs at the same seniority level
+# A value of 1.0 means there is no penalty for being at the same level
+seniority_same_level_similarity: 1.0
+
+# Similarity when comparing a job to another that is one level higher
+# This represents a typical career progression step (e.g., Associate to Senior)
+# A value of 0.7 indicates these positions are quite similar but not identical
+seniority_one_up_similarity: 0.7
+
+# Penalty applied per seniority level for jobs multiple levels higher
+# For each additional level gap, this penalty is applied cumulatively
+# For example, with a penalty of 0.1, a job three levels higher would have
+# a similarity of: one_up_similarity - (2 * up_step_penalty) = 0.7 - (2 * 0.1) = 0.5
+seniority_up_step_penalty: 0.1
+
+# Similarity when comparing a job to another that is one level lower
+# This represents moving backwards in career progression
+# A low value of 0.1 indicates this is generally not a desirable career move
+seniority_one_down_similarity: 0.1
+
+# Similarity when comparing a job to another that is multiple levels lower
+# A value of 0.0 indicates these positions are considered completely dissimilar
+# This effectively prevents recommending positions multiple levels below current seniority
+seniority_down_similarity: 0.0
+
+# ==========================================
+# ROLE TRACK SIMILARITY THRESHOLDS
+# ==========================================
+# These settings control similarity calculations between different role tracks.
+# Typically, organizations have distinct career paths for individual contributors
+# and people managers/leadership positions.
+
+# Similarity when comparing jobs on the same role track
+# A value of 1.0 means there is no penalty for being on the same track
+role_track_same_similarity: 1.0
+
+# Similarity when comparing an individual contributor role to a leadership role
+# This represents the transition from technical work to people management
+# A value of 0.5 indicates this is a significant career change but still related
+role_track_different_similarity: 0.5
+
+# Similarity when comparing a leadership role to an individual contributor role
+# This represents moving from management back to hands-on technical work
+# A low value of 0.1 indicates this is generally not a common career move
+role_track_regression_similarity: 0.1
+
+# ==========================================
+# LOCATION SIMILARITY THRESHOLDS
+# ==========================================
+# These settings control how geographical location affects similarity calculations.
+# This can be useful for companies with multiple offices or remote work policies.
+
+# Similarity when comparing jobs in the same location
+# A value of 1.0 means there is no penalty for being in the same location
+location_same_similarity: 1.0
+
+# Similarity when comparing jobs in different locations
+# This represents the transition between geographical locations
+# A value of 0.3 indicates a significant difference but not a complete dissimilarity
+location_different_similarity: 0.3 
