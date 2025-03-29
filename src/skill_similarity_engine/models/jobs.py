@@ -24,6 +24,12 @@ class JobLevel(str, Enum):
     EXECUTIVE = "Executive"
 
 
+class RoleTrack(str, Enum):
+    """Role tracks in the organizational hierarchy."""
+    INDIVIDUAL_CONTRIBUTOR = "Individual Contributor"
+    LEADERSHIP = "Leadership"
+
+
 @dataclass
 class Job:
     """
@@ -35,12 +41,18 @@ class Job:
         department: Department the job belongs to
         level: Level of the job in the organizational hierarchy
         skills: Dictionary mapping skill IDs to required proficiency levels (0-5)
+        seniority: Numerical value representing the seniority level (1-7, with 1 being entry level and 7 being CEO)
+        role_track: The role track of the job (Individual Contributor or Leadership)
+        location: Geographic location of the job
     """
     job_id: str
     title: str
     department: str
     level: JobLevel
     skills: Dict[str, int] = field(default_factory=dict)
+    seniority: int = 3  # Default to mid-level seniority
+    role_track: RoleTrack = RoleTrack.INDIVIDUAL_CONTRIBUTOR  # Default to IC
+    location: str = ""  # Default to empty location
     
     def __post_init__(self):
         """Validate the job attributes after initialization."""
@@ -59,6 +71,24 @@ class Job:
             except ValueError:
                 raise ValueError(f"Invalid job level: {self.level}. "
                                f"Must be one of {[l.value for l in JobLevel]}")
+        
+        # Validate role track
+        if not isinstance(self.role_track, RoleTrack):
+            try:
+                self.role_track = RoleTrack(self.role_track)
+            except ValueError:
+                raise ValueError(f"Invalid role track: {self.role_track}. "
+                               f"Must be one of {[r.value for r in RoleTrack]}")
+        
+        # Validate seniority
+        if not isinstance(self.seniority, int):
+            try:
+                self.seniority = int(self.seniority)
+            except ValueError:
+                raise ValueError("Seniority must be an integer")
+        
+        if not 1 <= self.seniority <= 7:
+            raise ValueError("Seniority must be between 1 and 7")
         
         # Validate skill proficiency levels
         for skill_id, proficiency in list(self.skills.items()):
@@ -122,6 +152,30 @@ class Job:
         """
         return self.skills.get(skill_id, 0) >= min_proficiency
 
+    def get_role_level(self) -> int:
+        """
+        Calculate a combined role level based on seniority and job level.
+        
+        This is useful for comparing jobs in terms of seniority.
+        
+        Returns:
+            An integer representing the combined role level (1-56)
+        """
+        # Map job levels to a numeric scale
+        level_map = {
+            JobLevel.ENTRY: 1,
+            JobLevel.ASSOCIATE: 2,
+            JobLevel.MID_LEVEL: 3,
+            JobLevel.SENIOR: 4,
+            JobLevel.LEAD: 5,
+            JobLevel.MANAGER: 6,
+            JobLevel.DIRECTOR: 7,
+            JobLevel.EXECUTIVE: 8
+        }
+        
+        # Calculate a combined score (1-56)
+        return level_map.get(self.level, 1) * self.seniority
+
 
 @dataclass
 class JobArchitecture:
@@ -132,10 +186,14 @@ class JobArchitecture:
         jobs: Dictionary of jobs indexed by job_id
         departments: Set of all departments in the architecture
         levels: Set of all job levels in the architecture
+        role_tracks: Set of all role tracks in the architecture
+        locations: Set of all locations in the architecture
     """
     jobs: Dict[str, Job] = field(default_factory=dict)
     departments: Set[str] = field(default_factory=set)
     levels: Set[JobLevel] = field(default_factory=set)
+    role_tracks: Set[RoleTrack] = field(default_factory=set)
+    locations: Set[str] = field(default_factory=set)
     
     def add_job(self, job: Job) -> None:
         """
@@ -153,6 +211,9 @@ class JobArchitecture:
         self.jobs[job.job_id] = job
         self.departments.add(job.department)
         self.levels.add(job.level)
+        self.role_tracks.add(job.role_track)
+        if job.location:
+            self.locations.add(job.location)
     
     def get_job(self, job_id: str) -> Optional[Job]:
         """
@@ -196,6 +257,51 @@ class JobArchitecture:
         
         return [job for job in self.jobs.values() if job.level == level]
     
+    def get_jobs_by_role_track(self, role_track: RoleTrack) -> List[Job]:
+        """
+        Retrieve all jobs with a specific role track.
+        
+        Args:
+            role_track: The role track to filter by
+            
+        Returns:
+            A list of jobs with the specified role track
+        """
+        if not isinstance(role_track, RoleTrack):
+            try:
+                role_track = RoleTrack(role_track)
+            except ValueError:
+                raise ValueError(f"Invalid role track: {role_track}")
+        
+        return [job for job in self.jobs.values() if job.role_track == role_track]
+    
+    def get_jobs_by_location(self, location: str) -> List[Job]:
+        """
+        Retrieve all jobs at a specific location.
+        
+        Args:
+            location: The location to filter by
+            
+        Returns:
+            A list of jobs at the specified location
+        """
+        return [job for job in self.jobs.values() if job.location == location]
+    
+    def get_jobs_by_seniority(self, seniority: int) -> List[Job]:
+        """
+        Retrieve all jobs with a specific seniority level.
+        
+        Args:
+            seniority: The seniority level to filter by (1-7)
+            
+        Returns:
+            A list of jobs with the specified seniority
+        """
+        if not 1 <= seniority <= 7:
+            raise ValueError("Seniority must be between 1 and 7")
+        
+        return [job for job in self.jobs.values() if job.seniority == seniority]
+    
     def get_jobs_requiring_skill(self, skill_id: str, min_proficiency: int = 1) -> List[Job]:
         """
         Retrieve all jobs requiring a specific skill at minimum proficiency.
@@ -238,12 +344,20 @@ class JobArchitecture:
                         skills_dict[skill_id] = int(proficiency)
                 skills_data = skills_dict
             
+            # Extract optional attributes with defaults
+            seniority = job_data.get("seniority", 3)
+            role_track = job_data.get("role_track", RoleTrack.INDIVIDUAL_CONTRIBUTOR)
+            location = job_data.get("location", "")
+            
             job = Job(
                 job_id=job_id,
                 title=job_data["title"],
                 department=job_data["department"],
                 level=job_data["level"],
-                skills=skills_data
+                skills=skills_data,
+                seniority=seniority,
+                role_track=role_track,
+                location=location
             )
             architecture.add_job(job)
         
@@ -261,7 +375,10 @@ class JobArchitecture:
                 "title": job.title,
                 "department": job.department,
                 "level": job.level.value,
-                "skills": job.skills
+                "skills": job.skills,
+                "seniority": job.seniority,
+                "role_track": job.role_track.value,
+                "location": job.location
             }
             for job_id, job in self.jobs.items()
         }

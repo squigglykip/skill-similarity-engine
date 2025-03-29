@@ -1,11 +1,11 @@
 source_id,source_title,source_department,target_id,target_title,target_department,direct_similarity,pathways_found,shortest_path_length
-J013,HR Coordinator,HR,J014,HR Business Partner,HR,0.8153660901385149,1,2
-J013,HR Coordinator,HR,J011,Marketing Specialist,Marketing,0.676481425202546,1,2
-J013,HR Coordinator,HR,J012,Senior Marketing Specialist,Marketing,0.5665745113741707,1,2
-J013,HR Coordinator,HR,J019,Digital Marketing Specialist,Marketing,0.30065841120113157,0,0
-J013,HR Coordinator,HR,J001,Data Analyst,Analytics,0.15103004485713611,0,0
-J013,HR Coordinator,HR,J002,Senior Data Analyst,Analytics,0.124682474828302,0,0
-J013,HR Coordinator,HR,J003,Data Scientist,Analytics,0.0,0,0
-J014,HR Business Partner,HR,J011,Marketing Specialist,Marketing,0.5248906591678238,1,2
-J014,HR Business Partner,HR,J012,Senior Marketing Specialist,Marketing,0.5802884574739972,1,2
-J014,HR Business Partner,HR,J019,Digital Marketing Specialist,Marketing,0.23328473740792172,0,0
+J010,Product Manager,Product,J011,Marketing Specialist,Marketing,0.3796631983009997,0,0
+J010,Product Manager,Product,J012,Senior Marketing Specialist,Marketing,0.43642740286200865,1,2
+J010,Product Manager,Product,J019,Digital Marketing Specialist,Marketing,0.18983159915049985,0,0
+J010,Product Manager,Product,J005,Financial Analyst,Finance,0.0,0,0
+J010,Product Manager,Product,J006,Senior Financial Analyst,Finance,0.0,0,0
+J011,Marketing Specialist,Marketing,J012,Senior Marketing Specialist,Marketing,0.9246347900384753,1,2
+J011,Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7600000000000001,1,2
+J011,Marketing Specialist,Marketing,J005,Financial Analyst,Finance,0.0,0,0
+J011,Marketing Specialist,Marketing,J006,Senior Financial Analyst,Finance,0.0,0,0
+J012,Senior Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7738791177495934,1,2

@@ -159,9 +159,26 @@ class WorkforceConfig:
 @dataclass
 class FutureExtensionConfig:
     """Configuration for future extensions (disabled by default)."""
+    # Enhancement component weights
     seniority_weight: float = 0.0
     role_track_weight: float = 0.0
     location_weight: float = 0.0
+    
+    # Seniority similarity thresholds
+    seniority_same_level_similarity: float = 1.0     # Similarity when seniority levels are the same
+    seniority_one_up_similarity: float = 0.9         # Similarity when target job is one level higher
+    seniority_up_step_penalty: float = 0.1           # Penalty per level for multiple levels up
+    seniority_one_down_similarity: float = 0.1       # Similarity when target job is one level lower
+    seniority_down_similarity: float = 0.0           # Similarity when target job is multiple levels lower
+    
+    # Role track similarity thresholds
+    role_track_same_similarity: float = 1.0          # Similarity when role tracks are the same
+    role_track_different_similarity: float = 0.5     # Similarity when target is leadership (from IC)
+    role_track_regression_similarity: float = 0.1    # Similarity when target is IC (from leadership)
+    
+    # Location similarity thresholds
+    location_same_similarity: float = 1.0            # Similarity when locations are the same
+    location_different_similarity: float = 0.3       # Similarity when locations are different
 
 
 @dataclass

@@ -255,50 +255,146 @@ future_extensions:
 
 These variables can be toggled on by setting their weights to non-zero values, providing a smooth path for gradually introducing new features.
 
-##### 6.3.2 Test-Driven Development Approach
-- [ ] Create test framework for new similarity variables
-- [ ] Implement unit tests for each variable's calculation
-- [ ] Develop integration tests for combined variable calculations
-- [ ] Create functional tests for end-to-end workflows
-- [ ] Implement CI-ready test commands and fixtures
-- [ ] Design mock data generators for testing scenarios
+##### 6.3.2 Project Rationale and Benefits
 
-##### 6.3.3 Seniority Implementation
-- [ ] Enhance job data model to include standardised seniority information
-- [ ] Implement seniority comparison logic based on level "distance"
-- [ ] Create configurable scoring for different seniority gaps
-- [ ] Support mapping between different seniority naming conventions
-- [ ] Handle missing seniority data gracefully
-- [ ] Add unit tests for all seniority comparison scenarios
+The inclusion of these additional variables goes beyond a simplistic skills-only approach to job similarity calculations, delivering several key benefits:
 
-##### 6.3.4 Role Track Implementation
-- [ ] Extend job data model to include role track categorisation (IC vs. Leadership)
-- [ ] Implement role track comparison logic
-- [ ] Support different leadership levels (Team Lead through Executive)
-- [ ] Create directional transition scoring (IC→Leadership vs. Leadership→IC)
-- [ ] Make career progression assumptions configurable
-- [ ] Implement comprehensive test suite for role track comparisons
+1. **More Realistic Career Pathways**: By factoring in seniority levels, we can avoid suggesting unrealistic jumps from junior to senior positions, creating more achievable career progression options.
 
-##### 6.3.5 Location Implementation
-- [ ] Add location attributes to job data model
-- [ ] Implement location comparison logic (suburb, state, postcode)
-- [ ] Create scoring system for geographic proximity
-- [ ] Handle missing location data appropriately
-- [ ] Develop unit tests for all location comparison scenarios
+2. **Role-Appropriate Transitions**: Distinguishing between Individual Contributor (IC) and Leadership roles allows identification of natural progression paths (IC → Senior IC → Leadership) while avoiding less common regressions (Leadership → IC).
 
-##### 6.3.6 CLI Integration
-- [ ] Enhance CLI to support configuration of new variables
-- [ ] Add commands to toggle variables on/off
-- [ ] Implement options to adjust weights
-- [ ] Create commands to display impact of variables on similarity
-- [ ] Add help documentation for new CLI features
+3. **Geographic Practicality**: By considering location in similarity scores, we can prioritize transitions that don't require relocation, making recommendations more practical for employees.
 
-##### 6.3.7 Integration Tests & Documentation
+4. **Flexible Implementation**: The weighted approach allows organizations to tune the importance of each variable based on their specific needs and priorities.
+
+5. **Incremental Adoption**: Variables can be initially disabled (weight=0) and gradually introduced as the organization becomes comfortable with the enhanced model.
+
+##### 6.3.3 Test-Driven Development Approach
+- [ ] Create comprehensive test framework for each new variable
+  - [ ] Develop test fixtures with representative role data containing seniority, track, and location information
+  - [ ] Design test cases that cover standard scenarios, edge cases, and boundary conditions
+  - [ ] Create tests that verify variable toggling through weight configuration
+  - [ ] Implement CI-ready test commands and fixtures
+  - [ ] Set up test coverage monitoring for new code
+
+Testing will follow a multi-layer approach:
+1. **Unit tests** to verify individual variable calculation correctness
+2. **Integration tests** to validate interactions between variables
+3. **Functional tests** using realistic data scenarios to ensure overall behavior matches expectations
+
+This test-driven approach will ensure high quality and reliability while facilitating future maintenance.
+
+##### 6.3.4 Seniority Implementation
+- [x] Enhance job data model to include standardised seniority information
+  - [x] Define a formal seniority level schema (Junior, Mid-level, Senior, Lead, etc.)
+  - [x] Create normalisation utilities to map organisation-specific levels to standard scale
+  - [x] Implement migration tools to enrich existing data
+- [x] Design seniority comparison algorithm
+  - [x] Implement level "distance" calculation (e.g., Junior → Senior = 2 levels)
+  - [x] Create weighted scoring that prioritizes level-by-level progression
+  - [x] Develop configurable penalties for skipping multiple levels
+  - [x] Create seniority similarity score in range [0.0-1.0]
+- [x] Implement nuanced career progression model
+  - [x] Same level matches receive highest similarity (configurable, default 1.0)
+  - [x] One step up career progression receives high similarity (configurable, default 0.7)
+  - [x] Multiple steps up receive decreasing similarity based on configurable step penalty
+  - [x] Steps down receive severe penalties to discourage demotions
+  - [x] Multiple steps down receive near-zero similarity to eliminate from recommendations
+- [x] Move all seniority similarity thresholds to configuration system
+  - [x] Make career progression parameters fully configurable
+  - [x] Document all configurable parameters with clear descriptions
+- [x] Implement comprehensive test suite
+  - [x] Test progression calculations (adjacent levels, skipped levels)
+  - [x] Test handling of missing seniority information
+  - [x] Test sensitivity to weight configuration
+
+The seniority implementation now recognizes that career progression typically occurs in incremental steps, with moves between adjacent levels more common and realistic than skipping multiple levels. By incorporating this domain knowledge through configurable thresholds, we provide more practical career progression suggestions while heavily discouraging unrealistic demotions.
+
+##### 6.3.5 Role Track Implementation
+- [x] Extend job data model to include role track categorisation
+  - [x] Create enumeration for track types (IC, Leadership)
+  - [x] Define subcategories within tracks (e.g., Leadership: Team Lead, Manager, Director, etc.)
+  - [x] Develop data schema for track information
+- [x] Design track comparison algorithm
+  - [x] Implement different scoring for IC→IC, Leadership→Leadership, IC→Leadership, and Leadership→IC transitions
+  - [x] Create configurable preference weighting for "natural progressions" (IC→Leadership)
+  - [x] Add penalties for uncommon regressions (Leadership→IC)
+  - [x] Map scores to [0.0-1.0] range for consistency
+- [x] Make role track comparison fully configurable
+  - [x] Move role track similarity thresholds to configuration system
+  - [x] Allow fine-tuning of same-track vs different-track similarities
+- [ ] Develop unit and integration tests
+  - [ ] Test transitions within same track
+  - [ ] Test transitions across tracks
+  - [ ] Test compatibility with seniority calculations
+
+The role track implementation acknowledges that career progression typically follows patterns where Individual Contributors may progress to Leadership roles, but transitions in the opposite direction are less common. All role track similarity thresholds are now configurable, allowing organisations to adjust the system to their specific career paths and progression policies.
+
+##### 6.3.6 Location Implementation
+- [x] Add location attributes to job data model
+  - [x] Create flexible schema supporting different location specificity (suburb/city/state/country)
+  - [x] Implement geocoding capabilities (optional enhancement)
+  - [x] Design normalisation for inconsistent address formats
+- [x] Develop location similarity algorithm
+  - [x] Implement exact matching for same location
+  - [x] Create proximity scoring for nearby locations
+  - [x] Add distance-based scoring for remote locations
+  - [x] Handle special cases like remote work and multiple locations
+- [x] Make location comparison fully configurable
+  - [x] Move location similarity thresholds to configuration system
+  - [x] Allow adjustment of same-location vs different-location similarities
+- [ ] Implement test suite
+  - [ ] Test exact location matches
+  - [ ] Test proximity-based matching
+  - [ ] Test handling of incomplete or missing location data
+
+The location implementation recognizes that geographic proximity significantly affects job transition practicality. By incorporating configurable location similarity thresholds, we can prioritize transitions that don't require relocation while still showing non-local opportunities at lower similarity scores when appropriate. The configuration system enables fine-tuning of these parameters without code changes.
+
+##### 6.3.7 Variable Integration Framework
+- [x] Create weighted variable integration system
+  - [x] Design extensible pattern for adding future variables
+  - [x] Implement normalized score combination algorithm
+  - [x] Create comprehensive logging of factor contributions
+- [x] Implement adjustment controls
+  - [x] Create configurable weighting system
+  - [x] Add minimum threshold options
+  - [x] Develop variable-specific tuning parameters
+- [x] Test combined operation
+  - [x] Verify correct weighting application
+  - [x] Test boundary cases (all variables at max/min)
+  - [x] Validate stability with different weight combinations
+
+This framework provides a flexible, configuration-driven foundation not only for the three immediate variables but also for future extensions, ensuring the system can evolve with organisational needs. All aspects of the similarity calculations are now configurable through the configuration system, allowing for detailed tuning without code changes.
+
+##### 6.3.8 CLI Integration and User Experience
+- [ ] Enhance CLI to support new variables
+  - [ ] Add commands to toggle variables on/off
+  - [ ] Implement options to adjust weights interactively
+  - [ ] Create commands to display relative impact of variables
+- [ ] Develop visualization enhancements
+  - [ ] Add visualization of variable contributions to similarity scores
+  - [ ] Create specialized views for each variable
+  - [ ] Implement interactive exploration of variable effects
+- [ ] Update documentation
+  - [ ] Create comprehensive guide to variable configuration
+  - [ ] Document expected effects of each variable
+  - [ ] Provide example configurations for different use cases
+
+User-friendly tools will make these complex enhancements accessible to business users, enabling them to explore and optimize the similarity model for their organization's specific needs.
+
+##### 6.3.9 Integration Tests & Documentation
 - [ ] Test combined operation of all three variables
-- [ ] Create tests with different weight combinations
-- [ ] Document implementation details for all variables
-- [ ] Create usage examples and configuration templates
-- [ ] Document extension points for future development
+  - [ ] Create comprehensive test scenarios
+  - [ ] Develop test data with complete variable coverage
+  - [ ] Implement performance testing for enhanced calculations
+- [ ] Update documentation
+  - [ ] Create detailed reference for each variable
+  - [ ] Document integration patterns and best practices
+  - [ ] Provide configuration templates for common scenarios
+- [ ] Develop validation framework
+  - [ ] Create tools to measure improvement in similarity accuracy
+  - [ ] Implement A/B comparison with skills-only approach
+  - [ ] Design metrics for evaluating enhancement impacts
 
 #### 6.4 HRIS Data Integration
 - [ ] Develop HRIS data translation layer to standardise naming conventions
