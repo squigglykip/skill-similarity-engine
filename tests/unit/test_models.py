@@ -31,9 +31,9 @@ class TestSkillModels(unittest.TestCase):
 
     def test_skill_type_from_string(self):
         """Test converting string to SkillType enum."""
-        self.assertEqual(SkillType.from_string("technical"), SkillType.TECHNICAL)
-        self.assertEqual(SkillType.from_string("SOFT"), SkillType.SOFT)
-        self.assertEqual(SkillType.from_string(" domain "), SkillType.DOMAIN)
+        self.assertEqual(SkillType.from_string("technical"), SkillType.SPECIALIZED)
+        self.assertEqual(SkillType.from_string("SOFT"), SkillType.COMMON)
+        self.assertEqual(SkillType.from_string(" domain "), SkillType.SPECIALIZED)
         
         # Test invalid skill type
         with self.assertRaises(ValueError):
@@ -61,14 +61,14 @@ class TestSkillModels(unittest.TestCase):
             name="Python",
             description="Programming language",
             category_id="C001",
-            skill_type=SkillType.TECHNICAL
+            skill_type=SkillType.SPECIALIZED
         )
         
         self.assertEqual(skill.skill_id, "S001")
         self.assertEqual(skill.name, "Python")
         self.assertEqual(skill.description, "Programming language")
         self.assertEqual(skill.category_id, "C001")
-        self.assertEqual(skill.skill_type, SkillType.TECHNICAL)
+        self.assertEqual(skill.skill_type, SkillType.SPECIALIZED)
         self.assertEqual(len(skill.aliases), 0)
         self.assertEqual(len(skill.related_skills), 0)
         self.assertEqual(len(skill.prerequisites), 0)
@@ -82,7 +82,7 @@ class TestSkillModels(unittest.TestCase):
             
         # Test string skill type conversion
         skill = Skill(skill_id="S003", name="TypeScript", skill_type="technical")
-        self.assertEqual(skill.skill_type, SkillType.TECHNICAL)
+        self.assertEqual(skill.skill_type, SkillType.SPECIALIZED)
         
         # Test invalid skill type
         with self.assertRaises(ValueError):
@@ -156,14 +156,14 @@ class TestSkillModels(unittest.TestCase):
             skill_id="S001",
             name="Python",
             category_id="C001",
-            skill_type=SkillType.TECHNICAL
+            skill_type=SkillType.SPECIALIZED
         )
         
         skill2 = Skill(
             skill_id="S002",
             name="JavaScript",
             category_id="C002",
-            skill_type=SkillType.TECHNICAL
+            skill_type=SkillType.SPECIALIZED
         )
         
         taxonomy.add_skill(skill1)

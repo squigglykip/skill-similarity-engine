@@ -1,0 +1,21 @@
+skill_id,skill_name,category,subcategory,difficulty_level
+S001,Python Programming,Technical,Programming Languages,4
+S002,Data Analysis,Technical,Data Skills,3
+S003,Project Management,Business,Management,3
+S004,Communication,Soft Skills,Interpersonal,2
+S005,Leadership,Soft Skills,Management,4
+S006,SQL,Technical,Database,3
+S007,UX Design,Design,User Experience,3
+S008,JavaScript,Technical,Programming Languages,3
+S009,Financial Analysis,Business,Finance,4
+S010,Customer Service,Soft Skills,Interpersonal,2
+S011,Marketing Strategy,Business,Marketing,3
+S012,Cloud Computing,Technical,Infrastructure,4
+S013,HTML/CSS,Technical,Web Development,2
+S014,Agile Methodology,Business,Project Management,3
+S015,Machine Learning,Technical,Artificial Intelligence,5
+S016,Content Writing,Business,Marketing,2
+S017,User Research,Design,User Experience,3
+S018,DevOps,Technical,Infrastructure,4
+S019,Sales,Business,Revenue Generation,3
+S020,Product Strategy,Business,Product Management,4 

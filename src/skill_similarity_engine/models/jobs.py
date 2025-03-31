@@ -22,6 +22,48 @@ class JobLevel(str, Enum):
     MANAGER = "Manager"
     DIRECTOR = "Director"
     EXECUTIVE = "Executive"
+    
+    @classmethod
+    def from_string(cls, level_str: str) -> 'JobLevel':
+        """
+        Convert a string representation to a JobLevel enum value.
+        
+        Args:
+            level_str: String representation of job level
+            
+        Returns:
+            Corresponding JobLevel enum value
+            
+        Raises:
+            ValueError: If the string doesn't match any known job level
+        """
+        level_map = {
+            "Entry": cls.ENTRY,
+            "Associate": cls.ASSOCIATE,
+            "Mid-level": cls.MID_LEVEL,
+            "Senior": cls.SENIOR,
+            "Lead": cls.LEAD,
+            "Manager": cls.MANAGER,
+            "Director": cls.DIRECTOR,
+            "Executive": cls.EXECUTIVE,
+            # Add uppercase variants
+            "ENTRY": cls.ENTRY,
+            "ASSOCIATE": cls.ASSOCIATE,
+            "MID_LEVEL": cls.MID_LEVEL,
+            "PROFESSIONAL": cls.MID_LEVEL,  # Map PROFESSIONAL to MID_LEVEL
+            "SENIOR": cls.SENIOR,
+            "LEAD": cls.LEAD,
+            "MANAGER": cls.MANAGER,
+            "DIRECTOR": cls.DIRECTOR,
+            "EXECUTIVE": cls.EXECUTIVE,
+            "PRINCIPAL": cls.SENIOR  # Map PRINCIPAL to SENIOR
+        }
+        
+        normalized_level = level_str.strip()
+        if normalized_level in level_map:
+            return level_map[normalized_level]
+        
+        raise ValueError(f"Unknown job level: {level_str}")
 
 
 class RoleTrack(str, Enum):

@@ -11,6 +11,7 @@ import yaml
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Dict, Any, Optional, List, Tuple
+import json
 
 
 # Environment variable prefix for overriding settings
@@ -84,19 +85,34 @@ class SimilarityConfig:
 
 @dataclass
 class GapAnalysisConfig:
-    """Configuration for gap analysis."""
-    min_proficiency_ratio: float = 0.8
-    skill_difficulty_factor: float = 1.0
-    min_gap_threshold: float = 0.2
-    category_weights: Dict[str, float] = field(default_factory=lambda: {
-        "Technical": 1.0,
-        "Soft": 0.8,
-        "Domain": 0.7,
-        "Methodology": 0.9,
-        "Tool": 0.6,
-        "Certification": 0.5,
-        "Other": 0.5
-    })
+    """Configuration settings for skill gap analysis."""
+    
+    def __init__(self):
+        """Initialize with default gap analysis settings."""
+        # Minimum ratio of employee's proficiency to be considered adequate
+        self.min_proficiency_ratio = 0.8
+        
+        # Difficulty factor for skill development effort calculation
+        self.skill_difficulty_factor = 1.0
+        
+        # Minimum threshold for considering a gap significant
+        self.min_gap_threshold = 0.2
+        
+        # Category weights for development effort calculation
+        # Default values in case the external config isn't available
+        self.category_weights = {
+            "CERTIFICATION": 0.8,
+            "COMMON": 1.0,
+            "SPECIALIZED": 1.2,
+            # Legacy category names for backward compatibility with tests
+            "Technical": 1.0,
+            "Soft": 1.0,
+            "Domain": 1.2,
+            "Methodology": 1.2,
+            "Tool": 1.2,
+            "Certification": 0.8,
+            "Other": 1.0
+        }
 
 
 @dataclass
@@ -156,6 +172,28 @@ class WorkforceConfig:
     department_skill_coverage_threshold: float = 75.0
 
 
+class HRISAdapterConfig:
+    """Configuration settings for the HRIS adapter."""
+    
+    def __init__(self):
+        """Initialize with default HRIS adapter settings."""
+        # Default configuration file path (can be overridden)
+        self.default_config_path = "config/hris_config.yaml"
+        
+        # Default file format settings
+        self.file_format = "csv"
+        self.encoding = "utf-8"
+        self.delimiter = ","
+        self.has_header = True
+        
+        # Transformation options
+        self.use_binary_skills = False
+        self.default_proficiency = 3
+        
+        # Output directory for transformed files
+        self.output_dir = "data/transformed"
+
+
 @dataclass
 class FutureExtensionConfig:
     """Configuration for future extensions (disabled by default)."""
@@ -163,6 +201,7 @@ class FutureExtensionConfig:
     seniority_weight: float = 0.0
     role_track_weight: float = 0.0
     location_weight: float = 0.0
+    skill_type_weight: float = 0.0
     
     # Seniority similarity thresholds
     seniority_same_level_similarity: float = 1.0     # Similarity when seniority levels are the same
@@ -179,337 +218,365 @@ class FutureExtensionConfig:
     # Location similarity thresholds
     location_same_similarity: float = 1.0            # Similarity when locations are the same
     location_different_similarity: float = 0.3       # Similarity when locations are different
+    
+    # Skill type similarity weights
+    skill_type_similarity_weights: Dict[str, float] = field(default_factory=lambda: {
+        "CERTIFICATION": 1.0,
+        "COMMON": 0.7,
+        "SPECIALIZED": 1.8
+    })
+    
+    # Skill type mapping from HRIS to engine categories
+    skill_type_mapping: Dict[str, str] = field(default_factory=lambda: {
+        "Certification": "CERTIFICATION",
+        "Common Skill": "COMMON",
+        "Specialized Skill": "SPECIALIZED"
+    })
 
 
-@dataclass
-class AppConfig:
-    """Main application configuration."""
-    version: str = "0.1.0"
-    data_dir: str = "data"
-    output_dir: str = "output"
-    logging: LoggingConfig = field(default_factory=LoggingConfig)
-    normalisation: NormalisationConfig = field(default_factory=NormalisationConfig)
-    similarity: SimilarityConfig = field(default_factory=SimilarityConfig)
-    gap_analysis: GapAnalysisConfig = field(default_factory=GapAnalysisConfig)
-    opportunity: OpportunityConfig = field(default_factory=OpportunityConfig)
-    reporting: ReportingConfig = field(default_factory=ReportingConfig)
-    heatmaps: HeatmapConfig = field(default_factory=HeatmapConfig)
-    team_analysis: TeamAnalysisConfig = field(default_factory=TeamAnalysisConfig)
-    workforce: WorkforceConfig = field(default_factory=WorkforceConfig)
-    future_extensions: FutureExtensionConfig = field(default_factory=FutureExtensionConfig)
-    environment: str = "development"
+class GeneralConfig:
+    """General configuration settings for the skill similarity engine."""
+    
+    def __init__(self):
+        """Initialize with default general settings."""
+        # Version information
+        self.version = "0.1.0"
+        
+        # Directory paths
+        self.data_dir = "data"
+        self.output_dir = "output"
+        
+        # External configuration files
+        self.similarity_enhancement_factors_file = "config/similarity_enhancement_factors.yaml"
+
+
+class DataSourceConfig:
+    """Configuration settings for data sources."""
+    
+    def __init__(self):
+        """Initialize with default data source settings."""
+        # Data source paths
+        self.jobs_file = "data/jobs.csv"
+        self.skills_file = "data/skills.csv"
+        self.employees_file = "data/employees.csv"
+        
+        # Data source options
+        self.encoding = "utf-8"
+        self.delimiter = ","
+        self.has_header = True
+
+
+class ModelConfig:
+    """Configuration settings for model parameters."""
+    
+    def __init__(self):
+        """Initialize with default model settings."""
+        # Vectorization parameters
+        self.vector_size = 100
+        self.min_count = 1
+        self.window = 5
+        self.workers = 4
+        
+        # Similarity parameters
+        self.similarity_threshold = 0.7
+        self.top_n_results = 5
+
+
+class Config:
+    """Global configuration settings for the skill similarity engine."""
+    
+    def __init__(self):
+        """Initialize with default configuration settings."""
+        # Initialize configuration sections
+        self.general = GeneralConfig()
+        self.data_sources = DataSourceConfig()
+        self.model = ModelConfig()
+        self.gap_analysis = GapAnalysisConfig()
+        self.team_analysis = TeamAnalysisConfig()
+        self.hris_adapter = HRISAdapterConfig()
+        self.future_extensions = FutureExtensionConfig()
+        # Add workforce configuration
+        self.workforce = WorkforceConfig()
+        # Add additional config sections for backward compatibility with tests
+        self.normalisation = NormalisationConfig()
+        self.similarity = SimilarityConfig()
+        self.opportunity = OpportunityConfig()
+    
+    @property
+    def data_dir(self):
+        """Get data directory from general config."""
+        return self.general.data_dir
+    
+    @data_dir.setter
+    def data_dir(self, value):
+        """Set data directory in general config."""
+        self.general.data_dir = value
+    
+    @property
+    def output_dir(self):
+        """Get output directory from general config."""
+        return self.general.output_dir
+    
+    @output_dir.setter
+    def output_dir(self, value):
+        """Set output directory in general config."""
+        self.general.output_dir = value
+    
+    @property
+    def version(self):
+        """Get version from general config."""
+        return self.general.version
+    
+    @version.setter
+    def version(self, value):
+        """Set version in general config."""
+        self.general.version = value
+    
+    @property
+    def environment(self):
+        """Get environment setting (for backward compatibility)."""
+        return getattr(self.general, "environment", "development")
 
 
 class ConfigManager:
-    """Singleton manager for application configuration."""
+    """
+    Singleton manager for configuration settings.
+    
+    This class manages the global configuration for the skill similarity engine.
+    It ensures that configuration is loaded only once and provides access to
+    configuration values and utility functions.
+    """
+    
+    # Singleton instance
     _instance = None
-    _config = None
     
     def __new__(cls):
+        """Create or return the singleton instance."""
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
-            cls._config = AppConfig()
+            cls._instance.config = Config()
+            cls._instance.load_config()
         return cls._instance
     
-    @property
-    def config(self):
-        """Get the current configuration."""
-        return self._config
-    
-    @config.setter
-    def config(self, value):
-        """Set the current configuration."""
-        self._config = value
-    
     def get_config(self):
-        """Get the current configuration (for compatibility with tests)."""
-        return self._config
-    
-    def load_config(self, config_file):
-        """Load configuration from a YAML file."""
-        # Determine format from extension
-        try:
-            config_format = ConfigFormat.from_file_extension(config_file)
-        except ValueError:
-            # Default to YAML for backward compatibility
-            config_format = ConfigFormat.YAML
-        
-        # Read file content
-        with open(config_file, 'r') as f:
-            if config_format == ConfigFormat.YAML:
-                config_data = yaml.safe_load(f)
-            else:  # JSON
-                import json
-                config_data = json.load(f)
-        
-        # Set top-level attributes
-        if 'version' in config_data:
-            self._config.version = config_data['version']
-        if 'data_dir' in config_data:
-            self._config.data_dir = config_data['data_dir']
-        if 'output_dir' in config_data:
-            self._config.output_dir = config_data['output_dir']
-        if 'environment' in config_data:
-            self._config.environment = config_data['environment']
-        
-        # Set logging config
-        if 'logging' in config_data:
-            log_config = config_data['logging']
-            if 'level' in log_config:
-                self._config.logging.level = log_config['level']
-            if 'log_dir' in log_config:
-                self._config.logging.log_dir = log_config['log_dir']
-            if 'log_file' in log_config:
-                self._config.logging.log_file = log_config['log_file']
-            if 'console_output' in log_config:
-                self._config.logging.console_output = log_config['console_output']
-            if 'file_output' in log_config:
-                self._config.logging.file_output = log_config['file_output']
-            if 'max_file_size_mb' in log_config:
-                self._config.logging.max_file_size_mb = log_config['max_file_size_mb']
-            if 'backup_count' in log_config:
-                self._config.logging.backup_count = log_config['backup_count']
-                
-        # Set normalisation config
-        if 'normalisation' in config_data:
-            norm_config = config_data['normalisation']
-            if 'use_min_max_scaling' in norm_config:
-                self._config.normalisation.use_min_max_scaling = norm_config['use_min_max_scaling']
-            elif 'min_max_scaling' in norm_config:
-                self._config.normalisation.use_min_max_scaling = norm_config['min_max_scaling']
-                
-            if 'use_boolean_normalisation' in norm_config:
-                self._config.normalisation.use_boolean_normalisation = norm_config['use_boolean_normalisation']
-            elif 'boolean_normalisation' in norm_config:
-                self._config.normalisation.use_boolean_normalisation = norm_config['boolean_normalisation']
-                
-            if 'use_tfidf_weighting' in norm_config:
-                self._config.normalisation.use_tfidf_weighting = norm_config['use_tfidf_weighting']
-            elif 'tfidf_weighting' in norm_config:
-                self._config.normalisation.use_tfidf_weighting = norm_config['tfidf_weighting']
-                
-            if 'importance_weights' in norm_config:
-                self._config.normalisation.importance_weights = norm_config['importance_weights']
-        
-        # Set similarity config
-        if 'similarity' in config_data:
-            sim_config = config_data['similarity']
-            if 'method' in sim_config:
-                self._config.similarity.method = sim_config['method']
-            if 'threshold' in sim_config:
-                self._config.similarity.threshold = sim_config['threshold']
-            if 'top_n_results' in sim_config:
-                self._config.similarity.top_n_results = sim_config['top_n_results']
-        
-        # Set gap analysis config
-        if 'gap_analysis' in config_data:
-            gap_config = config_data['gap_analysis']
-            if 'min_proficiency_ratio' in gap_config:
-                self._config.gap_analysis.min_proficiency_ratio = gap_config['min_proficiency_ratio']
-            if 'skill_difficulty_factor' in gap_config:
-                self._config.gap_analysis.skill_difficulty_factor = gap_config['skill_difficulty_factor']
-            if 'min_gap_threshold' in gap_config:
-                self._config.gap_analysis.min_gap_threshold = gap_config['min_gap_threshold']
-            if 'category_weights' in gap_config:
-                self._config.gap_analysis.category_weights = gap_config['category_weights']
-        
-        # Set opportunity config
-        if 'opportunity' in config_data:
-            opp_config = config_data['opportunity']
-            if 'high_similarity_threshold' in opp_config:
-                self._config.opportunity.high_similarity_threshold = opp_config['high_similarity_threshold']
-            if 'low_gap_threshold' in opp_config:
-                self._config.opportunity.low_gap_threshold = opp_config['low_gap_threshold']
-            if 'high_match_percentage' in opp_config:
-                self._config.opportunity.high_match_percentage = opp_config['high_match_percentage']
-            if 'critical_gap_percentage' in opp_config:
-                self._config.opportunity.critical_gap_percentage = opp_config['critical_gap_percentage']
-            if 'critical_skill_gap_threshold' in opp_config:
-                self._config.opportunity.critical_skill_gap_threshold = opp_config['critical_skill_gap_threshold']
-        
-        # Set reporting config
-        if 'reporting' in config_data:
-            rep_config = config_data['reporting']
-            if 'include_headers' in rep_config:
-                self._config.reporting.include_headers = rep_config['include_headers']
-            if 'date_format' in rep_config:
-                self._config.reporting.date_format = rep_config['date_format']
-            if 'float_format' in rep_config:
-                self._config.reporting.float_format = rep_config['float_format']
-            if 'include_index' in rep_config:
-                self._config.reporting.include_index = rep_config['include_index']
-            if 'encoding' in rep_config:
-                self._config.reporting.encoding = rep_config['encoding']
-            if 'json_indent' in rep_config:
-                self._config.reporting.json_indent = rep_config['json_indent']
-                
-        # Set heatmap config
-        if 'heatmaps' in config_data:
-            hm_config = config_data['heatmaps']
-            if 'default_colormap' in hm_config:
-                self._config.heatmaps.default_colormap = hm_config['default_colormap']
-            if 'default_figsize' in hm_config:
-                self._config.heatmaps.default_figsize = tuple(hm_config['default_figsize'])
-            if 'show_annotations' in hm_config:
-                self._config.heatmaps.show_annotations = hm_config['show_annotations']
-            if 'annotation_format' in hm_config:
-                self._config.heatmaps.annotation_format = hm_config['annotation_format']
-            if 'line_width' in hm_config:
-                self._config.heatmaps.line_width = hm_config['line_width']
-            if 'show_colorbar' in hm_config:
-                self._config.heatmaps.show_colorbar = hm_config['show_colorbar']
-            if 'mask_diagonal' in hm_config:
-                self._config.heatmaps.mask_diagonal = hm_config['mask_diagonal']
-            if 'cluster_by_default' in hm_config:
-                self._config.heatmaps.cluster_by_default = hm_config['cluster_by_default']
-            if 'dpi' in hm_config:
-                self._config.heatmaps.dpi = hm_config['dpi']
-                
-        # Set team analysis config
-        if 'team_analysis' in config_data:
-            team_config = config_data['team_analysis']
-            if 'fully_covered_weight' in team_config:
-                self._config.team_analysis.fully_covered_weight = team_config['fully_covered_weight']
-            if 'partially_covered_weight' in team_config:
-                self._config.team_analysis.partially_covered_weight = team_config['partially_covered_weight']
-            if 'reskilling_difficulty_levels' in team_config:
-                self._config.team_analysis.reskilling_difficulty_levels = team_config['reskilling_difficulty_levels']
-                
-        # Set workforce config
-        if 'workforce' in config_data:
-            wf_config = config_data['workforce']
-            if 'critical_skill_threshold' in wf_config:
-                self._config.workforce.critical_skill_threshold = wf_config['critical_skill_threshold']
-            if 'max_skills_in_report' in wf_config:
-                self._config.workforce.max_skills_in_report = wf_config['max_skills_in_report']
-            if 'department_skill_coverage_threshold' in wf_config:
-                self._config.workforce.department_skill_coverage_threshold = wf_config['department_skill_coverage_threshold']
-        
-        # Handle future extensions config - either from main config or from external file
-        if 'future_extensions' in config_data:
-            # Load directly from the main config
-            ext_config = config_data['future_extensions']
-            self._load_future_extensions(ext_config)
-        elif 'future_extensions_file' in config_data or 'similarity_enhancement_factors_file' in config_data:
-            # Load from external file
-            ext_file_path = config_data.get('similarity_enhancement_factors_file') or config_data.get('future_extensions_file')
-            
-            # Handle relative paths
-            if not os.path.isabs(ext_file_path):
-                # If config_file is a path, use its directory as base
-                if hasattr(config_file, 'parent'):  # Path object
-                    base_dir = config_file.parent
-                else:  # String
-                    base_dir = os.path.dirname(os.path.abspath(config_file))
-                    
-                # Check if path contains forward slashes in a Windows environment
-                if os.name == 'nt' and '/' in ext_file_path:
-                    # Replace forward slashes with backslashes for Windows
-                    ext_file_path = ext_file_path.replace('/', '\\')
-                
-                ext_file_path = os.path.join(base_dir, ext_file_path)
-            
-            # Load the external config file
-            try:
-                ext_config_format = ConfigFormat.from_file_extension(ext_file_path)
-                with open(ext_file_path, 'r') as f:
-                    if ext_config_format == ConfigFormat.YAML:
-                        ext_config = yaml.safe_load(f)
-                    else:  # JSON
-                        import json
-                        ext_config = json.load(f)
-                
-                # Apply the external config
-                self._load_future_extensions(ext_config)
-            except Exception as e:
-                import logging
-                logging.warning(f"Failed to load similarity enhancement factors from {ext_file_path}: {e}")
-                # Continue with default values
-        
-        # Validate the config
-        self._validate_config()
-        
-    def _load_future_extensions(self, ext_config):
         """
-        Load future extensions configuration.
+        Get the current configuration.
+        
+        Returns:
+            Current Config instance
+        """
+        return self.config
+    
+    def load_config(self, config_path: Optional[str] = None):
+        """
+        Load configuration from file.
         
         Args:
-            ext_config: Dictionary with future extensions configuration
+            config_path: Path to configuration file (default: use environment variable or default path)
         """
-        if 'seniority_weight' in ext_config:
-            self._config.future_extensions.seniority_weight = ext_config['seniority_weight']
-        if 'role_track_weight' in ext_config:
-            self._config.future_extensions.role_track_weight = ext_config['role_track_weight']
-        if 'location_weight' in ext_config:
-            self._config.future_extensions.location_weight = ext_config['location_weight']
+        # Flag to track if we're loading a specific config file
+        is_explicit_config = config_path is not None
         
-        # Load seniority similarity settings
-        if 'seniority_same_level_similarity' in ext_config:
-            self._config.future_extensions.seniority_same_level_similarity = ext_config['seniority_same_level_similarity']
-        if 'seniority_one_up_similarity' in ext_config:
-            self._config.future_extensions.seniority_one_up_similarity = ext_config['seniority_one_up_similarity']
-        if 'seniority_up_step_penalty' in ext_config:
-            self._config.future_extensions.seniority_up_step_penalty = ext_config['seniority_up_step_penalty']
-        if 'seniority_one_down_similarity' in ext_config:
-            self._config.future_extensions.seniority_one_down_similarity = ext_config['seniority_one_down_similarity']
-        if 'seniority_down_similarity' in ext_config:
-            self._config.future_extensions.seniority_down_similarity = ext_config['seniority_down_similarity']
+        # Get config path from environment variable or use default
+        if config_path is None:
+            config_path = os.environ.get("SKILL_ENGINE_CONFIG", "config/config.yaml")
         
-        # Load role track similarity settings
-        if 'role_track_same_similarity' in ext_config:
-            self._config.future_extensions.role_track_same_similarity = ext_config['role_track_same_similarity']
-        if 'role_track_different_similarity' in ext_config:
-            self._config.future_extensions.role_track_different_similarity = ext_config['role_track_different_similarity']
-        if 'role_track_regression_similarity' in ext_config:
-            self._config.future_extensions.role_track_regression_similarity = ext_config['role_track_regression_similarity']
+        # Load yaml config if it exists
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                yaml_config = yaml.safe_load(f)
+            
+            # Update configuration values
+            if yaml_config:
+                self._update_config_from_dict(yaml_config)
+        elif is_explicit_config:
+            # If a specific config file was requested but not found, raise an error
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
         
-        # Load location similarity settings
-        if 'location_same_similarity' in ext_config:
-            self._config.future_extensions.location_same_similarity = ext_config['location_same_similarity']
-        if 'location_different_similarity' in ext_config:
-            self._config.future_extensions.location_different_similarity = ext_config['location_different_similarity']
+        # Load enhancement factors if specified in the main config
+        self._load_enhancement_factors(is_explicit_config)
+        
+        # Also look for environment variables that override config
+        self._update_config_from_env()
     
-    def load_similarity_enhancement_factors(self, file_path):
-        """
-        Load similarity enhancement factors directly from a file.
+    def _load_enhancement_factors(self, is_explicit_config=False):
+        """Load similarity enhancement factors from external file."""
+        # Check for both new and old file path attributes
+        enhancement_file = getattr(self.config.general, "similarity_enhancement_factors_file", 
+                                "config/similarity_enhancement_factors.yaml")
         
-        Args:
-            file_path: Path to the similarity enhancement factors file
-        """
-        if not os.path.exists(file_path):
-            import logging
-            logging.warning(f"Similarity enhancement factors file does not exist: {file_path}")
+        # Check for the backward compatibility with future_extensions_file
+        future_extensions_file = getattr(self.config.general, "future_extensions_file", None)
+        if future_extensions_file:
+            enhancement_file = future_extensions_file
+        
+        # If we're loading a specific config and the enhancement file is the default, skip loading
+        if is_explicit_config and enhancement_file == "config/similarity_enhancement_factors.yaml":
+            print("Skipping loading default enhancement factors when using explicit config")
             return
-            
-        try:
-            ext_config_format = ConfigFormat.from_file_extension(file_path)
-            with open(file_path, 'r') as f:
-                if ext_config_format == ConfigFormat.YAML:
-                    ext_config = yaml.safe_load(f)
-                else:  # JSON
-                    import json
-                    ext_config = json.load(f)
-            
-            # Apply the external config
-            self._load_future_extensions(ext_config)
-        except Exception as e:
-            import logging
-            logging.warning(f"Failed to load similarity enhancement factors from {file_path}: {e}")
-    
-    def _validate_config(self):
-        """
-        Validate the configuration.
         
-        Raises:
-            ValueError: If validation fails
-        """
-        # Ensure data_dir and output_dir are valid
-        data_dir = Path(self._config.data_dir)
-        output_dir = Path(self._config.output_dir)
+        # Print debug information
+        print(f"Loading enhancement factors from file: {enhancement_file}")
+        print(f"File exists: {os.path.exists(enhancement_file)}")
         
-        # Create output directory if it doesn't exist
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Load if the file exists
+        if os.path.exists(enhancement_file):
+            try:
+                with open(enhancement_file, "r") as f:
+                    enhancement_config = yaml.safe_load(f)
+                
+                print(f"Loaded enhancement config: {enhancement_config}")
+                
+                # Update specific settings from enhancement factors
+                if enhancement_config:
+                    # Update skill category weights for gap analysis if available
+                    if "skill_category_weights" in enhancement_config:
+                        self.config.gap_analysis.category_weights = enhancement_config["skill_category_weights"]
+                    
+                    # Update extension attributes directly
+                    for key, value in enhancement_config.items():
+                        if hasattr(self.config.future_extensions, key):
+                            setattr(self.config.future_extensions, key, value)
+                            print(f"Updated future_extensions.{key} to {value}")
+                    
+                    # Update skill type similarity weights if available
+                    if "skill_type_similarity_weights" in enhancement_config:
+                        self.config.future_extensions.skill_type_similarity_weights = enhancement_config["skill_type_similarity_weights"]
+                    
+                    # Update skill type mapping if available
+                    if "skill_type_mapping" in enhancement_config:
+                        self.config.future_extensions.skill_type_mapping = enhancement_config["skill_type_mapping"]
+            except Exception as e:
+                # Log the error but continue with default values
+                print(f"Error loading enhancement factors: {e}")
     
+    def _update_config_attr(self, config_dict, attr_name, config_obj):
+        """Helper method to update a config attribute if it exists in the dict."""
+        if attr_name in config_dict:
+            setattr(config_obj, attr_name, config_dict[attr_name])
+    
+    def _update_config_from_dict(self, config_dict: Dict[str, Any]):
+        """
+        Update configuration from dictionary.
+        
+        Args:
+            config_dict: Dictionary with configuration values
+        """
+        # Handle top-level attributes first
+        if "data_dir" in config_dict:
+            self.config.data_dir = config_dict["data_dir"]
+        if "output_dir" in config_dict:
+            self.config.output_dir = config_dict["output_dir"]
+        if "version" in config_dict:
+            self.config.version = config_dict["version"]
+        if "future_extensions_file" in config_dict:
+            self.config.general.future_extensions_file = config_dict["future_extensions_file"]
+        if "similarity_enhancement_factors_file" in config_dict:
+            self.config.general.similarity_enhancement_factors_file = config_dict["similarity_enhancement_factors_file"]
+        
+        # Update general config
+        if "general" in config_dict:
+            for key, value in config_dict["general"].items():
+                if hasattr(self.config.general, key):
+                    setattr(self.config.general, key, value)
+        
+        # Update data sources config
+        if "data_sources" in config_dict:
+            for key, value in config_dict["data_sources"].items():
+                if hasattr(self.config.data_sources, key):
+                    setattr(self.config.data_sources, key, value)
+        
+        # Update model config
+        if "model" in config_dict:
+            for key, value in config_dict["model"].items():
+                if hasattr(self.config.model, key):
+                    setattr(self.config.model, key, value)
+        
+        # Update gap analysis config
+        if "gap_analysis" in config_dict:
+            for key, value in config_dict["gap_analysis"].items():
+                if hasattr(self.config.gap_analysis, key):
+                    setattr(self.config.gap_analysis, key, value)
+        
+        # Update team analysis config
+        if "team_analysis" in config_dict:
+            for key, value in config_dict["team_analysis"].items():
+                if hasattr(self.config.team_analysis, key):
+                    setattr(self.config.team_analysis, key, value)
+                    
+        # Update HRIS adapter config
+        if "hris_adapter" in config_dict:
+            for key, value in config_dict["hris_adapter"].items():
+                if hasattr(self.config.hris_adapter, key):
+                    setattr(self.config.hris_adapter, key, value)
+        
+        # Update similarity config
+        if "similarity" in config_dict:
+            for key, value in config_dict["similarity"].items():
+                if hasattr(self.config.similarity, key):
+                    setattr(self.config.similarity, key, value)
+        
+        # Update future extensions config
+        if "future_extensions" in config_dict:
+            for key, value in config_dict["future_extensions"].items():
+                if hasattr(self.config.future_extensions, key):
+                    setattr(self.config.future_extensions, key, value)
+    
+    def _update_config_from_env(self):
+        """Update configuration from environment variables."""
+        # Example format: SKILL_ENGINE_GENERAL_LOG_LEVEL
+        env_prefix = "SKILL_ENGINE_"
+        
+        for env_var, env_value in os.environ.items():
+            if env_var.startswith(env_prefix):
+                # Remove prefix and split by underscore
+                config_path = env_var[len(env_prefix):].lower().split("_")
+                
+                if len(config_path) >= 2:
+                    # First part is the config section, rest is the attribute path
+                    section = config_path[0]
+                    attr_path = "_".join(config_path[1:])
+                    
+                    # Get the section object
+                    section_obj = None
+                    if section == "general":
+                        section_obj = self.config.general
+                    elif section == "data_sources":
+                        section_obj = self.config.data_sources
+                    elif section == "model":
+                        section_obj = self.config.model
+                    elif section == "gap_analysis":
+                        section_obj = self.config.gap_analysis
+                    elif section == "team_analysis":
+                        section_obj = self.config.team_analysis
+                    elif section == "hris_adapter":
+                        section_obj = self.config.hris_adapter
+                    
+                    # Set the attribute if it exists
+                    if section_obj is not None and hasattr(section_obj, attr_path):
+                        attr = getattr(section_obj, attr_path)
+                        
+                        # Convert value to the same type as the attribute
+                        if isinstance(attr, bool):
+                            converted_value = env_value.lower() in ("true", "1", "yes", "y")
+                        elif isinstance(attr, int):
+                            converted_value = int(env_value)
+                        elif isinstance(attr, float):
+                            converted_value = float(env_value)
+                        elif isinstance(attr, list):
+                            converted_value = env_value.split(",")
+                        elif isinstance(attr, dict):
+                            # Parse JSON string
+                            try:
+                                converted_value = json.loads(env_value)
+                            except json.JSONDecodeError:
+                                # If not valid JSON, keep as string
+                                converted_value = env_value
+                        else:
+                            converted_value = env_value
+                        
+                        setattr(section_obj, attr_path, converted_value)
+
     def get_data_path(self, relative_path=""):
         """
         Get the absolute path to a data file or directory.
@@ -521,10 +588,10 @@ class ConfigManager:
             Absolute path
         """
         # Convert to Path objects to handle path concatenation properly
-        data_dir = Path(self._config.data_dir)
+        data_dir = Path(self.config.data_dir)
         
         # Handle absolute and relative paths
-        if os.path.isabs(self._config.data_dir):
+        if os.path.isabs(self.config.data_dir):
             # If data_dir is absolute, use it directly
             full_path = data_dir / relative_path
         else:
@@ -544,10 +611,10 @@ class ConfigManager:
             Absolute path
         """
         # Convert to Path objects to handle path concatenation properly
-        output_dir = Path(self._config.output_dir)
+        output_dir = Path(self.config.output_dir)
         
         # Handle absolute and relative paths
-        if os.path.isabs(self._config.output_dir):
+        if os.path.isabs(self.config.output_dir):
             # If output_dir is absolute, use it directly
             full_path = output_dir / relative_path
         else:
@@ -584,7 +651,7 @@ def get_config():
     Returns:
         Current AppConfig instance
     """
-    return _config_manager.get_config()
+    return _config_manager.config
 
 
 def get_data_path(relative_path=""):
@@ -597,7 +664,18 @@ def get_data_path(relative_path=""):
     Returns:
         Absolute path
     """
-    return _config_manager.get_data_path(relative_path)
+    # Convert to Path objects to handle path concatenation properly
+    data_dir = Path(get_config().data_dir)
+    
+    # Handle absolute and relative paths
+    if os.path.isabs(get_config().data_dir):
+        # If data_dir is absolute, use it directly
+        full_path = data_dir / relative_path
+    else:
+        # If data_dir is relative, resolve it relative to the current working directory
+        full_path = Path.cwd() / data_dir / relative_path
+    
+    return str(full_path)
 
 
 def get_output_path(relative_path=""):
@@ -610,4 +688,24 @@ def get_output_path(relative_path=""):
     Returns:
         Absolute path
     """
-    return _config_manager.get_output_path(relative_path)
+    # Convert to Path objects to handle path concatenation properly
+    output_dir = Path(get_config().output_dir)
+    
+    # Handle absolute and relative paths
+    if os.path.isabs(get_config().output_dir):
+        # If output_dir is absolute, use it directly
+        full_path = output_dir / relative_path
+    else:
+        # If output_dir is relative, resolve it relative to the current working directory
+        full_path = Path.cwd() / output_dir / relative_path
+    
+    # Create directory if it doesn't exist
+    if relative_path and not os.path.splitext(relative_path)[1]:  # No extension, assume it's a directory
+        full_path.mkdir(parents=True, exist_ok=True)
+    else:
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    return str(full_path)
+
+# Create an alias for backward compatibility with tests
+AppConfig = Config

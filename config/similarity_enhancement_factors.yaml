@@ -16,6 +16,32 @@
 seniority_weight: 1.0     # Controls how much career progression (seniority levels) affects similarity
 role_track_weight: 1.0    # Controls how much role track (IC vs leadership) affects similarity
 location_weight: 0.0      # Controls how much geographical location affects similarity
+skill_type_weight: 1.0    # Controls how much skill types affect similarity
+
+# ==========================================
+# SKILL CATEGORY WEIGHTS
+# ==========================================
+# These weights determine how much each skill category contributes to development effort calculations
+# and gap analysis. Higher values indicate skills that are more difficult or important to develop.
+# These match the standardized categories from the HRIS schema mapping.
+
+skill_category_weights:
+  CERTIFICATION: 0.8      # Formal certifications typically require moderate effort 
+  COMMON: 1.0             # Common skills are baseline professional capabilities
+  SPECIALIZED: 1.2        # Specialized skills are more challenging to develop
+
+# ==========================================
+# SKILL TYPE SIMILARITY WEIGHTS
+# ==========================================
+# These weights determine how different skill types impact similarity when they are missing
+# or different between jobs. Higher values mean these skill types have a greater impact
+# on the overall similarity calculation - gaps in these skills reduce similarity more significantly.
+# Values of 1.0 mean standard impact, higher values increase the impact of gaps in these skill types.
+
+skill_type_similarity_weights:
+  CERTIFICATION: 1.0      # Certifications can be obtained with focused study
+  COMMON: 0.7             # Common skills are often broadly applicable
+  SPECIALIZED: 1.8        # Specialized skills are the hardest to develop and most impactful when missing
 
 # ==========================================
 # SENIORITY SIMILARITY THRESHOLDS
@@ -83,4 +109,16 @@ location_same_similarity: 1.0
 # Similarity when comparing jobs in different locations
 # This represents the transition between geographical locations
 # A value of 0.3 indicates a significant difference but not a complete dissimilarity
-location_different_similarity: 0.3 
+location_different_similarity: 0.3
+
+# ==========================================
+# SKILL TYPE MAPPING
+# ==========================================
+# Maps HRIS skill types to engine skill categories
+# This mapping is used during data transformation from HRIS to engine format
+# as well as for applying appropriate weights during similarity calculations
+
+skill_type_mapping:
+  "Certification": "CERTIFICATION"
+  "Common Skill": "COMMON"
+  "Specialized Skill": "SPECIALIZED" 

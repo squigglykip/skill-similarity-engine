@@ -1,13 +1,20 @@
+#!/usr/bin/env python3
 """
-Gap analysis for identifying skill gaps between employees and target roles.
+Gap analysis module for identifying skill gaps between employees and job requirements.
 
-This module provides functionality for identifying skill gaps, calculating
-development effort, and generating reskilling pathways.
+This module provides functionality for analyzing skill gaps between employees and job
+requirements, calculating development effort required to close those gaps, and supporting
+career path planning.
 """
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union, Any
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(name)s:%(levelname)s:%(message)s')
+logger = logging.getLogger("gap_analysis")
 
 import numpy as np
 import pandas as pd
@@ -16,6 +23,7 @@ from ..config.settings import get_config
 from ..models.employees import Employee, EmployeeDatabase
 from ..models.jobs import Job, JobArchitecture
 from ..models.skills import Skill, SkillTaxonomy
+from ..config.settings import GapAnalysisConfig
 
 
 class SkillGapType(Enum):
@@ -28,180 +36,176 @@ class SkillGapType(Enum):
 @dataclass
 class SkillGap:
     """
-    Represents a gap in skill proficiency between an employee and a job.
+    Represents a gap between employee's skill level and job requirement.
     
     Attributes:
         skill_id: ID of the skill
         skill_name: Name of the skill
-        employee_proficiency: Employee's proficiency level (0-5)
-        job_proficiency: Job's required proficiency level (0-5)
-        gap_type: Type of gap (missing, excess, or match)
-        proficiency_gap: Difference in proficiency (job - employee)
-        development_effort: Calculated effort to close the gap
+        job_proficiency: Required proficiency level for the job
+        employee_proficiency: Current proficiency level of the employee
+        category_id: ID of the skill category
+        category_name: Name of the skill category
+        proficiency_gap: Numeric gap between required and current proficiency
+        development_effort: Calculated effort required to close the gap
+        gap_type: Type of skill gap (missing, excess, or match)
     """
     skill_id: str
     skill_name: str
-    employee_proficiency: int
-    job_proficiency: int
-    gap_type: SkillGapType
-    proficiency_gap: int = 0
+    job_proficiency: int  
+    employee_proficiency: int = 0
+    proficiency_gap: float = 0.0
     development_effort: float = 0.0
+    category_id: str = ""
+    category_name: str = ""
+    gap_type: SkillGapType = SkillGapType.MISSING
+
+    def __post_init__(self):
+        """Calculate the proficiency gap after initialization."""
+        self.proficiency_gap = max(0, self.job_proficiency - self.employee_proficiency)
 
 
 @dataclass
-class GapAnalysisResult:
+class JobSkillGapResult:
     """
-    Results of a gap analysis between an employee and a job.
+    Results of a job skill gap analysis.
     
     Attributes:
         employee_id: ID of the employee
         employee_name: Name of the employee
         job_id: ID of the job
         job_title: Title of the job
-        missing_skills: List of skills required by job but missing/insufficient in employee
-        excess_skills: List of skills present in employee but not required by job
-        matching_skills: List of skills present in both with sufficient proficiency
-        total_development_effort: Total calculated effort to close all gaps
-        skill_match_percentage: Percentage of job skills that match employee skills
-        reskilling_difficulty: Calculated difficulty rating for reskilling (1-5)
+        missing_skills: Skills the employee is missing completely or below required level
+        matching_skills: Skills that match required levels
+        excess_skills: Skills the employee has but are not required for the job
+        skill_match_percentage: Percentage of required skills that are matched
+        total_development_effort: Total effort required to close all gaps
+        reskilling_difficulty: Relative difficulty of reskilling on a scale of 1-5
     """
     employee_id: str
     employee_name: str
     job_id: str
     job_title: str
     missing_skills: List[SkillGap] = field(default_factory=list)
-    excess_skills: List[SkillGap] = field(default_factory=list)
     matching_skills: List[SkillGap] = field(default_factory=list)
-    total_development_effort: float = 0.0
+    excess_skills: List[SkillGap] = field(default_factory=list)
     skill_match_percentage: float = 0.0
+    total_development_effort: float = 0.0
     reskilling_difficulty: float = 0.0
     
     def to_dataframe(self) -> pd.DataFrame:
         """
-        Convert the gap analysis results to a DataFrame.
+        Convert the gap analysis result to a pandas DataFrame.
         
         Returns:
-            DataFrame with all skill gaps
+            DataFrame with all skills (missing, excess, matching) and their details
         """
-        all_gaps = []
+        # Create a list of dictionaries to convert to DataFrame
+        data = []
         
         # Add missing skills
         for gap in self.missing_skills:
-            all_gaps.append({
-                "employee_id": self.employee_id,
-                "employee_name": self.employee_name,
-                "job_id": self.job_id,
-                "job_title": self.job_title,
-                "skill_id": gap.skill_id,
-                "skill_name": gap.skill_name,
-                "employee_proficiency": gap.employee_proficiency,
-                "job_proficiency": gap.job_proficiency,
-                "gap_type": gap.gap_type.value,
-                "proficiency_gap": gap.proficiency_gap,
-                "development_effort": gap.development_effort
+            data.append({
+                'skill_id': gap.skill_id,
+                'skill_name': gap.skill_name,
+                'category_id': gap.category_id,
+                'category_name': gap.category_name,
+                'job_proficiency': gap.job_proficiency,
+                'employee_proficiency': gap.employee_proficiency,
+                'proficiency_gap': gap.proficiency_gap,
+                'development_effort': gap.development_effort,
+                'gap_type': 'Missing'
             })
         
         # Add excess skills
         for gap in self.excess_skills:
-            all_gaps.append({
-                "employee_id": self.employee_id,
-                "employee_name": self.employee_name,
-                "job_id": self.job_id,
-                "job_title": self.job_title,
-                "skill_id": gap.skill_id,
-                "skill_name": gap.skill_name,
-                "employee_proficiency": gap.employee_proficiency,
-                "job_proficiency": gap.job_proficiency,
-                "gap_type": gap.gap_type.value,
-                "proficiency_gap": gap.proficiency_gap,
-                "development_effort": gap.development_effort
+            data.append({
+                'skill_id': gap.skill_id,
+                'skill_name': gap.skill_name,
+                'category_id': gap.category_id,
+                'category_name': gap.category_name,
+                'job_proficiency': gap.job_proficiency,
+                'employee_proficiency': gap.employee_proficiency,
+                'proficiency_gap': 0,
+                'development_effort': 0,
+                'gap_type': 'Excess'
             })
         
         # Add matching skills
         for gap in self.matching_skills:
-            all_gaps.append({
-                "employee_id": self.employee_id,
-                "employee_name": self.employee_name,
-                "job_id": self.job_id,
-                "job_title": self.job_title,
-                "skill_id": gap.skill_id,
-                "skill_name": gap.skill_name,
-                "employee_proficiency": gap.employee_proficiency,
-                "job_proficiency": gap.job_proficiency,
-                "gap_type": gap.gap_type.value,
-                "proficiency_gap": gap.proficiency_gap,
-                "development_effort": gap.development_effort
+            data.append({
+                'skill_id': gap.skill_id,
+                'skill_name': gap.skill_name,
+                'category_id': gap.category_id,
+                'category_name': gap.category_name,
+                'job_proficiency': gap.job_proficiency,
+                'employee_proficiency': gap.employee_proficiency,
+                'proficiency_gap': 0,
+                'development_effort': 0,
+                'gap_type': 'Match'
             })
         
-        return pd.DataFrame(all_gaps)
+        # Create DataFrame
+        return pd.DataFrame(data)
     
-    def to_summary_dict(self) -> Dict[str, Union[str, float, int]]:
+    def to_summary_dict(self) -> Dict[str, Any]:
         """
-        Create a summary dictionary of the gap analysis results.
+        Convert the gap analysis result to a summary dictionary.
         
         Returns:
-            Dictionary with summary metrics
+            Dictionary with summary information about the gap analysis
         """
         return {
-            "employee_id": self.employee_id,
-            "employee_name": self.employee_name,
-            "job_id": self.job_id,
-            "job_title": self.job_title,
-            "missing_skills_count": len(self.missing_skills),
-            "excess_skills_count": len(self.excess_skills),
-            "matching_skills_count": len(self.matching_skills),
-            "total_development_effort": self.total_development_effort,
-            "skill_match_percentage": self.skill_match_percentage,
-            "reskilling_difficulty": self.reskilling_difficulty
+            'employee_id': self.employee_id,
+            'employee_name': self.employee_name,
+            'job_id': self.job_id,
+            'job_title': self.job_title,
+            'missing_skills_count': len(self.missing_skills),
+            'matching_skills_count': len(self.matching_skills),
+            'excess_skills_count': len(self.excess_skills),
+            'total_skills_analyzed': len(self.missing_skills) + len(self.matching_skills) + len(self.excess_skills),
+            'skill_match_percentage': self.skill_match_percentage,
+            'total_development_effort': self.total_development_effort,
+            'reskilling_difficulty': self.reskilling_difficulty
         }
 
 
 class SkillGapAnalyzer:
     """
-    Analyzer for identifying skill gaps between employees and jobs.
+    Analyzer for identifying skill gaps between employees and job roles.
     
     Attributes:
         skill_taxonomy: The skill taxonomy containing all skills
         job_architecture: The job architecture containing all jobs
         employee_database: The employee database containing all employees
-        min_proficiency_ratio: Minimum ratio of employee's proficiency to required proficiency
-        category_weights: Weights for different skill categories in development effort
     """
     
     def __init__(
         self,
-        skill_taxonomy: SkillTaxonomy,
-        job_architecture: JobArchitecture,
-        employee_database: Optional[EmployeeDatabase] = None,
-        min_proficiency_ratio: Optional[float] = None,
-        category_weights: Optional[Dict[str, float]] = None
+        skill_taxonomy: Optional[SkillTaxonomy] = None,
+        job_architecture: Optional[JobArchitecture] = None,
+        employee_database: Optional[EmployeeDatabase] = None
     ):
         """
-        Initialize the skill gap analyzer.
+        Initialize the gap analyzer with supporting data structures.
         
         Args:
             skill_taxonomy: The skill taxonomy containing all skills
             job_architecture: The job architecture containing all jobs
             employee_database: The employee database containing all employees
-            min_proficiency_ratio: Minimum ratio of employee's proficiency to required proficiency
-            category_weights: Weights for different skill categories in development effort
         """
         self.skill_taxonomy = skill_taxonomy
         self.job_architecture = job_architecture
         self.employee_database = employee_database
         
-        config = get_config().gap_analysis
+        # Get configuration
+        config = get_config()
+        self.config = config.gap_analysis
         
-        # Use configuration values if not provided
-        self.min_proficiency_ratio = min_proficiency_ratio if min_proficiency_ratio is not None else config.min_proficiency_ratio
-        self.category_weights = category_weights if category_weights is not None else config.category_weights
-        self.skill_difficulty_factor = config.skill_difficulty_factor
+        # Access configuration values
+        self.min_proficiency_ratio = self.config.min_proficiency_ratio
+        self.category_weights = self.config.category_weights
     
-    def analyze_employee_job_gap(
-        self,
-        employee_id: str,
-        job_id: str
-    ) -> GapAnalysisResult:
+    def analyze_employee_job_gap(self, employee_id: str, job_id: str) -> JobSkillGapResult:
         """
         Analyze the skill gap between an employee and a job.
         
@@ -210,365 +214,324 @@ class SkillGapAnalyzer:
             job_id: ID of the job
             
         Returns:
-            Gap analysis results
-            
-        Raises:
-            ValueError: If the employee ID or job ID is not found
+            A JobSkillGapResult containing detailed gap information
         """
-        if not self.employee_database:
-            raise ValueError("Employee database not set")
+        if not self.job_architecture or not self.employee_database:
+            raise ValueError("Job architecture and employee database must be set before analysis")
+            
+        # Get employee and job
+        employee = self.employee_database.get_employee(employee_id)
+        job = self.job_architecture.get_job(job_id)
         
-        if employee_id not in self.employee_database.employees:
+        if not employee:
             raise ValueError(f"Employee with ID {employee_id} not found")
-        
-        if job_id not in self.job_architecture.jobs:
+        if not job:
             raise ValueError(f"Job with ID {job_id} not found")
-        
-        employee = self.employee_database.employees[employee_id]
-        job = self.job_architecture.jobs[job_id]
-        
+            
         # Initialize result
-        result = GapAnalysisResult(
-            employee_id=employee_id,
+        result = JobSkillGapResult(
+            employee_id=employee.employee_id,
             employee_name=employee.name,
-            job_id=job_id,
+            job_id=job.job_id,
             job_title=job.title
         )
         
-        # Identify missing, excess, and matching skills
-        self._identify_missing_skills(employee, job, result)
-        self._identify_excess_skills(employee, job, result)
-        self._identify_matching_skills(employee, job, result)
+        # Analyze each required skill
+        total_required_skills = len(job.skills)
+        matched_skills = 0
         
-        # Calculate development effort
-        total_effort = sum(gap.development_effort for gap in result.missing_skills)
-        result.total_development_effort = total_effort
+        for skill_id, required_proficiency in job.skills.items():
+            # Get employee's proficiency
+            employee_proficiency = employee.skills.get(skill_id, 0)
+            
+            # Get skill details
+            skill = self.skill_taxonomy.get_skill(skill_id)
+            if not skill:
+                logger.warning(f"Skill {skill_id} not found in taxonomy")
+                continue
+                
+            category = self.skill_taxonomy.get_category(skill.category_id)
+            category_name = category.name if category else "Unknown"
+            
+            # Create skill gap object
+            gap = SkillGap(
+                skill_id=skill_id,
+                skill_name=skill.name,
+                job_proficiency=required_proficiency,
+                employee_proficiency=employee_proficiency,
+                category_id=skill.category_id,
+                category_name=category_name,
+                gap_type=SkillGapType.MISSING if employee_proficiency < required_proficiency * self.min_proficiency_ratio else SkillGapType.MATCH
+            )
+            
+            # Calculate if the skill matches or is missing
+            # A skill matches if employee's proficiency is at least min_proficiency_ratio of required
+            if employee_proficiency >= required_proficiency * self.min_proficiency_ratio:
+                result.matching_skills.append(gap)
+                matched_skills += 1
+            else:
+                # Calculate development effort based on gap, skill difficulty and category weight
+                category_weight = self.category_weights.get(category_name, 1.0)
+                difficulty_factor = getattr(skill, 'difficulty', 1.0)
+                gap.development_effort = gap.proficiency_gap * difficulty_factor * category_weight
+                
+                result.missing_skills.append(gap)
+                result.total_development_effort += gap.development_effort
+        
+        # Identify excess skills (skills employee has but job doesn't require)
+        for skill_id, proficiency in employee.skills.items():
+            if skill_id not in job.skills:
+                skill = self.skill_taxonomy.get_skill(skill_id)
+                if not skill:
+                    continue
+                    
+                category = self.skill_taxonomy.get_category(skill.category_id)
+                category_name = category.name if category else "Unknown"
+                
+                excess_gap = SkillGap(
+                    skill_id=skill_id,
+                    skill_name=skill.name,
+                    job_proficiency=0,
+                    employee_proficiency=proficiency,
+                    category_id=skill.category_id,
+                    category_name=category_name,
+                    gap_type=SkillGapType.EXCESS
+                )
+                result.excess_skills.append(excess_gap)
         
         # Calculate skill match percentage
-        required_skills_count = len(job.skills)
-        if required_skills_count > 0:
-            result.skill_match_percentage = (len(result.matching_skills) / required_skills_count) * 100
-        
-        # Calculate reskilling difficulty (1-5 scale)
-        max_possible_effort = 5 * required_skills_count  # Maximum possible effort if all skills were missing at max proficiency
-        if max_possible_effort > 0:
-            relative_effort = min(total_effort / max_possible_effort, 1.0)
-            result.reskilling_difficulty = 1 + relative_effort * 4  # Scale to 1-5
+        if total_required_skills > 0:
+            result.skill_match_percentage = (matched_skills / total_required_skills) * 100
+            
+        # Calculate reskilling difficulty (normalized to 1-5 scale)
+        # If total_development_effort is high, reskilling is more difficult
+        if result.total_development_effort > 0:
+            # Normalize to 1-5 scale based on total effort
+            # This is a simple linear transformation that can be refined
+            max_expected_effort = 100  # This could be a configuration parameter
+            result.reskilling_difficulty = min(5, 1 + (result.total_development_effort / max_expected_effort) * 4)
         
         return result
-    
-    def _identify_missing_skills(
-        self,
-        employee: Employee,
-        job: Job,
-        result: GapAnalysisResult
-    ) -> None:
+
+    def calculate_employee_skill_gaps(self, employee_id: str) -> Dict[str, float]:
         """
-        Identify skills required by the job but missing or insufficient in the employee.
-        
-        Args:
-            employee: The employee
-            job: The job
-            result: Gap analysis results to update
-        """
-        for skill_id, required_proficiency in job.skills.items():
-            if required_proficiency == 0:
-                continue  # Skip skills not required by the job
-            
-            employee_proficiency = employee.skills.get(skill_id, 0)
-            
-            # Check if employee has sufficient proficiency
-            if employee_proficiency < required_proficiency * self.min_proficiency_ratio:
-                # Get skill name
-                skill_name = self.skill_taxonomy.skills[skill_id].name if skill_id in self.skill_taxonomy.skills else "Unknown Skill"
-                
-                # Calculate proficiency gap
-                proficiency_gap = required_proficiency - employee_proficiency
-                
-                # Calculate development effort
-                development_effort = self._calculate_development_effort(skill_id, proficiency_gap)
-                
-                # Create skill gap
-                skill_gap = SkillGap(
-                    skill_id=skill_id,
-                    skill_name=skill_name,
-                    employee_proficiency=employee_proficiency,
-                    job_proficiency=required_proficiency,
-                    gap_type=SkillGapType.MISSING,
-                    proficiency_gap=proficiency_gap,
-                    development_effort=development_effort
-                )
-                
-                result.missing_skills.append(skill_gap)
-    
-    def _identify_excess_skills(
-        self,
-        employee: Employee,
-        job: Job,
-        result: GapAnalysisResult
-    ) -> None:
-        """
-        Identify skills present in the employee but not required by the job.
-        
-        Args:
-            employee: The employee
-            job: The job
-            result: Gap analysis results to update
-        """
-        for skill_id, employee_proficiency in employee.skills.items():
-            if employee_proficiency == 0:
-                continue  # Skip skills not possessed by the employee
-            
-            job_proficiency = job.skills.get(skill_id, 0)
-            
-            # Check if skill is not required by the job
-            if job_proficiency == 0:
-                # Get skill name
-                skill_name = self.skill_taxonomy.skills[skill_id].name if skill_id in self.skill_taxonomy.skills else "Unknown Skill"
-                
-                # Create skill gap (negative proficiency gap indicates excess)
-                skill_gap = SkillGap(
-                    skill_id=skill_id,
-                    skill_name=skill_name,
-                    employee_proficiency=employee_proficiency,
-                    job_proficiency=job_proficiency,
-                    gap_type=SkillGapType.EXCESS,
-                    proficiency_gap=-employee_proficiency,  # Negative to indicate excess
-                    development_effort=0.0  # No development effort for excess skills
-                )
-                
-                result.excess_skills.append(skill_gap)
-    
-    def _identify_matching_skills(
-        self,
-        employee: Employee,
-        job: Job,
-        result: GapAnalysisResult
-    ) -> None:
-        """
-        Identify skills present in both the employee and job with sufficient proficiency.
-        
-        Args:
-            employee: The employee
-            job: The job
-            result: Gap analysis results to update
-        """
-        for skill_id, required_proficiency in job.skills.items():
-            if required_proficiency == 0:
-                continue  # Skip skills not required by the job
-            
-            employee_proficiency = employee.skills.get(skill_id, 0)
-            
-            # Check if employee has sufficient proficiency
-            if employee_proficiency >= required_proficiency * self.min_proficiency_ratio:
-                # Get skill name
-                skill_name = self.skill_taxonomy.skills[skill_id].name if skill_id in self.skill_taxonomy.skills else "Unknown Skill"
-                
-                # Calculate proficiency gap (might be small positive or negative)
-                proficiency_gap = required_proficiency - employee_proficiency
-                
-                # Create skill gap
-                skill_gap = SkillGap(
-                    skill_id=skill_id,
-                    skill_name=skill_name,
-                    employee_proficiency=employee_proficiency,
-                    job_proficiency=required_proficiency,
-                    gap_type=SkillGapType.MATCH,
-                    proficiency_gap=proficiency_gap,
-                    development_effort=0.0  # No development effort for matching skills
-                )
-                
-                result.matching_skills.append(skill_gap)
-    
-    def _calculate_development_effort(
-        self,
-        skill_id: str,
-        proficiency_gap: int
-    ) -> float:
-        """
-        Calculate the development effort required to close a skill gap.
-        
-        The calculation takes into account:
-        - The proficiency gap
-        - The skill difficulty (if available)
-        - The skill category weight
-        
-        Args:
-            skill_id: ID of the skill
-            proficiency_gap: Difference in proficiency to close
-            
-        Returns:
-            Development effort score
-        """
-        if proficiency_gap <= 0:
-            return 0.0
-        
-        # Base effort is proportional to the proficiency gap
-        effort = float(proficiency_gap)
-        
-        # Apply skill difficulty factor if available
-        skill = self.skill_taxonomy.skills.get(skill_id)
-        if skill and hasattr(skill, "difficulty") and skill.difficulty is not None:
-            difficulty_multiplier = 0.5 + (skill.difficulty / 5.0) * self.skill_difficulty_factor
-            effort *= difficulty_multiplier
-        
-        # Apply category weight if available
-        if skill and skill.category_id:
-            category = self.skill_taxonomy.categories.get(skill.category_id)
-            if category:
-                category_weight = self.category_weights.get(category.name, 1.0)
-                effort *= category_weight
-        
-        return effort
-    
-    def get_reskilling_difficulty_label(self, difficulty_score: float) -> str:
-        """
-        Get a human-readable label for a reskilling difficulty score.
-        
-        Args:
-            difficulty_score: Reskilling difficulty score (1-5)
-            
-        Returns:
-            Human-readable difficulty label
-        """
-        # Round to nearest integer
-        rounded_score = round(difficulty_score)
-        
-        # Clamp to valid range
-        score_key = max(1, min(5, rounded_score))
-        
-        # Get label from config
-        difficulty_levels = get_config().team_analysis.reskilling_difficulty_levels
-        return difficulty_levels.get(score_key, f"Level {score_key}")
-    
-    def generate_job_transition_report(
-        self,
-        employee_id: str,
-        job_ids: Optional[List[str]] = None,
-        top_n: int = 5
-    ) -> pd.DataFrame:
-        """
-        Generate a report of job transition opportunities for an employee.
+        Calculate skill gaps for an employee in their current job.
         
         Args:
             employee_id: ID of the employee
-            job_ids: List of job IDs to analyze (all jobs if None)
-            top_n: Number of top job opportunities to return
             
         Returns:
-            DataFrame with job transition opportunities
-            
-        Raises:
-            ValueError: If the employee ID is not found
+            Dictionary mapping skill_id to gap size for all gaps above threshold
         """
-        if not self.employee_database:
-            raise ValueError("Employee database not set")
-        
-        if employee_id not in self.employee_database.employees:
-            raise ValueError(f"Employee with ID {employee_id} not found")
-        
-        # Default to all jobs if not specified
-        if job_ids is None:
-            job_ids = list(self.job_architecture.jobs.keys())
-        
-        # Analyze gap for each job
-        results = []
-        for job_id in job_ids:
-            if job_id not in self.job_architecture.jobs:
-                continue
+        if not self.job_architecture or not self.employee_database:
+            raise ValueError("Job architecture and employee database must be set before analysis")
             
-            try:
-                result = self.analyze_employee_job_gap(employee_id, job_id)
-                results.append(result.to_summary_dict())
-            except ValueError:
-                continue
+        # Get employee and their current job
+        employee = self.employee_database.get_employee(employee_id)
+        if not employee or not employee.current_job:
+            raise ValueError(f"Employee {employee_id} not found or has no current job")
+            
+        job = self.job_architecture.get_job(employee.current_job)
+        if not job:
+            raise ValueError(f"Job {employee.current_job} not found")
         
-        # Convert to DataFrame
-        df = pd.DataFrame(results)
+        # Calculate gaps
+        gaps = {}
+        for skill_id, required_proficiency in job.skills.items():
+            # Get employee's proficiency
+            employee_proficiency = employee.skills.get(skill_id, 0)
+            
+            # Calculate normalized gap
+            proficiency_gap = required_proficiency - employee_proficiency
+            
+            # Only include significant gaps above threshold
+            if proficiency_gap > required_proficiency * self.config.min_gap_threshold:
+                gaps[skill_id] = proficiency_gap
+                
+        return gaps
         
-        # Sort by skill match percentage (descending) and development effort (ascending)
-        df = df.sort_values(
-            by=["skill_match_percentage", "total_development_effort"],
-            ascending=[False, True]
-        )
-        
-        # Return top N results
-        return df.head(top_n)
-    
-    def generate_reskilling_pathway(
-        self,
-        employee_id: str,
-        target_job_id: str
-    ) -> Dict[str, List[Dict[str, Union[str, int, float]]]]:
+    def calculate_role_transition_gaps(self, employee_id: str, target_job_id: str) -> Dict[str, float]:
         """
-        Generate a reskilling pathway for an employee to a target job.
-        
-        The pathway includes:
-        - Skills to develop (missing skills)
-        - Skills to maintain (matching skills)
-        - Skills that may become less relevant (excess skills)
+        Calculate skill gaps for an employee transitioning to a different job.
         
         Args:
             employee_id: ID of the employee
             target_job_id: ID of the target job
             
         Returns:
-            Dictionary with reskilling pathway components
-            
-        Raises:
-            ValueError: If the employee ID or job ID is not found
+            Dictionary mapping skill_id to gap size for all gaps above threshold
         """
-        # Analyze gap between employee and target job
-        result = self.analyze_employee_job_gap(employee_id, target_job_id)
+        if not self.job_architecture or not self.employee_database:
+            raise ValueError("Job architecture and employee database must be set before analysis")
+            
+        # Get employee
+        employee = self.employee_database.get_employee(employee_id)
+        if not employee:
+            raise ValueError(f"Employee {employee_id} not found")
+            
+        # Get target job
+        target_job = self.job_architecture.get_job(target_job_id)
+        if not target_job:
+            raise ValueError(f"Job {target_job_id} not found")
         
-        # Convert missing skills to development tasks
-        skills_to_develop = []
-        for gap in sorted(result.missing_skills, key=lambda g: g.development_effort, reverse=True):
-            skills_to_develop.append({
-                "skill_id": gap.skill_id,
-                "skill_name": gap.skill_name,
-                "current_proficiency": gap.employee_proficiency,
-                "target_proficiency": gap.job_proficiency,
-                "development_effort": gap.development_effort,
-                "priority": "High" if gap.development_effort > 3 else "Medium" if gap.development_effort > 1 else "Low"
+        # Calculate gaps
+        gaps = {}
+        for skill_id, required_proficiency in target_job.skills.items():
+            # Get employee's proficiency
+            employee_proficiency = employee.skills.get(skill_id, 0)
+            
+            # Calculate normalized gap
+            proficiency_gap = required_proficiency - employee_proficiency
+            
+            # Only include significant gaps above threshold
+            if proficiency_gap > required_proficiency * self.config.min_gap_threshold:
+                gaps[skill_id] = proficiency_gap
+                
+        return gaps
+    
+    def calculate_development_effort(self, employee_id: str) -> float:
+        """
+        Calculate the total development effort required for an employee to close all gaps.
+        
+        Args:
+            employee_id: ID of the employee
+            
+        Returns:
+            Total development effort as a float
+        """
+        if not self.job_architecture or not self.employee_database:
+            raise ValueError("Job architecture and employee database must be set before analysis")
+            
+        # Get employee and their current job
+        employee = self.employee_database.get_employee(employee_id)
+        if not employee or not employee.current_job:
+            raise ValueError(f"Employee {employee_id} not found or has no current job")
+            
+        job = self.job_architecture.get_job(employee.current_job)
+        if not job:
+            raise ValueError(f"Job {employee.current_job} not found")
+        
+        # Get gaps
+        gaps = self.calculate_employee_skill_gaps(employee_id)
+        
+        # Calculate total effort
+        total_effort = 0.0
+        for skill_id, gap_size in gaps.items():
+            skill = self.skill_taxonomy.get_skill(skill_id)
+            if not skill:
+                continue
+                
+            category = self.skill_taxonomy.get_category(skill.category_id)
+            category_name = category.name if category else "Unknown"
+            
+            # Apply difficulty factor and category weight
+            category_weight = self.category_weights.get(category_name, 1.0)
+            difficulty_factor = skill.difficulty
+            
+            # Add to total effort
+            total_effort += gap_size * difficulty_factor * category_weight
+            
+        return total_effort
+    
+    def calculate_role_transition_effort(self, employee_id: str, target_job_id: str) -> float:
+        """
+        Calculate the development effort required for an employee to transition to a different job.
+        
+        Args:
+            employee_id: ID of the employee
+            target_job_id: ID of the target job
+            
+        Returns:
+            Total transition effort as a float
+        """
+        if not self.job_architecture or not self.employee_database:
+            raise ValueError("Job architecture and employee database must be set before analysis")
+            
+        # Get employee
+        employee = self.employee_database.get_employee(employee_id)
+        if not employee:
+            raise ValueError(f"Employee {employee_id} not found")
+            
+        # Get target job
+        target_job = self.job_architecture.get_job(target_job_id)
+        if not target_job:
+            raise ValueError(f"Job {target_job_id} not found")
+        
+        # Get gaps
+        gaps = self.calculate_role_transition_gaps(employee_id, target_job_id)
+        
+        # Calculate total effort
+        total_effort = 0.0
+        for skill_id, gap_size in gaps.items():
+            skill = self.skill_taxonomy.get_skill(skill_id)
+            if not skill:
+                continue
+                
+            category = self.skill_taxonomy.get_category(skill.category_id)
+            category_name = category.name if category else "Unknown"
+            
+            # Apply difficulty factor and category weight
+            category_weight = self.category_weights.get(category_name, 1.0)
+            difficulty_factor = skill.difficulty
+            
+            # Add to total effort
+            total_effort += gap_size * difficulty_factor * category_weight
+            
+        return total_effort
+
+    def generate_job_transition_report(self, employee_id: str, top_n: int = 5) -> pd.DataFrame:
+        """
+        Generate a report of potential job transitions for an employee.
+        
+        Args:
+            employee_id: ID of the employee
+            top_n: Number of top matches to include
+            
+        Returns:
+            DataFrame with job transition analysis
+        """
+        if not self.job_architecture or not self.employee_database:
+            raise ValueError("Job architecture and employee database must be set before analysis")
+            
+        # Get employee
+        employee = self.employee_database.get_employee(employee_id)
+        if not employee:
+            raise ValueError(f"Employee {employee_id} not found")
+        
+        # Get all jobs
+        results = []
+        for job_id, job in self.job_architecture.jobs.items():
+            # Skip employee's current job if they have one
+            if employee.current_job and job_id == employee.current_job:
+                continue
+                
+            # Analyze gap
+            result = self.analyze_employee_job_gap(employee_id=employee_id, job_id=job_id)
+            
+            # Add to results
+            results.append({
+                "job_id": job_id,
+                "job_title": job.title,
+                "department": job.department,
+                "skill_match_percentage": result.skill_match_percentage,
+                "total_development_effort": result.total_development_effort,
+                "reskilling_difficulty": result.reskilling_difficulty,
+                "missing_skills_count": len(result.missing_skills),
+                "excess_skills_count": len(result.excess_skills),
+                "matching_skills_count": len(result.matching_skills)
             })
         
-        # Convert matching skills to maintenance tasks
-        skills_to_maintain = []
-        for gap in result.matching_skills:
-            skills_to_maintain.append({
-                "skill_id": gap.skill_id,
-                "skill_name": gap.skill_name,
-                "current_proficiency": gap.employee_proficiency,
-                "target_proficiency": gap.job_proficiency,
-                "status": "Above required" if gap.employee_proficiency > gap.job_proficiency else "Meets required"
-            })
+        # Convert to DataFrame
+        df = pd.DataFrame(results)
         
-        # Convert excess skills to potential obsolescence
-        potentially_obsolete_skills = []
-        for gap in result.excess_skills:
-            potentially_obsolete_skills.append({
-                "skill_id": gap.skill_id,
-                "skill_name": gap.skill_name,
-                "current_proficiency": gap.employee_proficiency,
-                "relevance": "Not required for target role"
-            })
+        # Sort by skill match percentage (descending)
+        df = df.sort_values("skill_match_percentage", ascending=False)
         
-        # Create pathway
-        pathway = {
-            "employee_id": employee_id,
-            "employee_name": result.employee_name,
-            "target_job_id": target_job_id,
-            "target_job_title": result.job_title,
-            "skills_to_develop": skills_to_develop,
-            "skills_to_maintain": skills_to_maintain,
-            "potentially_obsolete_skills": potentially_obsolete_skills,
-            "overall_match_percentage": result.skill_match_percentage,
-            "overall_development_effort": result.total_development_effort,
-            "estimated_difficulty": result.reskilling_difficulty
-        }
-        
-        return pathway
+        # Get top N results
+        if top_n > 0:
+            df = df.head(top_n)
+            
+        return df
 
 
 class TeamGapAnalyzer:
@@ -810,3 +773,6 @@ class TeamGapAnalyzer:
             df = df.sort_values("criticality", ascending=False)
         
         return df
+
+# Create an alias for backward compatibility with tests
+GapAnalysisResult = JobSkillGapResult

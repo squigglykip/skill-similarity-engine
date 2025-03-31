@@ -1,11 +1,11 @@
 source_id,source_title,source_department,target_id,target_title,target_department,direct_similarity,pathways_found,shortest_path_length
-J010,Product Manager,Product,J011,Marketing Specialist,Marketing,0.3796631983009997,0,0
-J010,Product Manager,Product,J012,Senior Marketing Specialist,Marketing,0.43642740286200865,1,2
-J010,Product Manager,Product,J019,Digital Marketing Specialist,Marketing,0.18983159915049985,0,0
-J010,Product Manager,Product,J005,Financial Analyst,Finance,0.0,0,0
-J010,Product Manager,Product,J006,Senior Financial Analyst,Finance,0.0,0,0
-J011,Marketing Specialist,Marketing,J012,Senior Marketing Specialist,Marketing,0.9246347900384753,1,2
-J011,Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7600000000000001,1,2
-J011,Marketing Specialist,Marketing,J005,Financial Analyst,Finance,0.0,0,0
-J011,Marketing Specialist,Marketing,J006,Senior Financial Analyst,Finance,0.0,0,0
-J012,Senior Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7738791177495934,1,2
+J005,Financial Analyst,Finance,J006,Senior Financial Analyst,Finance,0.934704493719253,1,2
+J005,Financial Analyst,Finance,J020,Project Manager,Project Management,0.0,0,0
+J005,Financial Analyst,Finance,J013,HR Coordinator,HR,0.213071621147676,0,0
+J005,Financial Analyst,Finance,J014,HR Business Partner,HR,0.22043335708870274,0,0
+J006,Senior Financial Analyst,Finance,J020,Project Manager,Project Management,0.0,0,0
+J006,Senior Financial Analyst,Finance,J013,HR Coordinator,HR,0.16563718959153897,0,0
+J006,Senior Financial Analyst,Finance,J014,HR Business Partner,HR,0.17136004111544775,0,0
+J020,Project Manager,Project Management,J013,HR Coordinator,HR,0.26302131939952095,0,0
+J020,Project Manager,Project Management,J014,HR Business Partner,HR,0.5714285714285714,1,2
+J013,HR Coordinator,HR,J014,HR Business Partner,HR,0.8153660901385149,1,2

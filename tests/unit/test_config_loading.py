@@ -26,6 +26,9 @@ class TestSimilarityEnhancementFactorsConfig(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.config_path = Path(self.temp_dir.name)
         
+        # Reset ConfigManager singleton for each test
+        ConfigManager._instance = None
+        
         # Create a ConfigManager instance
         self.config_manager = ConfigManager()
     
@@ -58,6 +61,9 @@ class TestSimilarityEnhancementFactorsConfig(unittest.TestCase):
         
         # Load config
         self.config_manager.load_config(str(main_config_path))
+        
+        # Print debug information to diagnose the issue
+        print(f"Future extensions in test_load_factors_from_main_config: {self.config_manager.config.future_extensions.__dict__}")
         
         # Check that values were loaded correctly
         self.assertEqual(self.config_manager.config.future_extensions.seniority_weight, 0.75)
@@ -161,18 +167,26 @@ class TestSimilarityEnhancementFactorsConfig(unittest.TestCase):
         with open(factors_path, "w") as f:
             yaml.dump(factors_config, f)
         
-        # Create main config that references the external file with a relative path
+        # Use absolute path instead of relative path to ensure it's found
+        # Create main config that references the external file
         main_config = {
             "version": "0.1.0",
-            "similarity_enhancement_factors_file": "config/similarity_enhancement_factors.yaml"
+            "similarity_enhancement_factors_file": str(factors_path)
         }
         
         main_config_path = self.config_path / "main_config.yaml"
         with open(main_config_path, "w") as f:
             yaml.dump(main_config, f)
         
+        # Print debug information
+        print(f"Factors path exists: {os.path.exists(str(factors_path))}")
+        print(f"Main config: {main_config}")
+        
         # Load config
         self.config_manager.load_config(str(main_config_path))
+        
+        # Print debug information
+        print(f"Future extensions in test_relative_path_for_external_file: {self.config_manager.config.future_extensions.__dict__}")
         
         # Check that values were loaded correctly
         self.assertEqual(self.config_manager.config.future_extensions.seniority_weight, 0.9)

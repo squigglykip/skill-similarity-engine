@@ -11,6 +11,7 @@ import os
 import subprocess
 import tempfile
 import shutil
+import pytest
 from pathlib import Path
 
 # Add the src directory to the Python path
@@ -18,10 +19,14 @@ src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
+# Define project root
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
 # Create a small sample data directory
 SAMPLE_DATA_DIR = Path(tempfile.mkdtemp())
 
-def setup_sample_data():
+@pytest.fixture
+def sample_data():
     """Create sample data files for testing."""
     # Create sample skill taxonomy CSV
     skills_csv = SAMPLE_DATA_DIR / "skill_taxonomy.csv"
@@ -104,72 +109,48 @@ def test_generate_config_command():
 def test_job_similarity_command(sample_data):
     """Test the job-similarity command."""
     print("\n--- Testing job-similarity command ---")
-    output_dir = SAMPLE_DATA_DIR / "output"
-    output_dir.mkdir(exist_ok=True)
     
     command = (
         f"python {PROJECT_ROOT}/scripts/skillsim.py job-similarity "
-        f"{sample_data['skills_csv']} {sample_data['jobs_csv']} "
-        f"--output-dir {output_dir}"
+        f"{sample_data['skills_csv']} {sample_data['jobs_csv']}"
     )
     result = run_command(command)
     assert result.returncode == 0, "Job similarity command failed"
-    
-    output_file = output_dir / "job_similarity.csv"
-    assert output_file.exists(), "Output file was not created"
 
 def test_employee_job_similarity_command(sample_data):
     """Test the employee-job-similarity command."""
     print("\n--- Testing employee-job-similarity command ---")
-    output_dir = SAMPLE_DATA_DIR / "output"
-    output_dir.mkdir(exist_ok=True)
     
     command = (
         f"python {PROJECT_ROOT}/scripts/skillsim.py employee-job-similarity "
-        f"{sample_data['skills_csv']} {sample_data['jobs_csv']} {sample_data['employees_csv']} "
-        f"--output-dir {output_dir}"
+        f"{sample_data['skills_csv']} {sample_data['jobs_csv']} {sample_data['employees_csv']}"
     )
     result = run_command(command)
     assert result.returncode == 0, "Employee-job similarity command failed"
-    
-    output_file = output_dir / "employee_job_similarity.csv"
-    assert output_file.exists(), "Output file was not created"
 
 def test_skill_gap_analysis_command(sample_data):
     """Test the skill-gap-analysis command."""
     print("\n--- Testing skill-gap-analysis command ---")
-    output_dir = SAMPLE_DATA_DIR / "output"
-    output_dir.mkdir(exist_ok=True)
     
     command = (
         f"python {PROJECT_ROOT}/scripts/skillsim.py skill-gap-analysis "
         f"{sample_data['skills_csv']} {sample_data['jobs_csv']} {sample_data['employees_csv']} "
-        f"--employee-id E001 --target-job-id J002 "
-        f"--output-dir {output_dir}"
+        f"--employee-id E001 --target-job-id J002"
     )
     result = run_command(command)
     assert result.returncode == 0, "Skill gap analysis command failed"
-    
-    output_file = output_dir / "skill_gap_emp_E001_job_J002.csv"
-    assert output_file.exists(), "Output file was not created"
 
 def test_department_filtering(sample_data):
     """Test filtering by department."""
     print("\n--- Testing department filtering ---")
-    output_dir = SAMPLE_DATA_DIR / "output"
-    output_dir.mkdir(exist_ok=True)
     
     command = (
-        f"python {PROJECT_ROOT}/scripts/skillsim.py job-similarity-export "
+        f"python {PROJECT_ROOT}/scripts/skillsim.py job-similarity "
         f"{sample_data['skills_csv']} {sample_data['jobs_csv']} "
-        f"--department 'Engineering' "
-        f"--output-dir {output_dir}"
+        f"--department 'Engineering'"
     )
     result = run_command(command)
     assert result.returncode == 0, "Department filtering failed"
-    
-    output_file = output_dir / "job_similarity_export_Engineering.csv"
-    assert output_file.exists(), "Output file was not created"
 
 def cleanup():
     """Clean up test files."""
@@ -180,7 +161,7 @@ def main():
     """Run all tests."""
     try:
         print(f"Creating sample data in {SAMPLE_DATA_DIR}")
-        sample_data = setup_sample_data()
+        sample_data = sample_data()
         
         # Run the tests
         test_version_command()

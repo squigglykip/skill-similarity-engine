@@ -16,13 +16,9 @@ import json
 
 class SkillType(Enum):
     """Types of skills in the taxonomy."""
-    TECHNICAL = auto()
-    SOFT = auto()
-    DOMAIN = auto()
-    METHODOLOGY = auto()
-    TOOL = auto()
+    COMMON = auto()
+    SPECIALIZED = auto()
     CERTIFICATION = auto()
-    OTHER = auto()
     
     @classmethod
     def from_string(cls, type_str: str) -> 'SkillType':
@@ -39,13 +35,17 @@ class SkillType(Enum):
             ValueError: If the string doesn't match any known skill type
         """
         type_map = {
-            "technical": cls.TECHNICAL,
-            "soft": cls.SOFT,
-            "domain": cls.DOMAIN,
-            "methodology": cls.METHODOLOGY,
-            "tool": cls.TOOL,
+            "common": cls.COMMON,
+            "common skill": cls.COMMON,
+            "specialized": cls.SPECIALIZED,
+            "specialized skill": cls.SPECIALIZED,
             "certification": cls.CERTIFICATION,
-            "other": cls.OTHER
+            # Map legacy types to appropriate new types
+            "technical": cls.SPECIALIZED,
+            "soft": cls.COMMON,
+            "domain": cls.SPECIALIZED,
+            "methodology": cls.SPECIALIZED,
+            "tool": cls.SPECIALIZED,
         }
         
         normalized_type = type_str.lower().strip()
@@ -99,7 +99,7 @@ class Skill:
     name: str
     description: str = ""
     category_id: Optional[str] = None
-    skill_type: SkillType = SkillType.OTHER
+    skill_type: SkillType = SkillType.COMMON
     aliases: List[str] = field(default_factory=list)
     related_skills: List[str] = field(default_factory=list)
     prerequisites: List[str] = field(default_factory=list)
@@ -430,7 +430,7 @@ class SkillTaxonomy:
         # Then add skills
         for skill_data in data.get("skills", []):
             # Convert skill type if present
-            skill_type = skill_data.get("skill_type", SkillType.OTHER)
+            skill_type = skill_data.get("skill_type", SkillType.COMMON)
             if isinstance(skill_type, str):
                 skill_type = SkillType.from_string(skill_type)
             
@@ -551,10 +551,10 @@ class SkillTaxonomy:
                 
                 skill = Skill(
                     skill_id=row["skill_id"],
-                    name=row["name"],
+                    name=row.get("name", row.get("skill_name")),  # Try 'name' first, then 'skill_name'
                     description=row.get("description", ""),
                     category_id=category_id,
-                    skill_type=row.get("skill_type", SkillType.TECHNICAL),
+                    skill_type=row.get("skill_type", SkillType.COMMON),
                     aliases=aliases,
                     related_skills=related_skills,
                     prerequisites=prerequisites
@@ -591,7 +591,7 @@ class SkillTaxonomy:
                     name=skill_data["name"],
                     description=skill_data.get("description", ""),
                     category_id=category_id,
-                    skill_type=skill_data.get("skill_type", SkillType.TECHNICAL),
+                    skill_type=skill_data.get("skill_type", SkillType.COMMON),
                     aliases=skill_data.get("aliases", []),
                     related_skills=skill_data.get("related_skills", []),
                     prerequisites=skill_data.get("prerequisites", [])

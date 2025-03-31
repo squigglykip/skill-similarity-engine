@@ -1,0 +1,117 @@
+# HRIS Schema Mapping Configuration
+# This file defines how to map HRIS data to Skill Similarity Engine formats
+
+# Input/Output file paths
+hris_data:
+  # Source HRIS data files
+  jobs_file: "examples/hris_example/job_data.csv"
+  skills_file: "examples/hris_example/skills_data.csv"
+  job_skills_file: "examples/hris_example/job_skills_mapping.csv"
+  
+  # File format settings
+  file_format: "csv"  # Options: csv, xlsx, json
+  delimiter: ","
+  encoding: "utf-8"
+  sheet_name: "Sheet1"  # Only used for Excel files
+
+output_data:
+  # Output transformed files
+  jobs_file: "data/jobs.csv"
+  skills_file: "data/skills.csv"
+
+# Column mappings for jobs data
+jobs_mapping:
+  # Required fields
+  job_id: "job_code"
+  title: "job_title"
+  department: "department"
+  level: "level_code"
+  
+  # Optional fields
+  pay_scale_area: "pay_band"
+  role_track: "track"
+  location: "location"
+  active: "is_active"
+
+# Column mappings for skills data
+skills_mapping:
+  # Required fields
+  skill_id: "skill_id"
+  name: "skill_name"
+  
+  # Optional fields
+  category: "category"
+  subcategory: "subcategory"
+  difficulty: "difficulty_level"
+
+# Column mappings for job-skills relationship
+job_skills_mapping:
+  # Required fields
+  job_id: "job_code"
+  skill_id: "skill_id"
+  
+  # Optional fields
+  proficiency: "proficiency_level"
+
+# Value mappings for different fields
+# Map from HRIS values to engine expected values
+job_level_mapping:
+  "L1": "ENTRY"
+  "L2": "ASSOCIATE"
+  "L3": "PROFESSIONAL"
+  "L4": "SENIOR"
+  "L5": "PRINCIPAL"
+  "L6": "EXECUTIVE"
+
+pay_scale_mapping:
+  "P1": "ENTRY"
+  "P2": "MIDRANGE"
+  "P3": "SENIOR"
+  "P4": "LEADERSHIP"
+  "P5": "EXECUTIVE"
+
+role_track_mapping:
+  "Technical": "TECHNICAL"
+  "Management": "MANAGEMENT"
+  "Individual Contributor": "INDIVIDUAL_CONTRIBUTOR"
+
+proficiency_mapping:
+  "Beginner": 1
+  "Basic": 2
+  "Intermediate": 3
+  "Advanced": 4
+  "Expert": 5
+
+# Transformation options
+transformation_options:
+  # Default values for missing or unmapped fields
+  default_job_level: "ASSOCIATE"
+  default_department: "General"
+  default_pay_scale_area: "MIDRANGE"
+  default_role_track: "INDIVIDUAL_CONTRIBUTOR"
+  default_proficiency: 3
+  
+  # Binary skills representation (ignores proficiency)
+  use_binary_skills: false
+  
+  # How to handle unknown values
+  skip_unknown_values: false
+  raise_error_on_unknown_values: false
+
+# Text processing options for skill extraction
+text_processing:
+  # Enable NLP-based skill extraction from job descriptions
+  extract_skills_from_text: false
+  
+  # Fields to extract skills from
+  extract_from_fields: ["job_description", "responsibilities"]
+  
+  # Minimum confidence score for extracted skills (0-1)
+  min_confidence: 0.7
+
+# Logging options
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_details: true
+  save_mapping_report: true
+  mapping_report_path: "logs/hris_mapping_report.csv" 
