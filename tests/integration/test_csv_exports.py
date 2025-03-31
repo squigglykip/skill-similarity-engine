@@ -16,6 +16,7 @@ import numpy as np
 from pathlib import Path
 import csv
 import json
+import shutil
 
 # Add the src directory to the Python path
 src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
@@ -33,31 +34,146 @@ class TestCSVExportFormat(unittest.TestCase):
     """Test CSV export format compliance for Power BI integration."""
     
     def setUp(self):
-        """Set up test environment with sample data."""
+        """Set up the test environment."""
+        # Create a temporary directory for test files
         self.temp_dir = tempfile.TemporaryDirectory()
+        
+        # Add this line to create the output_dir attribute
         self.output_dir = Path(self.temp_dir.name)
         
         # Get the path to sample data
         self.sample_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'sample')
         
-        # Load skill taxonomy from sample data
-        taxonomy_loader = SkillTaxonomyLoader()
-        self.taxonomy = taxonomy_loader.load_from_csv(os.path.join(self.sample_dir, 'skills.csv'))
+        # Set up test data either using the HRIS adapter (preferred) or direct loading
+        try:
+            # Try to use the HRIS adapter to transform data
+            from skill_similarity_engine.hris_adapter.transformer import HRISTransformer
+            from skill_similarity_engine.hris_adapter.config import HRISConfigLoader
+            
+            # Create a temporary HRIS schema mapping file for testing
+            self.hris_config_path = os.path.join(self.temp_dir.name, "test_hris_config.yaml")
+            with open(self.hris_config_path, 'w') as f:
+                f.write("""
+# HRIS Schema Mapping Configuration for Testing
+hris_data:
+  jobs_file: {sample_dir}/hris_jobs.csv
+  skills_file: {sample_dir}/hris_skills.csv
+  job_skills_file: {sample_dir}/hris_job_skills.csv
+  file_format: csv
+  encoding: utf-8
+  delimiter: ","
+  has_header: true
+
+output_data:
+  jobs_file: {temp_dir}/jobs.csv
+  skills_file: {temp_dir}/skills.csv
+
+jobs_mapping:
+  job_id: job_id
+  title: title
+  department: department
+  level: level
+
+skills_mapping:
+  skill_id: skill_id
+  name: name
+  category: category
+
+job_skills_mapping:
+  job_id: job_id
+  skill_id: skill_id
+  proficiency: proficiency
+
+salary_group_mapping:
+  ENTRY:
+    level: ENTRY
+    seniority: 1
+  ASSOCIATE:
+    level: ASSOCIATE
+    seniority: 2
+  MID_LEVEL:
+    level: MID_LEVEL
+    seniority: 3
+  SENIOR:
+    level: SENIOR
+    seniority: 4
+
+transformation_options:
+  use_binary_skills: false
+  default_proficiency: 3
+                """.format(sample_dir=self.sample_dir.replace('\\', '/'), 
+                          temp_dir=self.temp_dir.name.replace('\\', '/')))
+            
+            # Copy our sample data to hris-formatted test files
+            shutil.copy(
+                os.path.join(self.sample_dir, 'jobs.csv'),
+                os.path.join(self.sample_dir, 'hris_jobs.csv')
+            )
+            shutil.copy(
+                os.path.join(self.sample_dir, 'skills.csv'),
+                os.path.join(self.sample_dir, 'hris_skills.csv')
+            )
+            
+            # Create a simplified job-skills mapping file if it doesn't exist
+            job_skills_path = os.path.join(self.sample_dir, 'hris_job_skills.csv')
+            if not os.path.exists(job_skills_path):
+                # Extract job-skills from the jobs.csv file
+                jobs_df = pd.read_csv(os.path.join(self.sample_dir, 'jobs.csv'))
+                job_skills_rows = []
+                
+                for _, row in jobs_df.iterrows():
+                    if pd.notna(row.get('skills')) and row['skills']:
+                        for skill_entry in row['skills'].split(','):
+                            parts = skill_entry.split(':')
+                            if len(parts) == 2:
+                                skill_id, proficiency = parts
+                                job_skills_rows.append({
+                                    'job_id': row['job_id'],
+                                    'skill_id': skill_id,
+                                    'proficiency': proficiency
+                                })
+                
+                # Save as CSV
+                pd.DataFrame(job_skills_rows).to_csv(job_skills_path, index=False)
+            
+            # Transform the data using the HRIS adapter
+            transformer = HRISTransformer(config_path=self.hris_config_path)
+            jobs_path, skills_path = transformer.transform()
+            
+            # Now load the transformed data
+            self.taxonomy = SkillTaxonomy.from_file(skills_path)
+            self.job_arch = JobArchitecture.from_file(jobs_path)
+            
+        except (ImportError, Exception) as e:
+            # Fall back to direct loading if adapter approach fails
+            print(f"Failed to use HRIS adapter for test setup: {e}")
+            print("Falling back to direct loading of sample data")
+            
+            # Load skill taxonomy from sample data
+            self.taxonomy = SkillTaxonomy.from_file(os.path.join(self.sample_dir, 'skills.csv'))
+            
+            # Load job architecture from sample data
+            self.job_arch = JobArchitecture.from_file(
+                os.path.join(self.sample_dir, 'jobs.csv')
+            )
         
-        # Load job architecture from sample data
-        job_loader = JobArchitectureLoader(self.taxonomy)
-        self.job_arch = job_loader.load_from_csv(os.path.join(self.sample_dir, 'jobs.csv'))
-        
-        # Create the data exporter
+        # Initialize the data exporter
         self.exporter = DataExporter(
             skill_taxonomy=self.taxonomy,
             job_architecture=self.job_arch,
             output_dir=self.temp_dir.name
         )
-    
+
     def tearDown(self):
-        """Clean up temporary directory."""
+        """Clean up after tests."""
         self.temp_dir.cleanup()
+        
+        # Remove temporary test files in sample dir
+        for file_name in ['hris_jobs.csv', 'hris_skills.csv', 'hris_job_skills.csv']:
+            try:
+                os.remove(os.path.join(self.sample_dir, file_name))
+            except (FileNotFoundError, PermissionError):
+                pass
 
     def test_job_similarity_csv_format(self):
         """Test job similarity CSV format meets Power BI requirements."""

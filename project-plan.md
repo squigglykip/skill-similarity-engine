@@ -518,6 +518,48 @@ The enhancement to the configuration structure has delivered several benefits:
 - [ ] Implement mapping from raw HRIS data to the required skills structure
 - [ ] Focus on scalability for large dataset processing
 
+##### 6.4.1 Schema Separation Strategy - **IN PROGRESS**
+- [ ] Review and finalize the HRIS schema mapping configuration
+  - [ ] Ensure the configuration file (`hris_schema_mapping.yaml`) is complete and accurate
+  - [ ] Document each mapping field with examples and rationale
+  - [ ] Validate all value mappings (salary groups, role tracks, etc.)
+  - [ ] Create configuration templates for different HRIS systems
+- [ ] Create comprehensive unit tests for HRIS adapter components
+  - [ ] Test `HRISConfigLoader` with different configuration scenarios
+  - [ ] Test `HRISTransformer` with sample HRIS data
+  - [ ] Test `HRISWorkflow` integration with the engine's components
+  - [ ] Test end-to-end transformation pipeline with realistic data
+  - [ ] Validate output data against expected schema
+- [ ] Verify schema isolation within the engine
+  - [ ] Ensure all core engine components use internal schema only
+  - [ ] Confirm that transformation is complete before data reaches engine
+  - [ ] Add validation checks for schema compliance at engine boundaries
+  - [ ] Create clear error messages for schema inconsistencies
+- [ ] Implement integration testing workflow
+  - [ ] Run unit tests for HRIS adapter components (`pytest tests/unit/hris_adapter`)
+  - [ ] Run end-to-end tests with sample HRIS data sets
+  - [ ] Validate output formats and compatibility
+  - [ ] Create regression tests to prevent schema leakage
+
+##### 6.4.2 Data Validation Framework - **PLANNED**
+- [ ] Design validation rules for HRIS data transformation
+  - [ ] Implement field type validation (string, numeric, dates)
+  - [ ] Create format validation for standard fields (email, IDs, codes)
+  - [ ] Build range validation for numeric fields (salary bands, levels)
+  - [ ] Implement cross-field validation for logical constraints
+- [ ] Develop validation reporting
+  - [ ] Create detailed validation error reports with row numbers and values
+  - [ ] Implement warning levels for non-critical issues
+  - [ ] Design flexible validation thresholds (strict vs. permissive modes)
+  - [ ] Create suggestions for fixing common validation issues
+- [ ] Build data quality metrics
+  - [ ] Implement completeness checking (% of fields populated)
+  - [ ] Create consistency validation across related fields
+  - [ ] Design domain checking for categorical fields
+  - [ ] Implement referential integrity checking for related data
+
+This approach ensures a clean separation between external (HRIS) data formats and internal engine schemas, making the system more maintainable and adaptable to different HRIS systems while preserving the stability of core engine functionality.
+
 #### 6.5 Power BI Integration
 - [ ] Finalise data schema documentation for Power BI developers
 - [ ] Create reference relationship models for Power BI implementation
@@ -661,6 +703,42 @@ The enhancement to the configuration structure has delivered several benefits:
   - [ ] Build strategy for periodic retraining/recalibration
   - [ ] Develop documentation for regular maintenance tasks
 
+#### 7.8 Configuration-Driven Data Model Enhancement - **PLANNED**
+- [ ] Implement configuration-driven taxonomy management
+  - [ ] Move hardcoded enumerations (like SkillType) to configuration files
+  - [ ] Create dynamic loading system for taxonomies and classifications
+  - [ ] Build schema validation for custom taxonomies
+  - [ ] Implement backward compatibility for existing enum references
+- [ ] Design flexible configuration schema
+  - [ ] Create validation rules for custom classifications
+  - [ ] Implement runtime registration of new types
+  - [ ] Add user-friendly documentation for taxonomy extensions
+  - [ ] Design migration tools for taxonomy changes
+- [ ] Develop integration with external taxonomy providers
+  - [ ] Create adapter framework for Skills Taxonomy Service providers
+  - [ ] Implement mapping between provider schemas and internal models
+  - [ ] Build automated sync process for taxonomy updates
+  - [ ] Add audit trails for taxonomy modifications
+- [ ] Create migration tooling
+  - [ ] Design versioned taxonomy schemas
+  - [ ] Implement automated migration between versions
+  - [ ] Create data validation for taxonomy-dependent fields
+  - [ ] Build reporting for taxonomy evolution
+- [ ] Enhance test coverage
+  - [ ] Create tests for custom taxonomy validation
+  - [ ] Implement compatibility tests for taxonomy versions
+  - [ ] Test runtime extension of classification systems
+  - [ ] Verify backward compatibility with existing data
+
+This enhancement will replace hardcoded enumerations throughout the codebase with a flexible, configuration-driven approach. By moving taxonomies like skill types to configuration, we gain several advantages:
+
+1. **Future-proof adaptability** - New types can be added without code changes
+2. **External integration** - Easy adaptation to external taxonomy providers 
+3. **Organisational alignment** - Taxonomies can be tailored to match organisational structures
+4. **Versioned evolution** - Changes can be tracked and migrations managed systematically
+
+The implementation will ensure that all data models and processing logic adapt to taxonomy changes defined in configuration, reducing maintenance overhead and enabling the system to evolve alongside changing organisational needs.
+
 ### Implementation Details & Timeline
 
 The CLI implementation will focus on creating a robust, user-friendly interface that can be reliably run on standard NAB laptops without requiring cloud infrastructure. The design will prioritize:
@@ -708,56 +786,3 @@ The interactive CLI will follow this sequence:
 6. Summary confirmation before proceeding
 7. Progress tracking for each step
 8. Final summary with output file locations
-
-## Dependencies
-
-The following dependencies will be used:
-- pandas (data manipulation)
-- numpy (numerical operations)
-- scikit-learn (similarity metrics, dimensionality reduction)
-- matplotlib/seaborn (visualisation)
-- umap-learn (dimensionality reduction for large datasets)
-- pyyaml (configuration)
-- pytest (testing)
-- click (CLI interface)
-
-## Timeline
-
-Total estimated time: 68 working days
-- Phase 1: 11 days - **COMPLETED**
-- Phase 2: 8 days - **COMPLETED** (with some deferred items)
-- Phase 3: 8 days - **COMPLETED**
-- Phase 4: 13 days - **COMPLETED**
-- Phase 5: 11 days - **IN PROGRESS** (CLI completed, core testing completed, documentation in progress)
-- Phase 6: 15 days - **IN PROGRESS** (unified configuration, HRIS integration, similarity enhancements, and Power BI support)
-- Phase 7: 15 days - **PLANNED** (CLI implementation & production readiness)
-
-## Technical Constraints
-
-- Python 3.8+ compatibility
-- Minimal external dependencies
-- No sensitive data in codebase
-- Cross-platform compatibility (Windows/macOS)
-- Comprehensive documentation
-- Clean data exports for Power BI integration
-- Scalability for datasets with 40,000+ employees and 35,000+ jobs 
-
-## Conclusion
-
-The core Job-to-Job Similarity Analysis functionality has been fully implemented and tested. The system successfully:
-
-1. Creates and manages job architectures with associated skill requirements
-2. Vectorises job skill profiles using TF-IDF 
-3. Calculates cosine similarity between job pairs with high performance
-4. Handles realistic job volumes and skill taxonomies
-5. Produces clean outputs ready for Power BI integration
-
-Remaining work is primarily focused on:
-1. **Testing** - Completing additional test cases to ensure robustness and reliability
-2. **Production Readiness** - Implementing logging, error handling, and deployment documentation
-3. **Integration** - Finalising HRIS data mappings and Power BI integration patterns
-4. **Data Quality** - Implementing data validation and quality checks
-5. **Similarity Enhancements** - Adding seniority, role track, and location variables to improve similarity calculations
-6. **Documentation** - Completing comprehensive guides for system usage and integration
-
-With these final pieces in place, the system will be fully production-ready and positioned to deliver significant value through job similarity analysis and skill gap identification. The focus on Job-to-Job similarity provides immediate value while establishing a foundation for future employee-centric analyses once individual skill data becomes available.

@@ -13,6 +13,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 import json
+import tempfile
+import shutil
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(name)s:%(levelname)s:%(message)s')
+logger = logging.getLogger("test_enhanced_similarity")
 
 # Add the src directory to the Python path
 src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
@@ -24,6 +31,7 @@ from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator, TfidfVectorizer
 from skill_similarity_engine.config.settings import ConfigManager
 from skill_similarity_engine.data.loaders import JobArchitectureLoader
+from skill_similarity_engine.hris_adapter.transformer import HRISTransformer
 
 
 class TestEnhancedSimilarityFunctional(unittest.TestCase):
@@ -36,63 +44,257 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
         cls.output_dir = Path("output/test_output/enhanced_similarity")
         os.makedirs(cls.output_dir, exist_ok=True)
         
-        # Load test data
+        # Create a temporary directory for HRIS adapter files
+        cls.temp_dir = tempfile.TemporaryDirectory()
+        
+        # Define data directory
         data_dir = Path("data/sample")
         
-        # Load skill taxonomy directly using the class method
-        cls.skill_taxonomy = SkillTaxonomy.from_file(str(data_dir / "skills.json"))
-        
-        # Load jobs from JSON file manually
-        with open(data_dir / "jobs.json", "r") as f:
-            jobs_data = json.load(f)
-        
-        cls.job_architecture = JobArchitecture()
-        
-        # Check if jobs_data is a list or dictionary and process accordingly
-        if isinstance(jobs_data, list):
-            # List format
-            for job_data in jobs_data:
-                job_id = job_data.get("job_id")
-                if not job_id:
-                    continue
+        # Try to use HRIS adapter for data transformation
+        try:
+            logger.info("Setting up HRIS transformer...")
+            
+            # Create HRIS input files from sample data
+            cls.hris_jobs_path = os.path.join(cls.temp_dir.name, "hris_jobs.csv")
+            cls.hris_skills_path = os.path.join(cls.temp_dir.name, "hris_skills.csv")
+            cls.hris_job_skills_path = os.path.join(cls.temp_dir.name, "hris_job_skills.csv")
+            
+            # Determine the input format (JSON or CSV)
+            jobs_file = data_dir / "jobs.json" if (data_dir / "jobs.json").exists() else data_dir / "jobs.csv"
+            skills_file = data_dir / "skills.json" if (data_dir / "skills.json").exists() else data_dir / "skills.csv"
+            
+            # If jobs file is JSON, convert to CSV for HRIS adapter
+            if jobs_file.suffix == '.json':
+                with open(jobs_file, "r") as f:
+                    jobs_data = json.load(f)
                 
-                # Parse job level
-                job_level = JobLevel.ASSOCIATE
-                if "level" in job_data:
-                    try:
-                        job_level = JobLevel(job_data["level"])
-                    except ValueError:
-                        # Default to ASSOCIATE if invalid
-                        pass
+                # Convert JSON to DataFrame
+                if isinstance(jobs_data, list):
+                    jobs_df = pd.DataFrame(jobs_data)
+                else:
+                    # Dictionary format with job_id as keys
+                    jobs_df = pd.DataFrame([
+                        {**{"job_id": job_id}, **job_data}
+                        for job_id, job_data in jobs_data.items()
+                    ])
                 
-                job = Job(
-                    job_id=job_id,
-                    title=job_data.get("title", "Unknown"),
-                    department=job_data.get("department", "Unknown"),
-                    level=job_level,
-                    skills=job_data.get("skills", {})
-                )
-                cls.job_architecture.add_job(job)
-        else:
-            # Dictionary format with job_id as keys
-            for job_id, job_data in jobs_data.items():
-                # Parse job level
-                job_level = JobLevel.ASSOCIATE
-                if "level" in job_data:
-                    try:
-                        job_level = JobLevel(job_data["level"])
-                    except ValueError:
-                        # Default to ASSOCIATE if invalid
-                        pass
+                # Save as CSV
+                jobs_df.to_csv(cls.hris_jobs_path, index=False)
+            else:
+                # Just copy the CSV file
+                shutil.copy(str(jobs_file), cls.hris_jobs_path)
+            
+            # If skills file is JSON, convert to CSV for HRIS adapter
+            if skills_file.suffix == '.json':
+                with open(skills_file, "r") as f:
+                    skills_data = json.load(f)
                 
-                job = Job(
-                    job_id=job_id,
-                    title=job_data.get("title", "Unknown"),
-                    department=job_data.get("department", "Unknown"),
-                    level=job_level,
-                    skills=job_data.get("skills", {})
-                )
-                cls.job_architecture.add_job(job)
+                # Convert JSON to DataFrame
+                if isinstance(skills_data, list):
+                    skills_df = pd.DataFrame(skills_data)
+                else:
+                    # Dictionary format with skill_id as keys
+                    skills_df = pd.DataFrame([
+                        {**{"skill_id": skill_id}, **skill_data}
+                        for skill_id, skill_data in skills_data.items()
+                    ])
+                
+                # Save as CSV
+                skills_df.to_csv(cls.hris_skills_path, index=False)
+            else:
+                # Just copy the CSV file
+                shutil.copy(str(skills_file), cls.hris_skills_path)
+            
+            # Extract job-skills from the jobs file
+            if jobs_file.suffix == '.json':
+                job_skills_rows = []
+                
+                # Extract skill information from the jobs data
+                if isinstance(jobs_data, list):
+                    for job in jobs_data:
+                        job_id = job.get("job_id")
+                        skills = job.get("skills", {})
+                        for skill_id, proficiency in skills.items():
+                            job_skills_rows.append({
+                                'job_id': job_id,
+                                'skill_id': skill_id,
+                                'proficiency': proficiency
+                            })
+                else:
+                    # Dictionary format with job_id as keys
+                    for job_id, job in jobs_data.items():
+                        skills = job.get("skills", {})
+                        for skill_id, proficiency in skills.items():
+                            job_skills_rows.append({
+                                'job_id': job_id,
+                                'skill_id': skill_id,
+                                'proficiency': proficiency
+                            })
+                
+                # Save as CSV
+                pd.DataFrame(job_skills_rows).to_csv(cls.hris_job_skills_path, index=False)
+            else:
+                # Extract from CSV
+                jobs_df = pd.read_csv(cls.hris_jobs_path)
+                job_skills_rows = []
+                
+                for _, row in jobs_df.iterrows():
+                    if pd.notna(row.get('skills')) and row['skills']:
+                        # Handle both comma and semicolon separators
+                        separator = ';' if ';' in row['skills'] else ','
+                        for skill_entry in row['skills'].split(separator):
+                            if ':' in skill_entry:
+                                parts = skill_entry.split(':')
+                                if len(parts) == 2:
+                                    skill_id, proficiency = parts
+                                    job_skills_rows.append({
+                                        'job_id': row['job_id'],
+                                        'skill_id': skill_id.strip(),
+                                        'proficiency': proficiency.strip()
+                                    })
+                
+                # Save job-skills mapping to CSV
+                pd.DataFrame(job_skills_rows).to_csv(cls.hris_job_skills_path, index=False)
+            
+            # Create HRIS schema mapping file
+            cls.hris_config_path = os.path.join(cls.temp_dir.name, "hris_config.yaml")
+            with open(cls.hris_config_path, 'w') as f:
+                f.write("""
+# HRIS Schema Mapping Configuration for Testing
+hris_data:
+  jobs_file: {jobs_file}
+  skills_file: {skills_file}
+  job_skills_file: {job_skills_file}
+  file_format: csv
+  encoding: utf-8
+  delimiter: ","
+  has_header: true
+
+output_data:
+  jobs_file: {output_dir}/jobs.csv
+  skills_file: {output_dir}/skills.csv
+
+jobs_mapping:
+  job_id: job_id
+  title: title
+  department: department
+  level: level
+
+skills_mapping:
+  skill_id: skill_id
+  name: name
+  category: category
+
+job_skills_mapping:
+  job_id: job_id
+  skill_id: skill_id
+  proficiency: proficiency
+
+salary_group_mapping:
+  Group 1:
+    level: ENTRY
+    seniority: 1
+  Group 2:
+    level: ASSOCIATE
+    seniority: 2
+  Group 3:
+    level: PROFESSIONAL
+    seniority: 3
+  Group 4:
+    level: PROFESSIONAL
+    seniority: 4
+  Group 5:
+    level: SENIOR
+    seniority: 5
+  Group 6:
+    level: PRINCIPAL
+    seniority: 6
+  Group 7:
+    level: EXECUTIVE
+    seniority: 7
+
+transformation_options:
+  use_binary_skills: false
+  default_proficiency: 3
+                """.format(
+                    jobs_file=cls.hris_jobs_path.replace('\\', '/'),
+                    skills_file=cls.hris_skills_path.replace('\\', '/'),
+                    job_skills_file=cls.hris_job_skills_path.replace('\\', '/'),
+                    output_dir=cls.temp_dir.name.replace('\\', '/')
+                ))
+            
+            # Transform HRIS data
+            logger.info("Transforming HRIS data...")
+            transformer = HRISTransformer(config_path=cls.hris_config_path)
+            transformed_jobs_path, transformed_skills_path = transformer.transform()
+            
+            # Load transformed data
+            logger.info("Loading skill taxonomy from transformed data...")
+            cls.skill_taxonomy = SkillTaxonomy.from_file(transformed_skills_path)
+            logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
+            
+            logger.info("Loading job architecture from transformed data...")
+            cls.job_architecture = JobArchitecture.from_file(transformed_jobs_path)
+            logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
+            
+        except Exception as e:
+            logger.warning(f"Failed to use HRIS adapter for test setup: {e}")
+            logger.warning("Falling back to direct loading of sample data")
+            
+            # Load skill taxonomy directly using the class method
+            cls.skill_taxonomy = SkillTaxonomy.from_file(str(data_dir / "skills.json"))
+            
+            # Load jobs from JSON file manually
+            with open(data_dir / "jobs.json", "r") as f:
+                jobs_data = json.load(f)
+            
+            cls.job_architecture = JobArchitecture()
+            
+            # Check if jobs_data is a list or dictionary and process accordingly
+            if isinstance(jobs_data, list):
+                # List format
+                for job_data in jobs_data:
+                    job_id = job_data.get("job_id")
+                    if not job_id:
+                        continue
+                    
+                    # Parse job level
+                    job_level = JobLevel.ASSOCIATE
+                    if "level" in job_data:
+                        try:
+                            job_level = JobLevel(job_data["level"])
+                        except ValueError:
+                            # Default to ASSOCIATE if invalid
+                            pass
+                    
+                    job = Job(
+                        job_id=job_id,
+                        title=job_data.get("title", "Unknown"),
+                        department=job_data.get("department", "Unknown"),
+                        level=job_level,
+                        skills=job_data.get("skills", {})
+                    )
+                    cls.job_architecture.add_job(job)
+            else:
+                # Dictionary format with job_id as keys
+                for job_id, job_data in jobs_data.items():
+                    # Parse job level
+                    job_level = JobLevel.ASSOCIATE
+                    if "level" in job_data:
+                        try:
+                            job_level = JobLevel(job_data["level"])
+                        except ValueError:
+                            # Default to ASSOCIATE if invalid
+                            pass
+                    
+                    job = Job(
+                        job_id=job_id,
+                        title=job_data.get("title", "Unknown"),
+                        department=job_data.get("department", "Unknown"),
+                        level=job_level,
+                        skills=job_data.get("skills", {})
+                    )
+                    cls.job_architecture.add_job(job)
         
         # Add sample seniority, role track, and location data to jobs
         cls._enhance_job_data()
@@ -117,6 +319,12 @@ class TestEnhancedSimilarityFunctional(unittest.TestCase):
             job_architecture=cls.job_architecture,
             config_manager=cls.config_manager
         )
+    
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up after all tests."""
+        if hasattr(cls, 'temp_dir'):
+            cls.temp_dir.cleanup()
     
     @classmethod
     def _enhance_job_data(cls):

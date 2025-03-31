@@ -236,9 +236,10 @@ class CosineSimilarityCalculator:
         seniority_weight = config.future_extensions.seniority_weight
         role_track_weight = config.future_extensions.role_track_weight
         location_weight = config.future_extensions.location_weight
+        skill_type_weight = config.future_extensions.skill_type_weight
         
         # Get total weight excluding base skills weight (which is always 1.0)
-        extension_weight_sum = seniority_weight + role_track_weight + location_weight
+        extension_weight_sum = seniority_weight + role_track_weight + location_weight + skill_type_weight
         
         # If no enhancements are enabled, return the plain skill similarity
         if extension_weight_sum == 0:
@@ -252,6 +253,7 @@ class CosineSimilarityCalculator:
         weighted_seniority_similarity = 0.0
         weighted_role_track_similarity = 0.0
         weighted_location_similarity = 0.0
+        weighted_skill_type_similarity = 0.0
         
         # Calculate seniority similarity if enabled
         if seniority_weight > 0:
@@ -267,6 +269,11 @@ class CosineSimilarityCalculator:
         if location_weight > 0:
             location_similarity = self._calculate_location_similarity(job1, job2)
             weighted_location_similarity = location_similarity * location_weight
+            
+        # Calculate skill type similarity if enabled
+        if skill_type_weight > 0:
+            skill_type_similarity = self._calculate_skill_type_similarity(job1, job2)
+            weighted_skill_type_similarity = skill_type_similarity * skill_type_weight
         
         # Calculate weighted average similarity
         total_weight = skill_weight + extension_weight_sum
@@ -274,7 +281,8 @@ class CosineSimilarityCalculator:
             weighted_skill_similarity + 
             weighted_seniority_similarity + 
             weighted_role_track_similarity + 
-            weighted_location_similarity
+            weighted_location_similarity +
+            weighted_skill_type_similarity
         ) / total_weight
         
         return weighted_similarity
@@ -379,6 +387,77 @@ class CosineSimilarityCalculator:
         
         # Different locations get lower similarity
         return config.location_different_similarity
+    
+    def _calculate_skill_type_similarity(self, job1: Job, job2: Job) -> float:
+        """
+        Calculate similarity based on skill types, giving different weights to different types of skills.
+        
+        Args:
+            job1: First job
+            job2: Second job
+            
+        Returns:
+            Similarity score based on skill types (0-1 range)
+            
+        Note:
+            This implementation applies the configured weights to different skill types,
+            with higher weights reducing similarity scores when specialized skills are missing.
+        """
+        # Get configuration values
+        config = self.config_manager.get_config().future_extensions
+        skill_type_weights = config.skill_type_similarity_weights
+        
+        # Get skills from both jobs
+        job1_skills = set(job1.skills.keys())
+        job2_skills = set(job2.skills.keys())
+        
+        # Get all skills from both jobs
+        all_skills = job1_skills.union(job2_skills)
+        
+        # If there are no skills, return 1.0 (perfect similarity)
+        if not all_skills:
+            return 1.0
+        
+        # Calculate weighted similarity score
+        total_similarity = 0.0
+        total_weight = 0.0
+        
+        for skill_id in all_skills:
+            # Determine if the skill is present in both jobs
+            in_job1 = skill_id in job1_skills
+            in_job2 = skill_id in job2_skills
+            
+            # Get skill details from the taxonomy
+            skill_type = "OTHER"  # Default if not found
+            if skill_id in self.skill_taxonomy.skills:
+                skill = self.skill_taxonomy.skills[skill_id]
+                if hasattr(skill, 'skill_type') and skill.skill_type:
+                    skill_type = skill.skill_type.name
+            
+            # Get weight for this skill type
+            weight = skill_type_weights.get(skill_type, 1.0)
+            
+            # Apply weighted similarity calculation:
+            # - If both have the skill or neither has it: full similarity (1.0)
+            # - If only one has it: apply a penalty based on the weight
+            #   Higher weights should result in lower similarity scores
+            if in_job1 == in_job2:
+                skill_similarity = 1.0
+            else:
+                # Apply weight as a penalty factor - higher weight means lower similarity
+                # We use 1.0 divided by the weight to convert weight to a penalty
+                # This ensures that higher weights lead to lower similarity values
+                skill_similarity = 1.0 / (1.0 + weight)
+            
+            # Add to totals
+            total_similarity += skill_similarity * weight
+            total_weight += weight
+        
+        # Calculate weighted average
+        if total_weight > 0:
+            return total_similarity / total_weight
+        
+        return 1.0  # Default if no weights
     
     def calculate_employee_similarity(self, employee1_id: str, employee2_id: str) -> float:
         """
@@ -586,15 +665,20 @@ class CosineSimilarityCalculator:
             n_jobs = len(ids)
             similarity_matrix = np.zeros((n_jobs, n_jobs))
             
-            # Calculate pairwise similarities with our enhanced similarity
+            # Calculate pairwise similarities, but only for upper triangle
+            # to ensure matrix symmetry
             for i in range(n_jobs):
-                for j in range(n_jobs):
-                    if i == j:
-                        # Self-similarity is always 1.0
-                        similarity_matrix[i, j] = 1.0
-                    else:
-                        # Calculate enhanced similarity
-                        similarity_matrix[i, j] = self.calculate_job_similarity(ids[i], ids[j])
+                # Diagonal is always 1.0
+                similarity_matrix[i, i] = 1.0
+                
+                # Calculate upper triangle only
+                for j in range(i+1, n_jobs):
+                    # Calculate enhanced similarity
+                    similarity = self.calculate_job_similarity(ids[i], ids[j])
+                    
+                    # Set both (i,j) and (j,i) to ensure symmetry
+                    similarity_matrix[i, j] = similarity
+                    similarity_matrix[j, i] = similarity
             
         elif entity_type.lower() == "employee":
             if not self.employee_database:

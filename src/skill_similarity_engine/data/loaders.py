@@ -277,9 +277,18 @@ class JobArchitectureLoader:
             job_level = JobLevel.ASSOCIATE
             if "level" in row and pd.notna(row["level"]):
                 try:
-                    job_level = JobLevel(row["level"])
+                    job_level = JobLevel.from_string(str(row["level"]))
                 except ValueError:
                     # Default to ASSOCIATE if invalid
+                    pass
+            
+            # Parse seniority if available
+            seniority = 3  # Default to mid-level seniority
+            if "seniority" in row and pd.notna(row["seniority"]):
+                try:
+                    seniority = int(row["seniority"])
+                except ValueError:
+                    # Default to 3 if not a valid integer
                     pass
             
             # Parse skills if they're embedded in the row
@@ -304,7 +313,8 @@ class JobArchitectureLoader:
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
-                skills=skills_dict
+                skills=skills_dict,
+                seniority=seniority  # Add seniority parameter
             )
             
             # Add job to architecture
@@ -370,9 +380,18 @@ class JobArchitectureLoader:
             job_level = JobLevel.ASSOCIATE
             if "level" in row and pd.notna(row["level"]):
                 try:
-                    job_level = JobLevel(row["level"])
+                    job_level = JobLevel.from_string(str(row["level"]))
                 except ValueError:
                     # Default to ASSOCIATE if invalid
+                    pass
+            
+            # Parse seniority if available
+            seniority = 3  # Default to mid-level seniority
+            if "seniority" in row and pd.notna(row["seniority"]):
+                try:
+                    seniority = int(row["seniority"])
+                except ValueError:
+                    # Default to 3 if not a valid integer
                     pass
             
             # Parse skills if they're embedded in the row
@@ -397,7 +416,8 @@ class JobArchitectureLoader:
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
-                skills=skills_dict
+                skills=skills_dict,
+                seniority=seniority  # Add seniority parameter
             )
             
             # Add job to architecture

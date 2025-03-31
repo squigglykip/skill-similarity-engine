@@ -16,6 +16,8 @@ import networkx as nx
 import logging
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer as SklearnTfidfVectorizer
+import tempfile
+import shutil
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(name)s:%(levelname)s:%(message)s')
@@ -31,6 +33,7 @@ from skill_similarity_engine.models.jobs import JobArchitecture
 from skill_similarity_engine.data.loaders import JobArchitectureLoader
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
 from skill_similarity_engine.analysis.gap import TeamGapAnalyzer
+from skill_similarity_engine.hris_adapter.transformer import HRISTransformer
 
 # Custom TfidfVectorizer for testing
 class TfidfVectorizer:
@@ -278,15 +281,138 @@ class TestJobTransitionPathways(unittest.TestCase):
         cls.output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'output', 'tests', 'transition_paths')
         os.makedirs(cls.output_dir, exist_ok=True)
         
-        # Load data
-        logger.info("Loading skill taxonomy...")
-        cls.skill_taxonomy = SkillTaxonomy.from_file(os.path.join(cls.data_dir, 'skills.csv'))
-        logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
+        # Create a temporary directory for HRIS adapter files
+        cls.temp_dir = tempfile.TemporaryDirectory()
         
-        logger.info("Loading job architecture...")
-        job_loader = JobArchitectureLoader(cls.skill_taxonomy)
-        cls.job_architecture = job_loader.load_from_csv(os.path.join(cls.data_dir, 'jobs.csv'))
-        logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
+        # Set up HRIS transformer for data processing
+        try:
+            logger.info("Setting up HRIS transformer...")
+            
+            # Create HRIS input files from sample data
+            cls.hris_jobs_path = os.path.join(cls.temp_dir.name, "hris_jobs.csv")
+            cls.hris_skills_path = os.path.join(cls.temp_dir.name, "hris_skills.csv")
+            cls.hris_job_skills_path = os.path.join(cls.temp_dir.name, "hris_job_skills.csv")
+            
+            # Copy sample data to HRIS format
+            shutil.copy(os.path.join(cls.data_dir, 'jobs.csv'), cls.hris_jobs_path)
+            shutil.copy(os.path.join(cls.data_dir, 'skills.csv'), cls.hris_skills_path)
+            
+            # Extract job-skills from the jobs.csv file to create job-skills mapping
+            jobs_df = pd.read_csv(os.path.join(cls.data_dir, 'jobs.csv'))
+            job_skills_rows = []
+            
+            for _, row in jobs_df.iterrows():
+                if pd.notna(row.get('skills')) and row['skills']:
+                    # Handle both comma and semicolon separators
+                    separator = ';' if ';' in row['skills'] else ','
+                    for skill_entry in row['skills'].split(separator):
+                        if ':' in skill_entry:
+                            parts = skill_entry.split(':')
+                            if len(parts) == 2:
+                                skill_id, proficiency = parts
+                                job_skills_rows.append({
+                                    'job_id': row['job_id'],
+                                    'skill_id': skill_id.strip(),
+                                    'proficiency': proficiency.strip()
+                                })
+            
+            # Save job-skills mapping to CSV
+            pd.DataFrame(job_skills_rows).to_csv(cls.hris_job_skills_path, index=False)
+            
+            # Create HRIS schema mapping file
+            cls.hris_config_path = os.path.join(cls.temp_dir.name, "hris_config.yaml")
+            with open(cls.hris_config_path, 'w') as f:
+                f.write("""
+# HRIS Schema Mapping Configuration for Testing
+hris_data:
+  jobs_file: {jobs_file}
+  skills_file: {skills_file}
+  job_skills_file: {job_skills_file}
+  file_format: csv
+  encoding: utf-8
+  delimiter: ","
+  has_header: true
+
+output_data:
+  jobs_file: {output_dir}/jobs.csv
+  skills_file: {output_dir}/skills.csv
+
+jobs_mapping:
+  job_id: job_id
+  title: title
+  department: department
+  level: level
+
+skills_mapping:
+  skill_id: skill_id
+  name: name
+  category: category
+
+job_skills_mapping:
+  job_id: job_id
+  skill_id: skill_id
+  proficiency: proficiency
+
+salary_group_mapping:
+  Group 1:
+    level: ENTRY
+    seniority: 1
+  Group 2:
+    level: ASSOCIATE
+    seniority: 2
+  Group 3:
+    level: PROFESSIONAL
+    seniority: 3
+  Group 4:
+    level: PROFESSIONAL
+    seniority: 4
+  Group 5:
+    level: SENIOR
+    seniority: 5
+  Group 6:
+    level: PRINCIPAL
+    seniority: 6
+  Group 7:
+    level: EXECUTIVE
+    seniority: 7
+
+transformation_options:
+  use_binary_skills: false
+  default_proficiency: 3
+                """.format(
+                    jobs_file=cls.hris_jobs_path.replace('\\', '/'),
+                    skills_file=cls.hris_skills_path.replace('\\', '/'),
+                    job_skills_file=cls.hris_job_skills_path.replace('\\', '/'),
+                    output_dir=cls.temp_dir.name.replace('\\', '/')
+                ))
+            
+            # Transform HRIS data
+            logger.info("Transforming HRIS data...")
+            transformer = HRISTransformer(config_path=cls.hris_config_path)
+            transformed_jobs_path, transformed_skills_path = transformer.transform()
+            
+            # Load transformed data
+            logger.info("Loading skill taxonomy from transformed data...")
+            cls.skill_taxonomy = SkillTaxonomy.from_file(transformed_skills_path)
+            logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
+            
+            logger.info("Loading job architecture from transformed data...")
+            cls.job_architecture = JobArchitecture.from_file(transformed_jobs_path)
+            logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
+            
+        except Exception as e:
+            logger.warning(f"Failed to use HRIS adapter for test setup: {e}")
+            logger.warning("Falling back to direct loading of sample data")
+            
+            # Load data directly from sample files
+            logger.info("Loading skill taxonomy...")
+            cls.skill_taxonomy = SkillTaxonomy.from_file(os.path.join(cls.data_dir, 'skills.csv'))
+            logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
+            
+            logger.info("Loading job architecture...")
+            job_loader = JobArchitectureLoader(cls.skill_taxonomy)
+            cls.job_architecture = job_loader.load_from_csv(os.path.join(cls.data_dir, 'jobs.csv'))
+            logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
         
         # Initialize similarity calculator
         cls.similarity_calculator = CosineSimilarityCalculator(
@@ -313,6 +439,12 @@ class TestJobTransitionPathways(unittest.TestCase):
         # Get departments for testing
         cls.departments = set(job.department for job in cls.job_architecture.jobs.values())
         logger.info(f"Found {len(cls.departments)} departments")
+    
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up after all tests."""
+        if hasattr(cls, 'temp_dir'):
+            cls.temp_dir.cleanup()
     
     def setUp(self):
         """Set up test fixtures for each test."""

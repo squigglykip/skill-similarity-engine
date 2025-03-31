@@ -1,7 +1,7 @@
 Scenario,Average Similarity,High Similarity Pairs
 Base skills only (no enhancements),0.23100003932610474,38
-Skills + Seniority,0.4055000196630524,46
-Skills + Role Track,0.46850001966305244,61
+Skills + Seniority,0.6155000196630523,78
+Skills + Role Track,0.4755000196630524,64
 Skills + Location,0.4125000196630524,46
-Balanced weights for all factors,0.46840001573044193,44
-Career progression focus (higher seniority and role weight),0.4759230920485018,54
+Balanced weights for all factors,0.5552000157304419,60
+Career progression focus (higher seniority and role weight),0.6083846305100404,78
