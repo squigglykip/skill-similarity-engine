@@ -6,12 +6,17 @@ This package provides functionality to adapt data from various HRIS systems to b
 the Skill Similarity Engine.
 """
 
-from .transformer import HRISTransformer, HRISTransformerError
-from .workflow import HRISWorkflow, create_workflow
+# Import the classes but not anything that will trigger complex imports
+from .transformer import HRISTransformerError
 
+# Define what's available from this package
 __all__ = [
-    'HRISTransformer',
     'HRISTransformerError',
-    'HRISWorkflow',
-    'create_workflow'
-] 
+    'HRISTransformer',  # Will be imported later
+    'HRISWorkflow',     # Will be imported later
+    'create_workflow'   # Will be imported later
+]
+
+# Import more complex items after defining __all__
+from .transformer import HRISTransformer
+from .workflow import HRISWorkflow, create_workflow 
