@@ -488,24 +488,40 @@ def load_data_directly(
     logger.info("\n" + "-"*40)
     logger.info("STEP 6: CALCULATING SIMILARITY MATRIX")
     logger.info("-"*40)
+    
+    # Add debug info about number of jobs
+    total_jobs = len(job_architecture.jobs)
+    logger.info(f"Starting similarity calculations for {total_jobs} jobs")
+    logger.info(f"This will result in {total_jobs * total_jobs} comparisons")
+    
     if department:
         logger.info(f"Filtering by department: {department}")
         # Get jobs for the specified department
         dept_jobs = {job_id: job for job_id, job in job_architecture.jobs.items() 
                     if job.department == department}
+        filtered_jobs = len(dept_jobs)
+        logger.info(f"Filtered to {filtered_jobs} jobs in department {department}")
+        logger.info(f"This will result in {filtered_jobs * filtered_jobs} comparisons")
+        
         # Create a temporary JobArchitecture with just these jobs
         filtered_architecture = JobArchitecture(dept_jobs)
+        
         # Calculate similarity for these jobs
+        logger.info("Starting TF-IDF vectorization...")
         similarity_matrix, job_ids = calculator.calculate_similarity_matrix(
             "job", job_architecture=filtered_architecture
         )
+        logger.info(f"Completed similarity calculations for {filtered_jobs} jobs")
     else:
         # Calculate similarity for all jobs
+        logger.info("Starting TF-IDF vectorization...")
         similarity_matrix, job_ids = calculator.calculate_similarity_matrix("job")
+        logger.info(f"Completed similarity calculations for {total_jobs} jobs")
     
     # Create a dataframe for the similarity matrix
     df = pd.DataFrame(similarity_matrix, index=job_ids, columns=job_ids)
     logger.info(f"Generated similarity matrix with shape: {df.shape}")
+    logger.info(f"Memory usage of similarity matrix: {df.memory_usage().sum() / 1024 / 1024:.2f} MB")
     
     logger.info("\n" + "="*80)
     logger.info("DATA LOADING PROCESS COMPLETED")
