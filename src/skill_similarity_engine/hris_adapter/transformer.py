@@ -316,11 +316,27 @@ class HRISTransformer:
         # Create output dataframe
         output_skills = []
         
+        # Track duplicate skill IDs
+        seen_skill_ids = {}
+        duplicate_count = 0
+        
         # Process each skill
         for _, skill in skills_df.iterrows():
             # Extract required fields
             skill_id = skill[skill_mapping['skill_id']]
             name = skill[skill_mapping['name']]
+            
+            # Check for duplicates
+            if skill_id in seen_skill_ids:
+                duplicate_count += 1
+                logger.warning(f"Duplicate skill ID detected: {skill_id} - '{name}'. "
+                              f"Already seen as '{seen_skill_ids[skill_id]}'")
+                
+                # Skip this duplicate
+                continue
+            
+            # Track this skill ID
+            seen_skill_ids[skill_id] = name
             
             # Initialize skill entry with required fields
             skill_entry = {
@@ -381,6 +397,9 @@ class HRISTransformer:
             
             output_skills.append(skill_entry)
         
+        if duplicate_count > 0:
+            logger.warning(f"Removed {duplicate_count} duplicate skills during transformation")
+            
         logger.info(f"Transformed {len(output_skills)} skills")
         return pd.DataFrame(output_skills)
     
