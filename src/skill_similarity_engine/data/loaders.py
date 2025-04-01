@@ -97,13 +97,26 @@ class SkillTaxonomyLoader:
                             ))
         
         for _, row in skills_df.iterrows():
-            # Parse skill type
-            skill_type = SkillType.OTHER
+            # Parse skill type - try multiple approaches
+            skill_type = SkillType.COMMON  # Default to COMMON instead of OTHER
+            
+            # First check the dedicated skill_type field if it exists
             if "skill_type" in row and pd.notna(row["skill_type"]):
                 try:
                     skill_type = SkillType.from_string(row["skill_type"])
                 except ValueError:
-                    # Default to OTHER if invalid
+                    pass
+            # Next check if category contains a SkillType value (test data approach)
+            elif "category" in row and pd.notna(row["category"]):
+                try:
+                    skill_type = SkillType.from_string(row["category"])
+                except ValueError:
+                    pass
+            # Finally check if we have a SkillType field from HRIS schema
+            elif "SkillType" in row and pd.notna(row["SkillType"]):
+                try:
+                    skill_type = SkillType.from_string(row["SkillType"])
+                except ValueError:
                     pass
             
             # Parse lists
@@ -121,7 +134,7 @@ class SkillTaxonomyLoader:
                 name=row["name"],
                 description=row.get("description", ""),
                 category_id=category_id,
-                skill_type=skill_type,
+                skill_type=row.get("category", SkillType.COMMON),  # Pass the raw value from category, Skill class will handle it
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites
@@ -171,13 +184,26 @@ class SkillTaxonomyLoader:
         skills_df = pd.read_excel(excel_path, sheet_name=skills_sheet)
         
         for _, row in skills_df.iterrows():
-            # Parse skill type
-            skill_type = SkillType.OTHER
+            # Parse skill type - try multiple approaches
+            skill_type = SkillType.COMMON  # Default to COMMON instead of OTHER
+            
+            # First check the dedicated skill_type field if it exists
             if "skill_type" in row and pd.notna(row["skill_type"]):
                 try:
                     skill_type = SkillType.from_string(row["skill_type"])
                 except ValueError:
-                    # Default to OTHER if invalid
+                    pass
+            # Next check if category contains a SkillType value (test data approach)
+            elif "category" in row and pd.notna(row["category"]):
+                try:
+                    skill_type = SkillType.from_string(row["category"])
+                except ValueError:
+                    pass
+            # Finally check if we have a SkillType field from HRIS schema
+            elif "SkillType" in row and pd.notna(row["SkillType"]):
+                try:
+                    skill_type = SkillType.from_string(row["SkillType"])
+                except ValueError:
                     pass
             
             # Parse lists
@@ -190,7 +216,7 @@ class SkillTaxonomyLoader:
                 name=row["name"],
                 description=row.get("description", ""),
                 category_id=str(row["category_id"]) if pd.notna(row.get("category_id", None)) else None,
-                skill_type=skill_type,
+                skill_type=row.get("category", SkillType.COMMON),  # Pass the raw value from category, Skill class will handle it
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites
@@ -496,7 +522,6 @@ class EmployeeLoader:
         # Create empty employee database
         database = EmployeeDatabase()
         
-        # Load employees
         employees_path = os.path.join(self.base_dir, employees_file)
         employees_df = pd.read_csv(employees_path)
         
@@ -507,9 +532,10 @@ class EmployeeLoader:
             employee_id = str(row["employee_id"])
             job_id = str(row["current_job"])
             
-            # Validate job_id
-            if job_id not in self.job_architecture.jobs:
-                continue
+            # Validate job_id only if job_architecture is provided
+            if self.job_architecture is not None:
+                if job_id not in self.job_architecture.jobs:
+                    continue
             
             # Parse skills if they're embedded in the row
             skills_dict = {}
@@ -595,9 +621,10 @@ class EmployeeLoader:
             employee_id = str(row["employee_id"])
             job_id = str(row["current_job"])
             
-            # Validate job_id
-            if job_id not in self.job_architecture.jobs:
-                continue
+            # Validate job_id only if job_architecture is provided
+            if self.job_architecture is not None:
+                if job_id not in self.job_architecture.jobs:
+                    continue
             
             # Parse skills if they're embedded in the row
             skills_dict = {}

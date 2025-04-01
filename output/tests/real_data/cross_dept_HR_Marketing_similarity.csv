@@ -1,7 +1,7 @@
 job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J013,HR Coordinator,HR,J011,Marketing Specialist,Marketing,0.5667144612286215
-J013,HR Coordinator,HR,J012,Senior Marketing Specialist,Marketing,0.44507084785716916
-J013,HR Coordinator,HR,J019,Digital Marketing Specialist,Marketing,0.19205518102391608
-J014,HR Business Partner,HR,J011,Marketing Specialist,Marketing,0.37611526930186767
-J014,HR Business Partner,HR,J012,Senior Marketing Specialist,Marketing,0.47843184134375055
-J014,HR Business Partner,HR,J019,Digital Marketing Specialist,Marketing,0.12746257784745052
+J013,HR Coordinator,HR,J011,Marketing Specialist,Marketing,0.8230511643267633
+J013,HR Coordinator,HR,J012,Senior Marketing Specialist,Marketing,0.7877383001995863
+J013,HR Coordinator,HR,J019,Digital Marketing Specialist,Marketing,0.709778501138332
+J014,HR Business Partner,HR,J011,Marketing Specialist,Marketing,0.7668229349725256
+J014,HR Business Partner,HR,J012,Senior Marketing Specialist,Marketing,0.8052697250418199
+J014,HR Business Partner,HR,J019,Digital Marketing Specialist,Marketing,0.6903623764880062

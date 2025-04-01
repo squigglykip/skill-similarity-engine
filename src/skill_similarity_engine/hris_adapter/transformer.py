@@ -276,8 +276,17 @@ class HRISTransformer:
             }
             
             # Add location if available
-            if 'location' in job_mapping and job_mapping['location'] in job:
-                job_entry['location'] = job[job_mapping['location']]
+            if 'location' in job_mapping:
+                location_field = job_mapping['location']
+                # Check if the location field is a string (a single field)
+                if isinstance(location_field, str) and location_field in job:
+                    job_entry['location'] = job[location_field]
+                # If it's a list of fields, use the first available one
+                elif isinstance(location_field, list):
+                    for field in location_field:
+                        if field in job:
+                            job_entry['location'] = job[field]
+                            break
             
             output_jobs.append(job_entry)
         

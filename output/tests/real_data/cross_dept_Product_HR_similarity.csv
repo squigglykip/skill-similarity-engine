@@ -1,3 +1,3 @@
 job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J010,Product Manager,Product,J013,HR Coordinator,HR,0.3343064440641913
-J010,Product Manager,Product,J014,HR Business Partner,HR,0.6071078940003184
+J010,Product Manager,Product,J013,HR Coordinator,HR,0.7563707286631066
+J010,Product Manager,Product,J014,HR Business Partner,HR,0.8503063852647854
