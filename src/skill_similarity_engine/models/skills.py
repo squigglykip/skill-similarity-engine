@@ -492,124 +492,144 @@ class SkillTaxonomy:
         }
     
     @classmethod
-    def from_file(cls, file_path: str) -> "SkillTaxonomy":
-        """Load a skill taxonomy from a file.
+    def from_file(cls, file_path: str) -> 'SkillTaxonomy':
+        """
+        Create a taxonomy from a file.
         
         Args:
-            file_path: Path to the file to load from
+            file_path: Path to the file containing skill data
             
         Returns:
-            A new SkillTaxonomy instance
+            SkillTaxonomy object populated with skills from the file
             
         Raises:
-            ValueError: If the file type is not supported
+            FileNotFoundError: If the file doesn't exist
+            ValueError: If the file format is not supported
         """
-        # Create a new taxonomy
+        # Create empty taxonomy
         taxonomy = cls()
         
-        # Load categories first
-        categories_path = os.path.join(os.path.dirname(file_path), 'categories.csv')
-        category_name_to_id = {}  # Map category names to IDs
-        
-        if os.path.exists(categories_path):
-            categories_df = pd.read_csv(categories_path)
-            for _, row in categories_df.iterrows():
-                category = SkillCategory(
-                    category_id=row['category_id'],
-                    name=row['name'],
-                    parent_id=row.get('parent_id') if pd.notna(row.get('parent_id')) else None,
-                    description=row.get('description', '')
-                )
-                taxonomy.add_category(category)
-                category_name_to_id[category.name] = category.category_id
-        
-        # Determine file type from extension
+        # Determine file extension
         file_ext = os.path.splitext(file_path)[1].lower()
         
-        if file_ext == ".csv":
-            # Load skills from CSV
+        if file_ext == '.csv':
+            # Load from CSV file
             df = pd.read_csv(file_path)
             
+            # Check if the necessary columns are present
+            required_columns = ['skill_id', 'name']
+            for column in required_columns:
+                if column not in df.columns:
+                    raise ValueError(f"CSV file is missing required column: {column}")
+            
+            # Load skills from DataFrame
+            duplicate_count = 0
             for _, row in df.iterrows():
-                # Handle category and subcategory
-                category_name = row.get("category", None)
-                if pd.notna(category_name):
-                    category_id = category_name_to_id.get(category_name)
-                    if not category_id:
-                        # If category doesn't exist, create it
-                        category_id = f"C{len(taxonomy.categories) + 1:03d}"
-                        category = SkillCategory(
-                            category_id=category_id,
-                            name=category_name
-                        )
-                        taxonomy.add_category(category)
-                        category_name_to_id[category_name] = category_id
-                else:
-                    category_id = None
+                # Parse lists from strings if present as strings
+                aliases = cls._parse_list_field(row, 'aliases')
+                related_skills = cls._parse_list_field(row, 'related_skills')
+                prerequisites = cls._parse_list_field(row, 'prerequisites')
                 
-                # Convert lists from strings if needed
-                aliases = []
-                if pd.notna(row.get("aliases")):
-                    aliases = [a.strip() for a in row["aliases"].split(",") if a.strip()]
-                
-                related_skills = []
-                if pd.notna(row.get("related_skills")):
-                    related_skills = [s.strip() for s in row["related_skills"].split(",") if s.strip()]
-                
-                prerequisites = []
-                if pd.notna(row.get("prerequisites")):
-                    prerequisites = [p.strip() for p in row["prerequisites"].split(",") if p.strip()]
-                
+                # Create skill
                 skill = Skill(
-                    skill_id=row["skill_id"],
-                    name=row.get("name", row.get("skill_name")),  # Try 'name' first, then 'skill_name'
-                    description=row.get("description", ""),
-                    category_id=category_id,
-                    skill_type=row.get("skill_type", SkillType.COMMON),
+                    skill_id=str(row['skill_id']),
+                    name=row['name'],
+                    description=row.get('description', ''),
+                    category_id=str(row['category_id']) if pd.notna(row.get('category_id', None)) else None,
+                    skill_type=row.get('skill_type', SkillType.COMMON),
                     aliases=aliases,
                     related_skills=related_skills,
                     prerequisites=prerequisites
                 )
-                taxonomy.add_skill(skill)
+                
+                # Check if skill ID already exists in taxonomy
+                if skill.skill_id in taxonomy.skills:
+                    # Handle duplicate by keeping the first occurrence and logging 
+                    duplicate_count += 1
+                    # For debugging, can be removed in production
+                    existing_skill = taxonomy.skills[skill.skill_id]
+                    print(f"Warning: Duplicate skill ID {skill.skill_id} found. "
+                          f"Original: {existing_skill.name} ({existing_skill.skill_type}), "
+                          f"Duplicate: {skill.name} ({skill.skill_type})")
+                else:
+                    # Add skill to taxonomy
+                    taxonomy.add_skill(skill)
             
-            return taxonomy
-            
-        elif file_ext == ".json":
-            # Load from JSON
-            with open(file_path, "r") as f:
+            if duplicate_count > 0:
+                print(f"Warning: {duplicate_count} duplicate skill IDs were found and skipped.")
+                
+        elif file_ext == '.json':
+            # Load from JSON file
+            with open(file_path, 'r') as f:
                 data = json.load(f)
             
-            # Handle dictionary format where keys are skill IDs
-            for skill_id, skill_data in data.items():
-                # Handle category and subcategory
-                category_name = skill_data.get("category")
-                if category_name:
-                    category_id = category_name_to_id.get(category_name)
-                    if not category_id:
-                        # If category doesn't exist, create it
-                        category_id = f"C{len(taxonomy.categories) + 1:03d}"
-                        category = SkillCategory(
-                            category_id=category_id,
-                            name=category_name
-                        )
-                        taxonomy.add_category(category)
-                        category_name_to_id[category_name] = category_id
-                else:
-                    category_id = None
-                
-                skill = Skill(
-                    skill_id=skill_id,  # Use the key as skill_id
-                    name=skill_data["name"],
-                    description=skill_data.get("description", ""),
-                    category_id=category_id,
-                    skill_type=skill_data.get("skill_type", SkillType.COMMON),
-                    aliases=skill_data.get("aliases", []),
-                    related_skills=skill_data.get("related_skills", []),
-                    prerequisites=skill_data.get("prerequisites", [])
-                )
-                taxonomy.add_skill(skill)
+            # Load skills
+            if 'skills' in data:
+                for skill_data in data['skills']:
+                    skill = Skill(
+                        skill_id=str(skill_data['skill_id']),
+                        name=skill_data['name'],
+                        description=skill_data.get('description', ''),
+                        category_id=str(skill_data['category_id']) if 'category_id' in skill_data else None,
+                        skill_type=skill_data.get('skill_type', SkillType.COMMON),
+                        aliases=skill_data.get('aliases', []),
+                        related_skills=skill_data.get('related_skills', []),
+                        prerequisites=skill_data.get('prerequisites', [])
+                    )
+                    
+                    # Check for duplicates
+                    if skill.skill_id in taxonomy.skills:
+                        # Log duplicate but don't add again
+                        print(f"Warning: Duplicate skill ID {skill.skill_id} found in JSON - keeping first occurrence")
+                    else:
+                        taxonomy.add_skill(skill)
             
-            return taxonomy
-            
+            # Load categories
+            if 'categories' in data:
+                for category_data in data['categories']:
+                    category = SkillCategory(
+                        category_id=str(category_data['category_id']),
+                        name=category_data['name'],
+                        parent_id=str(category_data['parent_id']) if 'parent_id' in category_data else None,
+                        description=category_data.get('description', '')
+                    )
+                    taxonomy.add_category(category)
+                    
         else:
-            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or JSON files.") 
+            raise ValueError(f"Unsupported file format: {file_ext}")
+        
+        return taxonomy
+    
+    @classmethod
+    def _parse_list_field(cls, row, field_name):
+        """
+        Parse a list field from a DataFrame row.
+        
+        Args:
+            row: DataFrame row
+            field_name: Name of the field to parse
+            
+        Returns:
+            List of values
+        """
+        if field_name not in row or pd.isna(row[field_name]):
+            return []
+            
+        value = row[field_name]
+        
+        # If already a list, return it
+        if isinstance(value, list):
+            return value
+            
+        # If string, parse based on delimiters
+        if isinstance(value, str):
+            if ',' in value:
+                return [item.strip() for item in value.split(',') if item.strip()]
+            elif ';' in value:
+                return [item.strip() for item in value.split(';') if item.strip()]
+            else:
+                # Single value
+                return [value.strip()]
+                
+        # If other type, convert to string and return as single item
+        return [str(value)] 
