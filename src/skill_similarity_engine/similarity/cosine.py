@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
+import logging
 
 from ..config.settings import ConfigManager
 from ..models.employees import Employee, EmployeeDatabase
@@ -23,6 +24,7 @@ from ..models.skills import Skill, SkillTaxonomy
 MAX_SENIORITY_DIFFERENCE = 6  # Maximum difference between seniority levels (1-7)
 MAX_LOCATION_SIMILARITY = 1.0  # Maximum similarity score for location
 
+logger = logging.getLogger("skill_similarity_engine")
 
 @dataclass
 class TfidfVectorizer:
@@ -42,11 +44,13 @@ class TfidfVectorizer:
     
     def __post_init__(self):
         """Initialize the vectorizer with skills from the taxonomy."""
+        logger.info("Initializing TF-IDF vectorizer...")
         # Create mapping from skill IDs to indices in the vector
         for i, skill_id in enumerate(self.skill_taxonomy.skills.keys()):
             self.skill_indices[skill_id] = i
         
         self.num_skills = len(self.skill_indices)
+        logger.info(f"Vectorizer initialized with {self.num_skills} skills")
     
     def fit(self, job_architecture: JobArchitecture) -> None:
         """
@@ -55,6 +59,7 @@ class TfidfVectorizer:
         Args:
             job_architecture: The job architecture containing all jobs
         """
+        logger.info("Calculating IDF values...")
         # Count in how many jobs each skill appears
         skill_doc_counts = Counter()
         total_jobs = len(job_architecture.jobs)
@@ -69,6 +74,8 @@ class TfidfVectorizer:
             doc_count = skill_doc_counts.get(skill_id, 0)
             # Add 1 to avoid division by zero (smoothing)
             self.idf_values[skill_id] = math.log((total_jobs + 1) / (doc_count + 1)) + 1
+        
+        logger.info(f"Calculated IDF values for {len(self.idf_values)} skills")
     
     def transform_job(self, job: Job) -> np.ndarray:
         """
@@ -191,17 +198,29 @@ class CosineSimilarityCalculator:
     
     def __post_init__(self):
         """Initialize the calculator by fitting the vectorizer and caching vectors."""
+        logger.info("Initializing cosine similarity calculator...")
         # Fit the vectorizer on the job architecture
         self.vectorizer.fit(self.job_architecture)
         
         # Pre-compute vectors for all jobs
+        logger.info("Pre-computing job vectors...")
+        jobs_processed = 0
+        total_jobs = len(self.job_architecture.jobs)
+        
         for job_id, job in self.job_architecture.jobs.items():
             self.job_vectors[job_id] = self.vectorizer.transform_job(job)
+            jobs_processed += 1
+            if jobs_processed % 1000 == 0:  # Log progress every 1000 jobs
+                logger.info(f"Processed {jobs_processed}/{total_jobs} jobs ({(jobs_processed/total_jobs)*100:.1f}%)")
+        
+        logger.info(f"Completed pre-computing vectors for {total_jobs} jobs")
         
         # Pre-compute vectors for all employees if provided
         if self.employee_database is not None:
+            logger.info("Pre-computing employee vectors...")
             for employee_id, employee in self.employee_database.employees.items():
                 self.employee_vectors[employee_id] = self.vectorizer.transform_employee(employee)
+            logger.info(f"Completed pre-computing vectors for {len(self.employee_vectors)} employees")
     
     def prepare_job_vectors(self):
         """
@@ -650,43 +669,46 @@ class CosineSimilarityCalculator:
         
         return similarities[:top_n]
     
-    def calculate_similarity_matrix(self, entity_type: str = "job") -> Tuple[np.ndarray, List[str]]:
+    def calculate_similarity_matrix(self, analysis_type: str, job_architecture: Optional[JobArchitecture] = None) -> Tuple[np.ndarray, List[str]]:
         """
-        Calculate a similarity matrix for jobs or employees.
+        Calculate similarity matrix for all jobs or employees.
         
         Args:
-            entity_type: Type of entity to calculate matrix for ("job" or "employee")
+            analysis_type: Type of analysis ("job" or "employee")
+            job_architecture: Optional job architecture to use instead of the stored one
             
         Returns:
-            Tuple containing the similarity matrix and list of entity IDs
-            
-        Raises:
-            ValueError: If entity_type is invalid or employee database is not set for employee matrix
+            Tuple of (similarity matrix, list of IDs)
         """
-        if entity_type.lower() == "job":
-            # Get all job IDs in consistent order
-            ids = list(self.job_architecture.jobs.keys())
+        logger.info(f"Calculating {analysis_type} similarity matrix...")
+        
+        if analysis_type == "job":
+            arch = job_architecture if job_architecture is not None else self.job_architecture
+            vectors = []
+            ids = []
             
-            # Initialize matrix
-            n_jobs = len(ids)
-            similarity_matrix = np.zeros((n_jobs, n_jobs))
+            # Collect vectors and IDs
+            for job_id, job in arch.jobs.items():
+                if job_id in self.job_vectors:
+                    vectors.append(self.job_vectors[job_id])
+                    ids.append(job_id)
+                else:
+                    # If we're using a different job architecture, we need to compute the vector
+                    vector = self.vectorizer.transform_job(job)
+                    vectors.append(vector)
+                    ids.append(job_id)
             
-            # Calculate pairwise similarities, but only for upper triangle
-            # to ensure matrix symmetry
-            for i in range(n_jobs):
-                # Diagonal is always 1.0
-                similarity_matrix[i, i] = 1.0
-                
-                # Calculate upper triangle only
-                for j in range(i+1, n_jobs):
-                    # Calculate enhanced similarity
-                    similarity = self.calculate_job_similarity(ids[i], ids[j])
-                    
-                    # Set both (i,j) and (j,i) to ensure symmetry
-                    similarity_matrix[i, j] = similarity
-                    similarity_matrix[j, i] = similarity
+            # Convert to numpy array for efficient computation
+            vectors_array = np.array(vectors)
+            logger.info(f"Computing similarities for {len(vectors)} jobs...")
             
-        elif entity_type.lower() == "employee":
+            # Calculate similarity matrix
+            similarity_matrix = sklearn_cosine_similarity(vectors_array)
+            logger.info(f"Completed similarity matrix calculation with shape {similarity_matrix.shape}")
+            
+            return similarity_matrix, ids
+            
+        elif analysis_type == "employee":
             if not self.employee_database:
                 raise ValueError("Employee database not set for employee similarity matrix")
             
@@ -697,7 +719,7 @@ class CosineSimilarityCalculator:
             # Calculate pairwise cosine similarity
             similarity_matrix = sklearn_cosine_similarity(vectors)
             
-        elif entity_type.lower() == "emp_job":
+        elif analysis_type == "emp_job":
             if not self.employee_database:
                 raise ValueError("Employee database not set for employee-job similarity matrix")
             
@@ -722,7 +744,7 @@ class CosineSimilarityCalculator:
             return similarity_matrix, employee_ids, job_ids
             
         else:
-            raise ValueError(f"Invalid entity type: {entity_type}. Must be 'job', 'employee', or 'emp_job'")
+            raise ValueError(f"Invalid analysis type: {analysis_type}. Must be 'job', 'employee', or 'emp_job'")
         
         # Ensure values are within [0, 1] range
         similarity_matrix = np.clip(similarity_matrix, 0, 1)
