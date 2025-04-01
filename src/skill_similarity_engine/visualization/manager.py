@@ -80,8 +80,8 @@ class VisualisationManager:
         # Get the similarity matrix for the department if specified
         if department:
             df = self.exporter.export_job_similarity_matrix(
-                similarity_matrix,
-                department=department
+                department=department,
+                config=ReportConfig(format="csv")
             )
         else:
             df = similarity_matrix
@@ -141,8 +141,8 @@ class VisualisationManager:
         df = similarity_matrix
         if department:
             df = self.exporter.export_job_similarity_matrix(
-                similarity_matrix,
-                department=department
+                department=department,
+                config=ReportConfig(format="csv")
             )
         
         # Create hexbin plot
