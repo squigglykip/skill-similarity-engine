@@ -111,7 +111,8 @@ class GapAnalysisConfig:
             "Methodology": 1.2,
             "Tool": 1.2,
             "Certification": 0.8,
-            "Other": 1.0
+            # Removed "Other" as it's not in the SkillType enum
+            "Unknown": 1.0  # Added "Unknown" as a fallback for missing categories
         }
 
 
