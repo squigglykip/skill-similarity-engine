@@ -11,6 +11,10 @@ import sys
 import unittest
 import pandas as pd
 import numpy as np
+
+# Use non-GUI backend for matplotlib to avoid Tkinter dependency
+import matplotlib
+matplotlib.use('Agg')  # This must be done before importing pyplot
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import KMeans, DBSCAN

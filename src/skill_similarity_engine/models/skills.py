@@ -34,6 +34,15 @@ class SkillType(Enum):
         Raises:
             ValueError: If the string doesn't match any known skill type
         """
+        # Handle the case where the full enum is provided (e.g., "SkillType.SPECIALIZED")
+        if isinstance(type_str, str) and type_str.startswith("SkillType."):
+            # Extract the part after "SkillType."
+            type_str = type_str.split(".", 1)[1]
+        
+        # Direct enum name match (case-insensitive)
+        if isinstance(type_str, str) and type_str.upper() in ["COMMON", "SPECIALIZED", "CERTIFICATION"]:
+            return getattr(cls, type_str.upper())
+        
         type_map = {
             "common": cls.COMMON,
             "common skill": cls.COMMON,
@@ -115,7 +124,9 @@ class Skill:
         # Convert string skill type to enum if needed
         if isinstance(self.skill_type, str):
             try:
+                print(f"Converting skill type for {self.skill_id}: '{self.skill_type}' to enum")
                 self.skill_type = SkillType.from_string(self.skill_type)
+                print(f"  Result: {self.skill_type}")
             except ValueError as e:
                 raise ValueError(f"Invalid skill type for {self.name}: {e}")
     

@@ -1,19 +1,19 @@
-skill_id,name,category,subcategory,description,skill_type
-S001,Python,Programming,Backend,Python programming language,SPECIALIZED
-S002,Java,Programming,Backend,Java programming language,SPECIALIZED
-S003,JavaScript,Programming,Frontend,JavaScript programming language,SPECIALIZED
-S004,SQL,Data,Database,SQL database query language,SPECIALIZED
-S005,Data Analysis,Data,Analytics,Data analysis techniques,SPECIALIZED
-S006,Machine Learning,Data,AI,Machine learning algorithms and techniques,SPECIALIZED
-S007,Communication,Soft Skills,Interpersonal,Effective verbal and written communication,COMMON
-S008,Leadership,Soft Skills,Management,Team leadership and management,COMMON
-S009,Problem Solving,Soft Skills,Critical Thinking,Analytical and problem solving skills,COMMON
-S010,React,Programming,Frontend,React JavaScript library,SPECIALIZED
-S011,Docker,DevOps,Containerization,Docker containerization platform,SPECIALIZED
-S012,Teamwork,Soft Skills,Collaboration,Working effectively in a team environment,COMMON
-S013,AWS Certified,Cloud,Amazon,AWS certification,CERTIFICATION
-S014,MCSA,Systems,Microsoft,Microsoft Certified Solutions Associate,CERTIFICATION
-S015,PMP,Project Management,PMI,Project Management Professional certification,CERTIFICATION
-S016,Agile,Project Management,Methodologies,Agile development methodologies,COMMON
-S017,Node.js,Programming,Backend,Node.js JavaScript runtime,SPECIALIZED
-S018,Google Cloud,Cloud,Google,Google Cloud Platform certification,CERTIFICATION 
+skill_id,name,category,category_id,description
+S001,Python,SkillType.SPECIALIZED,Programming,Backend
+S002,Java,SkillType.SPECIALIZED,Programming,Backend
+S003,JavaScript,SkillType.SPECIALIZED,Programming,Frontend
+S004,SQL,SkillType.SPECIALIZED,Data,Database
+S005,Data Analysis,SkillType.SPECIALIZED,Data,Analytics
+S006,Machine Learning,SkillType.SPECIALIZED,Data,AI
+S007,Communication,SkillType.COMMON,Soft Skills,Interpersonal
+S008,Leadership,SkillType.COMMON,Soft Skills,Management
+S009,Problem Solving,SkillType.COMMON,Soft Skills,Critical Thinking
+S010,Project Management,SkillType.COMMON,Management,Planning
+S011,Agile,SkillType.COMMON,Methodology,Project Management
+S012,Design Thinking,SkillType.COMMON,Methodology,Innovation
+S013,AWS Certified,SkillType.CERTIFICATION,Cloud,Infrastructure
+S014,Google Cloud Certified,SkillType.CERTIFICATION,Cloud,Infrastructure
+S015,Microsoft Azure Certified,SkillType.CERTIFICATION,Cloud,Infrastructure
+S016,Scrum Master,SkillType.CERTIFICATION,Methodology,Project Management
+S017,Digital Marketing,SkillType.SPECIALIZED,Marketing,Strategy
+S018,SEO,SkillType.SPECIALIZED,Marketing,Analytics 

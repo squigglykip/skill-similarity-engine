@@ -34,6 +34,7 @@ from skill_similarity_engine.data.loaders import JobArchitectureLoader
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
 from skill_similarity_engine.analysis.gap import TeamGapAnalyzer
 from skill_similarity_engine.hris_adapter.transformer import HRISTransformer
+from tests.functional import BaseFunctionalTest
 
 # Custom TfidfVectorizer for testing
 class TfidfVectorizer:
@@ -252,7 +253,7 @@ class TeamGapAnalyzer:
         # Return as DataFrame
         return pd.DataFrame(gap_data)
 
-class TestJobTransitionPathways(unittest.TestCase):
+class TestJobTransitionPathways(BaseFunctionalTest):
     """Test job transition pathway identification and validation."""
     
     @classmethod
@@ -261,196 +262,58 @@ class TestJobTransitionPathways(unittest.TestCase):
         # Define data paths
         cls.use_real_data = os.environ.get("USE_REAL_DATA", "False").lower() == "true"
         
-        if cls.use_real_data:
-            # Path to real data
-            cls.data_dir = os.environ.get("REAL_DATA_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'real'))
-            logger.info(f"Using real data from: {cls.data_dir}")
-            
-            # Check if real data directory exists
-            if not os.path.exists(cls.data_dir):
-                logger.warning(f"Real data directory does not exist: {cls.data_dir}")
-                logger.warning("Falling back to sample data")
-                cls.use_real_data = False
-        
-        # Use sample data as fallback
-        if not cls.use_real_data:
-            cls.data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'sample')
-            logger.info(f"Using sample data from: {cls.data_dir}")
-        
         # Setup output directory for test artifacts
         cls.output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'output', 'tests', 'transition_paths')
         os.makedirs(cls.output_dir, exist_ok=True)
         
-        # Create a temporary directory for HRIS adapter files
-        cls.temp_dir = tempfile.TemporaryDirectory()
-        
-        # Set up HRIS transformer for data processing
-        try:
-            logger.info("Setting up HRIS transformer...")
-            
-            # Create HRIS input files from sample data
-            cls.hris_jobs_path = os.path.join(cls.temp_dir.name, "hris_jobs.csv")
-            cls.hris_skills_path = os.path.join(cls.temp_dir.name, "hris_skills.csv")
-            cls.hris_job_skills_path = os.path.join(cls.temp_dir.name, "hris_job_skills.csv")
-            
-            # Copy sample data to HRIS format
-            shutil.copy(os.path.join(cls.data_dir, 'jobs.csv'), cls.hris_jobs_path)
-            shutil.copy(os.path.join(cls.data_dir, 'skills.csv'), cls.hris_skills_path)
-            
-            # Extract job-skills from the jobs.csv file to create job-skills mapping
-            jobs_df = pd.read_csv(os.path.join(cls.data_dir, 'jobs.csv'))
-            job_skills_rows = []
-            
-            for _, row in jobs_df.iterrows():
-                if pd.notna(row.get('skills')) and row['skills']:
-                    # Handle both comma and semicolon separators
-                    separator = ';' if ';' in row['skills'] else ','
-                    for skill_entry in row['skills'].split(separator):
-                        if ':' in skill_entry:
-                            parts = skill_entry.split(':')
-                            if len(parts) == 2:
-                                skill_id, proficiency = parts
-                                job_skills_rows.append({
-                                    'job_id': row['job_id'],
-                                    'skill_id': skill_id.strip(),
-                                    'proficiency': proficiency.strip()
-                                })
-            
-            # Save job-skills mapping to CSV
-            pd.DataFrame(job_skills_rows).to_csv(cls.hris_job_skills_path, index=False)
-            
-            # Create HRIS schema mapping file
-            cls.hris_config_path = os.path.join(cls.temp_dir.name, "hris_config.yaml")
-            with open(cls.hris_config_path, 'w') as f:
-                f.write("""
-# HRIS Schema Mapping Configuration for Testing
-hris_data:
-  jobs_file: {jobs_file}
-  skills_file: {skills_file}
-  job_skills_file: {job_skills_file}
-  file_format: csv
-  encoding: utf-8
-  delimiter: ","
-  has_header: true
-
-output_data:
-  jobs_file: {output_dir}/jobs.csv
-  skills_file: {output_dir}/skills.csv
-
-jobs_mapping:
-  job_id: job_id
-  title: title
-  department: department
-  level: level
-
-skills_mapping:
-  skill_id: skill_id
-  name: name
-  category: category
-
-job_skills_mapping:
-  job_id: job_id
-  skill_id: skill_id
-  proficiency: proficiency
-
-salary_group_mapping:
-  Group 1:
-    level: ENTRY
-    seniority: 1
-  Group 2:
-    level: ASSOCIATE
-    seniority: 2
-  Group 3:
-    level: PROFESSIONAL
-    seniority: 3
-  Group 4:
-    level: PROFESSIONAL
-    seniority: 4
-  Group 5:
-    level: SENIOR
-    seniority: 5
-  Group 6:
-    level: PRINCIPAL
-    seniority: 6
-  Group 7:
-    level: EXECUTIVE
-    seniority: 7
-
-transformation_options:
-  use_binary_skills: false
-  default_proficiency: 3
-                """.format(
-                    jobs_file=cls.hris_jobs_path.replace('\\', '/'),
-                    skills_file=cls.hris_skills_path.replace('\\', '/'),
-                    job_skills_file=cls.hris_job_skills_path.replace('\\', '/'),
-                    output_dir=cls.temp_dir.name.replace('\\', '/')
-                ))
-            
-            # Transform HRIS data
-            logger.info("Transforming HRIS data...")
-            transformer = HRISTransformer(config_path=cls.hris_config_path)
-            transformed_jobs_path, transformed_skills_path = transformer.transform()
-            
-            # Load transformed data
-            logger.info("Loading skill taxonomy from transformed data...")
-            cls.skill_taxonomy = SkillTaxonomy.from_file(transformed_skills_path)
-            logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
-            
-            logger.info("Loading job architecture from transformed data...")
-            cls.job_architecture = JobArchitecture.from_file(transformed_jobs_path)
-            logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
-            
-        except Exception as e:
-            logger.warning(f"Failed to use HRIS adapter for test setup: {e}")
-            logger.warning("Falling back to direct loading of sample data")
-            
-            # Load data directly from sample files
-            logger.info("Loading skill taxonomy...")
-            cls.skill_taxonomy = SkillTaxonomy.from_file(os.path.join(cls.data_dir, 'skills.csv'))
-            logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
-            
-            logger.info("Loading job architecture...")
-            job_loader = JobArchitectureLoader(cls.skill_taxonomy)
-            cls.job_architecture = job_loader.load_from_csv(os.path.join(cls.data_dir, 'jobs.csv'))
-            logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
-        
-        # Initialize similarity calculator
-        cls.similarity_calculator = CosineSimilarityCalculator(
-            vectorizer=TfidfVectorizer(),  # Use our custom TfidfVectorizer
-            skill_taxonomy=cls.skill_taxonomy,
-            job_architecture=cls.job_architecture
-        )
-        
-        # Initialize gap analyzer
-        cls.gap_analyzer = TeamGapAnalyzer(
-            skill_taxonomy=cls.skill_taxonomy,
-            job_architecture=cls.job_architecture,
-            employee_database=None  # Add empty employee database parameter
-        )
-        
-        # Initialize pathway generator
-        cls.pathway_generator = CareerPathwayGenerator(
-            skill_taxonomy=cls.skill_taxonomy,
-            job_architecture=cls.job_architecture,
-            similarity_calculator=cls.similarity_calculator,
-            gap_analyzer=cls.gap_analyzer
-        )
-        
-        # Get departments for testing
-        cls.departments = set(job.department for job in cls.job_architecture.jobs.values())
-        logger.info(f"Found {len(cls.departments)} departments")
+        # The rest of the setup will happen in setUp()
     
     @classmethod
     def tearDownClass(cls):
         """Clean up after all tests."""
-        if hasattr(cls, 'temp_dir'):
-            cls.temp_dir.cleanup()
+        pass
     
     def setUp(self):
         """Set up test fixtures for each test."""
+        # Call parent setUp to get centralized test data
+        super().setUp()
+        
         # Skip tests if using sample data but real data is required
+        if not hasattr(self, 'use_real_data'):
+            self.__class__.use_real_data = False
         if not self.use_real_data and os.environ.get("REQUIRE_REAL_DATA", "False").lower() == "true":
             self.skipTest("These tests require real data.")
+        
+        # Initialize similarity calculator
+        self.similarity_calculator = CosineSimilarityCalculator(
+            vectorizer=TfidfVectorizer(),  # Use our custom TfidfVectorizer
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture
+        )
+        
+        # Initialize gap analyzer
+        self.gap_analyzer = TeamGapAnalyzer(
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture,
+            employee_database=self.employee_database
+        )
+        
+        # Initialize pathway generator
+        self.pathway_generator = CareerPathwayGenerator(
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture,
+            similarity_calculator=self.similarity_calculator,
+            gap_analyzer=self.gap_analyzer
+        )
+        
+        # Get departments for testing
+        self.departments = set(job.department for job in self.job_architecture.jobs.values())
+        logger.info(f"Found {len(self.departments)} departments")
+        
+        # Set output directory for this test class
+        if not hasattr(self.__class__, 'output_dir'):
+            self.__class__.output_dir = os.path.join(self.output_dir, 'transition_paths')
+            os.makedirs(self.__class__.output_dir, exist_ok=True)
     
     def test_direct_transition_identification(self):
         """Test identification of direct job transitions based on similarity."""

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
 
 from ..config.settings import ConfigManager
@@ -705,10 +706,63 @@ class CosineSimilarityCalculator:
             # Calculate pairwise cosine similarity
             similarity_matrix = sklearn_cosine_similarity(vectors)
             
+        elif entity_type.lower() == "emp_job":
+            if not self.employee_database:
+                raise ValueError("Employee database not set for employee-job similarity matrix")
+            
+            # Get all employee and job IDs in consistent order
+            employee_ids = list(self.employee_vectors.keys())
+            job_ids = list(self.job_vectors.keys())
+            
+            # Initialize matrix with employees as rows and jobs as columns
+            n_employees = len(employee_ids)
+            n_jobs = len(job_ids)
+            similarity_matrix = np.zeros((n_employees, n_jobs))
+            
+            # Calculate similarities between each employee and job
+            for i, employee_id in enumerate(employee_ids):
+                employee_vector = self.employee_vectors[employee_id].reshape(1, -1)
+                for j, job_id in enumerate(job_ids):
+                    job_vector = self.job_vectors[job_id].reshape(1, -1)
+                    similarity = float(sklearn_cosine_similarity(employee_vector, job_vector)[0, 0])
+                    similarity_matrix[i, j] = similarity
+            
+            # Return matrix, employee IDs, and job IDs
+            return similarity_matrix, employee_ids, job_ids
+            
         else:
-            raise ValueError(f"Invalid entity type: {entity_type}. Must be 'job' or 'employee'")
+            raise ValueError(f"Invalid entity type: {entity_type}. Must be 'job', 'employee', or 'emp_job'")
         
         # Ensure values are within [0, 1] range
         similarity_matrix = np.clip(similarity_matrix, 0, 1)
         
-        return similarity_matrix, ids 
+        return similarity_matrix, ids
+        
+    def calculate_employee_job_similarity_matrix(self, employee_db, job_arch):
+        """
+        Calculate a similarity matrix between employees and jobs.
+        
+        Args:
+            employee_db: The employee database
+            job_arch: The job architecture
+            
+        Returns:
+            Pandas DataFrame with employee IDs as rows and job IDs as columns,
+            containing similarity scores between each employee and job
+        """
+        import pandas as pd
+        
+        # Ensure employee database is set
+        if not self.employee_database:
+            self.employee_database = employee_db
+            # Pre-compute vectors for all employees
+            for employee_id, employee in employee_db.employees.items():
+                self.employee_vectors[employee_id] = self.vectorizer.transform_employee(employee)
+        
+        # Calculate similarity matrix
+        similarity_matrix, employee_ids, job_ids = self.calculate_similarity_matrix("emp_job")
+        
+        # Convert to pandas DataFrame for easier manipulation and output
+        df = pd.DataFrame(similarity_matrix, index=employee_ids, columns=job_ids)
+        
+        return df 
