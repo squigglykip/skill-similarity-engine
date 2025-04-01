@@ -3,6 +3,7 @@ Visualisation manager for generating various visualizations of skill and job dat
 """
 
 import os
+import logging
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,10 +11,12 @@ import seaborn as sns
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
-from skill_similarity_engine.models.skills import SkillTaxonomy
-from skill_similarity_engine.models.jobs import JobArchitecture
-from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
-from skill_similarity_engine.visualization.reports import DataExporter, ReportConfig
+from ..models.skills import SkillTaxonomy
+from ..models.jobs import JobArchitecture
+from ..similarity.cosine import CosineSimilarityCalculator
+from .reports import DataExporter, ReportConfig
+
+logger = logging.getLogger("skill_similarity_engine")
 
 
 @dataclass
@@ -115,76 +118,67 @@ class VisualisationManager:
     
     def generate_hexbin_visualization(
         self,
-        department: str,
-        output_path: Optional[str] = None,
+        similarity_matrix: pd.DataFrame,
+        department: Optional[str] = None,
+        output_dir: str = ".",
+        filename: str = "job_similarity_hexbin.png",
         color_scheme: str = "viridis",
         figsize: tuple = (10, 8),
         dpi: int = 300
-    ) -> str:
+    ) -> None:
         """Generate a hexbin visualization of job similarities.
         
         Args:
-            department: Department to visualize
-            output_path: Path to save the visualization (if None, auto-generated)
+            similarity_matrix: DataFrame containing similarity scores
+            department: Optional department to filter by
+            output_dir: Directory to save the visualization
+            filename: Name of the output file
             color_scheme: Matplotlib colormap name
             figsize: Figure size (width, height)
             dpi: Dots per inch for the output image
-            
-        Returns:
-            Path to the generated visualization
         """
         # Get job similarities for the department
-        df = self.exporter.export_job_similarity_matrix(
-            department=department,
-            config=ReportConfig(format="csv")
-        )
+        df = similarity_matrix
+        if department:
+            df = self.exporter.export_job_similarity_matrix(
+                similarity_matrix,
+                department=department
+            )
         
         # Create hexbin plot
         plt.figure(figsize=figsize)
-        
-        # Determine column names based on what's in the DataFrame
-        job1_col = "job1_id" if "job1_id" in df.columns else "job_id_1"
-        job2_col = "job2_id" if "job2_id" in df.columns else "job_id_2"
-        similarity_col = "similarity" if "similarity" in df.columns else "similarity_score"
-        
         plt.hexbin(
-            df[job1_col],
-            df[job2_col],
-            C=df[similarity_col],
+            df.index,
+            df.columns,
+            C=df.values.flatten(),
             cmap=color_scheme,
             gridsize=20
         )
         plt.colorbar(label="Similarity")
-        plt.title(f"Job Similarity Hexbin Plot - {department}")
+        plt.title(f"Job Similarity Hexbin Plot{' - ' + department if department else ''}")
         plt.xlabel("Job ID 1")
         plt.ylabel("Job ID 2")
         plt.tight_layout()
         
-        # Save the plot
-        if output_path is None:
-            output_path = os.path.join(
-                self.output_dir,
-                f"job_similarity_hexbin_{department.lower()}.png"
-            )
-        plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
+        # Save plot
+        output_path = os.path.join(output_dir, filename)
+        plt.savefig(output_path, dpi=dpi)
         plt.close()
         
-        return output_path
+        logger.info(f"Saved hexbin plot to: {output_path}")
     
     def export_job_similarity_matrix(
         self,
+        similarity_matrix: pd.DataFrame,
         department: Optional[str] = None,
-        departments: Optional[List[str]] = None,
-        threshold: float = 0.0,
         output_path: Optional[str] = None,
         config: Optional[ReportConfig] = None
     ) -> pd.DataFrame:
         """Export job similarity matrix to CSV or JSON.
         
         Args:
-            department: Single department to include (for backward compatibility)
-            departments: List of departments to include (None for all)
-            threshold: Minimum similarity to include
+            similarity_matrix: DataFrame containing similarity scores
+            department: Optional department to filter by
             output_path: Path to save the export (if None, auto-generated)
             config: Report configuration (if None, defaults to CSV)
             
@@ -200,31 +194,21 @@ class VisualisationManager:
                 "job_similarity_matrix.csv"
             )
         
-        # Handle either single department or list of departments
-        used_department = None
-        if department:
-            used_department = department
-        elif departments and len(departments) > 0:
-            used_department = departments[0]  # Just use the first department for now
-        
         # Get the similarity matrix
-        df = self.exporter.export_job_similarity_matrix(
-            department=used_department,
-            config=config,
-            output_path=output_path
-        )
+        df = similarity_matrix
+        if department:
+            df = self.exporter.export_job_similarity_matrix(
+                similarity_matrix,
+                department=department
+            )
         
-        # Apply threshold if specified
-        if threshold > 0:
-            df = df[df["similarity"] >= threshold]
-        
-        # Save filtered results if output path is provided
+        # Save results if output path is provided
         if output_path:
             if config.format.lower() == "csv":
-                df.to_csv(output_path, index=False)
+                df.to_csv(output_path)
             elif config.format.lower() == "json":
-                df.to_json(output_path, orient="records", indent=2)
+                df.to_json(output_path, orient="split", indent=2)
             elif config.format.lower() == "excel":
-                df.to_excel(output_path, index=False)
+                df.to_excel(output_path)
         
         return df 
