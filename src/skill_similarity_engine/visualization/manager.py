@@ -58,80 +58,60 @@ class VisualisationManager:
     
     def generate_job_similarity_heatmap(
         self,
-        departments: Optional[List[str]] = None,
-        similarity_threshold: float = 0.0,
-        output_path: Optional[str] = None,
-        color_scheme: str = "viridis",
-        figsize: tuple = (10, 8),
-        dpi: int = 300
-    ) -> str:
-        """Generate a heatmap visualization of job similarities.
+        similarity_matrix: pd.DataFrame,
+        department: Optional[str] = None,
+        output_dir: str = ".",
+        filename: str = "job_similarity_heatmap.png"
+    ) -> None:
+        """
+        Generate a heatmap visualization of job similarities.
         
         Args:
-            departments: List of departments to include (None for all)
-            similarity_threshold: Minimum similarity to include
-            output_path: Path to save the heatmap (if None, auto-generated)
-            color_scheme: Matplotlib colormap name
-            figsize: Figure size (width, height)
-            dpi: Dots per inch for the output image
-            
-        Returns:
-            Path to the generated heatmap image
+            similarity_matrix: DataFrame containing similarity scores
+            department: Optional department to filter by
+            output_dir: Directory to save the visualization
+            filename: Name of the output file
         """
-        # Get job similarities
-        if departments and len(departments) > 0:
-            # DataExporter expects a single department, not a list
-            department = departments[0]
+        logger.debug(f"Generating heatmap for department: {department}")
+        
+        # Get the similarity matrix for the department if specified
+        if department:
             df = self.exporter.export_job_similarity_matrix(
-                department=department,
-                config=ReportConfig(format="csv")
+                similarity_matrix,
+                department=department
             )
         else:
-            # Handle the case where no departments are specified
-            # Get the first available department
-            all_departments = set(job.department for job in self.job_arch.jobs.values())
-            if not all_departments:
-                raise ValueError("No departments found in the job architecture")
-            department = next(iter(all_departments))
-            df = self.exporter.export_job_similarity_matrix(
-                department=department,
-                config=ReportConfig(format="csv")
-            )
+            df = similarity_matrix
         
-        # Apply threshold if specified
-        if similarity_threshold > 0:
-            df = df[df["similarity"] >= similarity_threshold]
-        
-        # Create pivot table for heatmap
-        pivot_df = df.pivot(
-            index="job1_id" if "job1_id" in df.columns else "job_id_1",
-            columns="job2_id" if "job2_id" in df.columns else "job_id_2",
-            values="similarity"
-        )
-        
-        # Generate heatmap
-        plt.figure(figsize=figsize)
+        # Create heatmap
+        plt.figure(figsize=(12, 10))
         sns.heatmap(
-            pivot_df,
-            cmap=color_scheme,
-            vmin=0,
-            vmax=1,
+            df,
             annot=True,
-            fmt=".2f"
+            cmap='YlOrRd',
+            fmt='.2f',
+            square=True,
+            cbar_kws={'label': 'Similarity Score'}
         )
-        plt.title("Job Similarity Heatmap")
+        
+        # Customize plot
+        plt.title(f'Job Similarity Heatmap{" - " + department if department else ""}')
+        plt.xlabel('Jobs')
+        plt.ylabel('Jobs')
+        
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        
+        # Adjust layout to prevent label cutoff
         plt.tight_layout()
         
-        # Save the plot
-        if output_path is None:
-            output_path = os.path.join(
-                self.output_dir,
-                "job_similarity_heatmap.png"
-            )
-        plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
+        # Save plot
+        output_path = os.path.join(output_dir, filename)
+        plt.savefig(output_path)
         plt.close()
         
-        return output_path
+        logger.info(f"Saved heatmap to: {output_path}")
     
     def generate_hexbin_visualization(
         self,
