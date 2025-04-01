@@ -41,7 +41,6 @@ This section outlines the expected schema for input data from HRIS systems.
 |------------------|-----------|---------------------------------------------------|----------|
 | JobID            | String    | Identifier for the job                            | Yes      |
 | Skill_ID         | String    | Identifier for the skill                          | Yes      |
-| Proficiency      | Integer   | Proficiency level (if available, typically 1-5)   | No       |
 
 ## Internal Engine Schema
 
@@ -57,7 +56,7 @@ This section details the standardised internal schema used by the Skill Similari
 | level              | Enum        | Standardised job level (e.g., "MID_LEVEL")    | Salary Group         |
 | role_track         | Enum        | Track type (e.g., "INDIVIDUAL_CONTRIBUTOR")   | People Leader Flag   |
 | location           | String      | Combined location information                 | Multiple fields      |
-| skills             | String      | Semicolon-separated list of skills with proficiency | Job-Skills mapping |
+| skills             | String      | Semicolon-separated list of skills            | Job-Skills mapping   |
 
 The `level` field uses the following enum values:
 - ENTRY

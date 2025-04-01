@@ -22,6 +22,11 @@ if src_path not in sys.path:
 
 from skill_similarity_engine.hris_adapter.transformer import HRISTransformer, HRISTransformerError
 from skill_similarity_engine.hris_adapter.config import HRISConfigLoader
+# Import test data helpers
+from tests.test_data import (
+    load_hris_jobs_df, load_hris_skills_df, load_hris_job_skills_df,
+    get_hris_config_path
+)
 
 
 class TestHRISTransformer:
@@ -33,32 +38,36 @@ class TestHRISTransformer:
         self.mock_config_loader = MagicMock(spec=HRISConfigLoader)
         
         # Add the config_path attribute to the mock
-        self.mock_config_loader.config_path = "config/hris_schema_mapping.yaml"
+        self.mock_config_loader.config_path = get_hris_config_path()
         
         # Configure the mock
         self.mock_config_loader.get_hris_data_paths.return_value = {
-            "jobs_file": "data/input/hris_jobs.csv",
-            "skills_file": "data/input/hris_skills.csv",
-            "job_skills_file": "data/input/hris_job_skills.csv"
+            "jobs_file": "tests/test_data/hris_jobs.csv",
+            "skills_file": "tests/test_data/hris_skills.csv",
+            "job_skills_file": "tests/test_data/hris_job_skills.csv"
         }
         
         self.mock_config_loader.get_output_data_paths.return_value = {
-            "jobs_file": "data/jobs.csv",
-            "skills_file": "data/skills.csv"
+            "jobs_file": "tests/test_data/jobs.csv",
+            "skills_file": "tests/test_data/skills.csv"
         }
         
+        # Configure the mock with values from the test HRIS config
         self.mock_config_loader.get_jobs_mapping.return_value = {
             "job_id": "JobID",
             "title": "RoleSet",
             "department": "Org Unit Name",
-            "level": "Salary Group"
+            "level": "Salary Group",
+            "role_track": "People Leader Flag",
+            "location": ["Street", "Suburb", "Location", "Cty"]
         }
         
         self.mock_config_loader.get_skills_mapping.return_value = {
             "skill_id": "Skill_ID",
             "name": "Skill_Name",
             "category": "SkillType",
-            "subcategory": "Category"
+            "subcategory": "Category",
+            "description": "Subcategory"
         }
         
         self.mock_config_loader.get_job_skills_mapping.return_value = {
@@ -68,9 +77,13 @@ class TestHRISTransformer:
         
         self.mock_config_loader.get_value_mappings.return_value = {
             "salary_group": {
-                "Group 1": {"level": "ENTRY", "psa": "ENTRY"},
-                "Group 2": {"level": "ASSOCIATE", "psa": "ENTRY"},
-                "Group 3": {"level": "PROFESSIONAL", "psa": "MIDRANGE"}
+                "Group 1": {"level": "ENTRY"},
+                "Group 2": {"level": "ASSOCIATE"},
+                "Group 3": {"level": "MID_LEVEL"},
+                "Group 4": {"level": "MID_LEVEL"},
+                "Group 5": {"level": "SENIOR"},
+                "Group 6": {"level": "LEAD"},
+                "Group 7": {"level": "EXECUTIVE"}
             },
             "role_track": {
                 "People Leader": "MANAGEMENT",
@@ -87,43 +100,18 @@ class TestHRISTransformer:
             "file_format": "csv",
             "encoding": "utf-8",
             "delimiter": ",",
-            "has_header": True,
-            "sheet_name": "Sheet1"
+            "has_header": True
         }
         
         self.mock_config_loader.get_transformation_options.return_value = {
-            "use_binary_skills": True,
-            "default_proficiency": 1,
-            "default_department": "General",
-            "skip_unknown_values": False,
-            "raise_error_on_unknown_values": False
+            "use_binary_skills": False,
+            "default_proficiency": 3
         }
         
-        # Create sample dataframes
-        self.sample_jobs_df = pd.DataFrame({
-            "JobID": ["J001", "J002", "J003"],
-            "RoleSet": ["Data Scientist", "Software Engineer", "Project Manager"],
-            "Org Unit Name": ["Data Science", "Engineering", "Project Management"],
-            "Salary Group": ["Group 1", "Group 2", "Group 3"],
-            "People Leader Flag": ["Non-People Leader", "Non-People Leader", "People Leader"],
-            "Street": ["123 Main St", "456 Oak Ave", "789 Pine Blvd"],
-            "Suburb": ["Downtown", "Uptown", "Midtown"],
-            "Location": ["HQ", "Branch", "HQ"],
-            "Cty": ["NYC", "LA", "NYC"]
-        })
-        
-        self.sample_skills_df = pd.DataFrame({
-            "Skill_ID": ["S001", "S002", "S003", "S004", "S005"],
-            "Skill_Name": ["Python Programming", "Data Analysis", "Project Management", "Communication", "Machine Learning"],
-            "SkillType": ["Specialized Skill", "Common Skill", "Common Skill", "Common Skill", "Specialized Skill"],
-            "Category": ["Technical", "Technical", "Soft", "Soft", "Technical"],
-            "Subcategory": ["Programming", "Analysis", "Management", "Interpersonal", "AI"]
-        })
-        
-        self.sample_job_skills_df = pd.DataFrame({
-            "JobID": ["J001", "J001", "J001", "J002", "J002", "J003", "J003"],
-            "Skill_ID": ["S001", "S002", "S005", "S001", "S004", "S003", "S004"]
-        })
+        # Load sample dataframes from test data
+        self.sample_jobs_df = load_hris_jobs_df()
+        self.sample_skills_df = load_hris_skills_df()
+        self.sample_job_skills_df = load_hris_job_skills_df()
         
         # Create patched transformer
         with patch('skill_similarity_engine.hris_adapter.transformer.HRISConfigLoader', return_value=self.mock_config_loader):

@@ -79,16 +79,33 @@ class VisualisationManager:
             Path to the generated heatmap image
         """
         # Get job similarities
-        df = self.exporter.export_job_similarity_matrix(
-            departments=departments,
-            threshold=similarity_threshold,
-            config=ReportConfig(format="csv")
-        )
+        if departments and len(departments) > 0:
+            # DataExporter expects a single department, not a list
+            department = departments[0]
+            df = self.exporter.export_job_similarity_matrix(
+                department=department,
+                config=ReportConfig(format="csv")
+            )
+        else:
+            # Handle the case where no departments are specified
+            # Get the first available department
+            all_departments = set(job.department for job in self.job_arch.jobs.values())
+            if not all_departments:
+                raise ValueError("No departments found in the job architecture")
+            department = next(iter(all_departments))
+            df = self.exporter.export_job_similarity_matrix(
+                department=department,
+                config=ReportConfig(format="csv")
+            )
+        
+        # Apply threshold if specified
+        if similarity_threshold > 0:
+            df = df[df["similarity"] >= similarity_threshold]
         
         # Create pivot table for heatmap
         pivot_df = df.pivot(
-            index="job_id_1",
-            columns="job_id_2",
+            index="job1_id" if "job1_id" in df.columns else "job_id_1",
+            columns="job2_id" if "job2_id" in df.columns else "job_id_2",
             values="similarity"
         )
         
@@ -138,16 +155,22 @@ class VisualisationManager:
         """
         # Get job similarities for the department
         df = self.exporter.export_job_similarity_matrix(
-            departments=[department],
+            department=department,
             config=ReportConfig(format="csv")
         )
         
         # Create hexbin plot
         plt.figure(figsize=figsize)
+        
+        # Determine column names based on what's in the DataFrame
+        job1_col = "job1_id" if "job1_id" in df.columns else "job_id_1"
+        job2_col = "job2_id" if "job2_id" in df.columns else "job_id_2"
+        similarity_col = "similarity" if "similarity" in df.columns else "similarity_score"
+        
         plt.hexbin(
-            df["job_id_1"],
-            df["job_id_2"],
-            C=df["similarity"],
+            df[job1_col],
+            df[job2_col],
+            C=df[similarity_col],
             cmap=color_scheme,
             gridsize=20
         )
@@ -170,6 +193,7 @@ class VisualisationManager:
     
     def export_job_similarity_matrix(
         self,
+        department: Optional[str] = None,
         departments: Optional[List[str]] = None,
         threshold: float = 0.0,
         output_path: Optional[str] = None,
@@ -178,6 +202,7 @@ class VisualisationManager:
         """Export job similarity matrix to CSV or JSON.
         
         Args:
+            department: Single department to include (for backward compatibility)
             departments: List of departments to include (None for all)
             threshold: Minimum similarity to include
             output_path: Path to save the export (if None, auto-generated)
@@ -195,9 +220,31 @@ class VisualisationManager:
                 "job_similarity_matrix.csv"
             )
         
-        return self.exporter.export_job_similarity_matrix(
-            departments=departments,
-            threshold=threshold,
+        # Handle either single department or list of departments
+        used_department = None
+        if department:
+            used_department = department
+        elif departments and len(departments) > 0:
+            used_department = departments[0]  # Just use the first department for now
+        
+        # Get the similarity matrix
+        df = self.exporter.export_job_similarity_matrix(
+            department=used_department,
             config=config,
             output_path=output_path
-        ) 
+        )
+        
+        # Apply threshold if specified
+        if threshold > 0:
+            df = df[df["similarity"] >= threshold]
+        
+        # Save filtered results if output path is provided
+        if output_path:
+            if config.format.lower() == "csv":
+                df.to_csv(output_path, index=False)
+            elif config.format.lower() == "json":
+                df.to_json(output_path, orient="records", indent=2)
+            elif config.format.lower() == "excel":
+                df.to_excel(output_path, index=False)
+        
+        return df 

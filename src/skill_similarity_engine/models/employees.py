@@ -371,8 +371,13 @@ class EmployeeDatabase:
             ValueError: If the file type is not supported
         """
         from ..data.loaders import EmployeeLoader
+        from ..models.skills import SkillTaxonomy
         
-        loader = EmployeeLoader(job_architecture)
+        # Create empty skill taxonomy if not provided
+        # This is needed because EmployeeLoader requires both parameters
+        skill_taxonomy = SkillTaxonomy()
+        
+        loader = EmployeeLoader(skill_taxonomy, job_architecture)
         if file_path.endswith('.csv'):
             return loader.load_from_csv(file_path)
         elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):

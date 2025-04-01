@@ -159,39 +159,16 @@ class TestCosineSimilarityCalculator(unittest.TestCase):
 
 
 class TestCosineSimilarityCalculatorWithRealData(unittest.TestCase):
-    """Unit tests for CosineSimilarityCalculator using real sample data."""
+    """Unit tests for CosineSimilarityCalculator using standardized test data."""
     
     def setUp(self):
-        """Set up test environment with real sample data."""
-        # Get the path to sample data
-        sample_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'sample')
+        """Set up test environment with standardized test data."""
+        # Import test data helpers
+        from tests.test_data import load_skill_taxonomy, load_job_architecture
         
-        # Load skill taxonomy from sample data
-        self.taxonomy = SkillTaxonomy()
-        skills_df = pd.read_csv(os.path.join(sample_dir, 'skills.csv'))
-        for _, row in skills_df.iterrows():
-            self.taxonomy.add_skill(Skill(skill_id=row['skill_id'], name=row['name']))
-        
-        # Load job architecture from sample data
-        self.job_arch = JobArchitecture()
-        jobs_df = pd.read_csv(os.path.join(sample_dir, 'jobs.csv'))
-        for _, row in jobs_df.iterrows():
-            # Convert skills string to dictionary
-            skills_dict = {}
-            if pd.notna(row['skills']):  # Check if skills field is not NaN
-                skills_list = row['skills'].split(',')
-                for skill in skills_list:
-                    skill_id, level = skill.split(':')
-                    skills_dict[skill_id] = int(level)
-            
-            job = Job(
-                job_id=row['job_id'],
-                title=row['title'],
-                department=row['department'],
-                level=JobLevel(row['level']),
-                skills=skills_dict
-            )
-            self.job_arch.add_job(job)
+        # Load models from test data
+        self.taxonomy = load_skill_taxonomy()
+        self.job_arch = load_job_architecture()
         
         # Initialize the vectorizer and similarity calculator
         self.vectorizer = TfidfVectorizer(self.taxonomy)
@@ -200,6 +177,9 @@ class TestCosineSimilarityCalculatorWithRealData(unittest.TestCase):
             skill_taxonomy=self.taxonomy,
             job_architecture=self.job_arch
         )
+        
+        # Prepare job vectors
+        self.calculator.prepare_job_vectors()
     
     def test_calculator_initialization_with_real_data(self):
         """Test that the calculator is initialized correctly with real data."""
