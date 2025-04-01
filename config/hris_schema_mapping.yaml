@@ -11,21 +11,21 @@
 
 # Source HRIS data files
 hris_data:
-  jobs_file: "data/input/hris_jobs.csv"        # Path to raw HRIS job data
-  skills_file: "data/input/hris_skills.csv"   # Path to raw HRIS skills data
-  job_skills_file: "data/input/hris_job_skills.csv"  # Path to raw HRIS job-skill mappings
+  jobs_file: data/poc/jobs_data_20250331_175651.csv
+  skills_file: data/poc/skills_data_20250331_175651.csv
+  job_skills_file: data/poc/job_skills_mapping_20250331_175651.csv
 
   # File format settings
-  file_format: "csv"           # Supported formats: csv, xlsx, json
-  encoding: "utf-8"            # File encoding
-  delimiter: ","               # CSV delimiter character
-  has_header: true             # Whether files have headers
-  sheet_name: "Sheet1"         # Excel sheet name (for xlsx format)
+  file_format: csv
+  encoding: utf-8
+  delimiter: ','
+  has_header: true
 
 # Output transformed data files
 output_data:
-  jobs_file: "data/jobs.csv"          # Path to transformed jobs data
-  skills_file: "data/skills.csv"      # Path to transformed skills data
+  jobs_file: "./transformed/jobs.csv"
+  skills_file: "./transformed/skills.csv"
+  employees_file: "./transformed/employees.csv"
 
 # ==========================================
 # COLUMN MAPPINGS - JOBS
@@ -34,13 +34,13 @@ output_data:
 # Map HRIS job data columns to engine job fields
 jobs_mapping:
   # Required fields
-  job_id: "JobID"                # Column containing job identifier
-  title: "RoleSet"               # Column containing job title
-  department: "Org Unit Name"    # Column containing department name
-  level: "Salary Group"          # Column containing job level and pay scale combined
+  job_id: JobID
+  title: RoleSet
+  department: Org Unit Name
+  level: Salary Group
 
   # Optional fields
-  role_track: "People Leader Flag"  # Column indicating if role is a people leader
+  role_track: People Leader Flag
   location: ["Street", "Suburb", "Location", "Cty"]  # Array of location fields to concatenate
 
 # ==========================================
@@ -50,13 +50,17 @@ jobs_mapping:
 # Map HRIS skill data columns to engine skill fields
 skills_mapping:
   # Required fields
-  skill_id: "Skill_ID"              # Column containing skill identifier
-  name: "Skill_Name"                # Column containing skill name
+  skill_id: Skill_ID
+  name: Skill_Name
   
   # Optional fields
-  category: "SkillType"             # Primary categorization field (Certification/Common Skill/Specialized Skill)
-  subcategory: "Category"           # Secondary categorization field (e.g., Finance, Customer Support)
-  subsubcategory: "Subcategory"     # Tertiary categorization field (e.g., Financial Advisement, Customer Service)
+  skill_type: SkillType     # Map HRIS SkillType directly to our skill_type
+  category: Category        # Map HRIS Category directly to our category
+  subcategory: Subcategory  # Map HRIS Subcategory directly to our subcategory
+  description: Description  # Map HRIS Description directly to our description
+  aliases: Aliases
+  related_skills: Related_Skills
+  prerequisites: Prerequisites
 
 # ==========================================
 # COLUMN MAPPINGS - JOB SKILLS
@@ -64,8 +68,8 @@ skills_mapping:
 
 # Map HRIS job-skill mapping data columns
 job_skills_mapping:
-  job_id: "JobID"                # Column containing job identifier
-  skill_id: "Skill_ID"              # Column containing skill identifier
+  job_id: JobID
+  skill_id: Skill_ID
 
 # ==========================================
 # VALUE MAPPINGS AND TRANSFORMATIONS
@@ -106,10 +110,10 @@ role_track_mapping:
 
 transformation_options:
   # Whether to use binary skill representation (has/doesn't have)
-  use_binary_skills: true  # Set to true since we don't have proficiency levels
+  use_binary_skills: false
 
   # Default proficiency level when not specified
-  default_proficiency: 1  # Set to 1 since we're using binary representation
+  default_proficiency: 3
 
   # Default department when not specified
   default_department: "General"
@@ -120,6 +124,15 @@ transformation_options:
 
   # Location formatting
   location_format: "{Street}, {Suburb}, {Location}, {Cty}"  # Format string for location concatenation
+
+  # Skill type mapping - how to transform HRIS skill type values to our internal values
+  skill_type_mapping:
+    "Common Skill": "COMMON"
+    "Specialized Skill": "SPECIALIZED"
+    "Certification": "CERTIFICATION"
+    "Technical Skill": "SPECIALIZED"
+    "Soft Skill": "COMMON"
+    "Other": "COMMON"
 
 # ==========================================
 # TEXT PROCESSING OPTIONS (for skill extraction)

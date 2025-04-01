@@ -96,13 +96,23 @@ class HRISWorkflow:
         """
         self.logger.info("Loading transformed data into model objects")
         
+        # Ensure we use absolute paths
+        jobs_path = os.path.abspath(jobs_path)
+        skills_path = os.path.abspath(skills_path)
+        
+        # Store these for later use by other components
+        self.jobs_path = jobs_path
+        self.skills_path = skills_path
+        
         # Load skill taxonomy
         self.logger.info(f"Loading skill taxonomy from: {skills_path}")
         taxonomy = SkillTaxonomy.from_file(skills_path)
+        self.taxonomy = taxonomy
         
         # Load job architecture
         self.logger.info(f"Loading job architecture from: {jobs_path}")
         job_arch = JobArchitecture.from_file(jobs_path)
+        self.job_architecture = job_arch
         
         # Load employee database if available
         employee_db = None
@@ -114,6 +124,7 @@ class HRISWorkflow:
             except TypeError:
                 # Try without job_arch parameter if signature has changed
                 employee_db = EmployeeDatabase.from_file(employee_path)
+            self.employee_db = employee_db
         
         return taxonomy, job_arch, employee_db
     

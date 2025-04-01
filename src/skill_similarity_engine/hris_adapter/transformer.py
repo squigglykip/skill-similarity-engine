@@ -307,119 +307,81 @@ class HRISTransformer:
         # Map skill fields
         skill_mapping = self.config['skills_mapping']
         
-        # Get value mappings
-        value_mappings = self.config.get('value_mappings', {})
-        skill_type_mappings = value_mappings.get('skill_type', {})
+        # Get transformation options
+        transformation_options = self.config.get('transformation_options', {})
+        
+        # Get skill type mapping if available
+        skill_type_mapping = transformation_options.get('skill_type_mapping', {})
         
         # Create output dataframe
         output_skills = []
         
         # Process each skill
         for _, skill in skills_df.iterrows():
+            # Extract required fields
             skill_id = skill[skill_mapping['skill_id']]
             name = skill[skill_mapping['name']]
             
-            # Get category if available (now will be stored as skill_type or category depending on context)
-            if 'category' in skill_mapping and skill_mapping['category'] in skill:
-                category_value = skill[skill_mapping['category']]
-                
-                # Apply skill type mapping if available
-                try:
-                    # Try to import SkillType for real transformations
-                    try:
-                        from skill_similarity_engine.models.skills import SkillType
-                        
-                        if category_value in skill_type_mappings:
-                            # Try to convert mapped value to enum
-                            mapped_value = skill_type_mappings[category_value]
-                            if isinstance(mapped_value, str):
-                                skill_type = SkillType.from_string(mapped_value)
-                            else:
-                                # Assume it's already the right enum value
-                                skill_type = mapped_value
-                        else:
-                            # Try to convert the raw value to enum
-                            skill_type = SkillType.from_string(category_value)
-                    except ImportError:
-                        # For unit tests where SkillType might not be available,
-                        # just use the string value from the mapping
-                        if category_value in skill_type_mappings:
-                            skill_type = skill_type_mappings[category_value]
-                        else:
-                            skill_type = category_value
-                except (ValueError, KeyError):
-                    # Default to COMMON if conversion fails
-                    # In case SkillType is imported, use the enum, otherwise use string
-                    try:
-                        skill_type = SkillType.COMMON
-                    except NameError:
-                        skill_type = "COMMON"
-                    logger.warning(f"Could not map skill type '{category_value}' for skill '{name}', using default COMMON")
-            else:
-                # Default skill type - handle both cases
-                try:
-                    from skill_similarity_engine.models.skills import SkillType
-                    skill_type = SkillType.COMMON
-                except ImportError:
-                    skill_type = "COMMON"
-            
-            # Get subcategory if available
-            subcategory = None
-            if 'subcategory' in skill_mapping and skill_mapping['subcategory'] in skill:
-                subcategory = skill[skill_mapping['subcategory']]
-            
-            # Get description if available
-            description = ""
-            if 'description' in skill_mapping and skill_mapping['description'] in skill:
-                description = skill[skill_mapping['description']]
-            
-            # Create skill entry with the expected schema
-            # For backwards compatibility, provide both category and skill_type
+            # Initialize skill entry with required fields
             skill_entry = {
                 'skill_id': skill_id,
                 'name': name
             }
             
-            # Handle both category and skill_type for different test cases
-            if 'category' in str(type(skill_type)):
-                skill_entry['skill_type'] = skill_type
-                skill_entry['category'] = str(skill_type.name)
-            else:
-                # For string-based skill types, ensure they are in uppercase for compatibility
-                if isinstance(skill_type, str):
-                    # Use uppercase strings for the expected test format
-                    if skill_type.upper() in ["COMMON", "SPECIALIZED", "CERTIFICATION"]:
-                        skill_entry['category'] = skill_type.upper()
-                    else:
-                        # Default to one of the expected values for tests
-                        skill_entry['category'] = "COMMON"
-                else:
-                    skill_entry['category'] = str(skill_type)
+            # Process skill_type - this should be mapped directly from HRIS SkillType to our skill_type
+            if 'skill_type' in skill_mapping and skill_mapping['skill_type'] in skill:
+                hris_skill_type = skill[skill_mapping['skill_type']]
                 
-                # Try to provide skill_type if possible
-                try:
-                    from skill_similarity_engine.models.skills import SkillType
-                    if skill_type == "COMMON" or skill_type.upper() == "COMMON":
-                        skill_entry['skill_type'] = SkillType.COMMON
-                    elif skill_type == "SPECIALIZED" or skill_type.upper() == "SPECIALIZED":
-                        skill_entry['skill_type'] = SkillType.SPECIALIZED
-                    elif skill_type == "CERTIFICATION" or skill_type.upper() == "CERTIFICATION":
-                        skill_entry['skill_type'] = SkillType.CERTIFICATION
-                except (ImportError, AttributeError):
-                    pass  # Skip skill_type if can't import SkillType
-            
-            # Add category_id from subcategory if available
-            if subcategory:
-                skill_entry['category_id'] = subcategory
+                # Apply mapping if available
+                if pd.notna(hris_skill_type) and hris_skill_type in skill_type_mapping:
+                    skill_entry['skill_type'] = skill_type_mapping[hris_skill_type]
+                elif pd.notna(hris_skill_type):
+                    # Try using the value directly
+                    skill_entry['skill_type'] = hris_skill_type
+                else:
+                    # Default to COMMON if not specified
+                    skill_entry['skill_type'] = "COMMON"
             else:
-                skill_entry['category_id'] = ""
+                # Default to COMMON if field not available
+                skill_entry['skill_type'] = "COMMON"
+                
+            # Log the mapping for debugging
+            logger.debug(f"Skill {skill_id}: Mapped skill_type from '{skill.get(skill_mapping.get('skill_type', ''), 'N/A')}' to '{skill_entry['skill_type']}'")
             
-            # Add description if available
-            if description:
-                skill_entry['description'] = description
+            # Process category (separate from skill_type)
+            if 'category' in skill_mapping and skill_mapping['category'] in skill:
+                skill_entry['category'] = skill[skill_mapping['category']]
+            
+            # Process subcategory
+            if 'subcategory' in skill_mapping and skill_mapping['subcategory'] in skill:
+                skill_entry['subcategory'] = skill[skill_mapping['subcategory']]
+                
+            # Process description
+            if 'description' in skill_mapping and skill_mapping['description'] in skill:
+                skill_entry['description'] = skill[skill_mapping['description']]
+            else:
+                skill_entry['description'] = ""
+                
+            # Process aliases, related_skills, prerequisites
+            for field in ['aliases', 'related_skills', 'prerequisites']:
+                if field in skill_mapping and skill_mapping[field] in skill and pd.notna(skill[skill_mapping[field]]):
+                    # Handle different delimiter formats
+                    value = skill[skill_mapping[field]]
+                    if isinstance(value, list):
+                        skill_entry[field] = value
+                    elif isinstance(value, str):
+                        if ";" in value:
+                            skill_entry[field] = [item.strip() for item in value.split(";") if item.strip()]
+                        elif "," in value:
+                            skill_entry[field] = [item.strip() for item in value.split(",") if item.strip()]
+                        else:
+                            skill_entry[field] = [value.strip()]
+                else:
+                    skill_entry[field] = []
             
             output_skills.append(skill_entry)
         
+        logger.info(f"Transformed {len(output_skills)} skills")
         return pd.DataFrame(output_skills)
     
     def _transform_employees(self, employees_df: Optional[pd.DataFrame], 
@@ -655,11 +617,22 @@ class HRISTransformer:
             
             return jobs_output_path, skills_output_path
         
-        # Normal case: use the paths from config
+        # Normal case: use the paths from config, but make sure they're absolute
+        # Get absolute paths for output files
+        jobs_output_path = os.path.abspath(self.config['output_data']['jobs_file'])
+        skills_output_path = os.path.abspath(self.config['output_data']['skills_file'])
+        
+        # Ensure directories exist
+        os.makedirs(os.path.dirname(jobs_output_path), exist_ok=True)
+        os.makedirs(os.path.dirname(skills_output_path), exist_ok=True)
+        
         # Save jobs
-        jobs_output_path = self._save_transformed_jobs(jobs_df)
+        logger.info(f"Saving transformed jobs to: {jobs_output_path}")
+        jobs_df.to_csv(jobs_output_path, index=False)
         
         # Save skills
-        skills_output_path = self._save_transformed_skills(skills_df)
+        logger.info(f"Saving transformed skills to: {skills_output_path}")
+        skills_df.to_csv(skills_output_path, index=False)
         
+        logger.info("Transformed data saved successfully")
         return jobs_output_path, skills_output_path
