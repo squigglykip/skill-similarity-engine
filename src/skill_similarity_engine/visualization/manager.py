@@ -86,10 +86,25 @@ class VisualisationManager:
         else:
             df = similarity_matrix
         
+        # Extract job IDs and create a pivot table for the heatmap
+        job1_col = 'job1_id' if 'job1_id' in df.columns else 'job_id_1'
+        job2_col = 'job2_id' if 'job2_id' in df.columns else 'job_id_2'
+        similarity_col = 'similarity' if 'similarity' in df.columns else 'similarity_score'
+        
+        # Create pivot table for heatmap
+        heatmap_data = df.pivot(
+            index=job1_col,
+            columns=job2_col,
+            values=similarity_col
+        )
+        
+        # Fill NaN values with 0 (self-similarity)
+        heatmap_data = heatmap_data.fillna(0)
+        
         # Create heatmap
         plt.figure(figsize=(12, 10))
         sns.heatmap(
-            df,
+            heatmap_data,
             annot=True,
             cmap='YlOrRd',
             fmt='.2f',
