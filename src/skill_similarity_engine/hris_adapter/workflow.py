@@ -217,5 +217,19 @@ class HRISWorkflow:
             raise ValueError(f"Unsupported analysis type: {analysis_type}")
 
 
-# Create a singleton instance for easy access
-hris_workflow = HRISWorkflow() 
+# Comment out or remove the singleton initialization
+# hris_workflow = HRISWorkflow()
+
+# Instead, provide a factory function to create a workflow instance when needed
+def create_workflow(config_path: Optional[str] = None, log_level: str = "INFO") -> HRISWorkflow:
+    """
+    Create a new HRIS workflow instance.
+    
+    Args:
+        config_path: Path to the HRIS configuration file (default: use default path)
+        log_level: Logging level (default: INFO)
+        
+    Returns:
+        A new HRISWorkflow instance
+    """
+    return HRISWorkflow(config_path, log_level) 

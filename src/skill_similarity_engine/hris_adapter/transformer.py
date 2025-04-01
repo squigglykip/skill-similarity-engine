@@ -47,7 +47,13 @@ class HRISTransformer:
         # Use provided config_path or get default from ConfigManager
         if config_path is None:
             config_manager = ConfigManager()
-            self.config_path = config_manager.get_config().hris_adapter.default_config_path
+            try:
+                # Try to get default config path from the hris_adapter config section
+                self.config_path = config_manager.get_config().hris_adapter.default_config_path
+            except (AttributeError, TypeError):
+                # If hris_adapter section doesn't exist, use a default value
+                self.config_path = "config/hris_schema_mapping.yaml"
+                logger.warning(f"hris_adapter config section not found, using default path: {self.config_path}")
         else:
             self.config_path = config_path
             
