@@ -61,7 +61,7 @@ class TestEnhancedSimilarityFunctional(BaseFunctionalTest):
             self.config_manager.config.future_extensions.seniority_weight = 0.5
             self.config_manager.config.future_extensions.role_track_weight = 0.3
             self.config_manager.config.future_extensions.location_weight = 0.2
-        else:
+                else:
             logger.info(f"Loading enhancement factors from: {enhancement_file}")
             # Enable extensions and load factors
             self.config_manager.config.future_extensions.enabled = True
@@ -366,7 +366,7 @@ class TestEnhancedSimilarityFunctional(BaseFunctionalTest):
         """Create a heatmap visualization of the similarity matrix."""
         try:
             plt.figure(figsize=(10, 8))
-            plt.imshow(matrix, cmap='viridis', interpolation='nearest')
+        plt.imshow(matrix, cmap='viridis', interpolation='nearest')
             plt.colorbar(label='Similarity')
             
             # Add job titles or IDs as labels
@@ -381,12 +381,12 @@ class TestEnhancedSimilarityFunctional(BaseFunctionalTest):
             plt.yticks(range(len(job_ids)), job_labels)
             
             plt.title(title)
-            plt.tight_layout()
+        plt.tight_layout()
             
             # Save the figure
             output_path = os.path.join(self.output_dir, filename)
             plt.savefig(output_path, dpi=300)
-            plt.close()
+        plt.close()
             
             logger.info(f"Created heatmap: {output_path}")
         except Exception as e:
