@@ -21,12 +21,17 @@ src_path = os.path.join(os.path.dirname(__file__), 'src')
 if os.path.exists(src_path) and src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from skill_similarity_engine.hris_adapter.workflow import HRISWorkflow, create_workflow
-from skill_similarity_engine.config.settings import get_config
+# Import key components
 from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.models.jobs import JobArchitecture
 from skill_similarity_engine.similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
 from skill_similarity_engine.visualization.manager import VisualisationManager
+
+# Allow direct file loading without HRIS adapter
+from skill_similarity_engine.config.settings import get_config
+
+# Import HRISWorkflow when needed (in the function that uses it)
+# This prevents the error from occurring at the top level
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Set up logging configuration."""
@@ -54,6 +59,9 @@ def load_data_with_hris_adapter(
     logger: logging.Logger
 ) -> Tuple[pd.DataFrame, JobArchitecture, SkillTaxonomy]:
     """Load data using the HRIS adapter workflow."""
+    # Import here to avoid the import error at the top level
+    from skill_similarity_engine.hris_adapter.workflow import create_workflow
+    
     logger.info("\n" + "="*80)
     logger.info("STARTING HRIS ADAPTER WORKFLOW")
     logger.info("="*80 + "\n")

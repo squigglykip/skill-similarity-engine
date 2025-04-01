@@ -44,25 +44,30 @@ class HRISTransformer:
             config_path: Path to the YAML configuration file with schema mappings (default: use from HRISAdapterConfig)
             log_level: Logging level to use (default: INFO)
         """
-        # Use provided config_path or get default from ConfigManager
-        if config_path is None:
-            config_manager = ConfigManager()
-            try:
-                # Try to get default config path from the hris_adapter config section
-                self.config_path = config_manager.get_config().hris_adapter.default_config_path
-            except (AttributeError, TypeError):
-                # If hris_adapter section doesn't exist, use a default value
-                self.config_path = "config/hris_schema_mapping.yaml"
-                logger.warning(f"hris_adapter config section not found, using default path: {self.config_path}")
-        else:
-            self.config_path = config_path
-            
-        self.config = self._load_config()
-        
-        # Configure logger with specified log level
+        # Set up logging first before using logger
         global logger
         logger.setLevel(getattr(logging, log_level))
         
+        # Now handle configuration
+        if config_path is None:
+            try:
+                config_manager = ConfigManager()
+                try:
+                    # Try to get from hris_adapter section
+                    self.config_path = config_manager.get_config().hris_adapter.default_config_path
+                except (AttributeError, TypeError):
+                    # Fall back to default
+                    self.config_path = "config/hris_schema_mapping.yaml"
+                    logger.warning(f"hris_adapter config section not found, using default path: {self.config_path}")
+            except Exception as e:
+                # Handle any other config errors
+                self.config_path = "config/hris_schema_mapping.yaml"
+                logger.warning(f"Error getting configuration, using default path: {self.config_path}")
+        else:
+            self.config_path = config_path
+        
+        # Load the configuration
+        self.config = self._load_config()
         logger.info(f"HRIS Transformer initialized with config from {self.config_path}")
         
     def _load_config(self) -> Dict[str, Any]:
