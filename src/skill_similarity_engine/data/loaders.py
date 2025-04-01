@@ -68,33 +68,43 @@ class SkillTaxonomyLoader:
         
         # Create category mapping if categories are in skills file
         category_mapping = {}
-        if "category" in skills_df.columns and "subcategory" in skills_df.columns:
-            # Create main categories
-            for category in skills_df["category"].unique():
-                if pd.notna(category):
-                    category_id = f"C{len(category_mapping) + 1:03d}"
-                    category_mapping[category] = category_id
-                    if not taxonomy.get_category(category_id):
-                        taxonomy.add_category(SkillCategory(
-                            category_id=category_id,
-                            name=category,
-                            description=f"{category} skills and competencies"
-                        ))
-            
-            # Create subcategories
+        if "category" in skills_df.columns and not categories_file:
             for _, row in skills_df.iterrows():
-                if pd.notna(row["subcategory"]):
-                    parent_id = category_mapping.get(row["category"])
-                    if parent_id:
-                        subcategory_id = f"C{len(category_mapping) + 1:03d}"
-                        category_mapping[row["subcategory"]] = subcategory_id
-                        if not taxonomy.get_category(subcategory_id):
+                if pd.notna(row.get("category", None)):
+                    # Create a category ID based on category name
+                    category_name = row["category"]
+                    parent_id = None
+                    
+                    if category_name not in category_mapping:
+                        category_id = "C" + str(len(category_mapping) + 1).zfill(3)
+                        category_mapping[category_name] = category_id
+                        
+                        # Add category to taxonomy
+                        if not taxonomy.get_category(category_id):
                             taxonomy.add_category(SkillCategory(
-                                category_id=subcategory_id,
-                                name=row["subcategory"],
+                                category_id=category_id,
+                                name=category_name,
                                 parent_id=parent_id,
-                                description=f"{row['subcategory']} skills"
+                                description=f"{category_name} skills"
                             ))
+                    
+                    # Handle subcategory if available
+                    if pd.notna(row.get("subcategory", None)):
+                        subcategory_name = row["subcategory"]
+                        parent_id = category_mapping[category_name]
+                        
+                        if subcategory_name not in category_mapping:
+                            subcategory_id = "C" + str(len(category_mapping) + 1).zfill(3)
+                            category_mapping[subcategory_name] = subcategory_id
+                            
+                            # Add subcategory to taxonomy with parent relationship
+                            if not taxonomy.get_category(subcategory_id):
+                                taxonomy.add_category(SkillCategory(
+                                    category_id=subcategory_id,
+                                    name=subcategory_name,
+                                    parent_id=parent_id,
+                                    description=f"{subcategory_name} skills"
+                                ))
         
         for _, row in skills_df.iterrows():
             # Parse skill type - try multiple approaches
@@ -134,7 +144,7 @@ class SkillTaxonomyLoader:
                 name=row["name"],
                 description=row.get("description", ""),
                 category_id=category_id,
-                skill_type=row.get("category", SkillType.COMMON),  # Pass the raw value from category, Skill class will handle it
+                skill_type=skill_type,  # Use the parsed skill_type instead of row.get("category", SkillType.COMMON)
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites
@@ -216,7 +226,7 @@ class SkillTaxonomyLoader:
                 name=row["name"],
                 description=row.get("description", ""),
                 category_id=str(row["category_id"]) if pd.notna(row.get("category_id", None)) else None,
-                skill_type=row.get("category", SkillType.COMMON),  # Pass the raw value from category, Skill class will handle it
+                skill_type=skill_type,  # Use the parsed skill_type instead of row.get("category", SkillType.COMMON)
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites

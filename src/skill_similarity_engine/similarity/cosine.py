@@ -405,35 +405,26 @@ class CosineSimilarityCalculator:
     
     def _calculate_skill_type_similarity(self, job1: Job, job2: Job) -> float:
         """
-        Calculate similarity based on skill types, giving different weights to different types of skills.
+        Calculate the similarity between two jobs based on their skill types.
         
         Args:
             job1: First job
             job2: Second job
             
         Returns:
-            Similarity score based on skill types (0-1 range)
-            
-        Note:
-            This implementation applies the configured weights to different skill types,
-            with higher weights reducing similarity scores when specialized skills are missing.
+            Similarity score between 0 and 1
         """
-        # Get configuration values
-        config = self.config_manager.get_config().future_extensions
-        skill_type_weights = config.skill_type_similarity_weights
-        
-        # Get skills from both jobs
+        # Get the skills from both jobs
         job1_skills = set(job1.skills.keys())
         job2_skills = set(job2.skills.keys())
         
-        # Get all skills from both jobs
+        # Get all unique skills across both jobs
         all_skills = job1_skills.union(job2_skills)
         
-        # If there are no skills, return 1.0 (perfect similarity)
-        if not all_skills:
-            return 1.0
+        # Get skill type weights from config
+        skill_type_weights = self.config_manager.get_config().future_extensions.skill_type_similarity_weights
         
-        # Calculate weighted similarity score
+        # Initialize similarity calculation
         total_similarity = 0.0
         total_weight = 0.0
         
@@ -443,7 +434,7 @@ class CosineSimilarityCalculator:
             in_job2 = skill_id in job2_skills
             
             # Get skill details from the taxonomy
-            skill_type = "OTHER"  # Default if not found
+            skill_type = "COMMON"  # Default to COMMON if not found (instead of OTHER)
             if skill_id in self.skill_taxonomy.skills:
                 skill = self.skill_taxonomy.skills[skill_id]
                 if hasattr(skill, 'skill_type') and skill.skill_type:
