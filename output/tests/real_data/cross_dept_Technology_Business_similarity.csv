@@ -1,4 +1,4 @@
 job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J007,Software Engineer,Technology,J004,Business Analyst,Business,0.04496089614382335
-J008,Senior Software Engineer,Technology,J004,Business Analyst,Business,0.04618742468754236
-J009,UI/UX Designer,Technology,J004,Business Analyst,Business,0.3576967096658805
+J007,Software Engineer,Technology,J004,Business Analyst,Business,0.6662175996015667
+J008,Senior Software Engineer,Technology,J004,Business Analyst,Business,0.6654684247993368
+J009,UI/UX Designer,Technology,J004,Business Analyst,Business,0.7673653538870584
