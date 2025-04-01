@@ -586,15 +586,18 @@ def generate_visualizations(
     # Generate a heatmap for each department
     for dept in departments:
         logger.debug(f"Generating heatmap for department: {dept}")
-        heatmap_path = os.path.join(output_dir, f"heatmap_{dept}.png")
+        heatmap_filename = f"heatmap_{dept}.png"
         vis_manager.generate_job_similarity_heatmap(
-            departments=[dept],
-            output_path=heatmap_path
+            similarity_matrix=df,
+            department=dept,
+            output_dir=output_dir,
+            filename=heatmap_filename
         )
         
         # Export department-specific similarity matrix
         matrix_path = os.path.join(output_dir, f"similarity_matrix_{dept}.csv")
         vis_manager.export_job_similarity_matrix(
+            similarity_matrix=df,
             department=dept,
             output_path=matrix_path
         )
@@ -603,7 +606,7 @@ def generate_visualizations(
     logger.debug("Generating summary statistics...")
     # Basic statistics for the similarity matrix
     flat_sim = df.values.flatten()
-    flat_sim = flat_sim[flat_sim != 1.0]  # Remove self-similarities
+    flat_sim = flat_sim[flat_sim != 1.0]
     stats = {
         "mean_similarity": float(flat_sim.mean()),
         "min_similarity": float(flat_sim.min()),
