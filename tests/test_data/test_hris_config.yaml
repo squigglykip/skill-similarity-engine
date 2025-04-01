@@ -1,0 +1,56 @@
+# HRIS Schema Mapping Configuration for Testing
+hris_data:
+  jobs_file: "tests/test_data/hris_jobs.csv"
+  skills_file: "tests/test_data/hris_skills.csv"
+  job_skills_file: "tests/test_data/hris_job_skills.csv"
+  file_format: "csv"
+  encoding: "utf-8"
+  delimiter: ","
+  has_header: true
+
+output_data:
+  jobs_file: "tests/test_data/jobs.csv"
+  skills_file: "tests/test_data/skills.csv"
+
+jobs_mapping:
+  job_id: "JobID"
+  title: "RoleSet"
+  department: "Org Unit Name"
+  level: "Salary Group"
+  role_track: "People Leader Flag"
+  location: ["Street", "Suburb", "Location", "Cty"]
+
+skills_mapping:
+  skill_id: "Skill_ID"
+  name: "Skill_Name"
+  category: "SkillType"
+  subcategory: "Category" 
+  description: "Subcategory"
+
+job_skills_mapping:
+  job_id: "JobID"
+  skill_id: "Skill_ID"
+
+salary_group_mapping:
+  "Group 1":
+    level: "ENTRY"
+  "Group 2":
+    level: "ASSOCIATE"
+  "Group 3":
+    level: "MID_LEVEL"
+  "Group 4":
+    level: "MID_LEVEL"
+  "Group 5":
+    level: "SENIOR"
+  "Group 6":
+    level: "LEAD"
+  "Group 7":
+    level: "EXECUTIVE"
+
+role_track_mapping:
+  "People Leader": "MANAGEMENT"
+  "Non-People Leader": "INDIVIDUAL_CONTRIBUTOR"
+
+transformation_options:
+  use_binary_skills: false
+  default_proficiency: 3 

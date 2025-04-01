@@ -1009,5 +1009,123 @@ class TestModelsWithRealData(unittest.TestCase):
                 self.assertLessEqual(level, 5)
 
 
+class TestModelDataIntegration(unittest.TestCase):
+    """Tests for model integration with standardized test data."""
+    
+    def setUp(self):
+        """Set up test fixtures."""
+        # Import here to avoid circular imports
+        from tests.test_data import (
+            load_skill_taxonomy, load_job_architecture, load_employee_database
+        )
+        
+        # Load test data models - each test should only load what it needs
+        self.skill_taxonomy = load_skill_taxonomy()
+        self.job_architecture = load_job_architecture()
+        
+        # Don't load the employee database in setup to avoid failing
+        # all tests if there's an issue with it
+        self.employee_database = None
+    
+    def test_skill_taxonomy_loaded_correctly(self):
+        """Test that the skill taxonomy is loaded correctly from test data."""
+        # Verify that all 18 skills are loaded
+        self.assertEqual(len(self.skill_taxonomy.skills), 18)
+        
+        # Verify that skill types are properly set
+        specialized_skills = [skill for skill in self.skill_taxonomy.skills.values() 
+                             if skill.skill_type == SkillType.SPECIALIZED]
+        common_skills = [skill for skill in self.skill_taxonomy.skills.values() 
+                        if skill.skill_type == SkillType.COMMON]
+        certification_skills = [skill for skill in self.skill_taxonomy.skills.values() 
+                               if skill.skill_type == SkillType.CERTIFICATION]
+        
+        # Check counts match our test data
+        self.assertEqual(len(specialized_skills), 9)
+        self.assertEqual(len(common_skills), 5)
+        self.assertEqual(len(certification_skills), 4)
+        
+        # Verify specific skills exist
+        self.assertIn("S001", self.skill_taxonomy.skills)  # Python
+        self.assertIn("S007", self.skill_taxonomy.skills)  # Communication
+        self.assertIn("S013", self.skill_taxonomy.skills)  # AWS Certified
+    
+    def test_job_architecture_loaded_correctly(self):
+        """Test that the job architecture is loaded correctly from test data."""
+        # Verify that all 9 jobs are loaded
+        self.assertEqual(len(self.job_architecture.jobs), 9)
+        
+        # Verify that departments are properly set
+        engineering_jobs = [job for job in self.job_architecture.jobs.values() 
+                           if job.department == "Engineering"]
+        data_jobs = [job for job in self.job_architecture.jobs.values() 
+                    if job.department == "Data"]
+        marketing_jobs = [job for job in self.job_architecture.jobs.values() 
+                         if job.department == "Marketing"]
+        
+        # Check counts match our test data
+        self.assertEqual(len(engineering_jobs), 3)
+        self.assertEqual(len(data_jobs), 3)
+        self.assertEqual(len(marketing_jobs), 3)
+        
+        # Verify specific jobs exist
+        self.assertIn("J001", self.job_architecture.jobs)  # Software Engineer
+        self.assertIn("J004", self.job_architecture.jobs)  # Data Analyst
+        self.assertIn("J007", self.job_architecture.jobs)  # Marketing Specialist
+    
+    def test_employee_database_loaded_correctly(self):
+        """Test that the employee database is loaded correctly from test data."""
+        # Import here to handle any import issues gracefully
+        from tests.test_data import load_employee_database
+        
+        # Load employee database
+        self.employee_database = load_employee_database()
+        
+        # Verify that all 6 employees are loaded
+        self.assertEqual(len(self.employee_database.employees), 6)
+        
+        # Get departments from job_architecture since employees don't have department attribute
+        engineering_employees = [emp for emp in self.employee_database.employees.values() 
+                               if self.job_architecture.jobs[emp.current_job].department == "Engineering"]
+        data_employees = [emp for emp in self.employee_database.employees.values() 
+                        if self.job_architecture.jobs[emp.current_job].department == "Data"]
+        marketing_employees = [emp for emp in self.employee_database.employees.values() 
+                             if self.job_architecture.jobs[emp.current_job].department == "Marketing"]
+        
+        # Check counts match our test data
+        self.assertEqual(len(engineering_employees), 2)
+        self.assertEqual(len(data_employees), 2)
+        self.assertEqual(len(marketing_employees), 2)
+        
+        # Verify specific employees exist
+        self.assertIn("E001", self.employee_database.employees)  # John Smith
+        self.assertIn("E003", self.employee_database.employees)  # David Lee
+        self.assertIn("E005", self.employee_database.employees)  # James Wilson
+    
+    def test_cross_model_relationships(self):
+        """Test relationships between models using the test data."""
+        # Import here to handle any import issues gracefully
+        from tests.test_data import load_employee_database
+        
+        # Load employee database
+        self.employee_database = load_employee_database()
+        
+        # Test that jobs reference skills that exist in the taxonomy
+        for job in self.job_architecture.jobs.values():
+            for skill_id in job.skills:
+                self.assertIn(skill_id, self.skill_taxonomy.skills, 
+                             f"Job {job.job_id} references unknown skill {skill_id}")
+        
+        # Test that employees reference jobs that exist in the architecture
+        for employee in self.employee_database.employees.values():
+            self.assertIn(employee.current_job, self.job_architecture.jobs,
+                         f"Employee {employee.employee_id} references unknown job {employee.current_job}")
+            
+            # Test that employees have skills that exist in the taxonomy
+            for skill_id in employee.skills:
+                self.assertIn(skill_id, self.skill_taxonomy.skills,
+                             f"Employee {employee.employee_id} has unknown skill {skill_id}")
+
+
 if __name__ == "__main__":
     unittest.main()

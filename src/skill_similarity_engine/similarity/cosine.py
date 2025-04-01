@@ -198,9 +198,23 @@ class CosineSimilarityCalculator:
             self.job_vectors[job_id] = self.vectorizer.transform_job(job)
         
         # Pre-compute vectors for all employees if provided
-        if self.employee_database:
+        if self.employee_database is not None:
             for employee_id, employee in self.employee_database.employees.items():
                 self.employee_vectors[employee_id] = self.vectorizer.transform_employee(employee)
+    
+    def prepare_job_vectors(self):
+        """
+        Prepare job vectors for similarity calculations.
+        
+        This method recomputes TF-IDF vectors for all jobs in the job architecture.
+        It's useful when the job architecture has been updated.
+        """
+        # Fit the vectorizer on the job architecture
+        self.vectorizer.fit(self.job_architecture)
+        
+        # Pre-compute vectors for all jobs
+        for job_id, job in self.job_architecture.jobs.items():
+            self.job_vectors[job_id] = self.vectorizer.transform_job(job)
     
     def calculate_job_similarity(self, job1_id: str, job2_id: str) -> float:
         """

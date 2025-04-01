@@ -1,0 +1,19 @@
+skill_id,name,category,subcategory,description,skill_type
+S001,Python,Programming,Backend,Python programming language,SPECIALIZED
+S002,Java,Programming,Backend,Java programming language,SPECIALIZED
+S003,JavaScript,Programming,Frontend,JavaScript programming language,SPECIALIZED
+S004,SQL,Data,Database,SQL database query language,SPECIALIZED
+S005,Data Analysis,Data,Analytics,Data analysis techniques,SPECIALIZED
+S006,Machine Learning,Data,AI,Machine learning algorithms and techniques,SPECIALIZED
+S007,Communication,Soft Skills,Interpersonal,Effective verbal and written communication,COMMON
+S008,Leadership,Soft Skills,Management,Team leadership and management,COMMON
+S009,Problem Solving,Soft Skills,Critical Thinking,Analytical and problem solving skills,COMMON
+S010,React,Programming,Frontend,React JavaScript library,SPECIALIZED
+S011,Docker,DevOps,Containerization,Docker containerization platform,SPECIALIZED
+S012,Teamwork,Soft Skills,Collaboration,Working effectively in a team environment,COMMON
+S013,AWS Certified,Cloud,Amazon,AWS certification,CERTIFICATION
+S014,MCSA,Systems,Microsoft,Microsoft Certified Solutions Associate,CERTIFICATION
+S015,PMP,Project Management,PMI,Project Management Professional certification,CERTIFICATION
+S016,Agile,Project Management,Methodologies,Agile development methodologies,COMMON
+S017,Node.js,Programming,Backend,Node.js JavaScript runtime,SPECIALIZED
+S018,Google Cloud,Cloud,Google,Google Cloud Platform certification,CERTIFICATION 
