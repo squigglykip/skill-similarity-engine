@@ -21,7 +21,7 @@ src_path = os.path.join(os.path.dirname(__file__), 'src')
 if os.path.exists(src_path) and src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from skill_similarity_engine.hris_adapter.workflow import HRISWorkflow
+from skill_similarity_engine.hris_adapter.workflow import HRISWorkflow, create_workflow
 from skill_similarity_engine.config.settings import get_config
 from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.models.jobs import JobArchitecture
@@ -64,7 +64,7 @@ def load_data_with_hris_adapter(
         logger.info("STEP 1: INITIALIZING HRIS WORKFLOW")
         logger.info("-"*40)
         logger.info(f"Using configuration from: {config_path}")
-        workflow = HRISWorkflow(config_path=config_path, log_level="INFO")
+        workflow = create_workflow(config_path=config_path, log_level="INFO")
         
         # Run the pipeline to transform data and calculate similarity
         logger.info("\n" + "-"*40)
