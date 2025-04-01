@@ -22,8 +22,8 @@ if os.path.exists(src_path) and src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 # Import key components
-from skill_similarity_engine.models.skills import SkillTaxonomy
-from skill_similarity_engine.models.jobs import JobArchitecture
+from skill_similarity_engine.models.skills import Skill, SkillTaxonomy, SkillCategory, SkillType
+from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
 from skill_similarity_engine.similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
 from skill_similarity_engine.visualization.manager import VisualisationManager
 
@@ -117,6 +117,41 @@ def load_data_with_hris_adapter(
             logger.error(traceback.format_exc())
         raise
 
+def map_job_level(level_str: str) -> JobLevel:
+    """
+    Convert a string representation to a JobLevel enum value.
+    
+    Args:
+        level_str: String representation of job level
+        
+    Returns:
+        Corresponding JobLevel enum value
+    """
+    level_map = {
+        "Group 1": JobLevel.ENTRY,
+        "Group 2": JobLevel.ASSOCIATE,
+        "Group 3": JobLevel.MID_LEVEL,
+        "Group 4": JobLevel.SENIOR,
+        "Group 5": JobLevel.MANAGER,
+        "Group 6": JobLevel.DIRECTOR,
+        "Group 7": JobLevel.EXECUTIVE,
+        # Add uppercase variants
+        "GROUP 1": JobLevel.ENTRY,
+        "GROUP 2": JobLevel.ASSOCIATE,
+        "GROUP 3": JobLevel.MID_LEVEL,
+        "GROUP 4": JobLevel.SENIOR,
+        "GROUP 5": JobLevel.MANAGER,
+        "GROUP 6": JobLevel.DIRECTOR,
+        "GROUP 7": JobLevel.EXECUTIVE,
+    }
+    
+    # Try to get the level from the map
+    if level_str in level_map:
+        return level_map[level_str]
+    
+    # Default to ASSOCIATE if not found
+    return JobLevel.ASSOCIATE
+
 def load_data_directly(
     skills_file: str,
     jobs_file: str,
@@ -124,26 +159,22 @@ def load_data_directly(
     department: Optional[str],
     logger: logging.Logger
 ) -> Tuple[pd.DataFrame, JobArchitecture, SkillTaxonomy]:
-    """Load data directly from files without using the HRIS adapter."""
+    """Load data directly from CSV files."""
     logger.info("\n" + "="*80)
     logger.info("STARTING DATA LOADING PROCESS")
     logger.info("="*80 + "\n")
     
-    # Convert relative paths to absolute paths
+    # Get script directory as base directory for relative paths
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    skills_file = os.path.join(base_dir, skills_file)
-    jobs_file = os.path.join(base_dir, jobs_file)
-    if job_skills_file:
-        job_skills_file = os.path.join(base_dir, job_skills_file)
     
-    # First, verify the file structure
+    # Load skills
     logger.info("\n" + "-"*40)
     logger.info("STEP 1: LOADING SKILLS DATA")
     logger.info("-"*40)
     logger.info(f"Loading skills from: {skills_file}")
     skills_df = pd.read_csv(skills_file)
     
-    # Debug: Print columns in the skills DataFrame
+    # Debug: Print columns in the DataFrame
     logger.info("\nColumns found in skills file:")
     for col in skills_df.columns.tolist():
         logger.info(f"  - {col}")
@@ -178,7 +209,95 @@ def load_data_directly(
     logger.info("-"*40)
     from skill_similarity_engine.data.loaders import SkillTaxonomyLoader
     taxonomy_loader = SkillTaxonomyLoader(base_dir=base_dir)
-    taxonomy = taxonomy_loader.load_from_csv(skills_file)
+    
+    # Create an empty taxonomy and populate it directly with the DataFrame we've already loaded
+    taxonomy = SkillTaxonomy()
+    
+    # Create category mapping if categories are in the DataFrame
+    category_mapping = {}
+    if "category" in skills_df.columns:
+        for _, row in skills_df.iterrows():
+            if pd.notna(row.get("category", None)):
+                # Create a category ID based on category name
+                category_name = row["category"]
+                parent_id = None
+                
+                if category_name not in category_mapping:
+                    category_id = "C" + str(len(category_mapping) + 1).zfill(3)
+                    category_mapping[category_name] = category_id
+                    
+                    # Add category to taxonomy
+                    if not taxonomy.get_category(category_id):
+                        taxonomy.add_category(SkillCategory(
+                            category_id=category_id,
+                            name=category_name,
+                            parent_id=parent_id,
+                            description=f"{category_name} skills"
+                        ))
+                
+                # Handle subcategory if available
+                if pd.notna(row.get("subcategory", None)):
+                    subcategory_name = row["subcategory"]
+                    parent_id = category_mapping[category_name]
+                    
+                    if subcategory_name not in category_mapping:
+                        subcategory_id = "C" + str(len(category_mapping) + 1).zfill(3)
+                        category_mapping[subcategory_name] = subcategory_id
+                        
+                        # Add subcategory to taxonomy with parent relationship
+                        if not taxonomy.get_category(subcategory_id):
+                            taxonomy.add_category(SkillCategory(
+                                category_id=subcategory_id,
+                                name=subcategory_name,
+                                parent_id=parent_id,
+                                description=f"{subcategory_name} skills"
+                            ))
+    
+    # Process skills
+    processed_skill_ids = set()  # Track skill IDs we've already processed
+    duplicate_count = 0
+    
+    for _, row in skills_df.iterrows():
+        # Check for duplicate skill ID
+        skill_id = str(row["skill_id"])
+        if skill_id in processed_skill_ids:
+            duplicate_count += 1
+            logger.warning(f"Skipping duplicate skill ID: {skill_id}")
+            continue
+            
+        # Parse skill type
+        skill_type = SkillType.COMMON  # Default to COMMON
+        
+        if "skill_type" in row and pd.notna(row["skill_type"]):
+            try:
+                skill_type = SkillType.from_string(row["skill_type"])
+            except ValueError:
+                pass
+        
+        # Get category ID
+        category_id = None
+        if "category" in row and "subcategory" in row:
+            category_id = category_mapping.get(row.get("subcategory")) or category_mapping.get(row.get("category"))
+        
+        # Build skill object
+        skill = Skill(
+            skill_id=skill_id,
+            name=row["name"],
+            description=row.get("description", ""),
+            category_id=category_id,
+            skill_type=skill_type,
+            aliases=[],
+            related_skills=[],
+            prerequisites=[]
+        )
+        
+        # Add skill to taxonomy
+        taxonomy.add_skill(skill)
+        processed_skill_ids.add(skill_id)
+    
+    if duplicate_count > 0:
+        logger.warning(f"Found and skipped {duplicate_count} duplicate skill IDs")
+        
     logger.info(f"Successfully loaded {len(taxonomy.skills)} skills into taxonomy")
     
     # Load job architecture
@@ -200,7 +319,8 @@ def load_data_directly(
         'RoleSet': 'title',
         'Org Unit Name': 'department',
         'Salary Group': 'level',
-        'People Leader Flag': 'role_track'
+        'People Leader Flag': 'role_track',
+        'Org Unit Number': 'org_unit_number'  # Add this to capture unit number for uniqueness
     }
     
     # Rename columns to match internal schema
@@ -211,19 +331,146 @@ def load_data_directly(
     for col in jobs_df.columns.tolist():
         logger.info(f"  - {col}")
     
+    # Create unique job IDs by combining job_id with org_unit_number
+    if 'job_id' in jobs_df.columns and 'org_unit_number' in jobs_df.columns:
+        jobs_df['unique_job_id'] = jobs_df['job_id'] + '_' + jobs_df['org_unit_number'].astype(str)
+        logger.info("\nCreated unique job IDs by combining JobID with Org Unit Number")
+    else:
+        # If the required columns don't exist, we can't create unique IDs
+        logger.error("Can't create unique job IDs: 'job_id' or 'org_unit_number' column missing")
+        raise ValueError("Jobs file must have both 'JobID' and 'Org Unit Number' columns to create unique job IDs")
+    
     # Verify required job columns exist
-    required_job_columns = ['job_id', 'title', 'department', 'level']
+    required_job_columns = ['unique_job_id', 'title', 'department', 'level']
     missing_job_columns = [col for col in required_job_columns if col not in jobs_df.columns]
     if missing_job_columns:
         raise ValueError(f"Jobs file missing required columns: {missing_job_columns}")
     
-    # Create job architecture using the loader
+    # Create job architecture directly from the DataFrame
     logger.info("\n" + "-"*40)
     logger.info("STEP 4: CREATING JOB ARCHITECTURE")
     logger.info("-"*40)
-    from skill_similarity_engine.data.loaders import JobArchitectureLoader
-    job_loader = JobArchitectureLoader(taxonomy, base_dir=base_dir)
-    job_architecture = job_loader.load_from_csv(jobs_file, job_skills_file)
+    
+    # Create empty job architecture
+    job_architecture = JobArchitecture()
+    
+    # Create jobs from DataFrame
+    for _, row in jobs_df.iterrows():
+        # Parse job level
+        job_level = JobLevel.ASSOCIATE  # Default level
+        if 'level' in row and pd.notna(row['level']):
+            try:
+                # Use our custom mapper instead of from_string
+                job_level = map_job_level(str(row['level']))
+            except Exception as e:
+                logger.warning(f"Error parsing job level: {row['level']} - {str(e)}")
+                logger.warning(f"Using ASSOCIATE as default level")
+        
+        # Create job object with unique ID
+        job = Job(
+            job_id=row['unique_job_id'],
+            title=row['title'],
+            department=row['department'],
+            level=job_level,
+            skills={}  # Empty skills dict, will be filled from job_skills_file
+        )
+        
+        # Add job to architecture
+        job_architecture.add_job(job)
+    
+    # Load job skills if provided
+    if job_skills_file:
+        logger.info("\n" + "-"*40)
+        logger.info("STEP 5: LOADING JOB SKILLS")
+        logger.info("-"*40)
+        logger.info(f"Loading job skills from: {job_skills_file}")
+        
+        job_skills_df = pd.read_csv(job_skills_file)
+        
+        # Debug: Print columns in the job skills DataFrame
+        logger.info("\nColumns found in job skills file:")
+        for col in job_skills_df.columns.tolist():
+            logger.info(f"  - {col}")
+        
+        # Map job skills column names if needed
+        skill_mapping = {
+            'JobID': 'job_id',
+            'Skill_ID': 'skill_id',
+            'Proficiency': 'proficiency'
+        }
+        
+        # Rename columns
+        job_skills_df = job_skills_df.rename(columns=skill_mapping)
+        
+        # Debug: Print columns after mapping
+        logger.info("\nColumns after mapping:")
+        for col in job_skills_df.columns.tolist():
+            logger.info(f"  - {col}")
+        
+        # If job_id column doesn't exist in the job skills file, we can't map skills
+        if 'job_id' not in job_skills_df.columns:
+            logger.error("Can't map job skills: 'job_id' column missing from job skills file")
+            raise ValueError("Job skills file must have a 'JobID' column")
+            
+        # If skill_id column doesn't exist, we can't map skills
+        if 'skill_id' not in job_skills_df.columns:
+            logger.error("Can't map job skills: 'skill_id' column missing from job skills file")
+            logger.error("Available columns: " + ", ".join(job_skills_df.columns.tolist()))
+            raise ValueError("Job skills file must have a 'Skill_ID' column")
+        
+        # Map job skills to jobs
+        skills_mapped = 0
+        skills_skipped = 0
+        
+        # Create a mapping between original job_id + org_unit combinations and unique_job_id
+        # This allows us to map skills even if the job skills file only has JobID
+        job_id_mapping = {}
+        for _, row in jobs_df.iterrows():
+            job_id = row['job_id']
+            if 'org_unit_number' in row and pd.notna(row['org_unit_number']):
+                # Create combined key
+                unique_id = row['unique_job_id']
+                
+                # Support mapping from simple job_id to all matching unique_job_ids
+                if job_id not in job_id_mapping:
+                    job_id_mapping[job_id] = []
+                job_id_mapping[job_id].append(unique_id)
+        
+        # For each job skill entry
+        for _, row in job_skills_df.iterrows():
+            job_id = str(row['job_id'])
+            skill_id = str(row['skill_id'])
+            
+            # Skip if skill doesn't exist in taxonomy
+            if skill_id not in taxonomy.skills:
+                logger.warning(f"Skill ID {skill_id} not found in taxonomy, skipping")
+                skills_skipped += 1
+                continue
+            
+            # Get proficiency (default to 3 if not specified)
+            proficiency = 3
+            if 'proficiency' in row and pd.notna(row['proficiency']):
+                try:
+                    proficiency = int(row['proficiency'])
+                    # Validate proficiency range (1-5)
+                    if not 1 <= proficiency <= 5:
+                        logger.warning(f"Invalid proficiency value: {proficiency}, using 3 as default")
+                        proficiency = 3
+                except ValueError:
+                    logger.warning(f"Non-integer proficiency value: {row['proficiency']}, using 3 as default")
+            
+            # Add skill to all matching jobs (this handles the case where multiple jobs share a JobID)
+            if job_id in job_id_mapping:
+                for unique_job_id in job_id_mapping[job_id]:
+                    if unique_job_id in job_architecture.jobs:
+                        job_architecture.jobs[unique_job_id].add_skill(skill_id, proficiency)
+                        skills_mapped += 1
+            else:
+                logger.warning(f"Job ID {job_id} not found in job architecture, skipping skill {skill_id}")
+                skills_skipped += 1
+        
+        logger.info(f"Mapped {skills_mapped} skills to jobs (skipped {skills_skipped})")
+    
     logger.info(f"Successfully loaded {len(job_architecture.jobs)} jobs into architecture")
     
     # Set up similarity calculator
