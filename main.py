@@ -26,6 +26,7 @@ from skill_similarity_engine.models.skills import Skill, SkillTaxonomy, SkillCat
 from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
 from skill_similarity_engine.similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
 from skill_similarity_engine.visualization.manager import VisualisationManager
+from skill_similarity_engine.visualization.reports import DataExporter, ReportConfig
 
 # Allow direct file loading without HRIS adapter
 from skill_similarity_engine.config.settings import get_config
@@ -577,7 +578,27 @@ def generate_visualizations(
         output_dir=output_dir
     )
     
-    # Determine departments to visualize
+    # Generate all-departments heatmap first
+    logger.info("Generating all-departments heatmap...")
+    vis_manager.generate_job_similarity_heatmap_all_departments(
+        output_dir=output_dir,
+        filename="heatmap_all_departments.png",
+        group_by_department=True
+    )
+    
+    # Export all-departments similarity matrix in tabular format
+    logger.info("Exporting all-departments similarity matrix in tabular format...")
+    config = ReportConfig(
+        include_metadata=True,  # Include job titles, departments, etc.
+        add_opportunity_flags=True  # Include mobility opportunity flags
+    )
+    all_dept_matrix = vis_manager.exporter.export_job_similarity_matrix_all_departments(
+        config=config
+    )
+    # Save the tabular data
+    all_dept_matrix.to_csv(os.path.join(output_dir, "job_similarity_all_departments.csv"), index=False)
+    
+    # Determine departments to visualize for individual department views
     if department:
         departments = [department]
     else:
@@ -594,35 +615,61 @@ def generate_visualizations(
             filename=heatmap_filename
         )
         
-        # Export department-specific similarity matrix
-        matrix_path = os.path.join(output_dir, f"similarity_matrix_{dept}.csv")
-        vis_manager.export_job_similarity_matrix(
-            similarity_matrix=df,
+        # Export department-specific similarity matrix in tabular format
+        logger.debug(f"Exporting similarity matrix for department: {dept}")
+        dept_matrix = vis_manager.exporter.export_job_similarity_matrix(
             department=dept,
-            output_path=matrix_path
+            config=config
         )
+        dept_matrix.to_csv(os.path.join(output_dir, f"job_similarity_{dept}.csv"), index=False)
     
     # Generate summary statistics
     logger.debug("Generating summary statistics...")
-    # Basic statistics for the similarity matrix
-    flat_sim = df.values.flatten()
-    flat_sim = flat_sim[flat_sim != 1.0]
+    # Calculate statistics from the all-departments tabular data
     stats = {
-        "mean_similarity": float(flat_sim.mean()),
-        "min_similarity": float(flat_sim.min()),
-        "max_similarity": float(flat_sim.max()),
-        "median_similarity": float(pd.Series(flat_sim).median()),
-        "std_similarity": float(flat_sim.std()),
-        "total_jobs": len(df),
-        "total_comparisons": len(flat_sim)
+        "mean_similarity": float(all_dept_matrix["similarity"].mean()),
+        "min_similarity": float(all_dept_matrix["similarity"].min()),
+        "max_similarity": float(all_dept_matrix["similarity"].max()),
+        "median_similarity": float(all_dept_matrix["similarity"].median()),
+        "std_similarity": float(all_dept_matrix["similarity"].std()),
+        "total_jobs": len(job_architecture.jobs),
+        "total_comparisons": len(all_dept_matrix),
+        "departments_analyzed": len(departments),
+        "cross_department_opportunities": int(all_dept_matrix["is_cross_departmental_opportunity"].sum()),
+        "high_similarity_opportunities": int(all_dept_matrix["is_high_similarity_opportunity"].sum()),
+        "internal_mobility_opportunities": int(all_dept_matrix["is_internal_mobility_opportunity"].sum())
     }
+    
+    # Add department-specific statistics
+    dept_stats = {}
+    for dept in departments:
+        dept_data = all_dept_matrix[
+            (all_dept_matrix["job1_department"] == dept) & 
+            (all_dept_matrix["job2_department"] == dept)
+        ]
+        dept_stats[dept] = {
+            "job_count": len(set(dept_data["job1_id"])),
+            "mean_similarity": float(dept_data["similarity"].mean()),
+            "high_similarity_opportunities": int(dept_data["is_high_similarity_opportunity"].sum()),
+            "internal_mobility_opportunities": int(dept_data["is_internal_mobility_opportunity"].sum())
+        }
     
     # Save statistics
     pd.DataFrame([stats]).to_csv(
-        os.path.join(output_dir, "summary_statistics.csv"), index=False
+        os.path.join(output_dir, "summary_statistics.csv"), 
+        index=False
     )
     
-    logger.info(f"Visualizations saved to: {output_dir}")
+    # Save department-specific statistics
+    pd.DataFrame.from_dict(dept_stats, orient="index").to_csv(
+        os.path.join(output_dir, "department_statistics.csv")
+    )
+    
+    logger.info(f"Visualizations and analysis saved to: {output_dir}")
+    logger.info(f"Generated {len(departments)} department-specific views")
+    logger.info(f"Found {stats['high_similarity_opportunities']} high similarity opportunities")
+    logger.info(f"Found {stats['internal_mobility_opportunities']} internal mobility opportunities")
+    logger.info(f"Found {stats['cross_department_opportunities']} cross-department opportunities")
 
 def main():
     """Main entry point for the HRIS POC analysis tool."""
