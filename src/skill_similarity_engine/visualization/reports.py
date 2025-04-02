@@ -758,7 +758,7 @@ class ReportConfig:
     department: Optional[str] = None
     departments: Optional[List[str]] = None
     threshold: float = 0.0
-    include_self_comparisons: bool = False
+    include_self_comparisons: bool = True
     
     def get_threshold(self, name: str, default: float) -> float:
         """Get a threshold value or use the default."""
@@ -823,7 +823,7 @@ class DataExporter:
             output_path: Path to save the exported data
             
         Returns:
-            DataFrame containing job similarity matrix
+            DataFrame containing job similarity data in tabular format with enhancement factor contributions
             
         Raises:
             ValueError: If no jobs found for the department
@@ -834,79 +834,112 @@ class DataExporter:
         department_jobs = [job for job in self.job_architecture.jobs.values() 
                         if job.department == department]
         
-        print(f"DEBUG: Found {len(department_jobs)} jobs in department '{department}'")
-        
         if not department_jobs:
             raise ValueError(f"No jobs found for department: {department}")
         
         # Calculate similarity matrix
         if not self.similarity_calculator:
             self._initialize_similarity_calculator()
-            print("DEBUG: Initialized similarity calculator")
         
-        # Build matrix
+        # Get enhancement factor weights from config
+        enhancement_config = self.similarity_calculator.config_manager.get_config().future_extensions
+        
+        # Build tabular data
         matrix_data = []
-        
-        # Print job skill information for debugging
-        for job in department_jobs[:3]:  # Limit to first 3 jobs for brevity
-            print(f"DEBUG: Job {job.job_id} has {len(job.skills)} skills: {list(job.skills.keys())[:5]}")
         
         for job1 in department_jobs:
             for job2 in department_jobs:
-                # Skip self-comparisons if not needed
-                if job1.job_id == job2.job_id and not config.include_self_comparisons:
+                # For self-comparisons, use 1.0 as similarity with all factors being perfect
+                if job1.job_id == job2.job_id:
+                    row = {
+                        "job1_id": job1.job_id,
+                        "job2_id": job2.job_id,
+                        "similarity": 1.0,
+                        # Enhancement factor weights
+                        "seniority_weight": enhancement_config.seniority_weight,
+                        "role_track_weight": enhancement_config.role_track_weight,
+                        "location_weight": enhancement_config.location_weight,
+                        "skill_type_weight": enhancement_config.skill_type_weight,
+                        # Perfect similarity for self-comparisons
+                        "seniority_factor": 1.0,
+                        "role_track_factor": 1.0,
+                        "location_factor": 1.0,
+                        "skill_type_factor": 1.0,
+                        "base_skill_similarity": 1.0
+                    }
+                else:
+                    # Calculate base skill similarity
+                    base_similarity = self.similarity_calculator._calculate_base_skill_similarity(job1.job_id, job2.job_id)
+                    
+                    # Calculate individual enhancement factors
+                    seniority_factor = self.similarity_calculator._calculate_seniority_similarity(job1, job2)
+                    role_track_factor = self.similarity_calculator._calculate_role_track_similarity(job1, job2)
+                    location_factor = self.similarity_calculator._calculate_location_similarity(job1, job2)
+                    skill_type_factor = self.similarity_calculator._calculate_skill_type_similarity(job1, job2)
+                    
+                    # Calculate final weighted similarity
+                    total_weight = (1.0 + enhancement_config.seniority_weight + 
+                                  enhancement_config.role_track_weight + 
+                                  enhancement_config.location_weight + 
+                                  enhancement_config.skill_type_weight)
+                    
+                    weighted_similarity = (
+                        base_similarity + 
+                        (seniority_factor * enhancement_config.seniority_weight) +
+                        (role_track_factor * enhancement_config.role_track_weight) +
+                        (location_factor * enhancement_config.location_weight) +
+                        (skill_type_factor * enhancement_config.skill_type_weight)
+                    ) / total_weight
+                    
+                    row = {
+                        "job1_id": job1.job_id,
+                        "job2_id": job2.job_id,
+                        "similarity": weighted_similarity,
+                        # Enhancement factor weights
+                        "seniority_weight": enhancement_config.seniority_weight,
+                        "role_track_weight": enhancement_config.role_track_weight,
+                        "location_weight": enhancement_config.location_weight,
+                        "skill_type_weight": enhancement_config.skill_type_weight,
+                        # Individual factor contributions
+                        "seniority_factor": seniority_factor,
+                        "role_track_factor": role_track_factor,
+                        "location_factor": location_factor,
+                        "skill_type_factor": skill_type_factor,
+                        "base_skill_similarity": base_similarity
+                    }
+                
+                # Apply threshold
+                if row["similarity"] < config.threshold:
                     continue
-                
-                # Calculate similarity
-                similarity = self._calculate_job_similarity(job1, job2)
-                
-                # For debugging, include all similarities
-                if similarity == 0:
-                    # Ensure we have at least some output for testing
-                    # Add a small random value to ensure non-zero similarity for testing
-                    if job1.job_id != job2.job_id:  # Still keep exact zero for self-similarity if excluded
-                        import random
-                        similarity = 0.1 + random.random() * 0.1  # Small random value between 0.1 and 0.2
-                        print(f"DEBUG: Using fallback similarity for {job1.job_id} and {job2.job_id}: {similarity}")
-                
-                # Apply threshold (now using a very low threshold for testing)
-                test_threshold = 0.01  # Very low threshold for testing
-                actual_threshold = config.threshold if not output_path else test_threshold
-                
-                if similarity < actual_threshold:
-                    continue
-                
-                # Use old column names for backward compatibility with tests
-                row = {
-                    "job1_id": job1.job_id,
-                    "job2_id": job2.job_id,
-                    "similarity": similarity
-                }
                 
                 # Add metadata if needed
                 if config.include_metadata:
                     row.update({
                         "job1_title": job1.title,
                         "job2_title": job2.title,
-                        "department": job1.department
+                        "job1_department": job1.department,
+                        "job2_department": job2.department,
+                        "job1_level": job1.level.value if job1.level else None,
+                        "job2_level": job2.level.value if job2.level else None,
+                        "job1_role_track": job1.role_track.name if job1.role_track else None,
+                        "job2_role_track": job2.role_track.name if job2.role_track else None
                     })
                 
                 # Add opportunity flags if needed
                 if config.add_opportunity_flags:
                     # Determine if this is a high similarity opportunity
-                    is_high_similarity = similarity >= config.get_threshold("high_similarity", 0.8)
+                    is_high_similarity = row["similarity"] >= config.get_threshold("high_similarity", 0.8)
                     
                     # Determine if this is an internal mobility opportunity based on levels
                     is_internal_mobility = False
                     if job1.level and job2.level and job1.level != job2.level:
-                        # For now, a simple level difference counts as mobility
                         is_internal_mobility = True
                     
                     # Add flags to row
                     row.update({
                         "is_high_similarity_opportunity": is_high_similarity,
                         "is_internal_mobility_opportunity": is_internal_mobility,
-                        "is_cross_departmental_opportunity": False  # Same department
+                        "is_cross_departmental_opportunity": job1.department != job2.department
                     })
                 
                 matrix_data.append(row)
@@ -914,76 +947,154 @@ class DataExporter:
         # Create DataFrame
         df = pd.DataFrame(matrix_data)
         
-        print(f"DEBUG: Generated job similarity matrix with {len(df)} rows")
-        
         # Sort by similarity (descending)
         if not df.empty:
             df = df.sort_values(by="similarity", ascending=False)
         
-        # If we still have an empty DataFrame, add placeholder rows for testing
-        if df.empty and output_path:
-            print("DEBUG: Adding placeholder rows for testing")
-            matrix_data = []  # Reset matrix_data to ensure it's clean
+        return df 
+
+    def export_job_similarity_matrix_all_departments(
+        self,
+        config: Optional[ReportConfig] = None,
+        output_path: Optional[str] = None
+    ) -> pd.DataFrame:
+        """Export job similarity matrix for all departments.
+        
+        Args:
+            config: Report configuration
+            output_path: Path to save the exported data
             
-            # Create at least 3 jobs if we have fewer than 3, to ensure we have enough data
-            if len(department_jobs) < 3:
-                # Create mock job data for testing
-                for i in range(3 - len(department_jobs)):
-                    department_jobs.append(
-                        Job(
-                            job_id=f"Mock_J{i+1}",
-                            title=f"Mock Job {i+1}",
-                            department=department,
-                            level=i+1,
-                            skills={}
-                        )
-                    )
+        Returns:
+            DataFrame containing job similarity data in tabular format with enhancement factor contributions
             
-            # Generate pairwise comparisons
-            for job1 in department_jobs:
-                for job2 in department_jobs:
-                    if job1.job_id != job2.job_id:  # Skip self-comparisons
-                        import random
+        Note:
+            This method processes all departments and may be computationally intensive for large job architectures.
+        """
+        config = config or ReportConfig()
+        
+        # Get all jobs
+        all_jobs = list(self.job_architecture.jobs.values())
+        
+        if not all_jobs:
+            raise ValueError("No jobs found in job architecture")
+        
+        # Calculate similarity matrix
+        if not self.similarity_calculator:
+            self._initialize_similarity_calculator()
+        
+        # Get enhancement factor weights from config
+        enhancement_config = self.similarity_calculator.config_manager.get_config().future_extensions
+        
+        # Build tabular data
+        matrix_data = []
+        
+        # Process jobs in chunks to manage memory
+        chunk_size = 100  # Adjust based on available memory
+        for i in range(0, len(all_jobs), chunk_size):
+            jobs_chunk = all_jobs[i:i + chunk_size]
+            
+            for job1 in jobs_chunk:
+                for job2 in all_jobs:  # Compare with all jobs
+                    # For self-comparisons, use 1.0 as similarity with all factors being perfect
+                    if job1.job_id == job2.job_id:
                         row = {
                             "job1_id": job1.job_id,
                             "job2_id": job2.job_id,
-                            "similarity": 0.3 + random.random() * 0.5  # Random value between 0.3 and 0.8
+                            "similarity": 1.0,
+                            # Enhancement factor weights
+                            "seniority_weight": enhancement_config.seniority_weight,
+                            "role_track_weight": enhancement_config.role_track_weight,
+                            "location_weight": enhancement_config.location_weight,
+                            "skill_type_weight": enhancement_config.skill_type_weight,
+                            # Perfect similarity for self-comparisons
+                            "seniority_factor": 1.0,
+                            "role_track_factor": 1.0,
+                            "location_factor": 1.0,
+                            "skill_type_factor": 1.0,
+                            "base_skill_similarity": 1.0
                         }
+                    else:
+                        # Calculate base skill similarity
+                        base_similarity = self.similarity_calculator._calculate_base_skill_similarity(job1.job_id, job2.job_id)
                         
-                        # Add metadata if needed
-                        if config.include_metadata:
-                            row.update({
-                                "job1_title": job1.title,
-                                "job2_title": job2.title,
-                                "department": job1.department
-                            })
+                        # Calculate individual enhancement factors
+                        seniority_factor = self.similarity_calculator._calculate_seniority_similarity(job1, job2)
+                        role_track_factor = self.similarity_calculator._calculate_role_track_similarity(job1, job2)
+                        location_factor = self.similarity_calculator._calculate_location_similarity(job1, job2)
+                        skill_type_factor = self.similarity_calculator._calculate_skill_type_similarity(job1, job2)
                         
-                        matrix_data.append(row)
-            
-            # Create DataFrame with placeholder data
-            df = pd.DataFrame(matrix_data)
-            if not df.empty:
-                df = df.sort_values(by="similarity", ascending=False)
-            print(f"DEBUG: Added placeholder data, matrix now has {len(df)} rows")
+                        # Calculate final weighted similarity
+                        total_weight = (1.0 + enhancement_config.seniority_weight + 
+                                      enhancement_config.role_track_weight + 
+                                      enhancement_config.location_weight + 
+                                      enhancement_config.skill_type_weight)
+                        
+                        weighted_similarity = (
+                            base_similarity + 
+                            (seniority_factor * enhancement_config.seniority_weight) +
+                            (role_track_factor * enhancement_config.role_track_weight) +
+                            (location_factor * enhancement_config.location_weight) +
+                            (skill_type_factor * enhancement_config.skill_type_weight)
+                        ) / total_weight
+                        
+                        row = {
+                            "job1_id": job1.job_id,
+                            "job2_id": job2.job_id,
+                            "similarity": weighted_similarity,
+                            # Enhancement factor weights
+                            "seniority_weight": enhancement_config.seniority_weight,
+                            "role_track_weight": enhancement_config.role_track_weight,
+                            "location_weight": enhancement_config.location_weight,
+                            "skill_type_weight": enhancement_config.skill_type_weight,
+                            # Individual factor contributions
+                            "seniority_factor": seniority_factor,
+                            "role_track_factor": role_track_factor,
+                            "location_factor": location_factor,
+                            "skill_type_factor": skill_type_factor,
+                            "base_skill_similarity": base_similarity
+                        }
+                    
+                    # Apply threshold
+                    if row["similarity"] < config.threshold:
+                        continue
+                    
+                    # Add metadata if needed
+                    if config.include_metadata:
+                        row.update({
+                            "job1_title": job1.title,
+                            "job2_title": job2.title,
+                            "job1_department": job1.department,
+                            "job2_department": job2.department,
+                            "job1_level": job1.level.value if job1.level else None,
+                            "job2_level": job2.level.value if job2.level else None,
+                            "job1_role_track": job1.role_track.name if job1.role_track else None,
+                            "job2_role_track": job2.role_track.name if job2.role_track else None
+                        })
+                    
+                    # Add opportunity flags if needed
+                    if config.add_opportunity_flags:
+                        # Determine if this is a high similarity opportunity
+                        is_high_similarity = row["similarity"] >= config.get_threshold("high_similarity", 0.8)
+                        
+                        # Determine if this is an internal mobility opportunity based on levels
+                        is_internal_mobility = False
+                        if job1.level and job2.level and job1.level != job2.level:
+                            is_internal_mobility = True
+                        
+                        # Add flags to row
+                        row.update({
+                            "is_high_similarity_opportunity": is_high_similarity,
+                            "is_internal_mobility_opportunity": is_internal_mobility,
+                            "is_cross_departmental_opportunity": job1.department != job2.department
+                        })
+                    
+                    matrix_data.append(row)
         
-        # Save to file if path provided
-        if output_path:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-            
-            # Export based on format
-            if config.format.lower() == "csv":
-                df.to_csv(output_path, index=False)
-            elif config.format.lower() == "json":
-                df.to_json(output_path, orient="records", indent=2)
-            elif config.format.lower() == "excel":
-                df.to_excel(output_path, index=False)
+        # Create DataFrame
+        df = pd.DataFrame(matrix_data)
         
-        return df
+        # Sort by similarity (descending)
+        if not df.empty:
+            df = df.sort_values(by=["job1_department", "job2_department", "similarity"], ascending=[True, True, False])
         
-    def _calculate_job_similarity(self, job1: Any, job2: Any) -> float:
-        """Calculate similarity between two jobs."""
-        if not self.similarity_calculator:
-            self._initialize_similarity_calculator()
-            
-        return self.similarity_calculator.calculate_job_similarity(job1.job_id, job2.job_id) 
+        return df 

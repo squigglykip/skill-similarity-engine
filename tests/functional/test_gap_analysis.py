@@ -177,12 +177,12 @@ class TestGapAnalysis(BaseFunctionalTest):
             weighted_effort = gap_results_weighted.total_development_effort
             
             # Now set all weights equal
-            self.config_manager.config.gap_analysis.category_weights = {
+        self.config_manager.config.gap_analysis.category_weights = {
                 "SPECIALIZED": 1.0,
                 "COMMON": 1.0,
-                "CERTIFICATION": 1.0
-            }
-            
+            "CERTIFICATION": 1.0
+        }
+        
             # Analyze gap with equal weights
             gap_results_equal = self.gap_analyzer.analyze_employee_job_gap(employee_id, different_job_id)
             equal_effort = gap_results_equal.total_development_effort
@@ -197,8 +197,8 @@ class TestGapAnalysis(BaseFunctionalTest):
             self.assertIsInstance(weighted_effort, float)
             self.assertIsInstance(equal_effort, float)
         finally:
-            # Restore original weights
-            self.config_manager.config.gap_analysis.category_weights = original_weights
+        # Restore original weights
+        self.config_manager.config.gap_analysis.category_weights = original_weights
     
     def test_gap_threshold_influence(self):
         """Test that gap threshold influences which skills are identified as gaps."""
@@ -239,8 +239,8 @@ class TestGapAnalysis(BaseFunctionalTest):
             # The lower threshold should identify at least as many gaps as the higher
             self.assertGreaterEqual(len(gaps_low), len(gaps_high))
         finally:
-            # Restore original threshold
-            self.config_manager.config.gap_analysis.min_gap_threshold = original_threshold
+        # Restore original threshold
+        self.config_manager.config.gap_analysis.min_gap_threshold = original_threshold
     
     def test_hris_integration_consistency(self):
         """Test that gap analysis works consistently with HRIS-transformed data."""
