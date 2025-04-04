@@ -37,23 +37,24 @@ class VisualisationManager:
         self,
         skill_taxonomy: SkillTaxonomy,
         job_architecture: JobArchitecture,
-        similarity_calculator: CosineSimilarityCalculator,
-        output_dir: str
+        output_dir: str,
+        similarity_calculator: Optional[CosineSimilarityCalculator] = None
     ):
         """Initialize the visualization manager.
         
         Args:
             skill_taxonomy: The skill taxonomy to visualize
             job_architecture: The job architecture to visualize
-            similarity_calculator: Calculator for job similarities
             output_dir: Directory to save generated visualizations
+            similarity_calculator: Calculator for job similarities (optional)
         """
         self.taxonomy = skill_taxonomy
-        self.job_arch = job_architecture
+        self.job_architecture = job_architecture
         self.calculator = similarity_calculator
         self.exporter = DataExporter(
             skill_taxonomy=skill_taxonomy,
             job_architecture=job_architecture,
+            similarity_calculator=similarity_calculator,
             output_dir=output_dir
         )
         self.output_dir = output_dir
@@ -117,7 +118,7 @@ class VisualisationManager:
         column_labels = []
         
         for job_id in heatmap_data.index:
-            job = self.job_arch.get_job(job_id)
+            job = self.job_architecture.get_job(job_id)
             # Use title and department from internal model
             job_title = job.title  # Using title instead of role_set
             department = job.department  # This is already the internal field name
@@ -125,7 +126,7 @@ class VisualisationManager:
             index_labels.append(label)
             
         for job_id in heatmap_data.columns:
-            job = self.job_arch.get_job(job_id)
+            job = self.job_architecture.get_job(job_id)
             # Use title and department from internal model
             job_title = job.title  # Using title instead of role_set
             department = job.department  # This is already the internal field name
@@ -263,109 +264,93 @@ class VisualisationManager:
     
     def generate_job_similarity_heatmap_all_departments(
         self,
-        output_dir: Optional[str] = None,
-        filename: Optional[str] = None,
+        output_dir: str,
+        filename: str = "heatmap_all_departments.png",
         figsize: Tuple[int, int] = (20, 16),
         group_by_department: bool = True
     ) -> str:
-        """Generate a heatmap visualization of job similarities across all departments.
+        """
+        Generate a heatmap visualization of job similarities across all departments.
         
         Args:
-            output_dir: Directory to save the visualization (default: config.output_dir)
-            filename: Name of the output file (default: job_similarity_heatmap_all.png)
-            figsize: Figure size as (width, height)
-            group_by_department: Whether to group jobs by department in the visualization
+            output_dir: Directory to save the visualization
+            filename: Name of the output file
+            figsize: Size of the figure as (width, height)
+            group_by_department: Whether to group jobs by department
             
         Returns:
             Path to the saved visualization file
-            
-        Note:
-            For large job architectures, this may generate a large visualization.
-            Consider using group_by_department=True to make the visualization more manageable.
         """
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        import numpy as np
-        
-        # Get similarity data for all departments
-        data_exporter = DataExporter(
-            skill_taxonomy=self.taxonomy,
-            job_architecture=self.job_arch,
-            employee_database=self.employee_database
-        )
-        
-        # Get similarity data with metadata
-        config = ReportConfig(include_metadata=True)
-        df = data_exporter.export_job_similarity_matrix_all_departments(config=config)
-        
-        if df.empty:
-            raise ValueError("No similarity data available")
+        # Get similarity matrix from the exporter
+        df = self.exporter.export_job_similarity_matrix_all_departments()
         
         # Create pivot table for heatmap
-        pivot_df = df.pivot(index='job1_id', columns='job2_id', values='similarity')
+        pivot_df = pd.pivot_table(
+            df,
+            values='similarity',
+            index='job1_id',
+            columns='job2_id',
+            fill_value=0
+        )
         
-        # If grouping by department, sort index and columns by department
+        # Get job metadata for labels
+        job_labels = {}
+        department_boundaries = []
+        current_pos = 0
+        
+        # Sort jobs by department if grouping
+        jobs = list(self.job_architecture.jobs.values())
         if group_by_department:
-            # Create department mapping
-            dept_mapping = {}
-            for _, row in df.iterrows():
-                dept_mapping[row['job1_id']] = row['job1_department']
-                dept_mapping[row['job2_id']] = row['job2_department']
+            jobs.sort(key=lambda x: (x.department or "", x.title or ""))
             
-            # Sort jobs by department
-            sorted_jobs = sorted(pivot_df.index, key=lambda x: (dept_mapping[x], x))
-            pivot_df = pivot_df.reindex(index=sorted_jobs, columns=sorted_jobs)
-            
-            # Create department boundaries for visualization
-            dept_boundaries = []
+            # Track department boundaries
             current_dept = None
-            for i, job_id in enumerate(sorted_jobs):
-                if dept_mapping[job_id] != current_dept:
-                    if current_dept is not None:
-                        dept_boundaries.append(i)
-                    current_dept = dept_mapping[job_id]
+            for job in jobs:
+                if job.department != current_dept:
+                    if current_pos > 0:
+                        department_boundaries.append(current_pos - 0.5)
+                    current_dept = job.department
+                current_pos += 1
+        
+        # Create labels
+        for job in jobs:
+            label = f"{job.title}\n({job.department})" if job.department else job.title
+            job_labels[job.job_id] = label
+        
+        # Reorder matrix to match sorted jobs
+        job_ids = [job.job_id for job in jobs]
+        pivot_df = pivot_df.reindex(index=job_ids, columns=job_ids)
         
         # Create figure
         plt.figure(figsize=figsize)
         
         # Create heatmap
-        ax = sns.heatmap(
+        sns.heatmap(
             pivot_df,
             cmap='YlOrRd',
-            vmin=0,
-            vmax=1,
-            center=0.5,
-            square=True,
-            xticklabels=True,
-            yticklabels=True,
+            xticklabels=[job_labels[job_id] for job_id in pivot_df.columns],
+            yticklabels=[job_labels[job_id] for job_id in pivot_df.index],
             cbar_kws={'label': 'Similarity Score'}
         )
         
-        # Rotate x-axis labels for better readability
+        # Add department boundary lines if grouping
+        if group_by_department and department_boundaries:
+            for boundary in department_boundaries:
+                plt.axhline(y=boundary, color='black', linewidth=0.5)
+                plt.axvline(x=boundary, color='black', linewidth=0.5)
+        
+        # Rotate labels
         plt.xticks(rotation=45, ha='right')
         plt.yticks(rotation=0)
         
-        # Add department boundaries if grouping by department
-        if group_by_department and dept_boundaries:
-            for boundary in dept_boundaries:
-                plt.axhline(y=boundary, color='black', linewidth=1)
-                plt.axvline(x=boundary, color='black', linewidth=1)
-        
-        # Set title
+        # Add title
         plt.title('Job Similarity Heatmap - All Departments', pad=20)
         
         # Adjust layout to prevent label cutoff
         plt.tight_layout()
         
         # Save visualization
-        output_dir = output_dir or self.output_dir
-        filename = filename or 'job_similarity_heatmap_all.png'
         output_path = os.path.join(output_dir, filename)
-        
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        # Save with high DPI for better quality
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
         

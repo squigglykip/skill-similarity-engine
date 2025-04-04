@@ -12,9 +12,13 @@ import sys
 import traceback
 import logging
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
+from multiprocessing import Pool, cpu_count
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 # Add the src directory to the Python path if not installed as a package
 src_path = os.path.join(os.path.dirname(__file__), 'src')
@@ -158,61 +162,79 @@ def load_data_directly(
     jobs_file: str,
     job_skills_file: Optional[str],
     department: Optional[str],
-    logger: logging.Logger
+    logger: logging.Logger,
+    chunk_size: int = 100000,
+    memory_efficient: bool = False
 ) -> Tuple[pd.DataFrame, JobArchitecture, SkillTaxonomy]:
-    """Load data directly from CSV files."""
+    """Load data directly from CSV files with optimized memory usage."""
     logger.info("\n" + "="*80)
     logger.info("STARTING DATA LOADING PROCESS")
     logger.info("="*80 + "\n")
     
-    # Get script directory as base directory for relative paths
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Load skills
-    logger.info("\n" + "-"*40)
-    logger.info("STEP 1: LOADING SKILLS DATA")
-    logger.info("-"*40)
-    logger.info(f"Loading skills from: {skills_file}")
-    skills_df = pd.read_csv(skills_file)
-    
-    # Debug: Print columns in the DataFrame
-    logger.info("\nColumns found in skills file:")
-    for col in skills_df.columns.tolist():
-        logger.info(f"  - {col}")
-    
-    # Map HRIS column names to internal column names
-    logger.info("\nMapping column names...")
-    column_mapping = {
-        'Skill_ID': 'skill_id',
-        'Skill_Name': 'name',
-        'SkillType': 'skill_type',
-        'Category': 'category',
-        'Subcategory': 'subcategory'
+    # Load skills with optimized dtypes
+    logger.info("Loading skills data...")
+    dtype_map = {
+        'skill_id': 'str',
+        'name': 'str',
+        'skill_type': 'category',
+        'category': 'category',
+        'subcategory': 'category'
     }
+    skills_df = pd.read_csv(skills_file, dtype=dtype_map)
+    logger.info(f"Loaded {len(skills_df)} skills")
+    logger.info(f"Memory usage: {skills_df.memory_usage().sum() / 1024 / 1024:.2f} MB")
     
-    # Rename columns to match internal schema
-    skills_df = skills_df.rename(columns=column_mapping)
+    # Preprocess skill names - replace spaces with underscores
+    logger.info("Preprocessing skill names (replacing spaces with underscores)...")
+    original_names = skills_df['name'].copy()
+    skills_df['name'] = skills_df['name'].str.replace(' ', '_')
     
-    # Debug: Print columns after mapping
-    logger.info("\nColumns after mapping:")
-    for col in skills_df.columns.tolist():
-        logger.info(f"  - {col}")
-    
-    # Verify required columns exist
-    required_columns = ['skill_id', 'name', 'skill_type']
-    missing_columns = [col for col in required_columns if col not in skills_df.columns]
-    if missing_columns:
-        raise ValueError(f"Skills file missing required columns: {missing_columns}")
-    
+    # Create mapping of transformed skill names to original names for reference
+    skill_name_mapping = dict(zip(skills_df['name'], original_names))
+    logger.info(f"Processed {len(skill_name_mapping)} skill names")
+
+    # Load jobs with optimized dtypes
+    logger.info("\nLoading jobs data...")
+    jobs_dtype_map = {
+        'job_id': 'str',
+        'title': 'str',
+        'department': 'category',
+        'level': 'category',
+        'role_track': 'category',
+        'org_unit_number': 'str'
+    }
+    jobs_df = pd.read_csv(jobs_file, dtype=jobs_dtype_map)
+    logger.info(f"Loaded {len(jobs_df)} jobs")
+    logger.info(f"Memory usage: {jobs_df.memory_usage().sum() / 1024 / 1024:.2f} MB")
+
+    # If job skills file is provided, load with chunking for large files
+    if job_skills_file:
+        logger.info("\nLoading job skills data...")
+        job_skills_list = []
+        
+        for chunk in tqdm(pd.read_csv(job_skills_file, chunksize=chunk_size), desc="Loading job skills"):
+            if department:
+                # Filter by department if specified
+                dept_jobs = jobs_df[jobs_df['department'] == department]['job_id'].unique()
+                chunk = chunk[chunk['job_id'].isin(dept_jobs)]
+            job_skills_list.append(chunk)
+            
+        job_skills_df = pd.concat(job_skills_list, ignore_index=True)
+        logger.info(f"Loaded {len(job_skills_df)} job-skill mappings")
+        logger.info(f"Memory usage: {job_skills_df.memory_usage().sum() / 1024 / 1024:.2f} MB")
+
     # Create taxonomy using the loader
     logger.info("\n" + "-"*40)
     logger.info("STEP 2: CREATING SKILL TAXONOMY")
     logger.info("-"*40)
     from skill_similarity_engine.data.loaders import SkillTaxonomyLoader
-    taxonomy_loader = SkillTaxonomyLoader(base_dir=base_dir)
+    taxonomy_loader = SkillTaxonomyLoader(base_dir=os.path.dirname(os.path.abspath(__file__)))
     
     # Create an empty taxonomy and populate it directly with the DataFrame we've already loaded
     taxonomy = SkillTaxonomy()
+    
+    # Save mapping of original to transformed names in the taxonomy
+    taxonomy.skill_name_mapping = skill_name_mapping
     
     # Create category mapping if categories are in the DataFrame
     category_mapping = {}
@@ -301,55 +323,9 @@ def load_data_directly(
         
     logger.info(f"Successfully loaded {len(taxonomy.skills)} skills into taxonomy")
     
-    # Load job architecture
-    logger.info("\n" + "-"*40)
-    logger.info("STEP 3: LOADING JOBS DATA")
-    logger.info("-"*40)
-    logger.info(f"Loading jobs from: {jobs_file}")
-    jobs_df = pd.read_csv(jobs_file)
-    
-    # Debug: Print columns in the jobs DataFrame
-    logger.info("\nColumns found in jobs file:")
-    for col in jobs_df.columns.tolist():
-        logger.info(f"  - {col}")
-    
-    # Map HRIS job column names to internal column names
-    logger.info("\nMapping job column names...")
-    job_column_mapping = {
-        'JobID': 'job_id',
-        'RoleSet': 'title',
-        'Org Unit Name': 'department',
-        'Salary Group': 'level',
-        'People Leader Flag': 'role_track',
-        'Org Unit Number': 'org_unit_number'  # Add this to capture unit number for uniqueness
-    }
-    
-    # Rename columns to match internal schema
-    jobs_df = jobs_df.rename(columns=job_column_mapping)
-    
-    # Debug: Print columns after mapping
-    logger.info("\nColumns after mapping:")
-    for col in jobs_df.columns.tolist():
-        logger.info(f"  - {col}")
-    
-    # Create unique job IDs by combining job_id with org_unit_number
-    if 'job_id' in jobs_df.columns and 'org_unit_number' in jobs_df.columns:
-        jobs_df['unique_job_id'] = jobs_df['job_id'] + '_' + jobs_df['org_unit_number'].astype(str)
-        logger.info("\nCreated unique job IDs by combining JobID with Org Unit Number")
-    else:
-        # If the required columns don't exist, we can't create unique IDs
-        logger.error("Can't create unique job IDs: 'job_id' or 'org_unit_number' column missing")
-        raise ValueError("Jobs file must have both 'JobID' and 'Org Unit Number' columns to create unique job IDs")
-    
-    # Verify required job columns exist
-    required_job_columns = ['unique_job_id', 'title', 'department', 'level']
-    missing_job_columns = [col for col in required_job_columns if col not in jobs_df.columns]
-    if missing_job_columns:
-        raise ValueError(f"Jobs file missing required columns: {missing_job_columns}")
-    
     # Create job architecture directly from the DataFrame
     logger.info("\n" + "-"*40)
-    logger.info("STEP 4: CREATING JOB ARCHITECTURE")
+    logger.info("STEP 3: CREATING JOB ARCHITECTURE")
     logger.info("-"*40)
     
     # Create empty job architecture
@@ -369,7 +345,7 @@ def load_data_directly(
         
         # Create job object with unique ID
         job = Job(
-            job_id=row['unique_job_id'],
+            job_id=row['job_id'],
             title=row['title'],
             department=row['department'],
             level=job_level,
@@ -386,39 +362,6 @@ def load_data_directly(
         logger.info("-"*40)
         logger.info(f"Loading job skills from: {job_skills_file}")
         
-        job_skills_df = pd.read_csv(job_skills_file)
-        
-        # Debug: Print columns in the job skills DataFrame
-        logger.info("\nColumns found in job skills file:")
-        for col in job_skills_df.columns.tolist():
-            logger.info(f"  - {col}")
-        
-        # Map job skills column names if needed
-        skill_mapping = {
-            'JobID': 'job_id',
-            'Skill_ID': 'skill_id',
-            'Proficiency': 'proficiency'
-        }
-        
-        # Rename columns
-        job_skills_df = job_skills_df.rename(columns=skill_mapping)
-        
-        # Debug: Print columns after mapping
-        logger.info("\nColumns after mapping:")
-        for col in job_skills_df.columns.tolist():
-            logger.info(f"  - {col}")
-        
-        # If job_id column doesn't exist in the job skills file, we can't map skills
-        if 'job_id' not in job_skills_df.columns:
-            logger.error("Can't map job skills: 'job_id' column missing from job skills file")
-            raise ValueError("Job skills file must have a 'JobID' column")
-            
-        # If skill_id column doesn't exist, we can't map skills
-        if 'skill_id' not in job_skills_df.columns:
-            logger.error("Can't map job skills: 'skill_id' column missing from job skills file")
-            logger.error("Available columns: " + ", ".join(job_skills_df.columns.tolist()))
-            raise ValueError("Job skills file must have a 'Skill_ID' column")
-        
         # Map job skills to jobs
         skills_mapped = 0
         skills_skipped = 0
@@ -430,7 +373,7 @@ def load_data_directly(
             job_id = row['job_id']
             if 'org_unit_number' in row and pd.notna(row['org_unit_number']):
                 # Create combined key
-                unique_id = row['unique_job_id']
+                unique_id = job_id + '_' + row['org_unit_number']
                 
                 # Support mapping from simple job_id to all matching unique_job_ids
                 if job_id not in job_id_mapping:
@@ -565,19 +508,50 @@ def generate_visualizations(
     taxonomy: SkillTaxonomy,
     output_dir: str,
     department: Optional[str],
-    logger: logging.Logger
+    logger: logging.Logger,
+    batch_size: int = 5,
+    memory_efficient: bool = False
 ) -> None:
-    """Generate visualizations for the results."""
+    """Generate visualizations with progress tracking and memory optimization."""
     logger.info("Generating visualizations...")
     
     # Create visualization manager
     vis_manager = VisualisationManager(
         skill_taxonomy=taxonomy,
         job_architecture=job_architecture,
-        similarity_calculator=None,  # We don't need this for visualization
+        similarity_calculator=None,
         output_dir=output_dir
     )
     
+    # Process departments in batches to manage memory
+    departments = [department] if department else list(set(job.department for job in job_architecture.jobs.values()))
+    
+    for i in range(0, len(departments), batch_size):
+        batch_departments = departments[i:i + batch_size]
+        logger.info(f"Processing departments {i+1}-{min(i+batch_size, len(departments))} of {len(departments)}")
+        
+        for dept in tqdm(batch_departments, desc="Generating department visualizations"):
+            heatmap_filename = f"heatmap_{dept}.png"
+            vis_manager.generate_job_similarity_heatmap(
+                similarity_matrix=df,
+                department=dept,
+                output_dir=output_dir,
+                filename=heatmap_filename
+            )
+            
+            # Clear matplotlib memory after each plot
+            plt.close('all')
+            
+            # Export department-specific data
+            dept_matrix = vis_manager.exporter.export_job_similarity_matrix(
+                department=dept,
+                config=ReportConfig(include_metadata=True, add_opportunity_flags=True)
+            )
+            dept_matrix.to_csv(os.path.join(output_dir, f"job_similarity_{dept}.csv"), index=False)
+            
+            # Clear memory
+            del dept_matrix
+            
     # Generate all-departments heatmap first
     logger.info("Generating all-departments heatmap...")
     vis_manager.generate_job_similarity_heatmap_all_departments(
@@ -597,31 +571,6 @@ def generate_visualizations(
     )
     # Save the tabular data
     all_dept_matrix.to_csv(os.path.join(output_dir, "job_similarity_all_departments.csv"), index=False)
-    
-    # Determine departments to visualize for individual department views
-    if department:
-        departments = [department]
-    else:
-        departments = set(job.department for job in job_architecture.jobs.values())
-    
-    # Generate a heatmap for each department
-    for dept in departments:
-        logger.debug(f"Generating heatmap for department: {dept}")
-        heatmap_filename = f"heatmap_{dept}.png"
-        vis_manager.generate_job_similarity_heatmap(
-            similarity_matrix=df,
-            department=dept,
-            output_dir=output_dir,
-            filename=heatmap_filename
-        )
-        
-        # Export department-specific similarity matrix in tabular format
-        logger.debug(f"Exporting similarity matrix for department: {dept}")
-        dept_matrix = vis_manager.exporter.export_job_similarity_matrix(
-            department=dept,
-            config=config
-        )
-        dept_matrix.to_csv(os.path.join(output_dir, f"job_similarity_{dept}.csv"), index=False)
     
     # Generate summary statistics
     logger.debug("Generating summary statistics...")
@@ -671,10 +620,92 @@ def generate_visualizations(
     logger.info(f"Found {stats['internal_mobility_opportunities']} internal mobility opportunities")
     logger.info(f"Found {stats['cross_department_opportunities']} cross-department opportunities")
 
+def calculate_similarity_batch(args):
+    """Helper function for parallel similarity calculation"""
+    start_idx, end_idx, job_ids, vectors = args
+    batch_size = end_idx - start_idx
+    similarities = np.zeros((batch_size, len(job_ids)))
+    
+    for i in range(batch_size):
+        idx = start_idx + i
+        for j in range(len(job_ids)):
+            if idx != j:
+                similarities[i, j] = np.dot(vectors[idx], vectors[j])
+    
+    return similarities
+
+class CosineSimilarityCalculator:
+    def calculate_similarity_matrix(self, analysis_type, job_architecture=None):
+        """Calculate similarity matrix with parallel processing"""
+        if analysis_type != "job":
+            raise ValueError(f"Unsupported analysis type: {analysis_type}")
+            
+        job_arch = job_architecture or self.job_architecture
+        job_ids = list(job_arch.jobs.keys())
+        n_jobs = len(job_ids)
+        
+        # Pre-compute TF-IDF vectors for all jobs
+        vectors = []
+        for job_id in tqdm(job_ids, desc="Vectorizing jobs"):
+            vectors.append(self.vectorizer.vectorize_job(job_arch.jobs[job_id]))
+        vectors = np.array(vectors)
+        
+        # Prepare batches for parallel processing
+        n_cores = cpu_count()
+        batch_size = max(1, n_jobs // (n_cores * 4))  # Smaller batches for better load balancing
+        batches = []
+        
+        for start_idx in range(0, n_jobs, batch_size):
+            end_idx = min(start_idx + batch_size, n_jobs)
+            batches.append((start_idx, end_idx, job_ids, vectors))
+        
+        # Calculate similarities in parallel
+        with Pool(processes=n_cores) as pool:
+            results = list(tqdm(
+                pool.imap(calculate_similarity_batch, batches),
+                total=len(batches),
+                desc="Calculating similarities"
+            ))
+        
+        # Combine results
+        similarity_matrix = np.vstack(results)
+        
+        # Ensure the matrix is symmetric
+        similarity_matrix = np.maximum(similarity_matrix, similarity_matrix.T)
+        np.fill_diagonal(similarity_matrix, 1.0)
+        
+        return similarity_matrix, job_ids
+
 def main():
     """Main entry point for the HRIS POC analysis tool."""
     parser = argparse.ArgumentParser(
         description="Run skill similarity analysis POC on synthetic HRIS data"
+    )
+    
+    # Add performance optimization options
+    performance = parser.add_argument_group("Performance Options")
+    performance.add_argument(
+        "--num-processes",
+        type=int,
+        default=cpu_count(),
+        help="Number of processes to use for parallel processing (default: number of CPU cores)"
+    )
+    performance.add_argument(
+        "--chunk-size",
+        type=int,
+        default=100000,
+        help="Chunk size for reading large files (default: 100000)"
+    )
+    performance.add_argument(
+        "--batch-size",
+        type=int,
+        default=5,
+        help="Batch size for processing departments (default: 5)"
+    )
+    performance.add_argument(
+        "--memory-efficient",
+        action="store_true",
+        help="Use memory-efficient mode (trades speed for lower memory usage)"
     )
     
     # Analysis type
@@ -784,7 +815,9 @@ def main():
                     args.jobs_file,
                     args.job_skills_file,
                     args.department,
-                    logger
+                    logger,
+                    chunk_size=args.chunk_size,
+                    memory_efficient=args.memory_efficient
                 )
         
         # Step 2: Save results
@@ -815,7 +848,9 @@ def main():
                 taxonomy,
                 output_dir,
                 args.department,
-                logger
+                logger,
+                batch_size=args.batch_size,
+                memory_efficient=args.memory_efficient
             )
         
         logger.info("POC run completed successfully!")
