@@ -7,67 +7,59 @@ This document provides instructions for running the Skill Similarity Engine POC 
 The POC demonstrates the complete pipeline for job similarity analysis using the Skill Similarity Engine with synthetic HRIS data. The synthetic data matches the schema of real HRIS data but contains randomly generated content.
 
 The POC consists of:
-1. A command-line tool (`main.py`) for running the analysis
-2. A web interface (`webapp.py`) for exploring the results
-3. A PowerShell helper script (`run_poc.ps1`) for easy execution
+1. A command-line tool (`main.py`) for running the analysis and generating tabular outputs
+2. Comprehensive tabular outputs for Power BI analysis
 
 ## Prerequisites
 
 - Python 3.8 or later
 - PowerShell (for Windows) or bash (for Linux/macOS)
 - Synthetic data files in `data/poc/` directory:
-  - `jobs_data_YYYYMMDD_HHMMSS.csv`
-  - `skills_data_YYYYMMDD_HHMMSS.csv`
-  - `job_skills_mapping_YYYYMMDD_HHMMSS.csv`
+  - `HRIS_jobs.csv`
+  - `HRIS_skills.csv`
+  - `HRIS_job_skills.csv`
 
 Required Python packages (installed automatically by the scripts):
 - pandas
 - numpy
 - matplotlib
-- seaborn
-- streamlit (for the web interface)
+- tqdm
+- multiprocessing
 
 ## Quick Start
 
-### Using the PowerShell Script (Recommended)
+### Using PowerShell (Windows)
 
-The easiest way to run the POC is using the PowerShell script:
+The easiest way to run the POC is using PowerShell:
 
 ```powershell
-# Run the analysis
-./run_poc.ps1 -Mode analysis -SkillsFile "data/poc/skills_data_20250331_175651.csv" -JobsFile "data/poc/jobs_data_20250331_175651.csv"
+# Run the analysis with default options
+python main.py --skills-file data/poc/input/HRIS_skills.csv --jobs-file data/poc/input/HRIS_jobs.csv --job-skills-file data/poc/input/HRIS_job_skills.csv
 
-# Launch the web interface
-./run_poc.ps1 -Mode webapp
-```
-
-Note: Replace the filenames with your actual data file paths.
-
-### Manual Execution
-
-#### Running the Analysis Directly
-
-```bash
-# Basic usage
-python main.py --skills-file data/poc/skills_data_20250331_175651.csv --jobs-file data/poc/jobs_data_20250331_175651.csv
-
-# With additional options
-python main.py --skills-file data/poc/skills_data_20250331_175651.csv \
-               --jobs-file data/poc/jobs_data_20250331_175651.csv \
-               --job-skills-file data/poc/job_skills_mapping_20250331_175651.csv \
-               --department "Technology" \
-               --output-dir data/poc/output \
+# With all options
+python main.py --skills-file data/poc/input/HRIS_skills.csv `
+               --jobs-file data/poc/input/HRIS_jobs.csv `
+               --job-skills-file data/poc/input/HRIS_job_skills.csv `
+               --department "Technology" `
+               --output-dir data/poc/output `
+               --output-format csv `
+               --tabular-only `
                --verbose
 ```
 
-#### Starting the Web Interface
+### Command-Line Execution
 
 ```bash
-# Install Streamlit if not already installed
-pip install streamlit
+# Basic usage
+python main.py --skills-file data/poc/input/HRIS_skills.csv --jobs-file data/poc/input/HRIS_jobs.csv --job-skills-file data/poc/input/HRIS_job_skills.csv
 
-# Run the web app
-python -m streamlit run webapp.py
+# With additional options
+python main.py --skills-file data/poc/input/HRIS_skills.csv \
+               --jobs-file data/poc/input/HRIS_jobs.csv \
+               --job-skills-file data/poc/input/HRIS_job_skills.csv \
+               --department "Technology" \
+               --output-dir data/poc/output \
+               --verbose
 ```
 
 ## Command-Line Options
@@ -84,35 +76,53 @@ The `main.py` script accepts the following arguments:
 | `--department` | Filter analysis by department (optional) |
 | `--output-dir` | Directory for output files (default: "./data/poc/output") |
 | `--output-format` | Output file format: csv, json, or excel (default: "csv") |
-| `--no-visualizations` | Skip generating visualizations (optional) |
+| `--no-visualizations` | Skip generating visualizations (default: True) |
+| `--tabular-only` | Generate only tabular data for Power BI (default: True) |
+| `--batch-size` | Batch size for processing departments (default: 5) |
+| `--memory-efficient` | Use memory-efficient mode for large datasets (default: False) |
+| `--chunk-size` | Chunk size for reading large files (default: 100000) |
 | `--verbose` | Enable verbose logging (optional) |
 
-## Web Interface Features
+## Performance Options
 
-The web interface provides:
+For large datasets, consider these performance options:
 
-1. **Overview dashboard** with key metrics and similarity distribution
-2. **Job similarity heatmaps** for each department
-3. **Top similar job pairs** based on similarity scores
-4. **Job similarity search** to find jobs similar to a specific job
-5. **Interactive filters** for departments and similarity thresholds
+| Argument | Description |
+|----------|-------------|
+| `--num-processes` | Number of processes to use for parallel processing (default: number of CPU cores) |
+| `--memory-efficient` | Reduce memory usage at the cost of processing speed |
+| `--chunk-size` | Size of chunks when reading large CSV files |
+| `--batch-size` | Number of departments to process in each batch |
 
 ## Output Files
 
-After running the analysis, the following files will be created in the output directory:
+After running the analysis, the following files will be created in a timestamped output directory (e.g., `poc_run_20250404_134436`):
 
-- `job_similarity_all_departments.csv`: Complete similarity matrix for all jobs
-- `similarity_matrix_DEPARTMENT.csv`: Similarity matrix for each department
-- `heatmap_DEPARTMENT.png`: Heatmap visualization for each department
-- `summary_statistics.csv`: Statistical summary of the similarity scores
+### Similarity Matrices
+- `job_similarity_all_departments.csv`: Complete similarity matrix in tabular format for all jobs
+- `job_similarity_{department}.csv`: Similarity matrix for each department (with sanitized department names)
 
-## Using the Results
+### Job Skills Data
+- `job_skills/{department}/skills_{job_id}.csv`: Individual job skills for each job, organized by department
 
-The POC results demonstrate how the Skill Similarity Engine can:
+### Statistics
+- `summary_statistics.csv`: Statistical summary of all similarity scores and opportunities
+- `department_statistics.csv`: Department-specific statistics
 
-1. Identify similar jobs across the organization
-2. Group jobs by skill similarity
-3. Calculate similarity scores between any two jobs
-4. Generate visualizations for leadership presentations
+## Using the Results with Power BI
 
-These results can be used to inform talent mobility, career pathing, and workforce planning initiatives. 
+The tabular outputs are designed for seamless import into Power BI for analysis:
+
+1. **Job similarity analysis**: Connect to the `job_similarity_all_departments.csv` file in Power BI
+2. **Department filtering**: Use Power BI's filtering to focus on specific departments
+3. **Job skills exploration**: Import the job skills CSVs to examine individual job skill profiles
+4. **Career opportunity identification**: Use the opportunity flags to identify potential career paths
+
+These results can be used to inform talent mobility, career pathing, and workforce planning initiatives.
+
+## Troubleshooting
+
+Common issues:
+- **Memory errors**: Use the `--memory-efficient` flag for large datasets
+- **Slow processing**: Adjust `--batch-size` and `--chunk-size` to optimize performance
+- **Department name errors**: The script automatically sanitizes department names with special characters 
