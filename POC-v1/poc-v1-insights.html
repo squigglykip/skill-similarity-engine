@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Similarity Engine: From POC to P&C Driven Initiative</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <!-- Add Mermaid.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        /* Table styling with grid lines */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            mermaid.initialize({
+                startOnLoad: true,
+                theme: 'default',
+                flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: true,
+                    curve: 'basis'
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo-title-container">
+                <img src="../images/nab-logo/NAB_Logo_rev_RGB.png" alt="NAB Logo" class="logo">
+                <div>
+                    <h1>Culture & Capability Data, Analytics & Insights</h1>
+                </div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../about.html">About</a></li>
+                    <li><a href="../contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+
+    <div class="article-container">
+
+        <div class="article-banner">
+            <!-- POINT THE IMAGES TO THE RIGHT SPOTS -->
+            <img src="../images/article-images/decision_tree.png" alt="Article Banner">
+            <div class="article-header-overlay">
+                <h2>Skill Similarity Engine: From POC to P&C Driven Initiative</h2>
+            </div>
+        </div>
+
+
+        <div class="article-content">
+
+            <h1>Skill Similarity Engine: From POC to P&C Driven Initiative</h1>
+
+            <div class="executive-summary">
+                <h2>Executive Summary</h2>
+                <p>This document presents our Skill Similarity Engine project, which has successfully demonstrated the ability to analyse 15 million job relationships across global regions. The POC provided an understanding of the insights we will be able to gain from using a skills taxonomy, including potential talent mobility opportunities. We now propose a 6-month implementation plan to transform this POC into a P&C driven initiative that will enable data-driven workforce planning, career development, and strategic skill management.</p>
+                
+                <p>The proposed implementation follows a three-phase approach, each delivering a complete capability:</p>
+                <ol>
+                    <li><strong>Core Similarity Engine</strong> (Months 1-2): Enhanced job similarity analysis with organisational-level performance</li>
+                    <li><strong>Career Pathway Engine</strong> (Months 3-4): Career progression mapping and opportunity identification</li>
+                    <li><strong>Skill Gap Analysis Engine</strong> (Months 5-6): Precise skill gap identification with learning recommendations</li>
+                </ol>
+                
+                <p>This solution will use HRIS and architectural data along with the Lightcast skills API to deliver a comprehensive talent intelligence ecosystem that significantly enhances our ability to develop, deploy, and retain talent strategically.</p>
+            </div>
+
+            <div class="table-of-contents">
+                <h2>Contents</h2>
+                <ul>
+                    <li><a href="#pir">PART I: PROJECT IN REVIEW (PIR)</a>
+                        <ul>
+                            <li><a href="#exec-overview">1. Executive Overview</a></li>
+                            <li><a href="#business-impact">2. Key Business Impact Delivered</a></li>
+                            <li><a href="#scale">3. Scale of Achievement</a></li>
+                            <li><a href="#alignment">4. Strategic Alignment Confirmed</a></li>
+                            <li><a href="#success-factors">5. Critical Success Factors Identified</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#next-steps">PART II: PROPOSAL FOR NEXT STEPS</a>
+                        <ul>
+                            <li><a href="#implementation">6. Implementation Strategy</a></li>
+                            <li><a href="#resources">7. Resources & Investment</a></li>
+                            <li><a href="#delivery">8. Delivery Approach</a></li>
+                            <li><a href="#capabilities">9. Enhanced Business Capabilities</a></li>
+                            <li><a href="#context">10. Business Context Configuration</a></li>
+                            <li><a href="#integration">11. Ecosystem Integration Benefits</a></li>
+                            <li><a href="#decision">12. Decision Request</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <style>
+                .executive-summary {
+                    background-color: #f5f5f5;
+                    border-left: 4px solid #0078D4;
+                    padding: 15px 20px;
+                    margin-bottom: 30px;
+                }
+                
+                .executive-summary h2 {
+                    margin-top: 0;
+                    color: #0078D4;
+                }
+                
+                .table-of-contents {
+                    background-color: #f9f9f9;
+                    border: 1px solid #ddd;
+                    padding: 15px 20px;
+                    margin-bottom: 30px;
+                }
+                
+                .table-of-contents ul {
+                    list-style-type: none;
+                    padding-left: 15px;
+                }
+                
+                .table-of-contents a {
+                    text-decoration: none;
+                    color: #0078D4;
+                }
+                
+                .table-of-contents a:hover {
+                    text-decoration: underline;
+                }
+            </style>
+
+            <h2 id="pir">PART I: PROJECT IN REVIEW (PIR)</h2>
+
+            <h3 id="exec-overview">1. Executive Overview</h3>
+            <p>Our Skill Similarity Engine POC successfully analysed 15 million job relationships between global regions, providing an understanding of potential talent mobility opportunities. This capability demonstrated significant strategic value at the PCEC meeting. The POC validated our approach and confirmed the business need for a comprehensive skill similarity solution using our core talent systems.</p>
+
+            <h3 id="business-impact">2. Key Business Impact Delivered</h3>
+            <p>The POC supported strategic decision-making at the recent PCEC meeting, where we demonstrated potential connections between talent pools across global regions. This analysis indicated numerous career pathways across regions and highlighted skill alignment between different role types. These insights will help inform our cross-regional talent strategy.</p>
+
+            <h3 id="scale">3. Scale of Achievement</h3>
+            <p>Starting with 4,000 individual job profiles across 18 departments, we performed 15 million job-to-job similarity comparisons—equivalent to comparing job roles across multiple global regions. This unprecedented scale enabled us to identify patterns that may not be visible through traditional analysis. When scaled to our full global workforce, the solution will process over 900 million comparisons, creating a comprehensive map of potential talent mobility across the entire organisation.</p>
+
+            <h3 id="alignment">4. Strategic Alignment Confirmed</h3>
+            <p>The POC confirmed alignment with three critical organisational initiatives:</p>
+
+            <ol>
+                <li><strong>Talent & Global Workforce Strategy</strong> - Provides data-driven insights for cross-regional talent development and deployment</li>
+                <li><strong>Learning & Development Ecosystem</strong> - Creates skill gap insights to inform targeted learning recommendations</li>
+                <li><strong>People & Culture Systems</strong> - Uses HRIS and architectural data through intelligent skill analysis</li>
+            </ol>
+
+            <p>The solution will work with our Lightcast skills API (currently in the 'front door' approval process), ensuring consistent skill taxonomy across all talent systems.</p>
+
+            <h3 id="success-factors">5. Critical Success Factors Identified</h3>
+            <p>Our POC implementation revealed several critical factors that must be addressed in the P&C driven initiative:</p>
+
+            <h4>Handling Global Workforce Scale</h4>
+            <ul>
+                <li><strong>900+ Million Relationship Analysis</strong>: The full implementation must reliably process our entire global workforce—900+ million job comparisons—while maintaining responsive analysis times. Our solution will build on POC innovations to ensure leaders can get answers when they need them, not hours or days later.</li>
+                <li><strong>Faster Analysis for Business Decisions</strong>: By optimising system performance, we'll reduce analysis time from days to hours, allowing talent leaders to run multiple scenarios in a single day and make timely workforce planning decisions during critical business events.</li>
+            </ul>
+
+            <h4>Enhanced Skill Recognition</h4>
+            <ul>
+                <li><strong>Improved Skill Matching Accuracy</strong>: The system will recognise complex skills like "Agile Project Management" as unified concepts rather than separate words, significantly improving match quality and leading to more relevant career recommendations for employees.</li>
+                <li><strong>Contextual Job Understanding</strong>: By incorporating role context (seniority, leadership roles, business unit), the system will provide more meaningful career pathway suggestions that reflect real-world progression opportunities rather than just skill overlaps.</li>
+            </ul>
+
+            <h4>Intuitive Business Insights</h4>
+            <ul>
+                <li><strong>Transparency in Recommendations</strong>: Business users will understand exactly why specific roles are recommended as career options, with clear visibility into which factors drove the recommendations, building trust and adoption.</li>
+                <li><strong>What-If Analysis Capabilities</strong>: The system will allow HR leaders to simulate different career development scenarios (e.g., "What new roles could our Commercial Banking team transition to if we enhance their digital skills?"), supporting more strategic workforce planning.</li>
+            </ul>
+
+            <h2 id="next-steps">PART II: PROPOSAL FOR NEXT STEPS</h2>
+
+            <h3 id="implementation">6. Implementation Strategy: Dedicated Functionality Cycles</h3>
+            <p>Based on our POC findings, we propose a 6-month implementation with a functionality-focused approach, dedicating a full 2-month development cycle to each major capability. This ensures thorough development, testing, and integration of each component before moving to the next.</p>
+
+            <h4>Phase 1: Core Similarity Engine (Months 1-2)</h4>
+            <p><strong>Focus:</strong> Enhanced job-to-job similarity analysis with organisational-level performance</p>
+
+            <table>
+                <tr>
+                    <th>Month</th>
+                    <th>Core Development</th>
+                    <th>Deliverables</th>
+                </tr>
+                <tr>
+                    <td><strong>Month 1</strong></td>
+                    <td>• Implement POC learnings<br>• Optimise system reliability<br>• Integrate Lightcast API</td>
+                    <td>• Refined similarity algorithm<br>• Production-ready architecture<br>• Initial Power BI visualisations</td>
+                </tr>
+                <tr>
+                    <td><strong>Month 2</strong></td>
+                    <td>• Develop role context awareness<br>• Improve skill recognition accuracy<br>• Utilise HRIS architectural data</td>
+                    <td>• Organisation-scale job similarity engine<br>• Complete executive dashboards<br>• Full documentation</td>
+                </tr>
+            </table>
+
+            <p><strong>Business Value:</strong> Improved strategic workforce planning with ability to identify cross-functional and cross-regional role similarities at scale.</p>
+
+            <h4>Phase 2: Career Pathway Engine (Months 3-4)</h4>
+            <p><strong>Focus:</strong> Career progression mapping and opportunity identification</p>
+
+            <table>
+                <tr>
+                    <th>Month</th>
+                    <th>Core Development</th>
+                    <th>Deliverables</th>
+                </tr>
+                <tr>
+                    <td><strong>Month 3</strong></td>
+                    <td>• Develop pathway algorithms<br>• Build career progression model<br>• Create pathway visualisations</td>
+                    <td>• Career journey mapping tools<br>• Multi-step career path suggestions<br>• Initial career pathway visualisations</td>
+                </tr>
+                <tr>
+                    <td><strong>Month 4</strong></td>
+                    <td>• Implement seniority-aware pathing<br>• Fine-tune pathway recommendations<br>• Create team-level career maps</td>
+                    <td>• Complete career recommendation engine<br>• Interactive pathway explorer<br>• Department-specific talent maps</td>
+                </tr>
+            </table>
+
+            <p><strong>Business Value:</strong> Data-driven career development planning, retention improvement through clear progression paths, and improved internal mobility.</p>
+
+            <h4>Phase 3: Skill Gap Analysis Engine (Months 5-6)</h4>
+            <p><strong>Focus:</strong> Precise skill gap identification and learning recommendations</p>
+
+            <table>
+                <tr>
+                    <th>Month</th>
+                    <th>Core Development</th>
+                    <th>Deliverables</th>
+                </tr>
+                <tr>
+                    <td><strong>Month 5</strong></td>
+                    <td>• Build gap analysis algorithms<br>• Develop learning recommendation engine<br>• Create gap visualisations</td>
+                    <td>• Individual skill gap assessments<br>• Team-level gap analysis<br>• Initial learning recommendations</td>
+                </tr>
+                <tr>
+                    <td><strong>Month 6</strong></td>
+                    <td>• Integrate with learning platforms<br>• Implement macro workforce analysis<br>• Create scenario planning tools</td>
+                    <td>• Learning pathway automation<br>• Strategic workforce gap analysis<br>• Scenario planning capabilities</td>
+                </tr>
+            </table>
+
+            <p><strong>Business Value:</strong> Targeted learning investments, improved succession planning, and strategic reskilling capabilities for workforce transformation.</p>
+
+            <p>This phased approach delivers three complete, production-quality capabilities while allowing sufficient time for thorough development and testing of each. Each phase builds upon the previous, creating a comprehensive talent intelligence ecosystem that addresses workforce planning, career development, and skill development needs.</p>
+
+            <h3 id="resources">7. Resources & Investment</h3>
+            
+            <table>
+                <tr>
+                    <th>Phase</th>
+                    <th>Time Allocation</th>
+                    <th>Timeline</th>
+                </tr>
+                <tr>
+                    <td>Core Similarity Engine</td>
+                    <td>50% of capacity</td>
+                    <td>Months 1-2</td>
+                </tr>
+                <tr>
+                    <td>Career Pathway Engine</td>
+                    <td>50% of capacity</td>
+                    <td>Months 3-4</td>
+                </tr>
+                <tr>
+                    <td>Skill Gap Analysis Engine</td>
+                    <td>50% of capacity</td>
+                    <td>Months 5-6</td>
+                </tr>
+            </table>
+
+            <p>This implementation relies on a single resource (Kip Jordan) with sustainable time allocations that acknowledge other ongoing responsibilities. The 50% allocation ensures quality delivery while maintaining bandwidth for other priorities. Each phase includes time for stakeholder engagement, testing, and refinement.</p>
+
+            <h3 id="delivery">8. Delivery Approach</h3>
+
+            <p>To ensure success with limited resources and focused functionality cycles:</p>
+
+            <ol>
+                <li><strong>Functionality-complete delivery</strong> - Each 2-month cycle delivers a complete, production-ready capability</li>
+                <li><strong>Monthly showcases</strong> - Demonstrate progress and gather feedback at the midpoint and end of each cycle</li>
+                <li><strong>Focus on business value first</strong> - Prioritise aspects of each capability with immediate talent strategy impact</li>
+                <li><strong>Iterative refinement</strong> - Use stakeholder feedback to refine each capability throughout its dedicated cycle</li>
+                <li><strong>Stakeholder testing periods</strong> - Include formal testing windows at the end of each 2-month cycle</li>
+            </ol>
+
+            <p>This approach ensures that each major functionality is thoroughly developed, tested, and validated before moving to the next, while maintaining stakeholder engagement throughout.</p>
+
+            <h3 id="capabilities">9. Enhanced Business Capabilities</h3>
+
+            <p>Our implementation will deliver critical new capabilities for the business:</p>
+
+            <h4>Seamless Information Delivery</h4>
+            <ul>
+                <li><strong>Actionable Visualisations</strong>: Rather than overwhelming users with data, the system will highlight the most important insights and opportunities, enabling quicker decision-making for busy executives.</li>
+                <li><strong>Self-Service Discovery</strong>: Power BI integration will allow business users to explore talent mobility options and skill gaps without requiring technical expertise, democratising access to these valuable insights.</li>
+            </ul>
+
+            <h4>Strategic Workforce Planning</h4>
+            <ul>
+                <li><strong>Team Capability Assessment</strong>: Beyond individual career paths, the system will provide leadership with team-level insights, identifying collective skill strengths and gaps to inform strategic hiring and development decisions.</li>
+                <li><strong>Future Skill Forecasting</strong>: The implementation will enable predictive workforce planning by identifying emerging skill gaps before they impact business performance.</li>
+            </ul>
+
+            <h3 id="context">10. Business Context Configuration: Adaptable to Different Business Problems</h3>
+
+            <p>A key innovation from our POC is the ability to configure business context factors to adapt the analysis for different business objectives. The P&C driven initiative will offer a flexible configuration system that allows HR and talent professionals to adjust how various factors influence similarity calculations without requiring technical expertise.</p>
+
+            <h4>Configurable Similarity Factors</h4>
+
+            <p>The system will include configurable weights and thresholds for key business dimensions:</p>
+
+            <ul>
+                <li><strong>Career Progression Factors</strong>: Adjust how seniority levels affect similarity scores
+                    <ul>
+                        <li>Set higher similarity for same-level roles to encourage lateral mobility</li>
+                        <li>Configure one-level-up promotion paths with appropriate similarity scores</li>
+                        <li>Control penalties for multi-level jumps to reflect organisational promotion policies</li>
+                        <li>Define how downward moves are treated (usually heavily penalised)</li>
+                    </ul>
+                </li>
+                <li><strong>Role Track Considerations</strong>: Configure how transitions between individual contributor and leadership roles are evaluated
+                    <ul>
+                        <li>Adjust similarity between roles on the same track (IC-to-IC or leader-to-leader)</li>
+                        <li>Set thresholds for IC-to-leadership transitions to support leadership development</li>
+                        <li>Control how leadership-to-IC transitions are scored for technical career paths</li>
+                    </ul>
+                </li>
+                <li><strong>Skill Type Weighting</strong>: Fine-tune how different skill categories impact similarity scores
+                    <ul>
+                        <li>Adjust importance of specialised skills vs common skills vs certifications</li>
+                        <li>Configure how skill gaps in certain categories affect overall similarity</li>
+                        <li>Set different thresholds for different skill types based on development difficulty</li>
+                    </ul>
+                </li>
+                <li><strong>Location Factors</strong>: Enable or disable geographical considerations based on the business problem
+                    <ul>
+                        <li>Set to zero for fully remote work scenarios</li>
+                        <li>Increase weight for roles requiring physical presence</li>
+                        <li>Configure different thresholds for same-location vs different-location comparisons</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Business Problem Adaptability</h4>
+
+            <p>This configuration flexibility enables the system to address diverse business challenges:</p>
+
+            <table>
+                <tr>
+                    <th>Business Problem</th>
+                    <th>Configuration Approach</th>
+                    <th>Business Outcome</th>
+                </tr>
+                <tr>
+                    <td><strong>Critical Talent Retention</strong></td>
+                    <td>• Higher weights for lateral moves<br>• Focus on specialised skills<br>• Lower penalties for track changes</td>
+                    <td>Identify immediate mobility options for high-value employees at risk of leaving</td>
+                </tr>
+                <tr>
+                    <td><strong>Organisational Restructure</strong></td>
+                    <td>• Emphasise skill-based matches<br>• De-emphasise organisational hierarchy<br>• Reduced penalties for level changes</td>
+                    <td>Map displaced talent to new roles across restructured departments</td>
+                </tr>
+                <tr>
+                    <td><strong>Succession Planning</strong></td>
+                    <td>• Focus on upward progression<br>• Higher weights for leadership track<br>• Moderate penalties for level jumps</td>
+                    <td>Build leadership pipelines with appropriate development pathways</td>
+                </tr>
+                <tr>
+                    <td><strong>Skill Transformation</strong></td>
+                    <td>• Prioritise specific skill categories<br>• Reduce role track penalties<br>• Focus on lateral and slight upward moves</td>
+                    <td>Identify which current employees could transition to future-focused roles</td>
+                </tr>
+                <tr>
+                    <td><strong>Cross-Regional Talent Sharing</strong></td>
+                    <td>• Disable or minimise location factors<br>• Balance skill categories equally<br>• Maintain level similarity requirements</td>
+                    <td>Identify talent mobility opportunities between regions/countries</td>
+                </tr>
+            </table>
+
+            <h4>Implementation Approach</h4>
+
+            <p>This configuration capability will be implemented as:</p>
+
+            <ol>
+                <li><strong>Non-Technical User Interface</strong>: Business-friendly configuration controls with clear explanations</li>
+                <li><strong>Configuration Profiles</strong>: Ability to save and name different configurations for specific business scenarios</li>
+                <li><strong>Real-Time Preview</strong>: Immediate feedback on how configuration changes affect sample recommendations</li>
+                <li><strong>Result Comparisons</strong>: Side-by-side comparison of results using different configuration profiles</li>
+                <li><strong>Contextual Documentation</strong>: Clear explanations of what each setting means for business outcomes</li>
+            </ol>
+
+            <p>By providing this flexibility, the Skill Similarity Engine can quickly adapt to changing business priorities and support different talent strategies without requiring technical modifications.</p>
+
+            <h3 id="integration">11. Ecosystem Integration Benefits</h3>
+
+            <p>The implementation creates a unified talent intelligence ecosystem:</p>
+
+            <ul>
+                <li><strong>HRIS Systems</strong> provide the foundational job architecture and employee data</li>
+                <li><strong>Lightcast API</strong> enriches our data with standardised skill taxonomy and market insights</li>
+                <li><strong>Skill Similarity Engine</strong> generates intelligence from these data sources</li>
+                <li><strong>Learning Ecosystem</strong> uses this intelligence to inform targeted development</li>
+            </ul>
+
+            <p>This approach ensures all talent systems work from consistent data and insights, significantly enhancing our ability to develop, deploy, and retain talent strategically.</p>
+
+            <h3 id="decision">12. Decision Request</h3>
+
+            <p>We request approval to proceed with the 6-month implementation plan with the identified resource allocation. This approach allows for thorough development of each capability while maintaining a sustainable pace. The timeline reflects the quality we aim to deliver and acknowledges the complexity of each component. The key stakeholders who need to be involved in the next steps are the Talent Management leadership team, key system owners, and representatives from the Power BI delivery team.</p>
+
+            <hr>
+            <p><i>Additional implementation details are available upon request.</i></p>
+
+            <br>
+            <h3>Authors</h3>
+
+            <div class="authors-container">
+                <div class="author-card">
+                    <img src="../images/headshots/kip.jpg" alt="Author Headshot" class="author-headshot">
+                    <div class="author-info">
+                        <h3>Kip Jordan</h3>
+                        <p>Data & Analytics Consultant</p>
+                    </div>
+                </div>
+                <!-- Add more author cards as needed -->
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>
