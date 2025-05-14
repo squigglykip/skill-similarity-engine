@@ -25,6 +25,35 @@ src_path = os.path.join(os.path.dirname(__file__), 'src')
 if os.path.exists(src_path) and src_path not in sys.path:
     sys.path.insert(0, src_path)
 
+def check_dependencies():
+    """Check that all required packages are installed."""
+    required_packages = [
+        "pandas",
+        "numpy",
+        "matplotlib",
+        "tqdm",
+        # Add any other packages your code relies on
+    ]
+    
+    missing_packages = []
+    
+    for package in required_packages:
+        try:
+            __import__(package)
+        except ImportError:
+            missing_packages.append(package)
+    
+    if missing_packages:
+        print("\nERROR: Missing required Python packages:")
+        for package in missing_packages:
+            print(f"  - {package}")
+        print("\nPlease install the missing packages using pip:")
+        print(f"pip install {' '.join(missing_packages)}")
+        sys.exit(1)
+
+# Check dependencies
+check_dependencies()
+
 # Import key components
 from skill_similarity_engine.models.skills import Skill, SkillTaxonomy, SkillCategory, SkillType
 from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
@@ -37,6 +66,27 @@ from skill_similarity_engine.config.settings import get_config
 
 # Import HRISWorkflow when needed (in the function that uses it)
 # This prevents the error from occurring at the top level
+
+def display_welcome_banner():
+    """Display a welcome banner for the Skill Similarity Engine."""
+    banner = r"""
+    ____  __  _ _ _   ____  _           _ _             _ _         
+   / ___||  |/ (_) | / ___|(_)_ __ ___ (_) | __ _ _ __(_) |_ _   _ 
+   \___ \|     /| | | |    | | '_ ` _ \| | |/ _` | '__| | __| | | |
+    ___) | |\  \| | | |___ | | | | | | | | | (_| | |  | | |_| |_| |
+   |____/|_| \_\_|_| \____|/ |_| |_| |_|_|_|\__,_|_|  |_|\__|\__, |
+                          |__/                               |___/ 
+    _____             _            
+   | ____|_ __   __ _(_)_ __   ___ 
+   |  _| | '_ \ / _` | | '_ \ / _ \
+   | |___| | | | (_| | | | | |  __/
+   |_____|_| |_|\__, |_|_| |_|\___|
+                |___/              
+    """
+    print(banner)
+    print("="*80)
+    print("Skill Similarity Engine - POC Run Tool".center(80))
+    print("="*80)
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Set up logging configuration."""
@@ -775,10 +825,334 @@ class LocalCosineSimilarityCalculator:
         
         return similarity_matrix, job_ids
 
+def interactive_menu():
+    """
+    Provides an interactive menu-based CLI interface for the Skill Similarity Engine.
+    This makes it easier to use the tool without remembering all command-line arguments.
+    """
+    # Display welcome banner
+    display_welcome_banner()
+    
+    print("\n" + "="*80)
+    print("INTERACTIVE MENU".center(80))
+    print("="*80 + "\n")
+    
+    print("QUICK START GUIDE:")
+    print("1. First select your data source (option 11)")
+    print("2. Configure your output options (option 13)")
+    print("3. Run the analysis (option 15)")
+    print("4. Results will be saved to your specified output directory\n")
+    
+    # Default values
+    args = {
+        "use_hris_adapter": False,
+        "config": "config/hris_schema_mapping.yaml",
+        "skills_file": None,
+        "jobs_file": None,
+        "job_skills_file": None,
+        "department": None,
+        "output_dir": "./data/poc/output",
+        "output_format": "csv",
+        "no_visualizations": True,
+        "tabular_only": True,
+        "verbose": False,
+        "analysis_type": "job_similarity",
+        "num_processes": cpu_count(),
+        "chunk_size": 100000,
+        "batch_size": 5,
+        "memory_efficient": False,
+        "debug_step": "all"
+    }
+    
+    while True:
+        print("\nCURRENT CONFIGURATION:")
+        print("-" * 50)
+        print(f"1. Data Source:           {'HRIS Adapter' if args['use_hris_adapter'] else 'Direct Files'}")
+        
+        if args['use_hris_adapter']:
+            print(f"   - Config File:         {args['config']}")
+        else:
+            print(f"   - Skills File:         {args['skills_file'] or 'Not Set'}")
+            print(f"   - Jobs File:           {args['jobs_file'] or 'Not Set'}")
+            print(f"   - Job-Skills File:     {args['job_skills_file'] or 'Not Set'}")
+        
+        print(f"2. Department Filter:     {args['department'] or 'All Departments'}")
+        print(f"3. Output Directory:      {args['output_dir']}")
+        print(f"4. Output Format:         {args['output_format']}")
+        print(f"5. Generate Visualizations: {'No' if args['no_visualizations'] else 'Yes'}")
+        print(f"6. Tabular Data Only:     {'Yes' if args['tabular_only'] else 'No'}")
+        print(f"7. Verbose Logging:       {'Yes' if args['verbose'] else 'No'}")
+        print(f"8. Performance Settings:  {args['num_processes']} processes, {args['chunk_size']} chunk size")
+        print(f"9. Memory Efficient Mode: {'Yes' if args['memory_efficient'] else 'No'}")
+        print(f"10. Debug Step:           {args['debug_step']}")
+        
+        print("\nACTIONS:")
+        print("-" * 50)
+        print("11. Change Data Source")
+        print("12. Set Department Filter")
+        print("13. Set Output Options")
+        print("14. Set Performance Options")
+        print("15. Run Analysis")
+        print("16. Exit")
+        
+        choice = input("\nEnter your choice (1-16): ").strip()
+        
+        if choice == "11":
+            # Change data source
+            print("\nSelect Data Source:")
+            print("1. Use HRIS Adapter")
+            print("2. Use Direct Files")
+            
+            ds_choice = input("Enter choice (1-2): ").strip()
+            
+            if ds_choice == "1":
+                args["use_hris_adapter"] = True
+                config_path = input("Enter config file path [config/hris_schema_mapping.yaml]: ").strip()
+                if config_path:
+                    args["config"] = config_path
+            elif ds_choice == "2":
+                args["use_hris_adapter"] = False
+                
+                skills_file = input("Enter skills file path: ").strip()
+                if skills_file:
+                    args["skills_file"] = skills_file
+                
+                jobs_file = input("Enter jobs file path: ").strip()
+                if jobs_file:
+                    args["jobs_file"] = jobs_file
+                
+                job_skills_file = input("Enter job-skills mapping file path (optional): ").strip()
+                if job_skills_file:
+                    args["job_skills_file"] = job_skills_file
+        
+        elif choice == "12":
+            # Set department filter
+            dept = input("Enter department name to filter by (leave empty for all departments): ").strip()
+            args["department"] = dept if dept else None
+        
+        elif choice == "13":
+            # Set output options
+            print("\nOutput Options:")
+            
+            output_dir = input(f"Enter output directory [{args['output_dir']}]: ").strip()
+            if output_dir:
+                args["output_dir"] = output_dir
+            
+            print("\nSelect output format:")
+            print("1. CSV")
+            print("2. JSON")
+            print("3. Excel")
+            
+            format_choice = input("Enter choice (1-3): ").strip()
+            if format_choice == "1":
+                args["output_format"] = "csv"
+            elif format_choice == "2":
+                args["output_format"] = "json"
+            elif format_choice == "3":
+                args["output_format"] = "excel"
+            
+            vis_choice = input("Generate visualizations? (y/n): ").strip().lower()
+            args["no_visualizations"] = vis_choice != "y"
+            
+            tab_choice = input("Generate tabular data only? (y/n): ").strip().lower()
+            args["tabular_only"] = tab_choice == "y"
+            
+            verb_choice = input("Enable verbose logging? (y/n): ").strip().lower()
+            args["verbose"] = verb_choice == "y"
+        
+        elif choice == "14":
+            # Set performance options
+            print("\nPerformance Options:")
+            
+            num_proc = input(f"Enter number of processes [{args['num_processes']}]: ").strip()
+            if num_proc and num_proc.isdigit():
+                args["num_processes"] = int(num_proc)
+            
+            chunk_size = input(f"Enter chunk size for large files [{args['chunk_size']}]: ").strip()
+            if chunk_size and chunk_size.isdigit():
+                args["chunk_size"] = int(chunk_size)
+            
+            batch_size = input(f"Enter batch size for processing departments [{args['batch_size']}]: ").strip()
+            if batch_size and batch_size.isdigit():
+                args["batch_size"] = int(batch_size)
+            
+            mem_eff = input("Enable memory-efficient mode? (y/n): ").strip().lower()
+            args["memory_efficient"] = mem_eff == "y"
+            
+            print("\nSelect debug step:")
+            print("1. All steps")
+            print("2. Load data only")
+            print("3. Transform data only")
+            print("4. Analyze data only")
+            print("5. Visualize data only")
+            
+            debug_choice = input("Enter choice (1-5): ").strip()
+            if debug_choice == "1":
+                args["debug_step"] = "all"
+            elif debug_choice == "2":
+                args["debug_step"] = "load"
+            elif debug_choice == "3":
+                args["debug_step"] = "transform"
+            elif debug_choice == "4":
+                args["debug_step"] = "analyze"
+            elif debug_choice == "5":
+                args["debug_step"] = "visualize"
+        
+        elif choice == "15":
+            # Run analysis
+            print("\nRunning analysis with current configuration...")
+            
+            # Validate required fields
+            if not args["use_hris_adapter"] and (not args["skills_file"] or not args["jobs_file"]):
+                print("\nERROR: When using direct files, both skills file and jobs file must be specified.")
+                input("Press Enter to continue...")
+                continue
+            
+            # Create a namespace object to mimic argparse result
+            class Args:
+                pass
+            
+            namespace_args = Args()
+            for key, value in args.items():
+                setattr(namespace_args, key, value)
+            
+            # Run the analysis
+            try:
+                run_analysis(namespace_args)
+                print("\nAnalysis completed successfully!")
+                input("Press Enter to continue...")
+            except Exception as e:
+                print(f"\nERROR: {str(e)}")
+                input("Press Enter to continue...")
+        
+        elif choice == "16":
+            # Exit
+            print("\nExiting Skill Similarity Engine.")
+            break
+        
+        else:
+            print("\nInvalid choice. Please try again.")
+
+def run_analysis(args):
+    """Run the analysis with the given arguments."""
+    # Set up logging
+    logger = setup_logging(args.verbose)
+    logger.info("Starting Skill Similarity Engine POC run")
+    
+    # Make sure the output directory exists
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.join(args.output_dir, f"poc_run_{timestamp}")
+    os.makedirs(output_dir, exist_ok=True)
+    logger.debug(f"Created output directory: {output_dir}")
+    
+    try:
+        # Initialize variables that might be needed across steps
+        df = None
+        job_architecture = None
+        taxonomy = None
+        
+        # Step 1: Load and transform data
+        if args.debug_step in ["load", "all"]:
+            logger.info("Step 1: Loading and transforming data")
+            if args.use_hris_adapter:
+                df, job_architecture, taxonomy = load_data_with_hris_adapter(
+                    args.config,
+                    args.analysis_type,
+                    args.department,
+                    logger
+                )
+            else:
+                if not args.skills_file or not args.jobs_file:
+                    logger.error("When not using HRIS adapter, skills file and jobs file are required")
+                    if hasattr(args, '_parser'):  # Check if this is from argparse
+                        args._parser.error("When not using HRIS adapter, --skills-file and --jobs-file are required")
+                    else:
+                        sys.exit(1)
+                df, job_architecture, taxonomy = load_data_directly(
+                    args.skills_file,
+                    args.jobs_file,
+                    args.job_skills_file,
+                    args.department,
+                    logger,
+                    chunk_size=args.chunk_size,
+                    memory_efficient=args.memory_efficient
+                )
+        
+        # Step 2: Save results
+        if args.debug_step in ["transform", "all"]:
+            if df is None or job_architecture is None or taxonomy is None:
+                logger.error("Cannot save results: data not loaded. Please run with --debug-step load first.")
+                sys.exit(1)
+                
+            logger.info("Step 2: Saving results")
+            output_file = save_results(
+                df,
+                output_dir,
+                args.output_format,
+                args.department,
+                logger
+            )
+        
+        # Step 3: Generate visualizations
+        if args.debug_step in ["visualize", "all"] and not args.no_visualizations:
+            if df is None or job_architecture is None or taxonomy is None:
+                logger.error("Cannot generate visualizations: data not loaded. Please run with --debug-step load first.")
+                sys.exit(1)
+                
+            logger.info("Step 3: Generating visualizations")
+            generate_visualizations(
+                df,
+                job_architecture,
+                taxonomy,
+                output_dir,
+                args.department,
+                logger,
+                batch_size=args.batch_size,
+                memory_efficient=args.memory_efficient
+            )
+        # Generate tabular output for Power BI
+        elif args.debug_step in ["visualize", "all"] and args.tabular_only:
+            if df is None or job_architecture is None or taxonomy is None:
+                logger.error("Cannot generate tabular data: data not loaded. Please run with --debug-step load first.")
+                sys.exit(1)
+                
+            logger.info("Step 3: Generating tabular data for Power BI")
+            generate_visualizations(  # We're reusing this function but it's been modified to skip visualizations
+                df,
+                job_architecture,
+                taxonomy,
+                output_dir,
+                args.department,
+                logger,
+                batch_size=args.batch_size,
+                memory_efficient=args.memory_efficient
+            )
+        
+        logger.info("POC run completed successfully!")
+        logger.info(f"All results saved to: {output_dir}")
+        
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        if args.verbose:
+            logger.error(traceback.format_exc())
+        raise
+
 def main():
     """Main entry point for the HRIS POC analysis tool."""
+    # Display welcome banner
+    display_welcome_banner()
+    
     parser = argparse.ArgumentParser(
-        description="Run skill similarity analysis POC on synthetic HRIS data"
+        description="Run skill similarity analysis POC on synthetic HRIS data. "
+                    "When run without arguments, an interactive menu will be displayed. "
+                    "Use --help to see all available command-line options."
+    )
+    
+    # Add option to skip interactive menu
+    parser.add_argument(
+        "--no-interactive",
+        action="store_true",
+        help="Skip the interactive menu and run with command-line arguments"
     )
     
     # Add performance optimization options
@@ -887,103 +1261,13 @@ def main():
     
     args = parser.parse_args()
     
-    # Set up logging
-    logger = setup_logging(args.verbose)
-    logger.info("Starting Skill Similarity Engine POC run")
+    # Launch interactive menu by default or if --no-interactive is not specified
+    if len(sys.argv) == 1 or not args.no_interactive:
+        interactive_menu()
+        return
     
-    # Make sure the output directory exists
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.join(args.output_dir, f"poc_run_{timestamp}")
-    os.makedirs(output_dir, exist_ok=True)
-    logger.debug(f"Created output directory: {output_dir}")
-    
-    try:
-        # Initialize variables that might be needed across steps
-        df = None
-        job_architecture = None
-        taxonomy = None
-        
-        # Step 1: Load and transform data
-        if args.debug_step in ["load", "all"]:
-            logger.info("Step 1: Loading and transforming data")
-            if args.use_hris_adapter:
-                df, job_architecture, taxonomy = load_data_with_hris_adapter(
-                    args.config,
-                    args.analysis_type,
-                    args.department,
-                    logger
-                )
-            else:
-                if not args.skills_file or not args.jobs_file:
-                    parser.error("When not using HRIS adapter, --skills-file and --jobs-file are required")
-                df, job_architecture, taxonomy = load_data_directly(
-                    args.skills_file,
-                    args.jobs_file,
-                    args.job_skills_file,
-                    args.department,
-                    logger,
-                    chunk_size=args.chunk_size,
-                    memory_efficient=args.memory_efficient
-                )
-        
-        # Step 2: Save results
-        if args.debug_step in ["transform", "all"]:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot save results: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 2: Saving results")
-            output_file = save_results(
-                df,
-                output_dir,
-                args.output_format,
-                args.department,
-                logger
-            )
-        
-        # Step 3: Generate visualizations
-        if args.debug_step in ["visualize", "all"] and not args.no_visualizations:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot generate visualizations: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 3: Generating visualizations")
-            generate_visualizations(
-                df,
-                job_architecture,
-                taxonomy,
-                output_dir,
-                args.department,
-                logger,
-                batch_size=args.batch_size,
-                memory_efficient=args.memory_efficient
-            )
-        # Generate tabular output for Power BI
-        elif args.debug_step in ["visualize", "all"] and args.tabular_only:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot generate tabular data: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 3: Generating tabular data for Power BI")
-            generate_visualizations(  # We're reusing this function but it's been modified to skip visualizations
-                df,
-                job_architecture,
-                taxonomy,
-                output_dir,
-                args.department,
-                logger,
-                batch_size=args.batch_size,
-                memory_efficient=args.memory_efficient
-            )
-        
-        logger.info("POC run completed successfully!")
-        logger.info(f"All results saved to: {output_dir}")
-        
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        if args.verbose:
-            logger.error(traceback.format_exc())
-        sys.exit(1)
+    # If we get here, --no-interactive was specified, so run with command-line args
+    run_analysis(args)
 
 if __name__ == "__main__":
     main() 
