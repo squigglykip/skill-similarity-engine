@@ -113,6 +113,11 @@ This document analyses the gaps between the intended architecture in the `src/sk
 - Data contains duplicate job IDs due to added contextual information
 - Multiple contextual elements are important for analysis: job ID, org unit number, salary group, people leader flag, location data
 - These contextual elements aren't part of the core job architecture but provide important dimensions for analysis
+- Current composite key approach (job_id + org_unit_number) is insufficient for full differentiation
+- Business requirements demand comprehensive job differentiation for accurate career recommendations
+- Location information is especially critical for avoiding inappropriate recommendations (e.g., suggesting overseas equivalents during restructures)
+- Seniority levels must be captured in the unique identifier to prevent recommending inappropriate level jumps
+- Role track differentiation (IC vs. leadership) is essential for realistic career pathing
 
 ### Integration Recommendations
 1. Enhance the `Job` model to support rich contextual metadata:
@@ -120,11 +125,14 @@ This document analyses the gaps between the intended architecture in the `src/sk
    - Include salary group and people leader flag as standard attributes
    - Support location-based data for geographic analysis
 2. Implement a more robust job identifier system that:
-   - Supports composite keys for unique identification
+   - Supports comprehensive composite keys incorporating all differentiating factors (job_id, org_unit, location, seniority, role_track)
    - Maintains backward compatibility with simple job IDs
    - Provides flexible querying by any context dimension
+   - Includes proper sanitization and standardization of composite key components
+   - Documents the composite key structure for maintainability
 3. Create utilities for context-aware job filtering and grouping
 4. Add data validation for detecting and handling duplicate job contexts
+5. Implement a method in the `Job` class to generate standardized composite IDs
 
 ## Similarity Calculation
 
@@ -413,4 +421,65 @@ This document analyses the gaps between the intended architecture in the `src/sk
 3. Implement the changes in the proper src structure
 4. Update tests to verify the new functionality
 5. Update documentation to reflect the enhanced capabilities
-6. Verify that the integrated source code performs as well as the POC implementation 
+6. Verify that the integrated source code performs as well as the POC implementation
+
+## High Performance Computing Strategies
+
+### Current Source Implementation
+- Basic similarity calculation without specialized optimizations
+- Standard in-memory processing approach
+- Limited consideration for large-scale computation
+
+### POC Implementation Differences
+- Added multi-processing support in `main.py:calculate_similarity_batch()`
+- Implemented chunked processing for memory management in visualization generation
+- Added basic progress tracking with tqdm
+- Handled memory pressure issues with large job sets
+
+### Key Findings from POC
+- Full similarity matrix calculation (35,000 jobs) requires over 1.2 billion comparisons
+- Memory constraints make full in-memory calculation impossible on standard hardware
+- Computation time is the primary bottleneck even with optimized vectors
+- Department-based processing offers practical prioritization
+- Cross-department calculations are less frequently needed but still valuable
+- Input vectorization is relatively quick compared to similarity computation
+- Multi-core utilization is essential for reasonable performance
+
+### Integration Recommendations
+
+1. **Implement Precomputed Vector Strategy**
+   - Create preprocessing pipeline to vectorize all input data once
+   - Store optimized vector representations for reuse
+   - Support incremental updates for changed/added jobs
+   - Add validation and versioning for preprocessed data
+
+2. **Create Full Similarity Matrix Computation Framework**
+   - Implement chunked processing for memory management
+   - Add checkpoint saving for long-running processes
+   - Create sparse matrix storage for efficient representation
+   - Add within-department priority processing
+   - Implement department-based filtering options
+
+3. **Add Specialized Optimization Techniques**
+   - Integrate Numba or Cython acceleration for core calculations
+   - Implement symmetry optimizations (compute half the matrix)
+   - Add early termination for low-similarity pairs
+   - Create smart chunking strategies based on department relationships
+
+4. **Design Flexible Computation Options**
+   - Support both precomputed and on-demand similarity calculations
+   - Enable hybrid approach (precomputed for common cases, on-demand for rare queries)
+   - Create background processing for low-priority calculations
+   - Add caching for frequently accessed results
+
+5. **Implement Performance Monitoring**
+   - Add detailed instrumentation for calculation phases
+   - Create benchmarking utilities for optimization verification
+   - Track memory usage during computation
+   - Implement logging of time spent in key operations
+
+3. Update Documentation
+   - Update module docstrings and type hints
+   - Create new usage examples
+   - Update README
+   - Add troubleshooting section 
