@@ -1,9 +1,0 @@
-job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J013,HR Coordinator,HR,J001,Data Analyst,Analytics,0.13555599854114392
-J013,HR Coordinator,HR,J002,Senior Data Analyst,Analytics,0.10181707373595437
-J013,HR Coordinator,HR,J003,Data Scientist,Analytics,0.0
-J013,HR Coordinator,HR,J017,Business Intelligence Analyst,Analytics,0.0
-J014,HR Business Partner,HR,J001,Data Analyst,Analytics,0.11995383774338496
-J014,HR Business Partner,HR,J002,Senior Data Analyst,Analytics,0.09009817989516665
-J014,HR Business Partner,HR,J003,Data Scientist,Analytics,0.0
-J014,HR Business Partner,HR,J017,Business Intelligence Analyst,Analytics,0.0
