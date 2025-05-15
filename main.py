@@ -12,81 +12,27 @@ import sys
 import traceback
 import logging
 import pandas as pd
-import numpy as np
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
-from multiprocessing import Pool, cpu_count
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 # Add the src directory to the Python path if not installed as a package
 src_path = os.path.join(os.path.dirname(__file__), 'src')
 if os.path.exists(src_path) and src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-def check_dependencies():
-    """Check that all required packages are installed."""
-    required_packages = [
-        "pandas",
-        "numpy",
-        "matplotlib",
-        "tqdm",
-        # Add any other packages your code relies on
-    ]
-    
-    missing_packages = []
-    
-    for package in required_packages:
-        try:
-            __import__(package)
-        except ImportError:
-            missing_packages.append(package)
-    
-    if missing_packages:
-        print("\nERROR: Missing required Python packages:")
-        for package in missing_packages:
-            print(f"  - {package}")
-        print("\nPlease install the missing packages using pip:")
-        print(f"pip install {' '.join(missing_packages)}")
-        sys.exit(1)
-
-# Check dependencies
-check_dependencies()
-
 # Import key components
 from skill_similarity_engine.models.skills import Skill, SkillTaxonomy, SkillCategory, SkillType
 from skill_similarity_engine.models.jobs import JobArchitecture, Job, JobLevel
 from skill_similarity_engine.similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
 from skill_similarity_engine.visualization.manager import VisualisationManager
-from skill_similarity_engine.visualization.reports import DataExporter, ReportConfig
+from skill_similarity_engine.visualization.reports import ReportConfig
 
 # Allow direct file loading without HRIS adapter
 from skill_similarity_engine.config.settings import get_config
 
 # Import HRISWorkflow when needed (in the function that uses it)
 # This prevents the error from occurring at the top level
-
-def display_welcome_banner():
-    """Display a welcome banner for the Skill Similarity Engine."""
-    banner = r"""
-    ____  __  _ _ _   ____  _           _ _             _ _         
-   / ___||  |/ (_) | / ___|(_)_ __ ___ (_) | __ _ _ __(_) |_ _   _ 
-   \___ \|     /| | | |    | | '_ ` _ \| | |/ _` | '__| | __| | | |
-    ___) | |\  \| | | |___ | | | | | | | | | (_| | |  | | |_| |_| |
-   |____/|_| \_\_|_| \____|/ |_| |_| |_|_|_|\__,_|_|  |_|\__|\__, |
-                          |__/                               |___/ 
-    _____             _            
-   | ____|_ __   __ _(_)_ __   ___ 
-   |  _| | '_ \ / _` | | '_ \ / _ \
-   | |___| | | | (_| | | | | |  __/
-   |_____|_| |_|\__, |_|_| |_|\___|
-                |___/              
-    """
-    print(banner)
-    print("="*80)
-    print("Skill Similarity Engine - POC Run Tool".center(80))
-    print("="*80)
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Set up logging configuration."""
@@ -212,30 +158,30 @@ def load_data_directly(
     jobs_file: str,
     job_skills_file: Optional[str],
     department: Optional[str],
-    logger: logging.Logger,
-    chunk_size: int = 100000,
-    memory_efficient: bool = False
+    logger: logging.Logger
 ) -> Tuple[pd.DataFrame, JobArchitecture, SkillTaxonomy]:
-    """Load data directly from CSV files with optimized memory usage."""
+    """Load data directly from CSV files."""
     logger.info("\n" + "="*80)
     logger.info("STARTING DATA LOADING PROCESS")
     logger.info("="*80 + "\n")
     
-    # Load skills with optimized dtypes
-    logger.info("Loading skills data...")
-    dtype_map = {
-        'Skill_ID': 'str',
-        'Skill_Name': 'str',
-        'SkillType': 'category',
-        'Category': 'category',
-        'Subcategory': 'category'
-    }
-    skills_df = pd.read_csv(skills_file, dtype=dtype_map)
-    logger.info(f"Loaded {len(skills_df)} skills")
-    logger.info(f"Memory usage: {skills_df.memory_usage().sum() / 1024 / 1024:.2f} MB")
+    # Get script directory as base directory for relative paths
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Load skills
+    logger.info("\n" + "-"*40)
+    logger.info("STEP 1: LOADING SKILLS DATA")
+    logger.info("-"*40)
+    logger.info(f"Loading skills from: {skills_file}")
+    skills_df = pd.read_csv(skills_file)
+    
+    # Debug: Print columns in the DataFrame
+    logger.info("\nColumns found in skills file:")
+    for col in skills_df.columns.tolist():
+        logger.info(f"  - {col}")
     
     # Map HRIS column names to internal column names
-    logger.info("Mapping column names...")
+    logger.info("\nMapping column names...")
     column_mapping = {
         'Skill_ID': 'skill_id',
         'Skill_Name': 'name',
@@ -247,97 +193,26 @@ def load_data_directly(
     # Rename columns to match internal schema
     skills_df = skills_df.rename(columns=column_mapping)
     
-    # Preprocess skill names - replace spaces with underscores
-    logger.info("Preprocessing skill names (replacing spaces with underscores)...")
-    original_names = skills_df['name'].copy()
-    skills_df['name'] = skills_df['name'].str.replace(' ', '_')
+    # Debug: Print columns after mapping
+    logger.info("\nColumns after mapping:")
+    for col in skills_df.columns.tolist():
+        logger.info(f"  - {col}")
     
-    # Create mapping of transformed skill names to original names for reference
-    skill_name_mapping = dict(zip(skills_df['name'], original_names))
-    logger.info(f"Processed {len(skill_name_mapping)} skill names")
-
-    # Load jobs with optimized dtypes
-    logger.info("\nLoading jobs data...")
-    jobs_dtype_map = {
-        'JobID': 'str', 
-        'RoleSet': 'str',
-        'Org Unit Name': 'category',
-        'Salary Group': 'category',
-        'People Leader Flag': 'category',
-        'Org Unit Number': 'str'
-    }
-    jobs_df = pd.read_csv(jobs_file, dtype=jobs_dtype_map)
-    logger.info(f"Loaded {len(jobs_df)} jobs")
-    logger.info(f"Memory usage: {jobs_df.memory_usage().sum() / 1024 / 1024:.2f} MB")
+    # Verify required columns exist
+    required_columns = ['skill_id', 'name', 'skill_type']
+    missing_columns = [col for col in required_columns if col not in skills_df.columns]
+    if missing_columns:
+        raise ValueError(f"Skills file missing required columns: {missing_columns}")
     
-    # Map HRIS job column names to internal column names
-    logger.info("\nMapping job column names...")
-    job_column_mapping = {
-        'JobID': 'job_id',
-        'RoleSet': 'title',
-        'Org Unit Name': 'department',
-        'Salary Group': 'level',
-        'People Leader Flag': 'role_track',
-        'Org Unit Number': 'org_unit_number'  # Add this to capture unit number for uniqueness
-    }
-    
-    # Rename columns to match internal schema
-    jobs_df = jobs_df.rename(columns=job_column_mapping)
-    
-    # Create unique job IDs by combining job_id with org_unit_number
-    if 'job_id' in jobs_df.columns and 'org_unit_number' in jobs_df.columns:
-        jobs_df['unique_job_id'] = jobs_df['job_id'] + '_' + jobs_df['org_unit_number'].astype(str)
-        logger.info("\nCreated unique job IDs by combining JobID with Org Unit Number")
-    else:
-        # If the required columns don't exist, we can't create unique IDs
-        logger.error("Can't create unique job IDs: 'job_id' or 'org_unit_number' column missing")
-        raise ValueError("Jobs file must have both 'JobID' and 'Org Unit Number' columns to create unique job IDs")
-
-    # If job skills file is provided, load with chunking for large files
-    if job_skills_file:
-        logger.info("\nLoading job skills data...")
-        job_skills_list = []
-        
-        job_skills_dtype_map = {
-            'JobID': 'str',
-            'Skill_ID': 'str',
-            'Proficiency': 'int'
-        }
-        
-        for chunk in tqdm(pd.read_csv(job_skills_file, dtype=job_skills_dtype_map, chunksize=chunk_size), desc="Loading job skills"):
-            if department:
-                # Filter by department if specified
-                dept_jobs = jobs_df[jobs_df['department'] == department]['job_id'].unique()
-                chunk = chunk[chunk['JobID'].isin(dept_jobs)]
-            job_skills_list.append(chunk)
-            
-        job_skills_df = pd.concat(job_skills_list, ignore_index=True)
-        
-        # Map job skills column names if needed
-        skill_mapping = {
-            'JobID': 'job_id',
-            'Skill_ID': 'skill_id',
-            'Proficiency': 'proficiency'
-        }
-        
-        # Rename columns
-        job_skills_df = job_skills_df.rename(columns=skill_mapping)
-        
-        logger.info(f"Loaded {len(job_skills_df)} job-skill mappings")
-        logger.info(f"Memory usage: {job_skills_df.memory_usage().sum() / 1024 / 1024:.2f} MB")
-
     # Create taxonomy using the loader
     logger.info("\n" + "-"*40)
     logger.info("STEP 2: CREATING SKILL TAXONOMY")
     logger.info("-"*40)
     from skill_similarity_engine.data.loaders import SkillTaxonomyLoader
-    taxonomy_loader = SkillTaxonomyLoader(base_dir=os.path.dirname(os.path.abspath(__file__)))
+    taxonomy_loader = SkillTaxonomyLoader(base_dir=base_dir)
     
     # Create an empty taxonomy and populate it directly with the DataFrame we've already loaded
     taxonomy = SkillTaxonomy()
-    
-    # Save mapping of original to transformed names in the taxonomy
-    taxonomy.skill_name_mapping = skill_name_mapping
     
     # Create category mapping if categories are in the DataFrame
     category_mapping = {}
@@ -426,9 +301,55 @@ def load_data_directly(
         
     logger.info(f"Successfully loaded {len(taxonomy.skills)} skills into taxonomy")
     
+    # Load job architecture
+    logger.info("\n" + "-"*40)
+    logger.info("STEP 3: LOADING JOBS DATA")
+    logger.info("-"*40)
+    logger.info(f"Loading jobs from: {jobs_file}")
+    jobs_df = pd.read_csv(jobs_file)
+    
+    # Debug: Print columns in the jobs DataFrame
+    logger.info("\nColumns found in jobs file:")
+    for col in jobs_df.columns.tolist():
+        logger.info(f"  - {col}")
+    
+    # Map HRIS job column names to internal column names
+    logger.info("\nMapping job column names...")
+    job_column_mapping = {
+        'JobID': 'job_id',
+        'RoleSet': 'title',
+        'Org Unit Name': 'department',
+        'Salary Group': 'level',
+        'People Leader Flag': 'role_track',
+        'Org Unit Number': 'org_unit_number'  # Add this to capture unit number for uniqueness
+    }
+    
+    # Rename columns to match internal schema
+    jobs_df = jobs_df.rename(columns=job_column_mapping)
+    
+    # Debug: Print columns after mapping
+    logger.info("\nColumns after mapping:")
+    for col in jobs_df.columns.tolist():
+        logger.info(f"  - {col}")
+    
+    # Create unique job IDs by combining job_id with org_unit_number
+    if 'job_id' in jobs_df.columns and 'org_unit_number' in jobs_df.columns:
+        jobs_df['unique_job_id'] = jobs_df['job_id'] + '_' + jobs_df['org_unit_number'].astype(str)
+        logger.info("\nCreated unique job IDs by combining JobID with Org Unit Number")
+    else:
+        # If the required columns don't exist, we can't create unique IDs
+        logger.error("Can't create unique job IDs: 'job_id' or 'org_unit_number' column missing")
+        raise ValueError("Jobs file must have both 'JobID' and 'Org Unit Number' columns to create unique job IDs")
+    
+    # Verify required job columns exist
+    required_job_columns = ['unique_job_id', 'title', 'department', 'level']
+    missing_job_columns = [col for col in required_job_columns if col not in jobs_df.columns]
+    if missing_job_columns:
+        raise ValueError(f"Jobs file missing required columns: {missing_job_columns}")
+    
     # Create job architecture directly from the DataFrame
     logger.info("\n" + "-"*40)
-    logger.info("STEP 3: CREATING JOB ARCHITECTURE")
+    logger.info("STEP 4: CREATING JOB ARCHITECTURE")
     logger.info("-"*40)
     
     # Create empty job architecture
@@ -465,6 +386,39 @@ def load_data_directly(
         logger.info("-"*40)
         logger.info(f"Loading job skills from: {job_skills_file}")
         
+        job_skills_df = pd.read_csv(job_skills_file)
+        
+        # Debug: Print columns in the job skills DataFrame
+        logger.info("\nColumns found in job skills file:")
+        for col in job_skills_df.columns.tolist():
+            logger.info(f"  - {col}")
+        
+        # Map job skills column names if needed
+        skill_mapping = {
+            'JobID': 'job_id',
+            'Skill_ID': 'skill_id',
+            'Proficiency': 'proficiency'
+        }
+        
+        # Rename columns
+        job_skills_df = job_skills_df.rename(columns=skill_mapping)
+        
+        # Debug: Print columns after mapping
+        logger.info("\nColumns after mapping:")
+        for col in job_skills_df.columns.tolist():
+            logger.info(f"  - {col}")
+        
+        # If job_id column doesn't exist in the job skills file, we can't map skills
+        if 'job_id' not in job_skills_df.columns:
+            logger.error("Can't map job skills: 'job_id' column missing from job skills file")
+            raise ValueError("Job skills file must have a 'JobID' column")
+            
+        # If skill_id column doesn't exist, we can't map skills
+        if 'skill_id' not in job_skills_df.columns:
+            logger.error("Can't map job skills: 'skill_id' column missing from job skills file")
+            logger.error("Available columns: " + ", ".join(job_skills_df.columns.tolist()))
+            raise ValueError("Job skills file must have a 'Skill_ID' column")
+        
         # Map job skills to jobs
         skills_mapped = 0
         skills_skipped = 0
@@ -474,12 +428,14 @@ def load_data_directly(
         job_id_mapping = {}
         for _, row in jobs_df.iterrows():
             job_id = row['job_id']
-            unique_id = row['unique_job_id']
-            
-            # Support mapping from simple job_id to all matching unique_job_ids
-            if job_id not in job_id_mapping:
-                job_id_mapping[job_id] = []
-            job_id_mapping[job_id].append(unique_id)
+            if 'org_unit_number' in row and pd.notna(row['org_unit_number']):
+                # Create combined key
+                unique_id = row['unique_job_id']
+                
+                # Support mapping from simple job_id to all matching unique_job_ids
+                if job_id not in job_id_mapping:
+                    job_id_mapping[job_id] = []
+                job_id_mapping[job_id].append(unique_id)
         
         # For each job skill entry
         for _, row in job_skills_df.iterrows():
@@ -522,16 +478,8 @@ def load_data_directly(
     logger.info("\n" + "-"*40)
     logger.info("STEP 5: SETTING UP SIMILARITY CALCULATOR")
     logger.info("-"*40)
-    
-    # Initialize vectorizer and then calculator
-    logger.info("Initializing TF-IDF vectorizer...")
     vectorizer = TfidfVectorizer(taxonomy)
-    
-    # Get the actual calculator class from the module
-    from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator as ModuleCalculator
-    
-    # Create calculator instance
-    calculator = ModuleCalculator(
+    calculator = CosineSimilarityCalculator(
         vectorizer=vectorizer,
         skill_taxonomy=taxonomy,
         job_architecture=job_architecture
@@ -618,568 +566,243 @@ def generate_visualizations(
     output_dir: str,
     department: Optional[str],
     logger: logging.Logger,
-    batch_size: int = 5,
-    memory_efficient: bool = False
+    skip_heatmaps: bool = False,
+    export_individual_depts: bool = False  # New parameter to control individual department exports
 ) -> None:
-    """Generate only tabular data for Power BI, skipping visualizations."""
-    logger.info("Generating tabular data for Power BI...")
+    """Generate visualizations for the results."""
+    logger.info("Generating visualizations...")
     
-    # Import the calculator class for data export
-    from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator, TfidfVectorizer
+    # Create visualization manager
+    vis_manager = VisualisationManager(
+        skill_taxonomy=taxonomy,
+        job_architecture=job_architecture,
+        similarity_calculator=None,  # We don't need this for visualization
+        output_dir=output_dir
+    )
     
-    # Create vectorizer and calculator
+    # Determine departments to visualize
+    if department:
+        departments = [department]
+    else:
+        departments = set(job.department for job in job_architecture.jobs.values())
+    
+    # Initialize list to collect all department data
+    all_dept_data = []
+    
+    # Process each department
+    for dept in departments:
+        logger.debug(f"Processing department: {dept}")
+        
+        # Export department-specific similarity matrix (if requested)
+        try:
+            # Create a config with metadata included
+            config = ReportConfig(format="csv", include_metadata=True)
+            
+            # Log how many jobs are in this department to help with diagnosis
+            dept_jobs = [job for job in job_architecture.jobs.values() if job.department == dept]
+            logger.debug(f"Department {dept} has {len(dept_jobs)} jobs")
+            
+            # Call the DataExporter directly with the correct parameters
+            # Note: DataExporter.export_job_similarity_matrix expects department as first parameter
+            df_export = vis_manager.exporter.export_job_similarity_matrix(
+                department=dept,
+                config=config,
+                output_path=None if not export_individual_depts else os.path.join(output_dir, f"similarity_matrix_{dept}.csv")
+            )
+            
+            # Log information about the result
+            if df_export is not None and not df_export.empty:
+                logger.debug(f"Successfully generated similarity data for {dept}: {df_export.shape[0]} pairs")
+                all_dept_data.append(df_export)
+            else:
+                logger.warning(f"No similarity data generated for department {dept}")
+                
+            # Save to individual file if requested
+            if export_individual_depts:
+                matrix_path = os.path.join(output_dir, f"similarity_matrix_{dept}.csv")
+                if df_export is not None and not df_export.empty:
+                    df_export.to_csv(matrix_path, index=False)
+                    logger.info(f"Exported similarity matrix for department {dept} to {matrix_path}")
+                else:
+                    logger.warning(f"Could not export data for {dept}: No data generated")
+                
+        except Exception as e:
+            logger.error(f"Error processing similarity matrix for department {dept}: {e}")
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                logger.error(traceback.format_exc())
+        
+        # Generate heatmap (skip if requested)
+        if not skip_heatmaps:
+            try:
+                logger.debug(f"Generating heatmap for department: {dept}")
+                heatmap_filename = f"heatmap_{dept}.png"
+                vis_manager.generate_job_similarity_heatmap(
+                    similarity_matrix=df,
+                    department=dept,
+                    output_dir=output_dir,
+                    filename=heatmap_filename
+                )
+                logger.info(f"Generated heatmap for department {dept}")
+            except Exception as e:
+                logger.error(f"Error generating heatmap for department {dept}: {e}")
+                if logger.getEffectiveLevel() == logging.DEBUG:
+                    logger.error(traceback.format_exc())
+    
+    # Generate summary statistics
+    try:
+        logger.debug("Generating summary statistics...")
+        # Basic statistics for the similarity matrix
+        flat_sim = df.values.flatten()
+        flat_sim = flat_sim[flat_sim != 1.0]
+        stats = {
+            "mean_similarity": float(flat_sim.mean()),
+            "min_similarity": float(flat_sim.min()),
+            "max_similarity": float(flat_sim.max()),
+            "median_similarity": float(pd.Series(flat_sim).median()),
+            "std_similarity": float(flat_sim.std()),
+            "total_jobs": len(df),
+            "total_comparisons": len(flat_sim)
+        }
+        
+        # Save statistics
+        pd.DataFrame([stats]).to_csv(
+            os.path.join(output_dir, "summary_statistics.csv"), index=False
+        )
+        logger.info("Generated summary statistics")
+    except Exception as e:
+        logger.error(f"Error generating summary statistics: {e}")
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            logger.error(traceback.format_exc())
+    
+    # Export combined data from all departments 
+    try:
+        if all_dept_data:
+            logger.info("Exporting combined similarity data for all departments...")
+            combined_df = pd.concat(all_dept_data, ignore_index=True)
+            combined_path = os.path.join(output_dir, "all_departments_similarity_tabular.csv")
+            combined_df.to_csv(combined_path, index=False)
+            logger.info(f"Exported combined tabular similarity data to {combined_path}")
+    except Exception as e:
+        logger.error(f"Error exporting combined data: {e}")
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            logger.error(traceback.format_exc())
+            
+    logger.info(f"Visualizations and data exports saved to: {output_dir}")
+
+def generate_cross_department_similarities(
+    job_architecture: JobArchitecture,
+    taxonomy: SkillTaxonomy,
+    output_dir: str,
+    logger: logging.Logger
+) -> pd.DataFrame:
+    """Generate similarity comparisons between jobs across all departments.
+    
+    Args:
+        job_architecture: The job architecture containing job data
+        taxonomy: The skill taxonomy
+        output_dir: Directory to save output
+        logger: Logger instance
+        
+    Returns:
+        DataFrame containing cross-department job similarities
+    """
+    logger.info("Generating cross-department similarity comparisons...")
+    
+    # Create TF-IDF vectorizer and similarity calculator
     vectorizer = TfidfVectorizer(taxonomy)
-    similarity_calculator = CosineSimilarityCalculator(
+    calculator = CosineSimilarityCalculator(
         vectorizer=vectorizer,
         skill_taxonomy=taxonomy,
         job_architecture=job_architecture
     )
     
-    # Create data exporter directly
-    exporter = DataExporter(
-        skill_taxonomy=taxonomy,
-        job_architecture=job_architecture,
-        similarity_calculator=similarity_calculator,
-        output_dir=output_dir
-    )
+    # Get all jobs with skills
+    all_jobs = job_architecture.jobs.values()
+    jobs_with_skills = [job for job in all_jobs if job.skills]
+    logger.info(f"Found {len(jobs_with_skills)} out of {len(all_jobs)} jobs with skills")
     
-    # Process departments in batches to manage memory
-    departments = [department] if department else list(set(job.department for job in job_architecture.jobs.values()))
+    if len(jobs_with_skills) < 2:
+        logger.warning("Not enough jobs with skills to compute cross-department similarities")
+        return pd.DataFrame()
     
-    logger.info(f"Exporting data for {len(departments)} departments")
+    # Build similarity data
+    similarities = []
+    job_count = len(jobs_with_skills)
+    processed = 0
     
-    # Clean department names for file output
-    clean_department_names = {}
-    for dept in departments:
-        # Replace problematic characters in department names
-        clean_name = dept.replace('\\', '_').replace('/', '_').replace(':', '_')
-        clean_department_names[dept] = clean_name
+    # Create batches to show progress
+    batch_size = max(1, job_count // 10)  # Show progress roughly every 10%
     
-    for i in range(0, len(departments), batch_size):
-        batch_departments = departments[i:i + batch_size]
-        logger.info(f"Processing departments {i+1}-{min(i+batch_size, len(departments))} of {len(departments)}")
-        
-        for dept in tqdm(batch_departments, desc="Generating department data"):
-            try:
-                # Export department-specific data only - skip visualizations
-                dept_matrix = exporter.export_job_similarity_matrix(
-                    department=dept,
-                    config=ReportConfig(include_metadata=True, add_opportunity_flags=True)
-                )
-                
-                # Use clean name for file
-                clean_dept = clean_department_names[dept]
-                dept_matrix.to_csv(os.path.join(output_dir, f"job_similarity_{clean_dept}.csv"), index=False)
-                
-                # Export job skills for this department
-                dept_jobs = [job for job_id, job in job_architecture.jobs.items() 
-                            if job.department == dept]
-                
-                for job in dept_jobs:
-                    try:
-                        skills_df = exporter.export_job_skills(
-                            job_id=job.job_id,
-                            config=ReportConfig(include_metadata=True)
-                        )
-                        # Save to department-specific folder
-                        dept_dir = os.path.join(output_dir, "job_skills", clean_dept)
-                        os.makedirs(dept_dir, exist_ok=True)
-                        skills_df.to_csv(os.path.join(dept_dir, f"skills_{job.job_id}.csv"), index=False)
-                    except Exception as e:
-                        logger.warning(f"Error exporting skills for job {job.job_id}: {e}")
-                
-                # Clear memory
-                del dept_matrix
-                
-            except Exception as e:
-                logger.warning(f"Error processing department '{dept}': {e}")
-                continue
+    for i, job1 in enumerate(jobs_with_skills):
+        processed += 1
+        if processed % batch_size == 0:
+            logger.info(f"Processing cross-department similarities: {processed}/{job_count} jobs ({processed/job_count*100:.1f}%)")
             
-    # Export all-departments similarity matrix in tabular format
-    logger.info("Exporting all-departments similarity matrix...")
-    config = ReportConfig(
-        include_metadata=True,  # Include job titles, departments, etc.
-        add_opportunity_flags=True  # Include mobility opportunity flags
-    )
-    
-    try:
-        all_dept_matrix = exporter.export_job_similarity_matrix_all_departments(
-            config=config
-        )
-        # Save the tabular data
-        all_dept_matrix.to_csv(os.path.join(output_dir, "job_similarity_all_departments.csv"), index=False)
-        
-        # Generate summary statistics
-        logger.debug("Generating summary statistics...")
-        # Calculate statistics from the all-departments tabular data
-        stats = {
-            "mean_similarity": float(all_dept_matrix["similarity"].mean()),
-            "min_similarity": float(all_dept_matrix["similarity"].min()),
-            "max_similarity": float(all_dept_matrix["similarity"].max()),
-            "median_similarity": float(all_dept_matrix["similarity"].median()),
-            "std_similarity": float(all_dept_matrix["similarity"].std()),
-            "total_jobs": len(job_architecture.jobs),
-            "total_comparisons": len(all_dept_matrix),
-            "departments_analyzed": len(departments),
-            "cross_department_opportunities": int(all_dept_matrix["is_cross_departmental_opportunity"].sum()),
-            "high_similarity_opportunities": int(all_dept_matrix["is_high_similarity_opportunity"].sum()),
-            "internal_mobility_opportunities": int(all_dept_matrix["is_internal_mobility_opportunity"].sum())
-        }
-        
-        # Add department-specific statistics
-        dept_stats = {}
-        for dept in departments:
-            dept_data = all_dept_matrix[
-                (all_dept_matrix["job1_department"] == dept) & 
-                (all_dept_matrix["job2_department"] == dept)
-            ]
-            dept_stats[dept] = {
-                "job_count": len(set(dept_data["job1_id"])),
-                "mean_similarity": float(dept_data["similarity"].mean()),
-                "high_similarity_opportunities": int(dept_data["is_high_similarity_opportunity"].sum()),
-                "internal_mobility_opportunities": int(dept_data["is_internal_mobility_opportunity"].sum())
+        for job2 in jobs_with_skills[i:]:  # Start from i to avoid duplicates
+            # Skip self-comparisons
+            if job1.job_id == job2.job_id:
+                continue
+                
+            # Calculate similarity
+            similarity = calculator.calculate_job_similarity(job1.job_id, job2.job_id)
+            
+            # Skip low similarities if desired
+            if similarity < 0.5:  # Threshold to keep file size manageable
+                continue
+                
+            # Add to results
+            row = {
+                "job1_id": job1.job_id,
+                "job2_id": job2.job_id,
+                "similarity": similarity,
+                "job1_title": job1.title,
+                "job2_title": job2.title,
+                "job1_department": job1.department,
+                "job2_department": job2.department,
+                "is_same_department": job1.department == job2.department
             }
-        
-        # Save statistics
-        pd.DataFrame([stats]).to_csv(
-            os.path.join(output_dir, "summary_statistics.csv"), 
-            index=False
-        )
-        
-        # Save department-specific statistics with clean names
-        clean_dept_stats = {}
-        for dept, stat in dept_stats.items():
-            clean_dept = clean_department_names[dept]
-            clean_dept_stats[clean_dept] = stat
+            similarities.append(row)
             
-        pd.DataFrame.from_dict(clean_dept_stats, orient="index").to_csv(
-            os.path.join(output_dir, "department_statistics.csv")
-        )
-        
-        logger.info(f"All tabular data exported to: {output_dir}")
-        logger.info(f"Processed {len(departments)} departments")
-        logger.info(f"Found {stats['high_similarity_opportunities']} high similarity opportunities")
-        logger.info(f"Found {stats['internal_mobility_opportunities']} internal mobility opportunities")
-        logger.info(f"Found {stats['cross_department_opportunities']} cross-department opportunities")
-        
-    except Exception as e:
-        logger.error(f"Error exporting all-departments matrix: {e}")
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            logger.error(traceback.format_exc())
-
-def calculate_similarity_batch(args):
-    """Helper function for parallel similarity calculation"""
-    start_idx, end_idx, job_ids, vectors = args
-    batch_size = end_idx - start_idx
-    similarities = np.zeros((batch_size, len(job_ids)))
+            # Also add the reverse comparison
+            reverse_row = {
+                "job1_id": job2.job_id,
+                "job2_id": job1.job_id,
+                "similarity": similarity,
+                "job1_title": job2.title,
+                "job2_title": job1.title,
+                "job1_department": job2.department,
+                "job2_department": job1.department,
+                "is_same_department": job1.department == job2.department
+            }
+            similarities.append(reverse_row)
     
-    for i in range(batch_size):
-        idx = start_idx + i
-        for j in range(len(job_ids)):
-            if idx != j:
-                similarities[i, j] = np.dot(vectors[idx], vectors[j])
+    # Create DataFrame
+    df = pd.DataFrame(similarities)
     
-    return similarities
-
-# Renamed to avoid conflicts with imported class
-class LocalCosineSimilarityCalculator:
-    """Local implementation for optimized similarity matrix calculation"""
-    def calculate_similarity_matrix(self, analysis_type, job_architecture=None):
-        """Calculate similarity matrix with parallel processing"""
-        if analysis_type != "job":
-            raise ValueError(f"Unsupported analysis type: {analysis_type}")
-            
-        job_arch = job_architecture or self.job_architecture
-        job_ids = list(job_arch.jobs.keys())
-        n_jobs = len(job_ids)
+    # Sort by similarity (descending)
+    if not df.empty:
+        df = df.sort_values(by="similarity", ascending=False)
+        logger.info(f"Generated {len(similarities)} cross-department similarity pairs")
         
-        # Pre-compute TF-IDF vectors for all jobs
-        vectors = []
-        for job_id in tqdm(job_ids, desc="Vectorizing jobs"):
-            vectors.append(self.vectorizer.vectorize_job(job_arch.jobs[job_id]))
-        vectors = np.array(vectors)
-        
-        # Prepare batches for parallel processing
-        n_cores = cpu_count()
-        batch_size = max(1, n_jobs // (n_cores * 4))  # Smaller batches for better load balancing
-        batches = []
-        
-        for start_idx in range(0, n_jobs, batch_size):
-            end_idx = min(start_idx + batch_size, n_jobs)
-            batches.append((start_idx, end_idx, job_ids, vectors))
-        
-        # Calculate similarities in parallel
-        with Pool(processes=n_cores) as pool:
-            results = list(tqdm(
-                pool.imap(calculate_similarity_batch, batches),
-                total=len(batches),
-                desc="Calculating similarities"
-            ))
-        
-        # Combine results
-        similarity_matrix = np.vstack(results)
-        
-        # Ensure the matrix is symmetric
-        similarity_matrix = np.maximum(similarity_matrix, similarity_matrix.T)
-        np.fill_diagonal(similarity_matrix, 1.0)
-        
-        return similarity_matrix, job_ids
-
-def interactive_menu():
-    """
-    Provides an interactive menu-based CLI interface for the Skill Similarity Engine.
-    This makes it easier to use the tool without remembering all command-line arguments.
-    """
-    # Display welcome banner
-    display_welcome_banner()
+        # Export to CSV
+        output_path = os.path.join(output_dir, "cross_department_similarities.csv")
+        df.to_csv(output_path, index=False)
+        logger.info(f"Exported cross-department similarities to {output_path}")
+    else:
+        logger.warning("No cross-department similarities generated")
     
-    print("\n" + "="*80)
-    print("INTERACTIVE MENU".center(80))
-    print("="*80 + "\n")
-    
-    print("QUICK START GUIDE:")
-    print("1. First select your data source (option 11)")
-    print("2. Configure your output options (option 13)")
-    print("3. Run the analysis (option 15)")
-    print("4. Results will be saved to your specified output directory\n")
-    
-    # Default values
-    args = {
-        "use_hris_adapter": False,
-        "config": "config/hris_schema_mapping.yaml",
-        "skills_file": None,
-        "jobs_file": None,
-        "job_skills_file": None,
-        "department": None,
-        "output_dir": "./data/poc/output",
-        "output_format": "csv",
-        "no_visualizations": True,
-        "tabular_only": True,
-        "verbose": False,
-        "analysis_type": "job_similarity",
-        "num_processes": cpu_count(),
-        "chunk_size": 100000,
-        "batch_size": 5,
-        "memory_efficient": False,
-        "debug_step": "all"
-    }
-    
-    while True:
-        print("\nCURRENT CONFIGURATION:")
-        print("-" * 50)
-        print(f"1. Data Source:           {'HRIS Adapter' if args['use_hris_adapter'] else 'Direct Files'}")
-        
-        if args['use_hris_adapter']:
-            print(f"   - Config File:         {args['config']}")
-        else:
-            print(f"   - Skills File:         {args['skills_file'] or 'Not Set'}")
-            print(f"   - Jobs File:           {args['jobs_file'] or 'Not Set'}")
-            print(f"   - Job-Skills File:     {args['job_skills_file'] or 'Not Set'}")
-        
-        print(f"2. Department Filter:     {args['department'] or 'All Departments'}")
-        print(f"3. Output Directory:      {args['output_dir']}")
-        print(f"4. Output Format:         {args['output_format']}")
-        print(f"5. Generate Visualizations: {'No' if args['no_visualizations'] else 'Yes'}")
-        print(f"6. Tabular Data Only:     {'Yes' if args['tabular_only'] else 'No'}")
-        print(f"7. Verbose Logging:       {'Yes' if args['verbose'] else 'No'}")
-        print(f"8. Performance Settings:  {args['num_processes']} processes, {args['chunk_size']} chunk size")
-        print(f"9. Memory Efficient Mode: {'Yes' if args['memory_efficient'] else 'No'}")
-        print(f"10. Debug Step:           {args['debug_step']}")
-        
-        print("\nACTIONS:")
-        print("-" * 50)
-        print("11. Change Data Source")
-        print("12. Set Department Filter")
-        print("13. Set Output Options")
-        print("14. Set Performance Options")
-        print("15. Run Analysis")
-        print("16. Exit")
-        
-        choice = input("\nEnter your choice (1-16): ").strip()
-        
-        if choice == "11":
-            # Change data source
-            print("\nSelect Data Source:")
-            print("1. Use HRIS Adapter")
-            print("2. Use Direct Files")
-            
-            ds_choice = input("Enter choice (1-2): ").strip()
-            
-            if ds_choice == "1":
-                args["use_hris_adapter"] = True
-                config_path = input("Enter config file path [config/hris_schema_mapping.yaml]: ").strip()
-                if config_path:
-                    args["config"] = config_path
-            elif ds_choice == "2":
-                args["use_hris_adapter"] = False
-                
-                skills_file = input("Enter skills file path: ").strip()
-                if skills_file:
-                    args["skills_file"] = skills_file
-                
-                jobs_file = input("Enter jobs file path: ").strip()
-                if jobs_file:
-                    args["jobs_file"] = jobs_file
-                
-                job_skills_file = input("Enter job-skills mapping file path (optional): ").strip()
-                if job_skills_file:
-                    args["job_skills_file"] = job_skills_file
-        
-        elif choice == "12":
-            # Set department filter
-            dept = input("Enter department name to filter by (leave empty for all departments): ").strip()
-            args["department"] = dept if dept else None
-        
-        elif choice == "13":
-            # Set output options
-            print("\nOutput Options:")
-            
-            output_dir = input(f"Enter output directory [{args['output_dir']}]: ").strip()
-            if output_dir:
-                args["output_dir"] = output_dir
-            
-            print("\nSelect output format:")
-            print("1. CSV")
-            print("2. JSON")
-            print("3. Excel")
-            
-            format_choice = input("Enter choice (1-3): ").strip()
-            if format_choice == "1":
-                args["output_format"] = "csv"
-            elif format_choice == "2":
-                args["output_format"] = "json"
-            elif format_choice == "3":
-                args["output_format"] = "excel"
-            
-            vis_choice = input("Generate visualizations? (y/n): ").strip().lower()
-            args["no_visualizations"] = vis_choice != "y"
-            
-            tab_choice = input("Generate tabular data only? (y/n): ").strip().lower()
-            args["tabular_only"] = tab_choice == "y"
-            
-            verb_choice = input("Enable verbose logging? (y/n): ").strip().lower()
-            args["verbose"] = verb_choice == "y"
-        
-        elif choice == "14":
-            # Set performance options
-            print("\nPerformance Options:")
-            
-            num_proc = input(f"Enter number of processes [{args['num_processes']}]: ").strip()
-            if num_proc and num_proc.isdigit():
-                args["num_processes"] = int(num_proc)
-            
-            chunk_size = input(f"Enter chunk size for large files [{args['chunk_size']}]: ").strip()
-            if chunk_size and chunk_size.isdigit():
-                args["chunk_size"] = int(chunk_size)
-            
-            batch_size = input(f"Enter batch size for processing departments [{args['batch_size']}]: ").strip()
-            if batch_size and batch_size.isdigit():
-                args["batch_size"] = int(batch_size)
-            
-            mem_eff = input("Enable memory-efficient mode? (y/n): ").strip().lower()
-            args["memory_efficient"] = mem_eff == "y"
-            
-            print("\nSelect debug step:")
-            print("1. All steps")
-            print("2. Load data only")
-            print("3. Transform data only")
-            print("4. Analyze data only")
-            print("5. Visualize data only")
-            
-            debug_choice = input("Enter choice (1-5): ").strip()
-            if debug_choice == "1":
-                args["debug_step"] = "all"
-            elif debug_choice == "2":
-                args["debug_step"] = "load"
-            elif debug_choice == "3":
-                args["debug_step"] = "transform"
-            elif debug_choice == "4":
-                args["debug_step"] = "analyze"
-            elif debug_choice == "5":
-                args["debug_step"] = "visualize"
-        
-        elif choice == "15":
-            # Run analysis
-            print("\nRunning analysis with current configuration...")
-            
-            # Validate required fields
-            if not args["use_hris_adapter"] and (not args["skills_file"] or not args["jobs_file"]):
-                print("\nERROR: When using direct files, both skills file and jobs file must be specified.")
-                input("Press Enter to continue...")
-                continue
-            
-            # Create a namespace object to mimic argparse result
-            class Args:
-                pass
-            
-            namespace_args = Args()
-            for key, value in args.items():
-                setattr(namespace_args, key, value)
-            
-            # Run the analysis
-            try:
-                run_analysis(namespace_args)
-                print("\nAnalysis completed successfully!")
-                input("Press Enter to continue...")
-            except Exception as e:
-                print(f"\nERROR: {str(e)}")
-                input("Press Enter to continue...")
-        
-        elif choice == "16":
-            # Exit
-            print("\nExiting Skill Similarity Engine.")
-            break
-        
-        else:
-            print("\nInvalid choice. Please try again.")
-
-def run_analysis(args):
-    """Run the analysis with the given arguments."""
-    # Set up logging
-    logger = setup_logging(args.verbose)
-    logger.info("Starting Skill Similarity Engine POC run")
-    
-    # Make sure the output directory exists
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.join(args.output_dir, f"poc_run_{timestamp}")
-    os.makedirs(output_dir, exist_ok=True)
-    logger.debug(f"Created output directory: {output_dir}")
-    
-    try:
-        # Initialize variables that might be needed across steps
-        df = None
-        job_architecture = None
-        taxonomy = None
-        
-        # Step 1: Load and transform data
-        if args.debug_step in ["load", "all"]:
-            logger.info("Step 1: Loading and transforming data")
-            if args.use_hris_adapter:
-                df, job_architecture, taxonomy = load_data_with_hris_adapter(
-                    args.config,
-                    args.analysis_type,
-                    args.department,
-                    logger
-                )
-            else:
-                if not args.skills_file or not args.jobs_file:
-                    logger.error("When not using HRIS adapter, skills file and jobs file are required")
-                    if hasattr(args, '_parser'):  # Check if this is from argparse
-                        args._parser.error("When not using HRIS adapter, --skills-file and --jobs-file are required")
-                    else:
-                        sys.exit(1)
-                df, job_architecture, taxonomy = load_data_directly(
-                    args.skills_file,
-                    args.jobs_file,
-                    args.job_skills_file,
-                    args.department,
-                    logger,
-                    chunk_size=args.chunk_size,
-                    memory_efficient=args.memory_efficient
-                )
-        
-        # Step 2: Save results
-        if args.debug_step in ["transform", "all"]:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot save results: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 2: Saving results")
-            output_file = save_results(
-                df,
-                output_dir,
-                args.output_format,
-                args.department,
-                logger
-            )
-        
-        # Step 3: Generate visualizations
-        if args.debug_step in ["visualize", "all"] and not args.no_visualizations:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot generate visualizations: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 3: Generating visualizations")
-            generate_visualizations(
-                df,
-                job_architecture,
-                taxonomy,
-                output_dir,
-                args.department,
-                logger,
-                batch_size=args.batch_size,
-                memory_efficient=args.memory_efficient
-            )
-        # Generate tabular output for Power BI
-        elif args.debug_step in ["visualize", "all"] and args.tabular_only:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot generate tabular data: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 3: Generating tabular data for Power BI")
-            generate_visualizations(  # We're reusing this function but it's been modified to skip visualizations
-                df,
-                job_architecture,
-                taxonomy,
-                output_dir,
-                args.department,
-                logger,
-                batch_size=args.batch_size,
-                memory_efficient=args.memory_efficient
-            )
-        
-        logger.info("POC run completed successfully!")
-        logger.info(f"All results saved to: {output_dir}")
-        
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        if args.verbose:
-            logger.error(traceback.format_exc())
-        raise
+    return df
 
 def main():
     """Main entry point for the HRIS POC analysis tool."""
-    # Display welcome banner
-    display_welcome_banner()
+    description = """
+    Skill Similarity Engine - Calculate similarity between jobs based on their skill profiles.
     
-    parser = argparse.ArgumentParser(
-        description="Run skill similarity analysis POC on synthetic HRIS data. "
-                    "When run without arguments, an interactive menu will be displayed. "
-                    "Use --help to see all available command-line options."
-    )
-    
-    # Add option to skip interactive menu
-    parser.add_argument(
-        "--no-interactive",
-        action="store_true",
-        help="Skip the interactive menu and run with command-line arguments"
-    )
-    
-    # Add performance optimization options
-    performance = parser.add_argument_group("Performance Options")
-    performance.add_argument(
-        "--num-processes",
-        type=int,
-        default=cpu_count(),
-        help="Number of processes to use for parallel processing (default: number of CPU cores)"
-    )
-    performance.add_argument(
-        "--chunk-size",
-        type=int,
-        default=100000,
-        help="Chunk size for reading large files (default: 100000)"
-    )
-    performance.add_argument(
-        "--batch-size",
-        type=int,
-        default=5,
-        help="Batch size for processing departments (default: 5)"
-    )
-    performance.add_argument(
-        "--memory-efficient",
-        action="store_true",
-        help="Use memory-efficient mode (trades speed for lower memory usage)"
-    )
+    By default, this script will generate cross-department job similarity comparisons,
+    which is the recommended dataset for Power BI analysis. The individual department
+    visualizations are optional and can be enabled with --export-departments.
+    """
+    parser = argparse.ArgumentParser(description=description)
     
     # Analysis type
     parser.add_argument(
@@ -1236,14 +859,7 @@ def main():
     parser.add_argument(
         "--no-visualizations",
         action="store_true",
-        default=True,  # Changed to True to skip visualizations by default
-        help="Skip generating visualizations (heatmaps, etc.) - DEFAULT=True"
-    )
-    parser.add_argument(
-        "--tabular-only",
-        action="store_true",
-        default=True,  # New option, True by default
-        help="Generate only tabular data for Power BI - DEFAULT=True"
+        help="Skip generating heatmap visualizations but still export similarity matrices for analysis"
     )
     parser.add_argument(
         "--verbose", "-v",
@@ -1259,15 +875,121 @@ def main():
         help="Run only specific steps in debug mode"
     )
     
+    parser.add_argument(
+        "--export-departments",
+        action="store_true",
+        help="Export individual department similarity matrices in addition to the combined file"
+    )
+    parser.add_argument(
+        "--cross-department",
+        action="store_true",
+        default=True,  # Make cross-department the default
+        help="Compare jobs across departments, not just within departments (default: True)"
+    )
+    parser.add_argument(
+        "--skip-cross-department",
+        action="store_true",
+        help="Skip cross-department comparison"
+    )
+
     args = parser.parse_args()
     
-    # Launch interactive menu by default or if --no-interactive is not specified
-    if len(sys.argv) == 1 or not args.no_interactive:
-        interactive_menu()
-        return
+    # Set up logging
+    logger = setup_logging(args.verbose)
+    logger.info("Starting Skill Similarity Engine POC run")
     
-    # If we get here, --no-interactive was specified, so run with command-line args
-    run_analysis(args)
+    # Make sure the output directory exists
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.join(args.output_dir, f"poc_run_{timestamp}")
+    os.makedirs(output_dir, exist_ok=True)
+    logger.debug(f"Created output directory: {output_dir}")
+    
+    try:
+        # Initialize variables that might be needed across steps
+        df = None
+        job_architecture = None
+        taxonomy = None
+        
+        # Step 1: Load and transform data
+        if args.debug_step in ["load", "all"]:
+            logger.info("Step 1: Loading and transforming data")
+            if args.use_hris_adapter:
+                df, job_architecture, taxonomy = load_data_with_hris_adapter(
+                    args.config,
+                    args.analysis_type,
+                    args.department,
+                    logger
+                )
+            else:
+                if not args.skills_file or not args.jobs_file:
+                    parser.error("When not using HRIS adapter, --skills-file and --jobs-file are required")
+                df, job_architecture, taxonomy = load_data_directly(
+                    args.skills_file,
+                    args.jobs_file,
+                    args.job_skills_file,
+                    args.department,
+                    logger
+                )
+        
+        # Step 2: Save results
+        if args.debug_step in ["transform", "all"]:
+            if df is None or job_architecture is None or taxonomy is None:
+                logger.error("Cannot save results: data not loaded. Please run with --debug-step load first.")
+                sys.exit(1)
+                
+            logger.info("Step 2: Saving results")
+            output_file = save_results(
+                df,
+                output_dir,
+                args.output_format,
+                args.department,
+                logger
+            )
+        
+        # Step 3: Generate visualizations
+        if args.debug_step in ["visualize", "all"]:
+            if df is None or job_architecture is None or taxonomy is None:
+                logger.error("Cannot generate visualizations: data not loaded. Please run with --debug-step load first.")
+                sys.exit(1)
+                
+            logger.info("Step 3: Generating data exports")
+            
+            # Only generate department visualizations if explicitly requested
+            if args.export_departments and not args.no_visualizations:
+                logger.info("Generating department-specific visualizations...")
+                generate_visualizations(
+                    df,
+                    job_architecture,
+                    taxonomy,
+                    output_dir,
+                    args.department,
+                    logger,
+                    skip_heatmaps=args.no_visualizations,
+                    export_individual_depts=args.export_departments
+                )
+            
+        # Step 4: Generate cross-department similarities (now the primary output)
+        if args.debug_step in ["visualize", "all"] and not args.skip_cross_department:
+            if df is None or job_architecture is None or taxonomy is None:
+                logger.error("Cannot generate cross-department similarities: data not loaded.")
+                sys.exit(1)
+                
+            logger.info("Step 4: Generating cross-department similarities")
+            cross_dept_df = generate_cross_department_similarities(
+                job_architecture,
+                taxonomy,
+                output_dir,
+                logger
+            )
+        
+        logger.info("POC run completed successfully!")
+        logger.info(f"All results saved to: {output_dir}")
+        
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        if args.verbose:
+            logger.error(traceback.format_exc())
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 
