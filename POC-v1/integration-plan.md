@@ -122,14 +122,24 @@ This document outlines the plan for integrating learnings from the POC implement
   - Implement organization unit information
   - Add salary group and people leader flag as standard attributes
   - Support location-based data
+  - Add standardized attribute sanitization (for spaces, special characters, etc.)
 - **Task 4.2:** Implement robust job identifier system
-  - Create composite key support
-  - Maintain backward compatibility
-  - Add flexible querying capabilities
-- **Task 4.3:** Develop context-aware utilities
-  - Job filtering by context dimensions
-  - Grouping and aggregation helpers
-  - Duplicate context detection and handling
+  - Create a `generate_unique_id()` method in the `Job` class that produces a composite key
+  - Include all differentiating factors in composite key (job_id, org_unit, location, seniority, role_track)
+  - Implement sanitization of key components for consistent formatting
+  - Add storage of original "simple" job ID alongside composite ID
+  - Ensure backward compatibility with existing code
+  - Create documentation of composite key structure and components
+- **Task 4.3:** Update `JobArchitecture` to support enhanced identifiers
+  - Modify `add_job()` method to handle composite IDs correctly
+  - Add methods to look up jobs by individual components of composite ID
+  - Implement validation to prevent truly duplicate jobs
+  - Create migration utility to convert existing job collections to new ID format
+- **Task 4.4:** Develop context-aware utilities
+  - Implement job filtering by any context dimension
+  - Create grouping and aggregation helpers for multi-dimensional analysis
+  - Add duplicate context detection and handling
+  - Add utility methods to extract business context from composite IDs
 
 #### Similarity Calculation Enhancements
 - **Task 5.1:** Enhance `CosineSimilarityCalculator`
@@ -335,3 +345,266 @@ Total estimated time: 8 weeks
 10. Test coverage remains high (>80% for core functionality)
 11. Command line interface provides all functionality from the POC
 12. Visualization outputs are focused on key insights rather than overwhelming with exhaustive outputs 
+
+## Detailed Implementation Chunks
+
+This section breaks down the implementation into smaller, more manageable tasks for easier tracking and assignment.
+
+### Chunk 1: Performance Foundation - Utils Module
+
+1. **Create Performance Tracking Module**
+   - Create new file: `src/skill_similarity_engine/utils/performance.py`
+   - Implement memory tracking utilities
+   - Add garbage collection helpers
+   - Create progress tracking with tqdm integration
+   - Add context managers for performance sections
+
+2. **Add Parallel Processing Framework**
+   - Create new file: `src/skill_similarity_engine/utils/parallel.py`
+   - Implement process pool management
+   - Add task distribution helpers
+   - Create error handling for distributed tasks
+   - Implement result aggregation utilities
+
+3. **Implement Chunking Utilities**
+   - Create new file: `src/skill_similarity_engine/utils/chunking.py`
+   - Add data chunking utilities
+   - Implement batched processing
+   - Create automatic batch size optimization
+   - Add resumable processing capabilities
+
+### Chunk 2: Job Model Enhancements
+
+1. **Enhance Job Class with Composite ID**
+   - Update `src/skill_similarity_engine/models/jobs.py`
+   - Add `generate_unique_id()` method to Job class
+   - Store original "simple" job ID alongside composite ID
+   - Add sanitization helpers for ID components
+   - Update documentation and type hints
+
+2. **Update JobArchitecture Class**
+   - Modify `add_job()` to handle composite IDs
+   - Add lookup methods by ID components
+   - Implement validation for true duplicates
+   - Create migration utilities for existing data
+   - Add helper methods for composite ID generation
+
+3. **Add Context-Aware Utilities**
+   - Implement job filtering by context dimension
+   - Add grouping and aggregation helpers
+   - Create duplicate context detection
+   - Add utilities to extract context from IDs
+
+### Chunk 3: Data Loading Enhancements
+
+1. **Update SkillTaxonomyLoader**
+   - Enhance `src/skill_similarity_engine/data/loaders.py`
+   - Add chunked loading support
+   - Implement memory-efficient processing
+   - Add validation for HRIS formats
+   - Improve multi-word skill handling
+
+2. **Update JobArchitectureLoader**
+   - Add chunked loading for large files
+   - Implement unique job ID creation
+   - Add flexible column mapping
+   - Create progress tracking with tqdm
+   - Add memory efficient processing options
+
+3. **Create Data Validation Utilities**
+   - Create new file: `src/skill_similarity_engine/data/validation.py`
+   - Implement comprehensive validation rules
+   - Add detailed error reporting
+   - Create data quality metrics
+   - Implement warning thresholds
+
+### Chunk 4: TF-IDF and Skill Processing
+
+1. **Enhance TF-IDF Vectorizer**
+   - Update `src/skill_similarity_engine/similarity/cosine.py`
+   - Add preprocessing for multi-word skills
+   - Implement token preservation for skill phrases
+   - Create configurable tokenization strategies
+   - Add memory-efficient vectorization options
+
+2. **Implement Skill Name Mapping**
+   - Add bidirectional mapping for original/transformed names
+   - Ensure consistent mapping throughout pipeline
+   - Create utility methods for conversion
+   - Add mapping persistence and loading
+
+3. **Improve Skill Taxonomy Handling**
+   - Add validation for skill uniqueness
+   - Implement improved normalization
+   - Add configurability for normalization strategies
+   - Create automated validation reporting
+
+### Chunk 5: Configuration Transparency System
+
+1. **Create Configuration Tracking Framework**
+   - Create new file: `src/skill_similarity_engine/config/tracking.py`
+   - Implement configuration versioning
+   - Add serialization of active configuration
+   - Create configuration context management
+   - Implement configuration diffing
+
+2. **Develop Configuration Embedding**
+   - Create metadata enrichment for outputs
+   - Implement factor contribution analysis
+   - Add configuration impact calculation
+   - Create configuration documentation generator
+
+3. **Implement Scenario Management**
+   - Add scenario definition capabilities
+   - Create comparison reporting
+   - Implement run history tracking
+   - Build configuration validation engine
+
+### Chunk 6: Similarity Calculation Enhancements
+
+1. **Enhance CosineSimilarityCalculator**
+   - Update with parallel processing support
+   - Implement batched matrix generation
+   - Add optimized vector computation
+   - Create memory-efficient calculation options
+
+2. **Add Department Filtering**
+   - Implement pre-filtering capability
+   - Create optimized subset processing
+   - Add filtered architecture generation
+   - Implement scoped calculation options
+
+3. **Memory-Efficient Matrix Generation**
+   - Implement sparse matrix support
+   - Add incremental matrix building
+   - Create memory-mapped storage options
+   - Implement threshold-based early stopping
+
+4. **Similarity Enhancement Factor Tracking**
+   - Track factors affecting similarity scores
+   - Record threshold application effects
+   - Add configuration parameterization
+   - Create factor breakdown views
+
+### Chunk 7: Pre-processing System
+
+1. **Create Vectorisation System**
+   - Create new file: `src/skill_similarity_engine/preprocessing/vectorisation.py`
+   - Implement corpus vectorisation
+   - Add vector storage and retrieval
+   - Create memory-efficient vector management
+   - Add incremental update capability
+
+2. **Implement Vector Management Utilities**
+   - Create efficient storage formats
+   - Add partial loading capabilities
+   - Implement vector versioning
+   - Create validation and integrity checking
+
+3. **Build Context-Aware Analysis**
+   - Add holistic comparison support
+   - Implement department-specific analysis
+   - Create efficient vector filtering
+   - Add contextual weighting options
+
+### Chunk 8: Power BI Integration & Visualization
+
+1. **Create Power BI Exporters**
+   - Create new file: `src/skill_similarity_engine/visualization/power_bi.py`
+   - Implement standardized tabular exports
+   - Add relationship-friendly data structures
+   - Create metadata generation
+   - Implement configuration factor inclusion
+
+2. **Add Departmental Batching**
+   - Implement configurable batch sizes
+   - Add memory-efficient batch processing
+   - Create resume capability for interrupted exports
+   - Add progress tracking for exports
+
+3. **Implement Focused Visualization**
+   - Create "highlights" mode for significant findings
+   - Add significance thresholds for output filtering
+   - Implement aggregated visualization methods
+   - Create selective reporting options
+
+### Chunk 9: CLI Enhancements
+
+1. **Update CLI Framework**
+   - Enhance `src/skill_similarity_engine/cli/`
+   - Add new command options
+   - Implement performance tuning parameters
+   - Add memory optimization flags
+   - Create output format selection
+
+2. **Implement Filtering Capabilities**
+   - Add department filtering
+   - Implement job level filtering  
+   - Create custom filter expressions
+   - Add multi-dimensional filtering
+
+3. **Enhance Help Documentation**
+   - Update option descriptions
+   - Add usage examples
+   - Create configuration templates
+   - Implement interactive help
+
+### Chunk 10: Testing and Documentation
+
+1. **Update Unit Tests**
+   - Add tests for enhanced components
+   - Create memory-efficient mode tests
+   - Implement parallel processing tests
+   - Add large dataset handling tests
+
+2. **Create Integration Tests**
+   - Implement end-to-end workflow tests
+   - Add performance benchmarks
+   - Create memory usage tests
+   - Build configuration scenario tests
+
+3. **Update Documentation**
+   - Update module docstrings and type hints
+   - Create new usage examples
+   - Update README
+   - Add troubleshooting section
+
+### Chunk 11: High Performance Computing
+
+1. **Implement Vector Preprocessing Pipeline**
+   - Create new file: `src/skill_similarity_engine/preprocessing/pipeline.py`
+   - Implement preprocessing workflow for raw input data
+   - Create optimized vector storage formats
+   - Add incremental update capability for new/changed data
+   - Implement validation and versioning for preprocessed vectors
+
+2. **Create Matrix Computation Framework**
+   - Create new file: `src/skill_similarity_engine/similarity/matrix_computation.py`
+   - Implement chunked processing for full matrix calculation
+   - Add within-department prioritization logic
+   - Create checkpoint saving and resumability
+   - Implement sparse matrix storage for efficient representation
+   - Add progress tracking and time estimation
+
+3. **Add Performance Acceleration Components**
+   - Create new file: `src/skill_similarity_engine/utils/acceleration.py`
+   - Implement Numba-accelerated similarity functions
+   - Add symmetry optimizations (compute half the matrix)
+   - Create early termination for low-similarity pairs
+   - Implement smart chunking strategies
+   - Add benchmarking utilities for optimization comparison
+
+4. **Develop Hybrid Computation System**
+   - Create new file: `src/skill_similarity_engine/similarity/hybrid_calculator.py`
+   - Implement combined precomputed/on-demand calculation
+   - Add caching for frequently accessed results
+   - Create background processing for low-priority calculations
+   - Implement memory-aware loading of precomputed matrices
+
+5. **Create CLI Commands for Performance Options**
+   - Update `src/skill_similarity_engine/cli/` with performance commands
+   - Add command for preprocessing input data
+   - Create command for computing full similarity matrix
+   - Implement options for chunking and memory management
+   - Add resume capability for interrupted processes
+   - Create detailed progress reporting 
