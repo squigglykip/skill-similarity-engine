@@ -6,6 +6,8 @@ This document outlines the development plan for the NAB Skill Similarity Engine,
 
 > **IMPLEMENTATION FOCUS**: Based on current organisational data constraints, the primary focus is on **Job-to-Job Similarity Analysis**. Our implementation concentrates on generating high-quality job similarity matrices and related outputs optimised for Power BI integration. Employee-to-job and employee-to-employee analyses are deprioritised until individual skill data becomes available. This approach aligns with the "Prescribe Skills" paradigm where job definitions drive skill assignments.
 
+> **PRIMARY OUTPUT OBJECTIVE**: The core deliverable of this system is a comprehensive **cross-department job similarity dataset in tabular format** optimised for Power BI integration. This tabular output (structured as a fact table with job1, job2, and similarity metrics) serves as the foundation for all downstream analytics. While the system is capable of generating additional outputs (heatmaps, visualisations, etc.), these are considered secondary features that complement, but do not replace, the primary tabular dataset.
+
 ## Project Status Index
 
 | Phase | Description | Status | Branch |
@@ -33,6 +35,8 @@ This document outlines the development plan for the NAB Skill Similarity Engine,
 | Role Track Implementation | **COMPLETED** | IC vs. Leadership path handling |
 | Location Implementation | **IN PROGRESS** | Geographic proximity for job transitions |
 | Power BI Integration | **PLANNED** | Optimized data exports for visualization |
+| Cross-Department Similarity Export | **COMPLETED** | Primary tabular output for Power BI |
+| Department Visualisations | **SECONDARY** | Additional visual outputs as complementary features |
 
 ## Development Branches
 
@@ -135,7 +139,15 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Add JSON export capabilities
 - [x] Implement report configuration options
 
-#### 4.2 Heatmap Visualisation
+#### 4.2 Primary Output: Tabular Job Similarity Data
+- [x] Design standardised fact table format for job similarity data
+- [x] Implement cross-department similarity export
+- [x] Create metadata-enriched tabular format
+- [x] Add opportunity flags for filtering in Power BI
+- [x] Optimise exports for large datasets
+- [x] Ensure consistency in data structure across runs
+
+#### 4.3 Secondary Outputs: Heatmap Visualisation 
 - [x] Implement heatmap generation in `visualization/heatmaps.py`
 - [x] Add customisation options for heatmap appearance
 - [x] Add clustering options for better visualisation
@@ -220,11 +232,12 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Create sample configuration templates for different use cases
 
 ### Phase 6: POC Integration - **PLANNED**
-**Branch: `feature/poc-integration`**
+**Branch: `feature/poc-integration` (Parent branch for integration of all POC components)**
 
-> **Focus**: This phase incorporates learnings and improvements from the Proof of Concept (POC) implementation back into the modular source code structure. The POC demonstrated significant performance enhancements, memory optimisations, and improved handling of skill similarity calculations at scale (35,000+ jobs).
+> **Focus**: This phase incorporates learnings and improvements from the Proof of Concept (POC) implementation back into the modular source code structure. The POC demonstrated significant performance enhancements, memory optimisations, and improved handling of skill similarity calculations at scale (35,000+ jobs). Key to this integration is preserving the primary functionality of generating a cross-department similarity dataset while enhancing performance and maintainability.
 
 #### 6.1 Memory Management Enhancements
+**Branch: `feature/poc-memory-management`**
 - [ ] Create memory tracking utilities in `utils/performance.py`
   - [ ] Implement memory usage reporting
   - [ ] Add large object management
@@ -239,6 +252,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Create memory usage dashboards
 
 #### 6.2 Performance Optimisation
+**Branch: `feature/poc-performance-optimization`**
 - [ ] Create multi-processing framework in `utils/parallel.py`
   - [ ] Implement process pool management
   - [ ] Add task distribution helpers
@@ -254,6 +268,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Add custom progress reporting
 
 #### 6.3 TF-IDF and Skill Processing Improvements
+**Branch: `feature/poc-skill-processing`**
 - [ ] Enhance TF-IDF vectoriser in `similarity/cosine.py`
   - [ ] Add preprocessing for multi-word skills (spaces to underscores)
   - [ ] Implement token preservation for skill phrases
@@ -268,6 +283,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Add configurability for normalisation strategies
 
 #### 6.4 Configuration Transparency System
+**Branch: `feature/poc-configuration-transparency`**
 - [ ] Create configuration tracking framework in `config/tracking.py`
   - [ ] Implement configuration versioning
   - [ ] Create serialisation of active configuration
@@ -285,6 +301,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Build configuration validation engine
 
 #### 6.5 Core Data Loading Enhancements
+**Branch: `feature/poc-data-loading`**
 - [ ] Update `SkillTaxonomyLoader` class
   - [ ] Add chunked loading support
   - [ ] Implement memory-efficient processing
@@ -299,6 +316,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Create data quality metrics
 
 #### 6.6 Job Context and Metadata Handling
+**Branch: `feature/poc-job-context`**
 - [ ] Enhance `Job` model in `models/jobs.py`
   - [ ] Add rich contextual metadata support
   - [ ] Implement organisation unit information
@@ -318,6 +336,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Add utility methods to extract business context from composite IDs
 
 #### 6.7 Similarity Calculation Enhancements
+**Branch: `feature/poc-similarity-enhancements`**
 - [ ] Enhance `CosineSimilarityCalculator`
   - [ ] Add parallel processing support
   - [ ] Implement batched processing
@@ -336,6 +355,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Create factor breakdown views
 
 #### 6.8 Advanced Optimisation Strategies
+**Branch: `feature/poc-advanced-optimization`**
 - [ ] Implement sparse matrix support
   - [ ] Integrate scipy.sparse or similar libraries
   - [ ] Add compression options for large datasets
@@ -354,6 +374,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Implement result merging for distributed processing
 
 #### 6.9 Pre-processing Implementation
+**Branch: `feature/poc-preprocessing`**
 - [ ] Create vectorisation system in `preprocessing/vectorisation.py`
   - [ ] Implement one-time corpus vectorisation
   - [ ] Add vector storage and retrieval
@@ -372,6 +393,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Create version control for vectors
 
 #### 6.10 Focused Data Export and Insight-Driven Visualisation
+**Branch: `feature/poc-exports`**
 - [ ] Create Power BI optimised exporters in `visualization/power_bi.py`
   - [ ] Implement standardised tabular "fact table" format for comprehensive data
   - [ ] Add relationship-friendly data structures
@@ -391,8 +413,14 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Implement significance thresholds to limit output volume
   - [ ] Develop aggregated visualisation methods to replace unit-by-unit comparisons
   - [ ] Create executive summary visualisations for key insights
+- [ ] Enhance cross-department similarity exports
+  - [ ] Optimize the primary tabular output format
+  - [ ] Add configurable options for controlling the level of detail
+  - [ ] Create efficient processing for full cross-department comparisons
+  - [ ] Implement memory-efficient design for large job datasets
 
 #### 6.11 High Performance Computing Strategy
+**Branch: `feature/poc-high-performance`**
 - [ ] Implement vector preprocessing pipeline
   - [ ] Create preprocessing workflow for raw input data
   - [ ] Develop optimised vector storage formats
@@ -413,6 +441,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Create background processing for low-priority calculations
 
 #### 6.12 Error Handling and Logging Improvements
+**Branch: `feature/poc-error-handling`**
 - [ ] Create centralised logging framework
   - [ ] Add configurable log levels
   - [ ] Implement file and console logging
@@ -427,6 +456,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
   - [ ] Add warning thresholds
 
 #### 6.13 CLI Enhancements
+**Branch: `feature/poc-cli-enhancements`**
 - [ ] Update CLI with new options
   - [ ] Add performance tuning parameters
   - [ ] Implement memory optimisation flags
@@ -498,6 +528,8 @@ The POC integration will be structured as a 4-sprint project, with a total timel
 - [x] Add metadata and schema descriptions in exports
 - [x] Ensure exports are optimised for downstream consumption
 - [x] Validate CSV formats meet Power BI integration requirements
+- [x] Optimize cross-department similarity exports (primary output)
+- [x] Ensure department-specific exports are available as needed (secondary outputs)
 
 #### 7.2 Configuration Management System - **COMPLETED**
 - [x] Design comprehensive configuration schema for all configurable parameters
@@ -864,16 +896,28 @@ This approach ensures a clean separation between external (HRIS) data formats an
 - [ ] Develop sample DAX measures for common analyses
 - [ ] Document refresh and update procedures
 - [ ] Create user guide for working with exported data in Power BI
+- [ ] Define fact table relationships and hierarchies
+- [ ] Create standardized calculated measures for similarity analysis
+- [ ] Develop templated visualizations for common job similarity views
+- [ ] Document best practices for filtering and slicing the similarity data
+- [ ] Implement performance optimizations for large similarity datasets
 
-#### 7.6 Production Deployment Preparation
-- [ ] Create deployment documentation
-- [ ] Implement logging for production environments
-- [ ] Add configuration templates for different environments
-- [ ] Create backup and recovery procedures
-- [ ] Establish workflow for environment promotion
-- [ ] Develop version tagging and release notes process
-- [ ] Create user feedback collection mechanism
-- [ ] Implement rollback mechanisms for failed deployments
+#### 7.6 Output Delivery Strategy
+- [ ] Define clear primary and secondary output priorities
+  - [ ] Document the cross-department similarity CSV as the primary output
+  - [ ] Categorize other outputs (heatmaps, visualizations) as secondary features
+  - [ ] Create configuration options for enabling/disabling secondary outputs
+  - [ ] Implement memory-efficient processing when only primary output is needed
+- [ ] Design CLI flags for output selection
+  - [ ] Add `--primary-only` flag to generate only the cross-department tabular data
+  - [ ] Create `--visualizations` flag to explicitly request secondary outputs
+  - [ ] Implement `--report-type` option for selecting specific output formats
+  - [ ] Add documentation for all output control options
+- [ ] Develop output delivery documentation
+  - [ ] Create clear workflow diagrams showing primary and secondary outputs
+  - [ ] Document recommended usage patterns for different scenarios
+  - [ ] Provide examples of integrating outputs with downstream systems
+  - [ ] Create troubleshooting guide for common output issues
 
 #### 7.7 Real-World Data Testing
 - [ ] Perform complete end-to-end testing with real HRIS data
@@ -887,7 +931,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
 ### Phase 8: CLI Implementation & Production Readiness - **PLANNED**
 **Branch: `feature/cli-production-readiness`**
 
-#### 6. Core CLI Framework Enhancements - **PLANNED**
+#### 8.1 Core CLI Framework Enhancements - **PLANNED**
 - [ ] Expand current CLI functionality
   - [ ] Ensure consistent interface across all commands
   - [ ] Add comprehensive error handling and user feedback
@@ -898,8 +942,13 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Implement shortcuts for common operation combinations
   - [ ] Add preset configuration profiles for different analysis types
   - [ ] Create wizards for first-time users to generate configurations
+- [ ] Implement clear output control options
+  - [ ] Add flags for controlling primary vs. secondary outputs
+  - [ ] Create options for output directory and naming conventions
+  - [ ] Implement batch processing for multiple departments
+  - [ ] Add memory optimization flags for large datasets
 
-#### 6. Local Production Usage Preparation - **PLANNED**
+#### 8.2 Local Production Usage Preparation - **PLANNED**
 - [ ] Create workspace structure for NAB local usage
   - [ ] Design standard directory structure for inputs and outputs
   - [ ] Develop workspace initialization and validation commands
@@ -916,7 +965,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Add Windows Task Scheduler templates for regular execution
   - [ ] Ensure compatibility with corporate Windows security policies
 
-#### 6. Data Workflow Integration - **PLANNED**
+#### 8.3 Data Workflow Integration - **PLANNED**
 - [ ] Develop data input/output pipeline
   - [ ] Create standardized input data validators
   - [ ] Add support for Excel files (common in NAB business environment)
@@ -933,7 +982,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Add automated archiving of previous analysis results
   - [ ] Build data provenance tracking to maintain audit trail
 
-#### 6. Ad-hoc Analysis Toolkit - **PLANNED**
+#### 8.4 Ad-hoc Analysis Toolkit - **PLANNED**
 - [ ] Create specialized commands for one-off analyses
   - [ ] Implement targeted department analysis
   - [ ] Add job family comparison tools
@@ -950,7 +999,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Build export to presentation formats (e.g., PowerPoint)
   - [ ] Implement customizable report templates
 
-#### 6. User Experience & Documentation - **PLANNED**
+#### 8.5 User Experience & Documentation - **PLANNED**
 - [ ] Enhance user feedback and assistance
   - [ ] Create comprehensive inline help for all commands
   - [ ] Add contextual hints for common errors
@@ -967,7 +1016,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Create departmental guides for different NAB business units
   - [ ] Build integration guides for NAB's existing analytics tools
 
-#### 6. Testing & Quality Assurance - **PLANNED**
+#### 8.6 Testing & Quality Assurance - **PLANNED**
 - [ ] Implement comprehensive CLI testing
   - [ ] Create end-to-end test workflows with realistic data volumes
   - [ ] Add validation tests for all output formats
@@ -984,7 +1033,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Build self-test capabilities to verify installation
   - [ ] Implement system resource requirement verification
 
-#### 6. Transition from Testing to Production - **PLANNED**
+#### 8.7 Transition from Testing to Production - **PLANNED**
 - [ ] Create transition workflow
   - [ ] Design process for moving from test data to production data
   - [ ] Build validation steps for ensuring quality with real data
@@ -1001,7 +1050,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Build strategy for periodic retraining/recalibration
   - [ ] Develop documentation for regular maintenance tasks
 
-#### 6. Configuration-Driven Data Model Enhancement - **PLANNED**
+#### 8.8 Configuration-Driven Data Model Enhancement - **PLANNED**
 - [ ] Implement configuration-driven taxonomy management
   - [ ] Move hardcoded enumerations (like SkillType) to configuration files
   - [ ] Create dynamic loading system for taxonomies and classifications
@@ -1085,273 +1134,3 @@ The interactive CLI will follow this sequence:
 7. Progress tracking for each step
 8. Final summary with output file locations
 ```
-
-### Phase 6: POC Integration - **PLANNED**
-**Branch: `feature/poc-integration`**
-
-> **Focus**: This phase incorporates learnings and improvements from the Proof of Concept (POC) implementation back into the modular source code structure. The POC demonstrated significant performance enhancements, memory optimisations, and improved handling of skill similarity calculations at scale (35,000+ jobs).
-
-#### 6. Memory Management Enhancements
-- [ ] Create memory tracking utilities in `utils/performance.py`
-  - [ ] Implement memory usage reporting
-  - [ ] Add large object management
-  - [ ] Create garbage collection helpers
-  - [ ] Add context managers for performance sections
-- [ ] Enhance base classes with memory-efficient options
-  - [ ] Add `memory_efficient` flag to core classes
-  - [ ] Implement memory-conscious data structures
-  - [ ] Add explicit cleanup methods
-- [ ] Add progress tracking for memory consumption
-  - [ ] Integrate with logging system
-  - [ ] Create memory usage dashboards
-
-#### 6. Performance Optimisation
-- [ ] Create multi-processing framework in `utils/parallel.py`
-  - [ ] Implement process pool management
-  - [ ] Add task distribution helpers
-  - [ ] Create error handling for distributed tasks
-  - [ ] Implement result aggregation utilities
-- [ ] Implement chunked and batched processing utilities
-  - [ ] Create data chunking utilities
-  - [ ] Add batched processing
-  - [ ] Implement automatic batch size optimisation
-  - [ ] Add resumable processing capabilities
-- [ ] Add progress bars for long-running operations
-  - [ ] Standardise tqdm integration
-  - [ ] Add custom progress reporting
-
-#### 6. TF-IDF and Skill Processing Improvements
-- [ ] Enhance TF-IDF vectoriser in `similarity/cosine.py`
-  - [ ] Add preprocessing for multi-word skills (spaces to underscores)
-  - [ ] Implement token preservation for skill phrases
-  - [ ] Create configuration options for tokenisation strategies
-- [ ] Implement skill name mapping system
-  - [ ] Add bidirectional mapping between original and transformed names
-  - [ ] Ensure consistency in all outputs
-  - [ ] Create utility methods for conversion
-- [ ] Update skill taxonomy handling
-  - [ ] Add validation for skill uniqueness post-transformation
-  - [ ] Implement improved normalisation in SkillTaxonomyLoader
-  - [ ] Add configurability for normalisation strategies
-
-#### 6. Configuration Transparency System
-- [ ] Create configuration tracking framework in `config/tracking.py`
-  - [ ] Implement configuration versioning
-  - [ ] Create serialisation of active configuration
-  - [ ] Add configuration context management
-  - [ ] Implement configuration diffing capabilities
-- [ ] Develop configuration embedding mechanism
-  - [ ] Create metadata enrichment for output data frames
-  - [ ] Implement factor contribution analysis
-  - [ ] Add configuration impact calculation
-  - [ ] Build configuration documentation generator
-- [ ] Implement configuration scenario management
-  - [ ] Add scenario definition capabilities
-  - [ ] Create scenario comparison reports
-  - [ ] Implement run history tracking
-  - [ ] Build configuration validation engine
-
-#### 6. Core Data Loading Enhancements
-- [ ] Update `SkillTaxonomyLoader` class
-  - [ ] Add chunked loading support
-  - [ ] Implement memory-efficient processing
-  - [ ] Enhance validation for HRIS formats
-- [ ] Update `JobArchitectureLoader` class
-  - [ ] Add chunked loading support
-  - [ ] Implement unique job ID creation
-  - [ ] Add flexible column mapping
-- [ ] Create utility for data validation and error reporting
-  - [ ] Implement comprehensive validation rules
-  - [ ] Add detailed error reporting
-  - [ ] Create data quality metrics
-
-#### 6. Job Context and Metadata Handling
-- [ ] Enhance `Job` model in `models/jobs.py`
-  - [ ] Add rich contextual metadata support
-  - [ ] Implement organisation unit information
-  - [ ] Add salary group and people leader flag as standard attributes
-  - [ ] Support location-based data
-  - [ ] Add standardised attribute sanitisation
-- [ ] Implement robust job identifier system
-  - [ ] Create a `generate_unique_id()` method that produces a composite key
-  - [ ] Include all differentiating factors in composite key (job_id, org_unit, location, seniority, role_track)
-  - [ ] Implement sanitisation of key components for consistent formatting
-  - [ ] Add storage of original "simple" job ID alongside composite ID
-  - [ ] Create documentation of composite key structure and components
-- [ ] Develop context-aware utilities
-  - [ ] Implement job filtering by any context dimension
-  - [ ] Create grouping and aggregation helpers for multi-dimensional analysis
-  - [ ] Add duplicate context detection and handling
-  - [ ] Add utility methods to extract business context from composite IDs
-
-#### 6. Similarity Calculation Enhancements
-- [ ] Enhance `CosineSimilarityCalculator`
-  - [ ] Add parallel processing support
-  - [ ] Implement batched processing
-  - [ ] Optimise vector computation
-- [ ] Add department filtering capability
-  - [ ] Pre-filtering for better performance
-  - [ ] Optimised subset processing
-- [ ] Implement memory-efficient similarity matrix generation
-  - [ ] Add sparse matrix support
-  - [ ] Create incremental matrix building
-  - [ ] Add memory-mapped storage for large matrices
-- [ ] Add similarity enhancement factor tracking
-  - [ ] Track which factors influenced each similarity score
-  - [ ] Record threshold application effects
-  - [ ] Add configuration parameterisation to similarity scores
-  - [ ] Create factor breakdown views
-
-#### 6. Advanced Optimisation Strategies
-- [ ] Implement sparse matrix support
-  - [ ] Integrate scipy.sparse or similar libraries
-  - [ ] Add compression options for large datasets
-  - [ ] Create memory-efficient matrix operations
-- [ ] Develop IDF precomputation system
-  - [ ] Implement caching for IDF values
-  - [ ] Add cache update mechanisms
-  - [ ] Create configuration for calculation strategies
-- [ ] Create advanced filtering framework
-  - [ ] Implement pre-filtering by multiple dimensions
-  - [ ] Develop filter pipeline architecture
-  - [ ] Add similarity threshold filters for early stopping
-- [ ] Build incremental processing system
-  - [ ] Support for segmented matrix generation
-  - [ ] Add resumable calculation capabilities
-  - [ ] Implement result merging for distributed processing
-
-#### 6. Pre-processing Implementation
-- [ ] Create vectorisation system in `preprocessing/vectorisation.py`
-  - [ ] Implement one-time corpus vectorisation
-  - [ ] Add vector storage and retrieval
-  - [ ] Create memory-efficient vector management
-- [ ] Develop vector management utilities
-  - [ ] Implement efficient vector storage format
-  - [ ] Add partial loading capabilities
-  - [ ] Create vector versioning system
-- [ ] Build context-aware analysis framework
-  - [ ] Implement holistic comparison support
-  - [ ] Add department-specific analysis
-  - [ ] Create efficient vector filtering
-- [ ] Add vector update mechanisms
-  - [ ] Implement incremental updates
-  - [ ] Add batch update support
-  - [ ] Create version control for vectors
-
-#### 6. Focused Data Export and Insight-Driven Visualisation
-- [ ] Create Power BI optimised exporters in `visualization/power_bi.py`
-  - [ ] Implement standardised tabular "fact table" format for comprehensive data
-  - [ ] Add relationship-friendly data structures
-  - [ ] Create metadata generation
-  - [ ] Implement configuration factor inclusion in exports
-- [ ] Implement departmental batching for exports
-  - [ ] Add configurable batch sizes
-  - [ ] Create memory-efficient batch processing
-  - [ ] Add resume capability for interrupted exports
-- [ ] Add statistics generation utilities
-  - [ ] Create summary statistics
-  - [ ] Implement department-specific metrics
-  - [ ] Add opportunity flag generation
-  - [ ] Create configuration impact metrics
-- [ ] Design focused visualisation approach
-  - [ ] Create "highlights" mode showing only most significant findings
-  - [ ] Implement significance thresholds to limit output volume
-  - [ ] Develop aggregated visualisation methods to replace unit-by-unit comparisons
-  - [ ] Create executive summary visualisations for key insights
-
-#### 6. High Performance Computing Strategy
-- [ ] Implement vector preprocessing pipeline
-  - [ ] Create preprocessing workflow for raw input data
-  - [ ] Develop optimised vector storage formats
-  - [ ] Add incremental update capability for new/changed data
-- [ ] Create matrix computation framework
-  - [ ] Implement chunked processing for full matrix calculation
-  - [ ] Add within-department prioritisation logic
-  - [ ] Create checkpoint saving and resumability
-  - [ ] Implement sparse matrix storage for efficient representation
-- [ ] Add performance acceleration components
-  - [ ] Implement Numba-accelerated similarity functions
-  - [ ] Add symmetry optimisations (compute half the matrix)
-  - [ ] Create early termination for low-similarity pairs
-  - [ ] Implement smart chunking strategies
-- [ ] Develop hybrid computation system
-  - [ ] Implement combined precomputed/on-demand calculation
-  - [ ] Add caching for frequently accessed results
-  - [ ] Create background processing for low-priority calculations
-
-#### 6. Error Handling and Logging Improvements
-- [ ] Create centralised logging framework
-  - [ ] Add configurable log levels
-  - [ ] Implement file and console logging
-  - [ ] Add structured logging support
-- [ ] Implement enhanced error handling
-  - [ ] Create contextual error messages
-  - [ ] Add error categorisation
-  - [ ] Implement recovery mechanisms
-- [ ] Add data validation reporting
-  - [ ] Create validation summary reports
-  - [ ] Implement data quality metrics
-  - [ ] Add warning thresholds
-
-#### 6. CLI Enhancements
-- [ ] Update CLI with new options
-  - [ ] Add performance tuning parameters
-  - [ ] Implement memory optimisation flags
-  - [ ] Create output format selection
-  - [ ] Add configuration scenario options
-- [ ] Add filtering capabilities
-  - [ ] Implement department filtering
-  - [ ] Add job level filtering
-  - [ ] Create custom filter expressions
-- [ ] Enhance help documentation
-  - [ ] Add comprehensive option descriptions
-  - [ ] Create usage examples
-  - [ ] Implement configuration templates
-  - [ ] Add troubleshooting section
-
-#### 6. Implementation Plan
-
-The POC integration will be structured as a 4-sprint project, with a total timeline of 8 weeks:
-
-- **Sprint 1 (Weeks 1-2):** Foundation Improvements
-  - Memory Management
-  - TF-IDF and Skill Processing
-  - Configuration Transparency
-  - Performance Optimisation  
-  - Core Data Loading
-  
-- **Sprint 2 (Weeks 3-4):** Job Metadata and Similarity Enhancements
-  - Job Context and Metadata
-  - Similarity Calculation
-  - HRIS Specific Adaptations
-
-- **Sprint 3 (Weeks 5-6):** Advanced Optimisation and Reporting
-  - Advanced Optimisation Strategies
-  - Pre-processing Implementation
-  - Focused Data Export and Visualisation
-  - Error Handling and Logging
-
-- **Sprint 4 (Weeks 7-8):** User Interface and Testing
-  - CLI Enhancements
-  - Integration Testing
-  - Documentation Updates
-  - Final Integration and Validation
-
-##### Dependencies and Risks
-- Access to real-world HRIS data for testing
-- Stakeholder availability for UAT
-- Sufficient computational resources for large-scale testing
-- Access to representative multi-word skill samples
-- Sample configuration scenarios for testing transparency features
-
-##### Success Criteria
-1. Integrated source code performs as well as or better than the POC implementation
-2. Memory usage is optimised for large datasets (35,000+ jobs)
-3. Processing time is improved through parallel execution
-4. Multi-word skills are correctly handled in similarity calculations
-5. Job context information is properly captured and utilised
-6. Configuration transparency enables tracking how factors affect each similarity score
-7. Multiple similarity calculation scenarios can be run and compared
-8. Documentation is updated to reflect all changes
-9. Command line interface provides all functionality from the POC
-10. Visualisation outputs are focused on key insights rather than overwhelming with exhaustive outputs
