@@ -1,0 +1,16 @@
+Memory Leakage Detection Report
+----------------------------------------
+Types with growing instance counts:
+1. tuple: 2917 -> 2918 (+1)
+2. dict: 3696 -> 3697 (+1)
+
+Memory usage trend:
+Duration: 0.47 seconds
+Memory change: +7.20 MB
+Growth rate: 15.30 MB/sec
+
+Reference chains for tracked types:
+
+tuple:
+  1. tuple -> type -> classmethod_descriptor
+  2. tuple -> type -> wrapper_descriptor
