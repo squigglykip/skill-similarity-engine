@@ -10,15 +10,17 @@ import os
 import sys
 import click
 from pathlib import Path
+import pandas as pd
 
 # Add the src directory to the path so we can import our package
 src_path = str(Path(__file__).parent.parent / 'src')
 sys.path.insert(0, src_path)
-from skill_similarity_engine.config.settings import get_config, ConfigFormat
+from skill_similarity_engine.config.settings import get_config, ConfigFormat, ConfigManager
 from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.models.jobs import JobArchitecture
 from skill_similarity_engine.models.employees import EmployeeDatabase
-from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
+from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator, TfidfVectorizer
+from skill_similarity_engine.visualization.manager import VisualisationManager
 
 
 @click.group()
@@ -204,7 +206,6 @@ def job_similarity(ctx, skill_taxonomy_file, job_architecture_file, department,
     similarity_matrix, job_ids = calculator.calculate_similarity_matrix("job")
     
     # Create pandas DataFrame from the matrix
-    import pandas as pd
     import numpy as np
     
     # Create a DataFrame with the similarity matrix
@@ -308,7 +309,10 @@ def employee_job_similarity(ctx, skill_taxonomy_file, job_architecture_file,
         employee_db = employee_db.filter_by_department(department)
     
     click.echo("Calculating employee-job similarities...")
-    calculator = CosineSimilarityCalculator(taxonomy)
+    # Initialize the TF-IDF vectorizer first
+    vectorizer = TfidfVectorizer(taxonomy)
+    # Create the similarity calculator with all required parameters
+    calculator = CosineSimilarityCalculator(vectorizer, taxonomy, job_arch, employee_db)
     similarity_matrix = calculator.calculate_employee_job_similarity_matrix(
         employee_db, job_arch
     )
@@ -389,7 +393,12 @@ def employee_similarity(ctx, skill_taxonomy_file, employee_database_file,
         employee_db = employee_db.filter_by_department(department)
     
     click.echo("Calculating employee similarities...")
-    calculator = CosineSimilarityCalculator(taxonomy)
+    # Create a minimal empty job architecture for the calculator
+    job_arch = JobArchitecture()
+    # Initialize the TF-IDF vectorizer first
+    vectorizer = TfidfVectorizer(taxonomy)
+    # Create the similarity calculator with all required parameters
+    calculator = CosineSimilarityCalculator(vectorizer, taxonomy, job_arch, employee_db)
     similarity_matrix = calculator.calculate_employee_similarity_matrix(employee_db)
     
     # Generate output filename

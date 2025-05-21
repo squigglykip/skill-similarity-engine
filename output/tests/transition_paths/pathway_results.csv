@@ -1,11 +1,11 @@
 source_id,source_title,source_department,target_id,target_title,target_department,direct_similarity,pathways_found,shortest_path_length
-J010,Product Manager,Product,J011,Marketing Specialist,Marketing,0.3796631983009997,0,0
-J010,Product Manager,Product,J012,Senior Marketing Specialist,Marketing,0.43642740286200865,1,2
-J010,Product Manager,Product,J019,Digital Marketing Specialist,Marketing,0.18983159915049985,0,0
-J010,Product Manager,Product,J005,Financial Analyst,Finance,0.0,0,0
-J010,Product Manager,Product,J006,Senior Financial Analyst,Finance,0.0,0,0
-J011,Marketing Specialist,Marketing,J012,Senior Marketing Specialist,Marketing,0.9246347900384753,1,2
-J011,Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7600000000000001,1,2
-J011,Marketing Specialist,Marketing,J005,Financial Analyst,Finance,0.0,0,0
-J011,Marketing Specialist,Marketing,J006,Senior Financial Analyst,Finance,0.0,0,0
-J012,Senior Marketing Specialist,Marketing,J019,Digital Marketing Specialist,Marketing,0.7738791177495934,1,2
+J005,Financial Analyst,Finance,J006,Senior Financial Analyst,Finance,0.968970241076872,1,2
+J005,Financial Analyst,Finance,J011,Marketing Specialist,Marketing,0.6470588235294117,1,2
+J005,Financial Analyst,Finance,J012,Senior Marketing Specialist,Marketing,0.6470588235294118,1,2
+J005,Financial Analyst,Finance,J019,Digital Marketing Specialist,Marketing,0.6470588235294117,1,2
+J005,Financial Analyst,Finance,J018,Risk Analyst,Risk,0.8737621371131306,1,2
+J006,Senior Financial Analyst,Finance,J011,Marketing Specialist,Marketing,0.6470588235294118,1,2
+J006,Senior Financial Analyst,Finance,J012,Senior Marketing Specialist,Marketing,0.6470588235294118,1,2
+J006,Senior Financial Analyst,Finance,J019,Digital Marketing Specialist,Marketing,0.6470588235294118,1,2
+J006,Senior Financial Analyst,Finance,J018,Risk Analyst,Risk,0.9189574312684144,1,2
+J011,Marketing Specialist,Marketing,J012,Senior Marketing Specialist,Marketing,0.9640018347645207,1,2

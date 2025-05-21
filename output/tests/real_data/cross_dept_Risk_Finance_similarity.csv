@@ -1,0 +1,3 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J018,Risk Analyst,Risk,J005,Financial Analyst,Finance,0.8348875731787551
+J018,Risk Analyst,Risk,J006,Senior Financial Analyst,Finance,0.8935639329853563

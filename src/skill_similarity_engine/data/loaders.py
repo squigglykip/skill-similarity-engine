@@ -68,42 +68,65 @@ class SkillTaxonomyLoader:
         
         # Create category mapping if categories are in skills file
         category_mapping = {}
-        if "category" in skills_df.columns and "subcategory" in skills_df.columns:
-            # Create main categories
-            for category in skills_df["category"].unique():
-                if pd.notna(category):
-                    category_id = f"C{len(category_mapping) + 1:03d}"
-                    category_mapping[category] = category_id
-                    if not taxonomy.get_category(category_id):
-                        taxonomy.add_category(SkillCategory(
-                            category_id=category_id,
-                            name=category,
-                            description=f"{category} skills and competencies"
-                        ))
-            
-            # Create subcategories
+        if "category" in skills_df.columns and not categories_file:
             for _, row in skills_df.iterrows():
-                if pd.notna(row["subcategory"]):
-                    parent_id = category_mapping.get(row["category"])
-                    if parent_id:
-                        subcategory_id = f"C{len(category_mapping) + 1:03d}"
-                        category_mapping[row["subcategory"]] = subcategory_id
-                        if not taxonomy.get_category(subcategory_id):
+                if pd.notna(row.get("category", None)):
+                    # Create a category ID based on category name
+                    category_name = row["category"]
+                    parent_id = None
+                    
+                    if category_name not in category_mapping:
+                        category_id = "C" + str(len(category_mapping) + 1).zfill(3)
+                        category_mapping[category_name] = category_id
+                        
+                        # Add category to taxonomy
+                        if not taxonomy.get_category(category_id):
                             taxonomy.add_category(SkillCategory(
-                                category_id=subcategory_id,
-                                name=row["subcategory"],
+                                category_id=category_id,
+                                name=category_name,
                                 parent_id=parent_id,
-                                description=f"{row['subcategory']} skills"
+                                description=f"{category_name} skills"
                             ))
+                    
+                    # Handle subcategory if available
+                    if pd.notna(row.get("subcategory", None)):
+                        subcategory_name = row["subcategory"]
+                        parent_id = category_mapping[category_name]
+                        
+                        if subcategory_name not in category_mapping:
+                            subcategory_id = "C" + str(len(category_mapping) + 1).zfill(3)
+                            category_mapping[subcategory_name] = subcategory_id
+                            
+                            # Add subcategory to taxonomy with parent relationship
+                            if not taxonomy.get_category(subcategory_id):
+                                taxonomy.add_category(SkillCategory(
+                                    category_id=subcategory_id,
+                                    name=subcategory_name,
+                                    parent_id=parent_id,
+                                    description=f"{subcategory_name} skills"
+                                ))
         
         for _, row in skills_df.iterrows():
-            # Parse skill type
-            skill_type = SkillType.OTHER
+            # Parse skill type - try multiple approaches
+            skill_type = SkillType.COMMON  # Default to COMMON instead of OTHER
+            
+            # First check the dedicated skill_type field if it exists
             if "skill_type" in row and pd.notna(row["skill_type"]):
                 try:
                     skill_type = SkillType.from_string(row["skill_type"])
                 except ValueError:
-                    # Default to OTHER if invalid
+                    pass
+            # Next check if category contains a SkillType value (test data approach)
+            elif "category" in row and pd.notna(row["category"]):
+                try:
+                    skill_type = SkillType.from_string(row["category"])
+                except ValueError:
+                    pass
+            # Finally check if we have a SkillType field from HRIS schema
+            elif "SkillType" in row and pd.notna(row["SkillType"]):
+                try:
+                    skill_type = SkillType.from_string(row["SkillType"])
+                except ValueError:
                     pass
             
             # Parse lists
@@ -121,7 +144,7 @@ class SkillTaxonomyLoader:
                 name=row["name"],
                 description=row.get("description", ""),
                 category_id=category_id,
-                skill_type=skill_type,
+                skill_type=skill_type,  # Use the parsed skill_type instead of row.get("category", SkillType.COMMON)
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites
@@ -171,13 +194,26 @@ class SkillTaxonomyLoader:
         skills_df = pd.read_excel(excel_path, sheet_name=skills_sheet)
         
         for _, row in skills_df.iterrows():
-            # Parse skill type
-            skill_type = SkillType.OTHER
+            # Parse skill type - try multiple approaches
+            skill_type = SkillType.COMMON  # Default to COMMON instead of OTHER
+            
+            # First check the dedicated skill_type field if it exists
             if "skill_type" in row and pd.notna(row["skill_type"]):
                 try:
                     skill_type = SkillType.from_string(row["skill_type"])
                 except ValueError:
-                    # Default to OTHER if invalid
+                    pass
+            # Next check if category contains a SkillType value (test data approach)
+            elif "category" in row and pd.notna(row["category"]):
+                try:
+                    skill_type = SkillType.from_string(row["category"])
+                except ValueError:
+                    pass
+            # Finally check if we have a SkillType field from HRIS schema
+            elif "SkillType" in row and pd.notna(row["SkillType"]):
+                try:
+                    skill_type = SkillType.from_string(row["SkillType"])
+                except ValueError:
                     pass
             
             # Parse lists
@@ -190,7 +226,7 @@ class SkillTaxonomyLoader:
                 name=row["name"],
                 description=row.get("description", ""),
                 category_id=str(row["category_id"]) if pd.notna(row.get("category_id", None)) else None,
-                skill_type=skill_type,
+                skill_type=skill_type,  # Use the parsed skill_type instead of row.get("category", SkillType.COMMON)
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites
@@ -277,9 +313,18 @@ class JobArchitectureLoader:
             job_level = JobLevel.ASSOCIATE
             if "level" in row and pd.notna(row["level"]):
                 try:
-                    job_level = JobLevel(row["level"])
+                    job_level = JobLevel.from_string(str(row["level"]))
                 except ValueError:
                     # Default to ASSOCIATE if invalid
+                    pass
+            
+            # Parse seniority if available
+            seniority = 3  # Default to mid-level seniority
+            if "seniority" in row and pd.notna(row["seniority"]):
+                try:
+                    seniority = int(row["seniority"])
+                except ValueError:
+                    # Default to 3 if not a valid integer
                     pass
             
             # Parse skills if they're embedded in the row
@@ -304,7 +349,8 @@ class JobArchitectureLoader:
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
-                skills=skills_dict
+                skills=skills_dict,
+                seniority=seniority  # Add seniority parameter
             )
             
             # Add job to architecture
@@ -370,9 +416,18 @@ class JobArchitectureLoader:
             job_level = JobLevel.ASSOCIATE
             if "level" in row and pd.notna(row["level"]):
                 try:
-                    job_level = JobLevel(row["level"])
+                    job_level = JobLevel.from_string(str(row["level"]))
                 except ValueError:
                     # Default to ASSOCIATE if invalid
+                    pass
+            
+            # Parse seniority if available
+            seniority = 3  # Default to mid-level seniority
+            if "seniority" in row and pd.notna(row["seniority"]):
+                try:
+                    seniority = int(row["seniority"])
+                except ValueError:
+                    # Default to 3 if not a valid integer
                     pass
             
             # Parse skills if they're embedded in the row
@@ -397,7 +452,8 @@ class JobArchitectureLoader:
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
-                skills=skills_dict
+                skills=skills_dict,
+                seniority=seniority  # Add seniority parameter
             )
             
             # Add job to architecture
@@ -476,7 +532,6 @@ class EmployeeLoader:
         # Create empty employee database
         database = EmployeeDatabase()
         
-        # Load employees
         employees_path = os.path.join(self.base_dir, employees_file)
         employees_df = pd.read_csv(employees_path)
         
@@ -487,9 +542,10 @@ class EmployeeLoader:
             employee_id = str(row["employee_id"])
             job_id = str(row["current_job"])
             
-            # Validate job_id
-            if job_id not in self.job_architecture.jobs:
-                continue
+            # Validate job_id only if job_architecture is provided
+            if self.job_architecture is not None:
+                if job_id not in self.job_architecture.jobs:
+                    continue
             
             # Parse skills if they're embedded in the row
             skills_dict = {}
@@ -575,9 +631,10 @@ class EmployeeLoader:
             employee_id = str(row["employee_id"])
             job_id = str(row["current_job"])
             
-            # Validate job_id
-            if job_id not in self.job_architecture.jobs:
-                continue
+            # Validate job_id only if job_architecture is provided
+            if self.job_architecture is not None:
+                if job_id not in self.job_architecture.jobs:
+                    continue
             
             # Parse skills if they're embedded in the row
             skills_dict = {}

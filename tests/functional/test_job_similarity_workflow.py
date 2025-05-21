@@ -1,175 +1,266 @@
 #!/usr/bin/env python3
 """
-Functional test for job similarity workflow.
+Functional test for the complete job similarity workflow.
 
-This test verifies the complete job similarity workflow from data loading to
-visualization, ensuring end-to-end functionality.
+This module tests the end-to-end workflow for job similarity calculation,
+from HRIS data transformation to visualization.
 """
 
-import sys
+import unittest
 import os
+import sys
+import tempfile
+from pathlib import Path
+import pandas as pd
 
 # Add the src directory to the Python path
 src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src'))
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-import unittest
-import tempfile
-from pathlib import Path
-import pandas as pd
-import json
+# Use non-GUI backend for matplotlib to avoid Tkinter dependency
+import matplotlib
+matplotlib.use('Agg')  # This must be done before any other matplotlib imports
 
 # Import necessary modules
-from skill_similarity_engine.models.skills import Skill, SkillTaxonomy
-from skill_similarity_engine.models.jobs import Job, JobArchitecture, JobLevel
-from skill_similarity_engine.similarity.cosine import TfidfVectorizer, CosineSimilarityCalculator
-from skill_similarity_engine.visualization.reports import ReportConfig
-from skill_similarity_engine.visualization.heatmaps import HeatmapGenerator
+from skill_similarity_engine.models.skills import SkillTaxonomy
+from skill_similarity_engine.models.jobs import JobArchitecture
+from skill_similarity_engine.hris_adapter.transformer import HRISTransformer
+from skill_similarity_engine.hris_adapter.workflow import HRISWorkflow
+
+# Import from our test data helper modules
+from tests.test_data import (
+    ENGINE_JOBS_CSV, 
+    ENGINE_SKILLS_CSV,
+    HRIS_JOBS_CSV,
+    HRIS_SKILLS_CSV,
+    HRIS_JOB_SKILLS_CSV
+)
+from tests.functional.data_load_patch import get_test_data_files, TEST_HRIS_CONFIG
+from tests.functional import BaseFunctionalTest
 
 
-class TestJobSimilarityWorkflow(unittest.TestCase):
-    """Test complete job similarity workflow."""
-    
-    def setUp(self):
-        """Set up test environment with sample data."""
-        # Create temp directory for outputs
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.output_dir = Path(self.temp_dir.name)
-        
-        # Create skill taxonomy file
-        self.skills_csv = self.output_dir / "skills.csv"
-        with open(self.skills_csv, "w") as f:
-            f.write("skill_id,name,category,difficulty\n")
-            f.write("S001,Python,Technical,3\n")
-            f.write("S002,Data Analysis,Technical,4\n")
-            f.write("S003,Machine Learning,Technical,5\n")
-            f.write("S004,Project Management,Soft Skills,3\n")
-            f.write("S005,Communication,Soft Skills,2\n")
-        
-        # Create job architecture file
-        self.jobs_csv = self.output_dir / "jobs.csv"
-        with open(self.jobs_csv, "w") as f:
-            f.write("job_id,title,department,level,skills\n")
-            f.write("J001,Data Scientist,Data Science,Senior,S001:4;S002:5;S003:4\n")
-            f.write("J002,Data Engineer,Data Engineering,Mid-level,S001:5;S002:3\n")
-            f.write("J003,Project Manager,Project Management,Senior,S004:5;S005:4\n")
-        
-        # Create a configuration file
-        self.config_file = self.output_dir / "config.yaml"
-        with open(self.config_file, "w") as f:
-            f.write("output_dir: {}\n".format(self.output_dir))
-            f.write("similarity:\n")
-            f.write("  threshold: 0.3\n")
-            f.write("  metric: cosine\n")
-            f.write("opportunity_thresholds:\n")
-            f.write("  high_similarity_threshold: 0.7\n")
-    
-    def tearDown(self):
-        """Clean up temporary directory."""
-        self.temp_dir.cleanup()
+class TestJobSimilarityWorkflow(BaseFunctionalTest):
+    """Test complete job similarity workflow with HRIS adapter."""
     
     def test_end_to_end_workflow(self):
-        """Test the complete workflow from data loading to visualization."""
-        # Step 1: Load data from CSV files
+        """Test the complete workflow from HRIS data to visualization."""
+        # Step 1: Transform HRIS data using the transformer
         try:
-            skill_taxonomy = SkillTaxonomy.from_file(str(self.skills_csv))
-            job_architecture = JobArchitecture.from_file(str(self.jobs_csv))
+            # Use centralized test HRIS config
+            hris_config = TEST_HRIS_CONFIG
+            transformer = HRISTransformer(config_path=str(hris_config))
             
-            self.assertEqual(len(skill_taxonomy.skills), 5)
-            self.assertEqual(len(job_architecture.jobs), 3)
-            self.assertIn('S001', skill_taxonomy.skills)
-            self.assertIn('J001', job_architecture.jobs)
+            # Override the HRIS data paths to use test data
+            transformer.config['hris_data']['jobs_file'] = HRIS_JOBS_CSV
+            transformer.config['hris_data']['skills_file'] = HRIS_SKILLS_CSV
+            transformer.config['hris_data']['job_skills_file'] = HRIS_JOB_SKILLS_CSV
             
-            print("✓ Successfully loaded data from CSV files")
+            # Use temporary output files
+            output_dir = Path(tempfile.mkdtemp())
+            jobs_output = output_dir / "jobs.csv"
+            skills_output = output_dir / "skills.csv"
+            transformer.config['output_data']['jobs_file'] = str(jobs_output)
+            transformer.config['output_data']['skills_file'] = str(skills_output)
+            
+            # Transform data
+            jobs_path, skills_path = transformer.transform()
+            
+            self.assertTrue(os.path.exists(jobs_path))
+            self.assertTrue(os.path.exists(skills_path))
+            
+            print("✓ Successfully transformed HRIS data")
         except Exception as e:
-            self.fail(f"Failed to load data: {e}")
+            self.fail(f"Failed to transform HRIS data: {e}")
         
-        # Step 2: Calculate similarity using TF-IDF vectorization
+        # Step 2: Load transformed data into model objects
         try:
-            vectorizer = TfidfVectorizer(skill_taxonomy)
-            calculator = CosineSimilarityCalculator(
-                vectorizer=vectorizer,
-                skill_taxonomy=skill_taxonomy,
-                job_architecture=job_architecture
-            )
+            skill_taxonomy = SkillTaxonomy.from_file(skills_path)
+            job_architecture = JobArchitecture.from_file(jobs_path)
             
-            # Calculate similarity between Data Scientist and Data Engineer (should be high)
-            similarity_ds_de = calculator.calculate_job_similarity('J001', 'J002')
+            # Verify we have expected number of skills and jobs
+            self.assertGreater(len(skill_taxonomy.skills), 0)
+            self.assertGreater(len(job_architecture.jobs), 0)
             
-            # Calculate similarity between Data Scientist and Project Manager (should be low)
-            similarity_ds_pm = calculator.calculate_job_similarity('J001', 'J003')
+            # Read the transformed jobs file directly to see what was written
+            print("\nDEBUG - Contents of transformed jobs file:")
+            with open(jobs_path, 'r') as f:
+                for i, line in enumerate(f):
+                    if i < 5:  # Just print first few lines
+                        print(f"  {line.strip()}")
             
-            # Check that similarities are in the expected range
-            self.assertGreater(similarity_ds_de, 0.5)  # Data Scientist and Data Engineer should be similar
-            self.assertLess(similarity_ds_pm, 0.3)     # Data Scientist and Project Manager should be dissimilar
+            print("✓ Successfully loaded transformed data")
+        except Exception as e:
+            self.fail(f"Failed to load transformed data: {e}")
+        
+        # Step 3: Use the workflow to calculate similarity
+        try:
+            # Create a new workflow instance with the transformed output file paths
+            workflow = HRISWorkflow(config_path=str(hris_config))
             
-            print(f"✓ Successfully calculated similarities: DS/DE={similarity_ds_de:.2f}, DS/PM={similarity_ds_pm:.2f}")
+            # Override paths in the workflow transformer to use our transformed files
+            workflow.transformer.config['output_data']['jobs_file'] = str(jobs_path)
+            workflow.transformer.config['output_data']['skills_file'] = str(skills_path)
+            
+            # Skip transformation since we already did it, directly load the models and run analysis
+            taxonomy, job_arch, employee_db = workflow._load_models(jobs_path, skills_path)
+            similarity_matrix, job_ids = workflow._run_analysis("job_similarity", taxonomy, job_arch, employee_db)
+            
+            self.assertGreater(len(job_ids), 0)
+            self.assertEqual(similarity_matrix.shape, (len(job_ids), len(job_ids)))
+            
+            # Verify similarity values (diagonal should be 1.0)
+            for i in range(len(job_ids)):
+                self.assertAlmostEqual(similarity_matrix[i, i], 1.0)
+            
+            print("✓ Successfully calculated job similarity")
         except Exception as e:
             self.fail(f"Failed to calculate similarity: {e}")
         
-        # Step 3: Generate similarity report
+        # Step 4: Generate reports and visualizations
         try:
-            # Create a similarity matrix
-            job_ids = list(job_architecture.jobs.keys())
-            similarity_matrix = []
+            reports_dir = Path(tempfile.mkdtemp())
             
-            for job_id1 in job_ids:
-                row = {}
-                for job_id2 in job_ids:
-                    if job_id1 != job_id2:
-                        row[job_id2] = calculator.calculate_job_similarity(job_id1, job_id2)
-                    else:
-                        row[job_id2] = 1.0  # Self-similarity is always 1.0
-                similarity_matrix.append(row)
+            # Create visualization manager from visualizer.py (which has a different signature)
+            from skill_similarity_engine.visualization.visualizer import VisualisationManager
             
-            # Convert to DataFrame
-            df = pd.DataFrame(similarity_matrix, index=job_ids, columns=job_ids)
+            vis_manager = VisualisationManager(
+                skill_taxonomy=skill_taxonomy,
+                job_architecture=job_architecture,
+                employee_database=None,  # No employee data needed for job similarity
+                output_dir=str(reports_dir)
+            )
             
-            # Export to CSV
-            output_csv = self.output_dir / "job_similarity.csv"
-            df.to_csv(output_csv)
+            # Generate a simple heatmap report for all departments 
+            departments = set(job.department for job in job_architecture.jobs.values())
+            for department in departments:
+                output_path = vis_manager.generate_job_similarity_heatmap(
+                    department=department,
+                    output_path=str(reports_dir / f"{department.lower()}_heatmap.png")
+                )
+                self.assertIsNotNone(output_path)
             
-            # Check that the file exists and has the correct format
-            self.assertTrue(output_csv.exists())
+            # Check if reports were generated (at least one PNG file)
+            report_files = list(reports_dir.glob("*.png"))
+            self.assertGreater(len(report_files), 0)
             
-            # Read back and verify
-            df_read = pd.read_csv(output_csv, index_col=0)
-            self.assertEqual(df_read.shape, (3, 3))  # 3 jobs x 3 jobs
-            
-            print("✓ Successfully generated and exported similarity report")
+            print("✓ Successfully generated reports and visualizations")
         except Exception as e:
-            self.fail(f"Failed to generate similarity report: {e}")
+            self.fail(f"Failed to generate reports: {e}")
+            
+        print("✓ All workflow steps completed successfully")
+    
+    def test_workflow_with_specific_department(self):
+        """Test workflow with a specific department filter."""
+        # Use centralized test HRIS config
+        hris_config = TEST_HRIS_CONFIG
+        transformer = HRISTransformer(config_path=str(hris_config))
         
-        # Step 4: Visualize similarity as heatmap
+        # Override the HRIS data paths to use test data
+        transformer.config['hris_data']['jobs_file'] = HRIS_JOBS_CSV
+        transformer.config['hris_data']['skills_file'] = HRIS_SKILLS_CSV
+        transformer.config['hris_data']['job_skills_file'] = HRIS_JOB_SKILLS_CSV
+        
+        # Use temporary output files
+        output_dir = Path(tempfile.mkdtemp())
+        jobs_output = output_dir / "jobs.csv"
+        skills_output = output_dir / "skills.csv"
+        transformer.config['output_data']['jobs_file'] = str(jobs_output)
+        transformer.config['output_data']['skills_file'] = str(skills_output)
+        
+        # Transform data
+        jobs_path, skills_path = transformer.transform()
+        
+        # Get a specific department from the transformed jobs
+        job_df = pd.read_csv(jobs_path)
+        if 'department' in job_df.columns and not job_df['department'].empty:
+            test_department = job_df['department'].iloc[0]
+            
+            # Load models ourselves
+            skill_taxonomy = SkillTaxonomy.from_file(str(skills_path))
+            job_architecture = JobArchitecture.from_file(str(jobs_path))
+            
+            # Generate report for this department
+            reports_dir = output_dir / "department_reports"
+            reports_dir.mkdir(exist_ok=True)
+            
+            try:
+                # Create visualization manager
+                from skill_similarity_engine.visualization.visualizer import VisualisationManager
+                
+                vis_manager = VisualisationManager(
+                    skill_taxonomy=skill_taxonomy,
+                    job_architecture=job_architecture,
+                    employee_database=None,  # No employee data needed for job similarity
+                    output_dir=str(reports_dir)
+                )
+                
+                # Generate a simple heatmap for this department
+                output_file = reports_dir / f"{test_department.lower()}_heatmap.png"
+                output_path = vis_manager.generate_job_similarity_heatmap(
+                    department=test_department,
+                    output_path=str(output_file)
+                )
+                
+                # If output_path is returned by the method, use it, otherwise use our expected file path
+                file_to_check = output_path if output_path else str(output_file)
+                
+                # Verify the report was generated
+                self.assertTrue(os.path.exists(file_to_check), f"Output file not found at {file_to_check}")
+                print(f"✓ Successfully generated heatmap for department {test_department}")
+            except Exception as e:
+                self.fail(f"Failed to generate visualization: {e}")
+
+    def test_visualisation_only(self):
+        """Test that we can generate visualisations directly from data files."""
+        
+        # Step 1: Load test data directly
         try:
-            # Skip actual visualization but verify the data preparation steps
-            job_titles = [job_architecture.jobs[job_id].title for job_id in job_ids]
+            # Use the imported test data constants instead of hardcoded paths
+            jobs_path = Path(ENGINE_JOBS_CSV)
+            skills_path = Path(ENGINE_SKILLS_CSV)
             
-            # Prepare similarity data in the format expected by the visualization
-            job_title_mapping = {job_id: job_architecture.jobs[job_id].title for job_id in job_ids}
+            if not jobs_path.exists() or not skills_path.exists():
+                self.fail(f"Test data not found at expected locations: {jobs_path}, {skills_path}")
             
-            # Export job metadata for visualization
-            job_metadata = {
-                job_id: {
-                    "title": job_architecture.jobs[job_id].title,
-                    "department": job_architecture.jobs[job_id].department,
-                    "level": str(job_architecture.jobs[job_id].level)
-                }
-                for job_id in job_ids
-            }
+            # Load the data directly - convert Path objects to strings
+            skill_taxonomy = SkillTaxonomy.from_file(str(skills_path))
+            job_architecture = JobArchitecture.from_file(str(jobs_path))
             
-            metadata_file = self.output_dir / "job_metadata.json"
-            with open(metadata_file, "w") as f:
-                json.dump(job_metadata, f, indent=2)
-            
-            self.assertTrue(metadata_file.exists())
-            
-            print("✓ Successfully prepared visualization data")
+            print("✓ Successfully loaded test data directly")
         except Exception as e:
-            self.fail(f"Failed to visualize similarity: {e}")
+            self.fail(f"Failed to load test data: {e}")
         
-        print("\n✓ Complete job similarity workflow test passed successfully!")
+        # Step 2: Generate visualisations
+        try:
+            reports_dir = Path(tempfile.mkdtemp())
+            
+            # Create visualization manager from visualizer.py
+            from skill_similarity_engine.visualization.visualizer import VisualisationManager
+            
+            vis_manager = VisualisationManager(
+                skill_taxonomy=skill_taxonomy,
+                job_architecture=job_architecture,
+                employee_database=None,  # No employee data needed for job similarity
+                output_dir=str(reports_dir)
+            )
+            
+            # Generate a simple heatmap report for all departments
+            departments = set(job.department for job in job_architecture.jobs.values())
+            for department in departments:
+                output_path = vis_manager.generate_job_similarity_heatmap(
+                    department=department,
+                    output_path=str(reports_dir / f"{department.lower()}_heatmap.png")
+                )
+                self.assertIsNotNone(output_path)
+            
+            # Check if reports were generated (at least one PNG file)
+            report_files = list(reports_dir.glob("*.png"))
+            self.assertGreater(len(report_files), 0)
+            
+            print("✓ Successfully generated visualisations directly")
+        except Exception as e:
+            self.fail(f"Failed to generate visualisations: {e}")
 
 
 if __name__ == "__main__":

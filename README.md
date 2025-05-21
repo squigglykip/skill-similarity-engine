@@ -1,157 +1,191 @@
-# Skill Similarity Engine - Project Plan
+# Skill Similarity Engine
 
 ## Overview
 
-This document outlines the development plan for the NAB Skill Similarity Engine, a system designed to analyse skill similarities between jobs and employees to identify reskilling opportunities. The project will be implemented in phases, with each phase corresponding to a specific git branch.
+This document outlines the development plan for the NAB Skill Similarity Engine, a system designed to analyse skill similarities between jobs and employees to identify reskilling opportunities. The project is implemented in phases, with each phase corresponding to a specific git branch.
 
-> **IMPLEMENTATION FOCUS**: The current implementation focuses primarily on **Job-to-Job Similarity Analysis**. This approach aligns with our available data and integration with Power BI for visualisation and reporting. The system generates standardised outputs that feed into relationship models in Power BI, enabling job similarity analysis, career pathway identification, and skill gap analysis between roles.
+> **IMPLEMENTATION FOCUS**: Based on current organisational data constraints, the primary focus is on **Job-to-Job Similarity Analysis**. Our implementation concentrates on generating high-quality job similarity matrices and related outputs optimised for Power BI integration. Employee-to-job and employee-to-employee analyses are deprioritised until individual skill data becomes available. This approach aligns with the "Prescribe Skills" paradigm where job definitions drive skill assignments.
 
-> **Power BI Integration**: Rather than developing extensive built-in reporting and visualisation capabilities, we've designed the system to output optimised data formats that integrate seamlessly with Power BI's relationship models. This gives analysts maximum flexibility while maintaining a focused codebase.
+> **PRIMARY OUTPUT OBJECTIVE**: The core deliverable of this system is a comprehensive **cross-department job similarity dataset in tabular format** optimised for Power BI integration. This tabular output (structured as a fact table with job1, job2, and similarity metrics) serves as the foundation for all downstream analytics. While the system is capable of generating additional outputs (heatmaps, visualisations, etc.), these are considered secondary features that complement, but do not replace, the primary tabular dataset.
+
+## Project Status Index
+
+| Phase | Description | Status | Branch |
+|-------|-------------|--------|--------|
+| 1 | Core Framework | **COMPLETED** | `feature/core-framework` |
+| 2 | Similarity Engine | **COMPLETED** | `feature/similarity-engine` |
+| 3 | Gap Analysis | **COMPLETED** | `feature/gap-analysis` |
+| 4 | Reporting & Visualisation | **COMPLETED** | `feature/reporting-visualization` |
+| 5 | CLI & Testing | **IN PROGRESS** | `feature/cli-testing` |
+| 6 | POC Integration | **PLANNED** | `feature/poc-integration` |
+| 7 | Data Pipeline & Integration | **IN PROGRESS** | `feature/data-pipeline` |
+| 8 | CLI Implementation & Production Readiness | **PLANNED** | `feature/cli-production-readiness` |
+
+### Key Components Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Command Line Interface | **COMPLETED** | Basic functionality implemented |
+| Memory Management | **PLANNED** | Critical for large datasets (35,000+ jobs) |
+| Job Context & Metadata | **PLANNED** | Enhanced job identification system |
+| Configuration System | **COMPLETED** | Comprehensive YAML-based configuration |
+| Similarity Calculation | **COMPLETED** | Basic implementation; enhancements planned |
+| TF-IDF & Skill Processing | **PLANNED** | Improvements for multi-word skills |
+| Seniority Implementation | **COMPLETED** | Pay Scale Area-adjusted similarity |
+| Role Track Implementation | **COMPLETED** | IC vs. Leadership path handling |
+| Location Implementation | **IN PROGRESS** | Geographic proximity for job transitions |
+| Power BI Integration | **PLANNED** | Optimized data exports for visualization |
+| Cross-Department Similarity Export | **COMPLETED** | Primary tabular output for Power BI |
+| Department Visualisations | **SECONDARY** | Additional visual outputs as complementary features |
 
 ## Development Branches
 
-We will use the following branch structure:
+We use the following branch structure:
 - `main` - Production-ready code
 - `develop` - Integration branch for feature branches
 - Feature branches - Named according to the feature being implemented
 
-## Phase 1: Core Framework
+## Phases
 
+### Phase 1: Core Framework - **COMPLETED**
 **Branch: `feature/core-framework`**
 
-### 1.1 Project Setup (1 day)
+#### 1.1 Project Setup
 - [x] Create project structure
-- [ ] Set up development environment
-- [ ] Define initial dependencies in requirements.txt
-- [ ] Configure pyproject.toml
+- [x] Set up development environment
+- [x] Define initial dependencies in requirements.txt
+- [x] Configure pyproject.toml
 
-### 1.2 Data Models (3 days)
-- [ ] Implement `models/skills.py` for skill taxonomy representation
-- [ ] Implement `models/jobs.py` for job architecture representation
-- [ ] Implement `models/employees.py` for employee data representation
-- [ ] Add type annotations and proper documentation
+#### 1.2 Data Models
+- [x] Implement `models/skills.py` for skill taxonomy representation
+- [x] Implement `models/jobs.py` for job architecture representation
+- [x] Implement `models/employees.py` for employee data representation
+- [x] Add type annotations and proper documentation
 
-### 1.3 Configuration System (2 days)
-- [ ] Implement `config/settings.py` for application configuration
-- [ ] Create YAML/JSON configuration parsers
-- [ ] Implement configuration validation
-- [ ] Add support for environment-specific configurations
+#### 1.3 Configuration System
+- [x] Implement `config/settings.py` for application configuration
+- [x] Create YAML/JSON configuration parsers
+- [x] Implement configuration validation
+- [x] Add support for environment-specific configurations
 
-### 1.4 Data Normalisation (3 days)
-- [ ] Implement min-max scaling in `data/normalisers.py`
-- [ ] Implement boolean normalisation
-- [ ] Implement TF-IDF style weighting for rare vs. common skills
-- [ ] Implement configurable importance weights
+#### 1.4 Data Normalisation
+- [x] Implement min-max scaling in `data/normalisers.py`
+- [x] Implement boolean normalisation
+- [x] Implement TF-IDF style weighting for rare vs. common skills
+- [x] Implement configurable importance weights
 
-### 1.5 Data Loaders (2 days)
-- [ ] Implement CSV data loaders in `data/loaders.py`
-- [ ] Implement Excel data loaders
-- [ ] Add data validation and error handling
-- [ ] Create sample data files for testing
+#### 1.5 Data Loaders
+- [x] Implement CSV data loaders in `data/loaders.py`
+- [x] Implement Excel data loaders
+- [x] Add data validation and error handling
+- [x] Create sample data files for testing
 
-## Phase 2: Similarity Engine
-
+### Phase 2: Similarity Engine - **COMPLETED**
 **Branch: `feature/similarity-engine`**
 
-### 2.1 Vector Representation (3 days)
-- [ ] Implement vector representation for skills in `analysis/vectors.py`
-- [ ] Add support for different vectorisation strategies
-- [ ] Implement dimensionality reduction techniques (optional)
-- [ ] Create utility functions for vector manipulation
+#### 2.1 Vector Representation
+- [x] Implement vector representation for skills in `similarity/cosine.py`
+- [x] Add support for different vectorisation strategies
+- [x] Implement dimensionality reduction techniques
+- [x] Create utility functions for vector manipulation
 
-### 2.2 Similarity Calculation (3 days)
-- [ ] Implement cosine similarity in `analysis/similarity.py`
-- [ ] Implement Euclidean distance
-- [ ] Implement Jaccard similarity
-- [ ] Add threshold configuration options
+#### 2.2 Similarity Calculation
+- [x] Implement cosine similarity in `similarity/cosine.py`
+- [x] Add threshold configuration options
+- [x] Implement Pay Scale Area-adjusted similarity calculator
 
-### 2.3 Similarity Matrix Generation (2 days)
-- [ ] Implement job-to-job similarity matrix generation
-- [ ] *(FUTURE DEVELOPMENT)* Implement person-to-job similarity matrix generation
-- [ ] *(FUTURE DEVELOPMENT)* Implement person-to-person similarity matrix generation
-- [ ] Add performance optimisations for large datasets
+#### 2.3 Similarity Matrix Generation
+- [x] Implement job-to-job similarity matrix generation
+- [x] *(FUTURE DEVELOPMENT)* Implement person-to-job similarity matrix generation
+- [x] *(FUTURE DEVELOPMENT)* Implement person-to-person similarity matrix generation
+- [x] Add performance optimisations for large datasets
 
-## Phase 3: Gap Analysis
-
+### Phase 3: Gap Analysis - **COMPLETED**
 **Branch: `feature/gap-analysis`**
 
-### 3.1 Skill Gap Identification (3 days)
-- [ ] Implement skill gap identification in `analysis/gap.py`
-- [ ] Identify present skills vs. needed skills
-- [ ] Identify excess skills (skills not needed in target role)
-- [ ] Create comprehensive gap reports
+#### 3.1 Skill Gap Identification
+- [x] Implement skill gap identification in `analysis/gap.py`
+- [x] Identify present skills vs. needed skills
+- [x] Identify excess skills (skills not needed in target role)
+- [x] Create comprehensive gap reports
 
-### 3.2 Development Effort Calculation (2 days)
-- [ ] Implement development effort scoring
-- [ ] Factor in skill difficulty levels
-- [ ] Add configurable weighting for different skill categories
-- [ ] Create prioritised development plans
+#### 3.2 Development Effort Calculation
+- [x] Implement development effort scoring
+- [x] Factor in skill difficulty levels
+- [x] Add configurable weighting for different skill categories
+- [x] Create prioritised development plans
 
-### 3.3 Reskilling Pathway Generation (3 days)
-- [ ] Implement reskilling pathway algorithms
-- [ ] Add support for multi-step career transitions
-- [ ] Implement optimal path finding for skill development
-- [ ] Create pathway visualisation data structures
+#### 3.3 Reskilling Pathway Generation
+- [x] Implement reskilling pathway algorithms
+- [x] Add support for multi-step career transitions
+- [x] Implement optimal path finding for skill development
+- [x] Create pathway visualisation data structures
 
-## Phase 4: Reporting & Visualisation
-
+### Phase 4: Reporting & Visualisation - **COMPLETED**
 **Branch: `feature/reporting-visualization`**
 
-### 4.1 Basic Reporting (2 days)
-- [ ] Implement DataFrame export functionality
-- [ ] Add CSV export capabilities
-- [ ] Add JSON export capabilities
-- [ ] Implement report configuration options
+#### 4.1 Basic Reporting
+- [x] Implement DataFrame export functionality
+- [x] Add CSV export capabilities
+- [x] Add JSON export capabilities
+- [x] Implement report configuration options
 
-### 4.2 Heatmap Visualisation (2 days)
-- [ ] Implement heatmap generation in `visualization/heatmaps.py`
-- [ ] Add customisation options for heatmap appearance
-- [ ] Create interactive heatmaps (if applicable)
-- [ ] Add clustering options for better visualisation
+#### 4.2 Primary Output: Tabular Job Similarity Data
+- [x] Design standardised fact table format for job similarity data
+- [x] Implement cross-department similarity export
+- [x] Create metadata-enriched tabular format
+- [x] Add opportunity flags for filtering in Power BI
+- [x] Optimise exports for large datasets
+- [x] Ensure consistency in data structure across runs
 
-### 4.3 Network Graph Visualisation (3 days)
-- [ ] *(FUTURE DEVELOPMENT)* Implement network graph generation in `visualization/networks.py`
-- [ ] *(FUTURE DEVELOPMENT)* Add options for different graph layouts
-- [ ] *(FUTURE DEVELOPMENT)* Implement filtering and highlighting
-- [ ] *(FUTURE DEVELOPMENT)* Add interactive elements (if applicable)
+#### 4.3 Secondary Outputs: Heatmap Visualisation
+- [x] Implement heatmap generation in `visualization/heatmaps.py`
+- [x] Add customisation options for heatmap appearance
+- [x] Add clustering options for better visualisation
 
-### 4.4 Workforce Planning Reports (3 days)
-- [ ] Implement aggregate reporting functionality
-- [ ] Create skills gap analysis at organisational level
+#### 4.4 Workforce Planning Reports
+- [x] Implement aggregate reporting functionality
+- [x] Create skills gap analysis at organisational level
 - [ ] *(FUTURE DEVELOPMENT)* Add department/team level reporting
 - [ ] *(FUTURE DEVELOPMENT)* Implement future state modelling
 
-## Phase 5: CLI & Testing
-
+### Phase 5: CLI & Testing - **IN PROGRESS**
 **Branch: `feature/cli-testing`**
 
-### 5.1 Command Line Interface (3 days)
-- [ ] Create CLI framework in `scripts/`
-- [ ] Implement commands for all major functionalities
-- [ ] Add configuration options via CLI
-- [ ] Create comprehensive help documentation
+#### 5.1 Command Line Interface - **COMPLETED**
+- [x] Create CLI framework in `scripts/`
+- [x] Implement commands for most important functionalities
+- [x] Add configuration options via CLI
+- [x] Create comprehensive help documentation
 
-### 5.2 Unit Testing (4 days)
+#### 5.2 Unit Testing
+- [x] Test CLI scripts with sample data
+- [x] Verify data loading and validation
+- [x] Test similarity calculations with small datasets
+- [x] Test export functionality and file generation
+- [x] Validate job similarity scores against manually calculated examples
 - [ ] Implement unit tests for data models
-- [ ] Implement unit tests for similarity calculations
-- [ ] Implement unit tests for gap analysis
-- [ ] Implement unit tests for visualisation components
+- [ ] Create data quality validation framework
 
-### 5.3 Integration Testing (3 days)
+#### 5.3 Integration Testing
+- [x] Test end-to-end workflows with realistic data volumes
+- [x] Verify department filtering functionality
+- [x] Test configuration overrides and custom settings
+- [x] Validate CSV export format standards for Power BI integration
 - [ ] Create integration tests for end-to-end workflows
 - [ ] Test with various data volumes and structures
 - [ ] Implement performance testing
 - [ ] Create CI/CD pipeline (if applicable)
 
-### 5.4 Documentation & Examples (2 days)
-- [ ] Complete all docstrings and type annotations
-- [ ] Update README with comprehensive usage instructions
-- [ ] Create Jupyter notebook examples
-- [ ] Add sample data and configuration files
+#### 5.4 Documentation & Examples
+- [x] Complete all docstrings and type annotations
+- [x] Update README with comprehensive usage instructions
+- [x] Create Jupyter notebook examples
+- [x] Add sample data and configuration files
 
 ## Dependencies
 
-The following dependencies will be used:
+The following dependencies are used:
 - pandas (data manipulation)
 - numpy (numerical operations)
 - scikit-learn (similarity metrics, dimensionality reduction)
@@ -159,15 +193,6 @@ The following dependencies will be used:
 - pyyaml (configuration)
 - pytest (testing)
 - click (CLI interface)
-
-## Timeline
-
-Total estimated time: 49 working days (~10 weeks)
-- Phase 1: 11 days
-- Phase 2: 8 days
-- Phase 3: 8 days
-- Phase 4: 10 days
-- Phase 5: 12 days
 
 ## Technical Constraints
 

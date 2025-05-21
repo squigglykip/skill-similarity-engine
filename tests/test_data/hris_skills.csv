@@ -1,0 +1,19 @@
+Skill_ID,Skill_Name,SkillType,Category,Subcategory
+S001,Python,Specialized Skill,Programming,Backend
+S002,Java,Specialized Skill,Programming,Backend
+S003,JavaScript,Specialized Skill,Programming,Frontend
+S004,SQL,Specialized Skill,Data,Database
+S005,Data Analysis,Specialized Skill,Data,Analytics
+S006,Machine Learning,Specialized Skill,Data,AI
+S007,Communication,Common Skill,Soft Skills,Interpersonal
+S008,Leadership,Common Skill,Soft Skills,Management
+S009,Problem Solving,Common Skill,Soft Skills,Critical Thinking
+S010,Project Management,Common Skill,Management,Planning
+S011,Agile,Common Skill,Methodology,Project Management
+S012,Design Thinking,Common Skill,Methodology,Innovation
+S013,AWS Certified,Certification,Cloud,Infrastructure
+S014,Google Cloud Certified,Certification,Cloud,Infrastructure
+S015,Microsoft Azure Certified,Certification,Cloud,Infrastructure
+S016,Scrum Master,Certification,Methodology,Project Management
+S017,Digital Marketing,Specialized Skill,Marketing,Strategy
+S018,SEO,Specialized Skill,Marketing,Analytics 

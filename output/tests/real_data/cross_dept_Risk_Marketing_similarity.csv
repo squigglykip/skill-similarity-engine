@@ -1,0 +1,4 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J018,Risk Analyst,Risk,J011,Marketing Specialist,Marketing,0.6470588235294117
+J018,Risk Analyst,Risk,J012,Senior Marketing Specialist,Marketing,0.6470588235294117
+J018,Risk Analyst,Risk,J019,Digital Marketing Specialist,Marketing,0.6470588235294117

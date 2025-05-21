@@ -1,0 +1,10 @@
+job_id,title,department,level,location,skills
+J001,Software Engineer,Engineering,Group 3,123 Tech St,"S001:3,S002:3,S003:3,S007:3,S009:3"
+J002,Senior Engineer,Engineering,Group 5,123 Tech St,"S001:3,S002:3,S004:3,S007:3,S010:3"
+J003,Engineering Manager,Engineering,Group 6,123 Tech St,"S007:3,S008:3,S010:3,S011:3,S016:3"
+J004,Data Analyst,Data,Group 3,123 Tech St,"S001:3,S004:3,S005:3,S007:3,S009:3"
+J005,Data Scientist,Data,Group 4,123 Tech St,"S001:3,S004:3,S005:3,S006:3,S013:3"
+J006,Head of Data,Data,Group 6,123 Tech St,"S005:3,S006:3,S008:3,S010:3,S011:3"
+J007,Marketing Specialist,Marketing,Group 3,123 Tech St,"S007:3,S009:3,S017:3,S018:3"
+J008,Senior Marketing Manager,Marketing,Group 5,123 Tech St,"S007:3,S008:3,S010:3,S017:3,S018:3"
+J009,Chief Marketing Officer,Marketing,Group 7,123 Tech St,"S008:3,S010:3,S011:3,S017 :3"

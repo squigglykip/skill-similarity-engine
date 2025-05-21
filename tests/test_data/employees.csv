@@ -1,0 +1,7 @@
+employee_id,name,current_job,department,skills
+E001,John Smith,J001,Engineering,S001:4;S002:3;S003:5;S007:3;S009:4
+E002,Mary Johnson,J002,Engineering,S001:5;S002:5;S004:4;S007:3;S010:4
+E003,David Lee,J004,Data,S001:3;S004:4;S005:3;S007:2;S009:3
+E004,Sarah Chen,J005,Data,S001:4;S004:5;S005:5;S006:3;S013:4
+E005,James Wilson,J007,Marketing,S007:4;S009:3;S017:4;S018:2
+E006,Patricia Brown,J008,Marketing,S007:5;S008:4;S010:3;S017:5;S018:4 
