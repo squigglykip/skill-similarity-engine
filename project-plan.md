@@ -12,14 +12,15 @@ This document outlines the development plan for the NAB Skill Similarity Engine,
 
 | Phase | Description | Status | Branch |
 |-------|-------------|--------|--------|
-| 1 | Core Framework | **COMPLETED** | `feature/core-framework` |
-| 2 | Similarity Engine | **COMPLETED** | `feature/similarity-engine` |
-| 3 | Gap Analysis | **COMPLETED** | `feature/gap-analysis` |
-| 4 | Reporting & Visualisation | **COMPLETED** | `feature/reporting-visualization` |
-| 5 | CLI & Testing | **IN PROGRESS** | `feature/cli-testing` |
-| 6 | POC Integration | **PLANNED** | `feature/poc-integration` |
-| 7 | Data Pipeline & Integration | **IN PROGRESS** | `feature/data-pipeline` |
-| 8 | CLI Implementation & Production Readiness | **PLANNED** | `feature/cli-production-readiness` |
+| 1 | Core Framework | **COMPLETED** | `1-feature/core-framework` |
+| 2 | Similarity Engine | **COMPLETED** | `2-feature/similarity-engine` |
+| 3 | Gap Analysis | **COMPLETED** | `3-feature/gap-analysis` |
+| 4 | Reporting & Visualisation | **COMPLETED** | `4-feature/reporting-visualization` |
+| 5 | CLI & Testing | **IN PROGRESS** | `5-feature/cli-testing` |
+| 6 | POC Integration | **PLANNED** | `6-feature/poc-integration` |
+| 7 | Data Pipeline & Integration | **IN PROGRESS** | `7-feature/data-pipeline` |
+| 8 | CLI Implementation & Production Readiness | **PLANNED** | `8-feature/cli-production-readiness` |
+| 9 | Future Features & Aspirational Work | **PLANNED** | `9-feature/future-features` |
 
 ### Key Components Status
 
@@ -48,7 +49,7 @@ We will use the following branch structure:
 ## Completed Phases
 
 ### Phase 1: Core Framework - **COMPLETED**
-**Branch: `feature/core-framework`**
+**Branch: `1-feature/core-framework`**
 
 #### 1.1 Project Setup
 - [x] Create project structure
@@ -81,7 +82,7 @@ We will use the following branch structure:
 - [x] Create sample data files for testing
 
 ### Phase 2: Similarity Engine - **COMPLETED**
-**Branch: `feature/similarity-engine`**
+**Branch: `2-feature/similarity-engine`**
 
 #### 2.1 Vector Representation
 - [x] Implement vector representation for skills in `similarity/cosine.py`
@@ -110,7 +111,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Add performance optimisations for large datasets
 
 ### Phase 3: Gap Analysis - **COMPLETED**
-**Branch: `feature/gap-analysis`**
+**Branch: `3-feature/gap-analysis`**
 
 #### 3.1 Skill Gap Identification
 - [x] Implement skill gap identification in `analysis/gap.py`
@@ -131,7 +132,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Create pathway visualisation data structures
 
 ### Phase 4: Reporting & Visualisation - **COMPLETED**
-**Branch: `feature/reporting-visualization`**
+**Branch: `4-feature/reporting-visualization`**
 
 #### 4.1 Basic Reporting
 - [x] Implement DataFrame export functionality
@@ -165,7 +166,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 ## In-Progress and Future Phases
 
 ### Phase 5: CLI & Testing - **IN PROGRESS**
-**Branch: `feature/cli-testing`**
+**Branch: `5-feature/cli-testing`**
 
 #### 5.1 Command Line Interface - **COMPLETED**
 - [x] Create CLI framework in `scripts/`
@@ -232,7 +233,7 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [x] Create sample configuration templates for different use cases
 
 ### Phase 6: POC Integration - **PLANNED**
-**Branch: `feature/poc-integration` (Parent branch for integration of all POC components)**
+**Branch: `6-feature/poc-integration` (Parent branch for integration of all POC components)**
 
 > **Focus**: This phase incorporates learnings and improvements from the Proof of Concept (POC) implementation back into the modular source code structure. The POC demonstrated significant performance enhancements, memory optimisations, and improved handling of skill similarity calculations at scale (35,000+ jobs). Key to this integration is preserving the primary functionality of generating a cross-department similarity dataset while enhancing performance and maintainability.
 
@@ -254,7 +255,7 @@ The POC demonstrated that we need to fundamentally restructure the system into a
 We're implementing this architectural shift in a specific sequence to ensure we build on solid foundations. The following sections are arranged in order of dependency, starting with the core performance and memory management utilities that all other components will build upon.
 
 #### 6.2 Memory Management Enhancements
-**Branch: `feature/poc-memory-management`**
+**Branch: `6.2-feature/poc-integration/memory-management`**
 
 > **Implementation Context**: Memory management is the foundation of our architectural redesign. The current system hits memory limits with datasets of 35,000+ jobs because it attempts to hold all job vectors and similarity calculations in memory simultaneously. This section implements sophisticated memory tracking, large object lifecycle management, and garbage collection optimizations that will enable the system to process large datasets efficiently. These utilities will be used throughout the codebase to monitor and manage memory usage, particularly during the precomputation phase where memory pressure is highest.
 >
@@ -310,7 +311,7 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [x] Add predictive memory usage modeling
 
 #### 6.3 Performance Optimisation
-**Branch: `feature/poc-performance-optimization`**
+**Branch: `6.3-feature/poc-integration/performance-optimization`**
 
 > **Implementation Context**: Our similarity calculations involve billions of computations that must be efficiently distributed across available CPU cores to achieve reasonable performance on standard hardware. The current implementation is primarily single-threaded, which becomes a bottleneck when processing large datasets. This section implements a parallel processing framework that balances CPU and memory resources, enabling efficient computation of similarity matrices.
 > 
@@ -393,8 +394,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [x] Test interrupt and resume capabilities
     _(All above items are covered by comprehensive example scripts and practical demonstrations in examples/performance_optimization/)_
 
-#### 6.13 Error Handling and Logging Improvements
-**Branch: `feature/poc-error-handling`**
+#### 6.4 Error Handling and Logging Improvements
+**Branch: `6.4-feature/poc-integration/error-handling`**
 
 > **Implementation Context**: The pre-computation phase involves long-running, resource-intensive processes that require robust error handling and detailed logging. When processing tens of thousands of jobs over hours, errors must be properly captured, contextualized, and where possible, recovered from without losing progress. Similarly, data quality issues must be detected and reported clearly to ensure the validity of results.
 > 
@@ -413,8 +414,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Implement data quality metrics
   - [ ] Add warning thresholds
 
-#### 6.4 Core Data Loading Enhancements
-**Branch: `feature/poc-data-loading`**
+#### 6.5 Core Data Loading Enhancements
+**Branch: `6.5-feature/poc-integration/core-data-loading`**
 
 > **Implementation Context**: Efficient data loading is crucial for our system, as it processes large datasets with complex relationships between skills, jobs, and job-skill mappings. The current implementation loads all data into memory at once, which doesn't scale to our full dataset of 35,000+ jobs and their associated skills. This section implements streaming and chunked loading capabilities that reduce memory pressure while maintaining data integrity.
 > 
@@ -469,8 +470,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [ ] Build accuracy scoring
       - [ ] Add data quality dashboard
 
-#### 6.5 TF-IDF and Skill Processing Improvements
-**Branch: `feature/poc-skill-processing`**
+#### 6.6 TF-IDF and Skill Processing Improvements
+**Branch: `6.6-feature/poc-integration/tfidf-skill-processing`**
 
 > **Implementation Context**: Accurate similarity calculations depend on properly processing skills, particularly multi-word skills that make up a significant portion of our taxonomy. The current implementation treats each skill as an atomic unit, but doesn't handle skill phrases optimally, leading to potential inaccuracies in similarity scores. This section enhances our TF-IDF vectorization system to properly handle multi-word skills and maintain consistent mapping between original and processed skill names.
 > 
@@ -548,8 +549,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [ ] Build pluggable normalizer system
       - [ ] Add normalization rule testing
 
-#### 6.1 Pre-computation Strategy for Local Performance
-**Branch: `feature/poc-precomputation`**
+#### 6.7 Pre-computation Strategy for Local Performance
+**Branch: `6.7-feature/poc-integration/precomputation-strategy`**
 
 > **Implementation Context**: This section represents the core of our architectural redesign - transforming from on-demand calculation to a precomputation-based approach. The current system calculates similarities directly when requested, which doesn't scale to tens of thousands of jobs. The precomputation strategy introduces a "database-like" structure that stores vectorized job data and similarity matrices for rapid retrieval.
 > 
@@ -557,7 +558,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
 
 > **Strategy Overview**: Transform the engine from a calculation-heavy system to a query-based system through intelligent pre-computation and storage of both input vectors and similarity matrices. This approach dramatically improves performance on standard laptops while maintaining accuracy and enabling interactive analysis.
 
-##### 6.1.1 Input Data Vectorization Framework
+##### 6.7.1 Input Data Vectorization Framework
+**Branch: `6.7.1-feature/poc-integration/input-vectorisation`**
 
 > **Implementation Context**: The vectorization framework transforms raw job and skill data into mathematical representations (vectors) that can be efficiently compared. These vectors must be stored in a compact format that preserves the sparse nature of skill distributions across jobs. The metadata system must maintain a complete record of how vectors were generated to ensure reproducibility and proper interpretation of results.
 > 
@@ -640,7 +642,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [ ] Store change history in metadata for auditing
       - [ ] Add reporting tool for summarizing update scope
 
-##### 6.1.2 Similarity Matrix Pre-computation
+##### 6.7.2 Similarity Matrix Pre-computation
+**Branch: `6.7.2-feature/poc-integration/similarity-matrix-precomp`**
 
 > **Implementation Context**: Computing similarity matrices for 35,000+ jobs requires over 1.2 billion pairwise comparisons, which cannot be performed in a single pass on standard hardware with 32GB RAM. Our approach divides this massive computation into manageable chunks with adaptive sizing based on real-time memory monitoring. This ensures we maximize hardware utilization while preventing out-of-memory errors.
 >
@@ -722,8 +725,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [ ] Build adaptive priority system based on recent queries
       - [ ] Develop cache warming for frequently accessed departments
 
-#### 6.7 Job Context and Metadata Handling
-**Branch: `feature/poc-job-context`**
+#### 6.8 Job Context and Metadata Handling
+**Branch: `6.8-feature/poc-integration/job-context-metadata`**
 
 > **Implementation Context**: Our system needs to handle complex organizational contexts where the same job title may appear multiple times with different attributes (department, location, seniority level, etc.). The current implementation uses simple job IDs that don't capture this complexity, leading to potential inconsistencies and confusion in the similarity results.
 > 
@@ -747,8 +750,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Add duplicate context detection and handling
   - [ ] Add utility methods to extract business context from composite IDs
 
-#### 6.8 Similarity Calculation Enhancements
-**Branch: `feature/poc-similarity-enhancements`**
+#### 6.9 Similarity Calculation Enhancements
+**Branch: `6.9-feature/poc-integration/similarity-enhancements`**
 
 > **Implementation Context**: While our core similarity calculation uses cosine similarity between skill vectors, real-world job similarity involves additional factors like seniority level, role type, and location. The current implementation has basic support for these factors, but they need to be enhanced and optimized for the two-phase architecture.
 > 
@@ -771,8 +774,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Add configuration parameterisation to similarity scores
   - [ ] Create factor breakdown views
 
-#### 6.9 Advanced Optimisation Strategies
-**Branch: `feature/poc-advanced-optimization`**
+#### 6.10 Advanced Optimisation Strategies
+**Branch: `6.10-feature/poc-integration/advanced-optimisation`**
 
 > **Implementation Context**: This section focuses on specialized optimizations that can dramatically improve performance for our specific use case. The sparse matrix support is critical since most job pairs have very low similarity scores that can be filtered out, potentially reducing storage requirements by 90%+ without losing significant information.
 > 
@@ -795,8 +798,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Add resumable calculation capabilities
   - [ ] Implement result merging for distributed processing
 
-#### 6.6 Query Interface for Pre-computed Data
-**Branch: `feature/poc-query-interface`**
+#### 6.11 Query Interface for Pre-computed Data
+**Branch: `6.11-feature/poc-integration/query-interface`**
 
 > **Implementation Context**: The query interface is the user-facing component of our two-phase architecture, providing rapid access to the precomputed similarity data. Unlike the current approach which calculates similarities on demand, this interface primarily retrieves and filters precomputed results, delivering near-instantaneous responses even for complex queries across large datasets.
 > 
@@ -818,8 +821,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Add query results caching
   - [ ] Create asynchronous background computation for frequently accessed missing data
 
-#### 6.10 Configuration Transparency System
-**Branch: `feature/poc-configuration-transparency`**
+#### 6.12 Configuration Transparency System
+**Branch: `6.12-feature/poc-integration/config-transparency`**
 
 > **Implementation Context**: Our similarity calculations involve numerous configurable parameters that significantly impact the results, but the current implementation doesn't track or expose these parameters adequately. This section creates a comprehensive system for tracking, versioning, and exposing the configuration values that influence similarity scores.
 > 
@@ -841,8 +844,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Implement run history tracking
   - [ ] Build configuration validation engine
 
-#### 6.11 CLI Commands for Pre-computation and Query
-**Branch: `feature/poc-cli-enhancements`**
+#### 6.13 CLI Commands for Pre-computation and Query
+**Branch: `6.13-feature/poc-integration/cli-precomp-query`**
 
 > **Implementation Context**: The command-line interface is the primary way users will interact with our system, particularly for triggering the resource-intensive precomputation phase and managing precomputed data. The current CLI is basic and doesn't support the two-phase architecture or provide adequate feedback for long-running operations.
 > 
@@ -889,8 +892,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Add troubleshooting section
   - [ ] Create memory management guide with hardware recommendations
 
-#### 6.12 Focused Data Export and Insight-Driven Visualisation
-**Branch: `feature/poc-exports`**
+#### 6.14 Focused Data Export and Insight-Driven Visualisation
+**Branch: `6.14-feature/poc-integration/focused-exports`**
 
 > **Implementation Context**: The ultimate goal of our system is to provide actionable insights through easily consumable outputs. The current implementation generates excessive data with limited prioritization, overwhelming users with raw similarity scores instead of focusing on the most relevant insights. This section implements a more focused approach to data export and visualization.
 > 
@@ -921,59 +924,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
   - [ ] Create efficient processing for full cross-department comparisons
   - [ ] Implement memory-efficient design for large job datasets
 
-#### 6.14 Implementation Plan
-
-> **Implementation Approach**: This implementation plan follows a logical dependency structure, starting with foundational utilities that all other components will build upon. Each sprint focuses on a specific layer of the architecture, ensuring that we build from the ground up with proper foundations. The memory management and performance optimization components come first as they provide essential infrastructure for all subsequent development. The core processing and vectorization framework follows, then the precomputation engine, and finally the query interface and outputs.
->
-> This approach allows for incremental testing and validation, with each layer building on stable components from previous sprints. The sequencing also mirrors the data flow through the system: first we optimize how data is loaded and processed, then how it's stored and analyzed, and finally how it's queried and visualized.
->
-> **Memory Management Focus**: Based on our testing with 35,000+ jobs on standard laptops with 32GB RAM, we've identified memory management as a critical success factor. We've prioritized the memory-aware processing framework early in the implementation plan to ensure all subsequent components can leverage these capabilities.
-
-The POC integration will be structured as a 4-sprint project, with a total timeline of 8 weeks, aligned with our new two-phase architecture:
-
-- **Sprint 1 (Weeks 1-2):** Foundation Layer 
-  - Memory Management Enhancements (6.2)
-  - Performance Optimisation (6.3)
-  - Memory-Aware Processing Framework (6.16) [NEW]
-  - Error Handling and Logging Improvements (6.13)
-  
-- **Sprint 2 (Weeks 3-4):** Core Processing Layer
-  - Core Data Loading Enhancements (6.4)
-  - TF-IDF and Skill Processing Improvements (6.5)
-  - Input Data Vectorization Framework (6.1.1)
-
-- **Sprint 3 (Weeks 5-6):** Pre-computation and Analysis
-  - Similarity Matrix Pre-computation (6.1.2)
-  - Job Context and Metadata Handling (6.7)
-  - Similarity Calculation Enhancements (6.8)
-  - Advanced Optimisation Strategies (6.9)
-
-- **Sprint 4 (Weeks 7-8):** User Interface and Outputs
-  - Query Interface for Pre-computed Data (6.6)
-  - Configuration Transparency System (6.10)
-  - CLI Commands for Pre-computation and Query (6.11)
-  - Focused Data Export and Insight-Driven Visualisation (6.12)
-
-##### Dependencies and Risks
-- Access to real-world HRIS data for testing
-- Stakeholder availability for UAT
-- Sufficient computational resources for large-scale testing
-- Access to representative multi-word skill samples for testing
-- Sample configuration scenarios for testing transparency features
-
-##### Success Criteria
-1. Integrated source code performs as well as or better than the POC implementation
-2. Memory usage is optimised for large datasets (35,000+ jobs)
-3. Processing time is improved through parallel execution
-4. Multi-word skills are correctly handled in similarity calculations
-5. Job context information is properly captured and utilised
-6. Configuration transparency enables tracking how factors affect each similarity score
-7. Multiple similarity calculation scenarios can be run and compared
-8. Documentation is updated to reflect all changes
-9. Command line interface provides all functionality from the POC
-10. Visualisation outputs are focused on key insights rather than overwhelming with exhaustive outputs
-
 #### 6.15 Examples and Practical Testing
+**Branch: `6.15-feature/poc-integration/examples-testing`**
 
 > **Implementation Context**: While our test suite (unit, integration, functional) verifies that components work correctly in isolation and together, we need practical examples that demonstrate real-world usage patterns. These examples serve multiple purposes: they document how to use the components, validate that our APIs are intuitive, and provide a way to visually inspect memory behavior during actual operations rather than just in test scenarios. This practical testing is essential for memory management features where the proof is in the actual usage with real-scale data.
 >
@@ -1028,10 +980,67 @@ The POC integration will be structured as a 4-sprint project, with a total timel
       - [x] Implement templates for various hardware profiles
       - [x] Create configuration impact analysis examples
 
+#### 6.16 Memory-Aware Processing Framework
+**Branch: `6.16-feature/poc-integration/memory-aware-processing`**
+
+> **Implementation Context**: Processing 35,000+ jobs with over 1.2 billion comparisons on standard laptops with 32GB RAM requires sophisticated memory management. Our testing has shown that neither a fully memory-efficient approach nor a standard implementation alone can solve this challenge. Instead, we need a hybrid approach that continuously monitors memory usage and adapts processing strategies in real-time.
+>
+> This section implements a comprehensive memory-aware processing framework that integrates with the chunking and parallel processing components to ensure optimal resource utilization while preventing out-of-memory conditions. The framework provides both low-level utilities for fine-grained memory control and high-level abstractions that make memory-aware processing accessible throughout the codebase.
+
+- [ ] Implement memory-aware processing controller
+  - [ ] Create `MemoryAwareProcessor` class in `utils/memory_aware.py`
+      - [ ] Implement continuous memory monitoring with configurable sampling rate
+      - [ ] Create adaptive chunk size calculation based on memory trends
+      - [ ] Build memory pressure detection with multiple warning levels
+      - [ ] Add automatic garbage collection triggering based on thresholds
+  - [ ] Develop memory-based execution strategies
+      - [ ] Implement progressive chunk sizing that starts conservative and scales up
+      - [ ] Create fallback mechanisms for when memory pressure is detected
+      - [ ] Build emergency cleanup protocols for critical memory situations
+      - [ ] Add memory reservation system for critical operations
+  - [ ] Add configuration options for memory-aware processing
+      - [ ] Create YAML configuration section for memory thresholds and strategies
+      - [ ] Implement runtime adjustment of memory parameters
+      - [ ] Build memory strategy profiles for different hardware configurations
+      - [ ] Add documentation of memory parameters and their impacts
+- [ ] Create memory-efficient data structures for similarity calculations
+  - [ ] Implement sparse vector representation for job skills
+      - [ ] Create compressed skill vector format using scipy.sparse
+      - [ ] Implement memory-mapped vector storage for large datasets
+      - [ ] Build vector slicing for partial loading
+      - [ ] Add vector compression with configurable precision (float32/float16)
+  - [ ] Develop incremental similarity matrix builder
+      - [ ] Create block-based matrix construction that processes and saves in chunks
+      - [ ] Implement threshold-based filtering to only store significant similarities
+      - [ ] Build memory-mapped matrix access for efficient queries
+      - [ ] Add matrix compression techniques for storage efficiency
+  - [ ] Add memory usage analytics
+      - [ ] Create detailed memory profiling for similarity calculations
+      - [ ] Implement memory usage prediction based on job counts
+      - [ ] Build visualization of memory usage patterns during processing
+      - [ ] Add memory efficiency scoring for different implementation approaches
+- [ ] Integrate with existing components
+  - [ ] Update similarity calculator to use memory-aware processing
+      - [ ] Implement memory-efficient cosine similarity calculation
+      - [ ] Create chunked matrix operations that respect memory limits
+      - [ ] Build adaptive precision control based on memory availability
+      - [ ] Add fallback to disk-based processing for extreme cases
+  - [ ] Enhance job architecture loading with memory awareness
+      - [ ] Implement progressive loading of job data based on memory availability
+      - [ ] Create memory-efficient job representation with shared attributes
+      - [ ] Build lazy loading of job details
+      - [ ] Add memory impact estimates for job loading operations
+  - [ ] Update CLI with memory management options
+      - [ ] Add `--memory-limit` flag to control maximum memory usage
+      - [ ] Implement `--adaptive-chunks` option for memory-based chunking
+      - [ ] Create `--memory-profile` option to output detailed memory analytics
+      - [ ] Build memory strategy selection through configuration
+
 ### Phase 7: Data Pipeline & Integration - **IN PROGRESS**
-**Branch: `feature/data-pipeline`**
+**Branch: `7-feature/data-pipeline`**
 
 #### 7.1 Data Export Optimisation - **COMPLETED**
+**Branch: `7.1-feature/data-pipeline/data-export-optimisation`**
 - [x] Create standardised data export formats
 - [x] Implement efficient data serialisation
 - [x] Add metadata and schema descriptions in exports
@@ -1041,6 +1050,7 @@ The POC integration will be structured as a 4-sprint project, with a total timel
 - [x] Ensure department-specific exports are available as needed (secondary outputs)
 
 #### 7.2 Configuration Management System - **COMPLETED**
+**Branch: `7.2-feature/data-pipeline/config-management`**
 - [x] Design comprehensive configuration schema for all configurable parameters
 - [x] Implement YAML-based configuration with hierarchical structure
 - [x] Move hardcoded thresholds, weights, and flags to configuration
@@ -1070,7 +1080,7 @@ The configuration system now features:
 - Extension points for future features like seniority and location weighting
 
 #### 7.3 Skill Affinity Analyzer Enhancement - **COMPLETED**
-**Branch: `feature/similarity-enhancements`**
+**Branch: `7.3-feature/data-pipeline/skill-affinity-analyser`**
 
 > **Enhancement Focus**: Implement additional variables beyond skills that affect job similarity: seniority, role track (IC vs. Leadership), and location. These enhancements will provide more nuanced similarity calculations for improved job matching and career pathway recommendations.
 
@@ -1169,7 +1179,8 @@ The seniority implementation now recognizes that career progression typically oc
 
 The role track implementation acknowledges that career progression typically follows patterns where Individual Contributors may progress to Leadership roles, but transitions in the opposite direction are less common. All role track similarity thresholds are now configurable, allowing organisations to adjust the system to their specific career paths and progression policies.
 
-##### 7.3.6 Location Implementation - **IN PROGRESS** (Branch: feature/similiarity-enhancement-location)
+##### 7.3.6 Location Implementation - **IN PROGRESS**
+**Branch: `7.3.6-feature/data-pipeline/location-implementation`**
 
 ###### Overview
 The location implementation recognises that geographic proximity significantly affects job transition practicality. Our enhanced approach focuses on "displacement" rather than binary location matching, acknowledging that most employees are unwilling to relocate between cities for internal roles unless for exceptional career opportunities.
@@ -1206,6 +1217,7 @@ The location implementation recognises that geographic proximity significantly a
   - [ ] Add examples demonstrating real-world location impacts on job matches
 
 ###### 7.3.6.4 Geocoding and Distance Calculation - **IN PROGRESS**
+**Branch: `7.3.6.4-feature/data-pipeline/geocoding-distance`**
 - [ ] Implement geocoding capability
   - [ ] Create address-to-coordinates conversion utility
   - [ ] Handle partial location information (missing street number, etc.)
@@ -1228,6 +1240,7 @@ The location implementation recognises that geographic proximity significantly a
   - [ ] Implement benchmarks for geocoding performance
 
 ###### 7.3.6.5 Commute-Based Similarity Model - **PLANNED**
+**Branch: `7.3.6.5-feature/data-pipeline/commute-similarity`**
 - [ ] Develop realistic commute-based similarity scoring
   - [ ] Create distance bands with corresponding similarity scores
     - [ ] Same building/campus: 1.0
@@ -1243,6 +1256,7 @@ The location implementation recognises that geographic proximity significantly a
   - [ ] Account for international relocation practicality by job level
 
 ###### 7.3.6.6 Address Validation and Experimentation - **PLANNED**
+**Branch: `7.3.6.6-feature/data-pipeline/address-validation`**
 - [ ] Create test framework for address validation
   - [ ] Implement unit tests with sample addresses from multiple countries
   - [ ] Test address normalisation with variations across different formats
@@ -1257,6 +1271,7 @@ The location implementation recognises that geographic proximity significantly a
   - [ ] Generate CSV exports for Power BI integration with country filters
 
 ###### 7.3.6.7 Edge Case Handling - **PLANNED**
+**Branch: `7.3.6.7-feature/data-pipeline/edge-cases`**
 - [ ] Implement handling for special location types
   - [ ] Manage "Remote" or "Work from home" locations with country context
   - [ ] Handle multiple work locations across countries (e.g., split time between India and Australia)
@@ -1269,6 +1284,7 @@ The location implementation recognises that geographic proximity significantly a
   - [ ] Handle transliteration issues in non-Latin address formats
 
 ###### 7.3.6.8 International Banking Context - **PLANNED**
+**Branch: `7.3.6.8-feature/data-pipeline/intl-banking-context`**
 - [ ] Implement NAB-specific global location considerations
   - [ ] Identify key NAB business hubs and locations across all countries
   - [ ] Create special handling for locations with specific financial services capabilities
@@ -1356,6 +1372,7 @@ The enhancement to the configuration structure has delivered several benefits:
 5. **Future-proof** - The structure allows for easy addition of new parameters and sections
 
 #### 7.4 HRIS Data Integration
+**Branch: `7.4-feature/data-pipeline/hris-integration`**
 - [x] Develop HRIS data translation layer to standardise naming conventions
 - [x] Create mapping dictionaries between HRIS job codes and internal architecture
 - [x] Implement field normalisation for inconsistent data formats
@@ -1410,6 +1427,7 @@ The enhancement to the configuration structure has delivered several benefits:
 This approach ensures a clean separation between external (HRIS) data formats and internal engine schemas, making the system more maintainable and adaptable to different HRIS systems while preserving the stability of core engine functionality.
 
 #### 7.5 Power BI Integration
+**Branch: `7.5-feature/data-pipeline/powerbi-integration`**
 - [ ] Finalise data schema documentation for Power BI developers
 - [ ] Create reference relationship models for Power BI implementation
 - [ ] Develop sample DAX measures for common analyses
@@ -1422,6 +1440,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
 - [ ] Implement performance optimizations for large similarity datasets
 
 #### 7.6 Output Delivery Strategy
+**Branch: `7.6-feature/data-pipeline/output-delivery`**
 - [ ] Define clear primary and secondary output priorities
   - [ ] Document the cross-department similarity CSV as the primary output
   - [ ] Categorize other outputs (heatmaps, visualizations) as secondary features
@@ -1439,6 +1458,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Create troubleshooting guide for common output issues
 
 #### 7.7 Real-World Data Testing
+**Branch: `7.7-feature/data-pipeline/realworld-testing`**
 - [ ] Perform complete end-to-end testing with real HRIS data
 - [ ] Create validation reports comparing outputs with expected results
 - [ ] Validate memory usage and performance with full-scale data
@@ -1448,9 +1468,10 @@ This approach ensures a clean separation between external (HRIS) data formats an
 - [ ] Finalise implementation recommendations based on testing results
 
 ### Phase 8: CLI Implementation & Production Readiness - **PLANNED**
-**Branch: `feature/cli-production-readiness`**
+**Branch: `8-feature/cli-production-readiness`**
 
 #### 8.1 Core CLI Framework Enhancements - **PLANNED**
+**Branch: `8.1-feature/cli-production-readiness/cli-framework`**
 - [ ] Expand current CLI functionality
   - [ ] Ensure consistent interface across all commands
   - [ ] Add comprehensive error handling and user feedback
@@ -1468,6 +1489,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Add memory optimization flags for large datasets
 
 #### 8.2 Local Production Usage Preparation - **PLANNED**
+**Branch: `8.2-feature/cli-production-readiness/local-prod-prep`**
 - [ ] Create workspace structure for NAB local usage
   - [ ] Design standard directory structure for inputs and outputs
   - [ ] Develop workspace initialization and validation commands
@@ -1485,6 +1507,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Ensure compatibility with corporate Windows security policies
 
 #### 8.3 Data Workflow Integration - **PLANNED**
+**Branch: `8.3-feature/cli-production-readiness/data-workflow`**
 - [ ] Develop data input/output pipeline
   - [ ] Create standardized input data validators
   - [ ] Add support for Excel files (common in NAB business environment)
@@ -1502,6 +1525,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Build data provenance tracking to maintain audit trail
 
 #### 8.4 Ad-hoc Analysis Toolkit - **PLANNED**
+**Branch: `8.4-feature/cli-production-readiness/adhoc-toolkit`**
 - [ ] Create specialized commands for one-off analyses
   - [ ] Implement targeted department analysis
   - [ ] Add job family comparison tools
@@ -1519,6 +1543,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Implement customizable report templates
 
 #### 8.5 User Experience & Documentation - **PLANNED**
+**Branch: `8.5-feature/cli-production-readiness/ux-docs`**
 - [ ] Enhance user feedback and assistance
   - [ ] Create comprehensive inline help for all commands
   - [ ] Add contextual hints for common errors
@@ -1536,6 +1561,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Build integration guides for NAB's existing analytics tools
 
 #### 8.6 Testing & Quality Assurance - **PLANNED**
+**Branch: `8.6-feature/cli-production-readiness/testing-qa`**
 - [ ] Implement comprehensive CLI testing
   - [ ] Create end-to-end test workflows with realistic data volumes
   - [ ] Add validation tests for all output formats
@@ -1553,6 +1579,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Implement system resource requirement verification
 
 #### 8.7 Transition from Testing to Production - **PLANNED**
+**Branch: `8.7-feature/cli-production-readiness/prod-transition`**
 - [ ] Create transition workflow
   - [ ] Design process for moving from test data to production data
   - [ ] Build validation steps for ensuring quality with real data
@@ -1570,6 +1597,7 @@ This approach ensures a clean separation between external (HRIS) data formats an
   - [ ] Develop documentation for regular maintenance tasks
 
 #### 8.8 Configuration-Driven Data Model Enhancement - **PLANNED**
+**Branch: `8.8-feature/cli-production-readiness/config-driven-model`**
 - [ ] Implement configuration-driven taxonomy management
   - [ ] Move hardcoded enumerations (like SkillType) to configuration files
   - [ ] Create dynamic loading system for taxonomies and classifications
@@ -1652,58 +1680,208 @@ The interactive CLI will follow this sequence:
 7. Progress tracking for each step
 8. Final summary with output file locations
 
-#### 6.16 Memory-Aware Processing Framework
-**Branch: `feature/memory-aware-processing`**
+### Phase 9: Future Features & Aspirational Work (Research-Informed Roadmap)
 
-> **Implementation Context**: Processing 35,000+ jobs with over 1.2 billion comparisons on standard laptops with 32GB RAM requires sophisticated memory management. Our testing has shown that neither a fully memory-efficient approach nor a standard implementation alone can solve this challenge. Instead, we need a hybrid approach that continuously monitors memory usage and adapts processing strategies in real-time.
->
-> This section implements a comprehensive memory-aware processing framework that integrates with the chunking and parallel processing components to ensure optimal resource utilization while preventing out-of-memory conditions. The framework provides both low-level utilities for fine-grained memory control and high-level abstractions that make memory-aware processing accessible throughout the codebase.
+These aspirational features build on precomputed job-to-job similarity and leverage the Lightcast Skills Taxonomy, Workday-readiness, and workforce strategy imperatives. They are prioritised for local delivery over an 18-month bridge period before onboarding an enterprise solution. Each feature is inspired by leading SaaS platforms and tailored to our context.
 
-- [ ] Implement memory-aware processing controller
-  - [ ] Create `MemoryAwareProcessor` class in `utils/memory_aware.py`
-      - [ ] Implement continuous memory monitoring with configurable sampling rate
-      - [ ] Create adaptive chunk size calculation based on memory trends
-      - [ ] Build memory pressure detection with multiple warning levels
-      - [ ] Add automatic garbage collection triggering based on thresholds
-  - [ ] Develop memory-based execution strategies
-      - [ ] Implement progressive chunk sizing that starts conservative and scales up
-      - [ ] Create fallback mechanisms for when memory pressure is detected
-      - [ ] Build emergency cleanup protocols for critical memory situations
-      - [ ] Add memory reservation system for critical operations
-  - [ ] Add configuration options for memory-aware processing
-      - [ ] Create YAML configuration section for memory thresholds and strategies
-      - [ ] Implement runtime adjustment of memory parameters
-      - [ ] Build memory strategy profiles for different hardware configurations
-      - [ ] Add documentation of memory parameters and their impacts
-- [ ] Create memory-efficient data structures for similarity calculations
-  - [ ] Implement sparse vector representation for job skills
-      - [ ] Create compressed skill vector format using scipy.sparse
-      - [ ] Implement memory-mapped vector storage for large datasets
-      - [ ] Build vector slicing for partial loading
-      - [ ] Add vector compression with configurable precision (float32/float16)
-  - [ ] Develop incremental similarity matrix builder
-      - [ ] Create block-based matrix construction that processes and saves in chunks
-      - [ ] Implement threshold-based filtering to only store significant similarities
-      - [ ] Build memory-mapped matrix access for efficient queries
-      - [ ] Add matrix compression techniques for storage efficiency
-  - [ ] Add memory usage analytics
-      - [ ] Create detailed memory profiling for similarity calculations
-      - [ ] Implement memory usage prediction based on job counts
-      - [ ] Build visualization of memory usage patterns during processing
-      - [ ] Add memory efficiency scoring for different implementation approaches
-- [ ] Integrate with existing components
-  - [ ] Update similarity calculator to use memory-aware processing
-      - [ ] Implement memory-efficient cosine similarity calculation
-      - [ ] Create chunked matrix operations that respect memory limits
-      - [ ] Build adaptive precision control based on memory availability
-      - [ ] Add fallback to disk-based processing for extreme cases
-  - [ ] Enhance job architecture loading with memory awareness
-      - [ ] Implement progressive loading of job data based on memory availability
-      - [ ] Create memory-efficient job representation with shared attributes
-      - [ ] Build lazy loading of job details
-      - [ ] Add memory impact estimates for job loading operations
-  - [ ] Update CLI with memory management options
-      - [ ] Add `--memory-limit` flag to control maximum memory usage
-      - [ ] Implement `--adaptive-chunks` option for memory-based chunking
-      - [ ] Create `--memory-profile` option to output detailed memory analytics
-      - [ ] Build memory strategy selection through configuration
+### 9.1 Interactive Career Pathways
+**Branch:** 9.1-feature/future-features/career-pathways
+**Goal:** Empower business stakeholders to explore multi-hop transitions between jobs, with visibility into required skill gaps and realistic mobility options.
+- Visualise paths of least resistance (minimal skill delta) between roles using job-similarity network graphs.
+- Allow branching exploration: e.g., "From Job A, show 2-step paths to Job C and D, and the skills needed at each stage."
+- Use "people like you" archetypes if historical job transition data becomes available later.
+- Consider adding geographic constraints: pathways might differ across countries or regions due to role availability.
+- ✅ Inspiration: Gloat, Fuel50, Workday Career Hub
+
+### 9.2 Skill Gap Analysis & Transition Planning (non-personalised)
+**Branch:** 9.2-feature/future-features/skill-gap-devplans
+**Goal:** Surface delta skill sets between jobs to guide targeted workforce development and role transitions.
+- Recast this as role-to-role transition planning, not individual development plans.
+- Outputs should be:
+  - "To move from Job A to Job B, you'd need to acquire skills X, Y, Z"
+  - "These three jobs are the most strategic step-ups from Job A based on proximity and business priority"
+- Optional stretch: include Lightcast market demand signals to prioritise transitions (e.g., "High demand roles with high similarity")
+- ✅ Inspiration: Eightfold's skill-based matching; Workday's job req skill suggestions
+
+### 9.3 Scenario-Based Organisational Planning
+**Branch:** 9.3-feature/future-features/scenario-planning
+**Goal:** Support strategic modelling of role migration, workforce reduction, and capability building across geographies or functions.
+- Add "sunsetting roles" logic: model what happens when a role is removed and where displaced capability could be absorbed.
+- Model workforce migration: "Which roles in Vietnam already contain 60% of skills from this Australian role?"
+- Add build vs buy decision logic using:
+  - Lightcast external skill supply and cost data
+  - Internal skill adjacency (proximity) to assess ease of upskilling
+- Use tagging for strategic intent: allow HR to flag roles as growth, neutral, or decline to guide scenario pathways.
+- ✅ Inspiration: Gloat's Skills Planner; Oracle scenario analysis; LinkedIn Talent Insights for market context
+
+### 9.4 Advanced Visualisation Suite
+**Branch:** 9.4-feature/future-features/visualisation-suite
+**Goal:** Deliver high-signal visualisations that allow HR and strategy teams to make confident, evidence-based decisions.
+- Job Network Graphs based on skill similarity (nodes = roles, edges = similarity, coloured by BU or location)
+- Skill Heatmaps across BUs or countries (rows = roles, cols = key skills, colour = proficiency/supply)
+- Mobility Pathways as radial maps or Sankey diagrams
+- Redundancy Risk Maps showing which roles/skills are at risk due to structural shifts
+- 🛠 Note: All visuals should be precomputed and embeddable in Power BI/PDFs; Dash or Plotly is a good path if you need a browser view.
+- ✅ Inspiration: Fuel50 visuals, Degreed skill dashboards, Gloat pathway maps
+
+### 9.5 Enhanced Power BI Integration
+**Branch:** 9.5-feature/future-features/powerbi-enhanced
+**Goal:** Make insights explorable and shareable across business units through templated, low-friction Power BI reports.
+- Design modular dashboards:
+  - Job Similarity Explorer
+  - Transition Delta Reports
+  - Workforce Planning Scenarios
+- Export precomputed JSON or Parquet for efficient Power BI refreshes
+- If possible, deliver a bookmarkable story mode: e.g., a report that walks stakeholders through one scenario with commentary
+- ✅ Inspiration: SAP People Analytics; SeekOut's insight exports
+
+### 9.6 (Optional / deprioritise) Real-Time / Ad-hoc Query API
+**Branch:** 9.6-feature/future-features/query-api
+**Adjustment:** Since real-time is not required, deprioritise this in favour of precomputed batch reports + dashboards.
+- Instead, build an internal data pipeline and cache:
+  - Inputs = new jobs, Lightcast updates
+  - Outputs = recomputed similarity matrices, skill deltas, visuals
+- Consider a Python CLI or Jupyter interface as an internal API-like tool
+
+### 9.7 Business-Facing Exploration Tools (CLI + GUI)
+**Branch:** 9.7-feature/future-features/user-tools
+**Goal:** Enable workforce planners and HRBPs to ask questions and receive clear, scoped outputs.
+- CLI: python job_gap_analyser.py --from "Risk Analyst" --to "AI Risk Advisor"
+- GUI: Simple form-based app (Tkinter, Dash) with drop-downs and visual output
+- Include export buttons for CSV, PDF, or PowerPoint snippets
+- Add optional "scenario builder" tool (select jobs to phase out, locations to shift to, and receive output)
+- ✅ Inspiration: SAP's Journeys feature, internal SAP dashboards with scenario toggles
+
+### 9.8 Local Web App (Low-Code, Lightweight)
+**Branch:** 9.8-feature/future-features/local-webapp
+**Goal:** Wrap the engine in a self-contained, non-server-based tool for power users and distributed planning.
+- Design it like an insight browser, not a full transaction system
+- Tabs or pages:
+  - "Explore Job Similarity"
+  - "Find Next Roles"
+  - "See Skill Gaps"
+  - "Run a Scenario"
+  - "Download Visuals"
+- Use Dash or Streamlit for ease of deployment, or even PyWebIO if you want extreme lightness
+- ✅ Inspiration: Lightcast's demo tools, Oracle's Redwood UX "Explore" experience
+
+### 🧠 Optional New Feature Proposals
+
+#### 9.9 Skill Adjacency Explorer
+**Branch:** 9.9-feature/future-features/skill-adjacency-explorer
+- Let users input a skill and get:
+  - Nearby related skills (based on co-occurrence in jobs or Lightcast graph)
+  - Jobs that heavily use this skill
+  - Suggested upskilling paths from this skill
+- 🎯 This could help HR craft upskilling programs and shows off skill-level granularity
+
+#### 9.10 Capability Impact Modeller
+**Branch:** 9.10-feature/future-features/capability-impact-modeller
+- Allow "what-if" analysis for capabilities (groups of skills)
+- Example: "What roles rely on Cloud Infrastructure skills? What happens if we lose this capability?"
+- 🎯 This connects to strategic capability frameworks and allows higher-level planning above roles
+
+## 10. New Functionality Enabled by Employee-Level Skills Data
+
+*Note: The following features are not currently planned or in scope, but are listed to illustrate the future potential of the Skill Similarity Engine if employee-level skill data becomes available. These capabilities would build on the job-to-job similarity and prescribed skills work, enabling a new class of workforce analytics and talent management tools.*
+
+### 🔁 1. Job Matching & Career Navigation
+**Branch:** 10.1-feature/employee-insights/job-matching
+**What it does:**
+Match employees to potential internal roles based on their current skillset (vs. prescribed skills for the role).
+
+**Features you can deliver:**
+- Personalised internal job recommendations
+- Skill delta display: "You're 85% ready for Job X"
+- Visual role pathways: "Shortest path to move from Job A to Job Z"
+- Alerts for "roles you're nearly ready for" or "roles in high demand you could upskill into"
+
+*Precedent: Gloat, Eightfold, Workday Career Hub*
+*Internal Use Only: This could be a "silent" advisory tool for workforce planning without publishing scores to employees.*
+
+### 🔗 2. Internal Coaching / Mentoring Marketplace
+**Branch:** 10.2-feature/employee-insights/coaching-marketplace
+**What it does:**
+Identify employees with skills others are missing and recommend them as mentors, SMEs, or informal coaches.
+
+**Features you can deliver:**
+- "Who in the org has skills in X?"
+- "Which team could support upskilling in Y?"
+- Skill supply heatmaps per BU/location
+- Match people with complementary skills for coaching/mobility pilots
+
+*Precedent: Gloat's "Projects & Mentors", Degreed SkillShare*
+*Internal Use Only: Use these insights to support talent mobility programs or identify internal champions, not to publish open marketplaces (unless culturally appropriate).*
+
+### 📈 3. Upskilling & Workforce Readiness Analysis
+**Branch:** 10.3-feature/employee-insights/workforce-readiness
+**What it does:**
+Track readiness at the individual, team, or cohort level for critical roles or future-state workforce needs.
+
+**Features you can deliver:**
+- "How ready is Team A to support transition to Capability X?"
+- "Which employees are 70%+ ready for AI/ML-related roles?"
+- "What's the average skill gap for Role X across the current workforce?"
+
+*Precedent: Eightfold Workforce Insights, Workday's Future-Ready Workforce dashboards*
+
+### 🧬 4. Skill Adjacency-Based Recommendations
+**Branch:** 10.4-feature/employee-insights/skill-adjacency-recs
+**What it does:**
+Suggest upskilling opportunities for employees based on skills they already have and jobs they're close to.
+
+**Features you can deliver:**
+- "Based on your skills, here are 3 adjacent capabilities to grow"
+- Pathways for high-leverage skills (e.g., "You're 1 course away from cloud proficiency")
+- Predictive growth mapping: "Most likely roles for this person in 12 months"
+
+*Precedent: Lightcast adjacencies + internal journey builders*
+*Benefit: Helps frame talent transformation as opportunity-led, not deficit-led.*
+
+### 🎯 5. Strategic Talent Pooling
+**Branch:** 10.5-feature/employee-insights/talent-pooling
+**What it does:**
+Segment the workforce by capability, readiness, risk, or growth potential.
+
+**Features you can deliver:**
+- Create "talent pools" for critical capabilities (e.g., AI fluency, regulatory compliance)
+- Build internal pipelines: "Who could be the next cohort of Risk Advisors?"
+- Inform succession planning with bottom-up insights
+
+*Precedent: SAP SuccessFactors, Oracle HCM succession tools*
+*Benefit: Allows for proactive reskilling and retention in key areas*
+
+### 🧠 6. Organisational Intelligence & Capability Mapping
+**Branch:** 10.6-feature/employee-insights/org-intelligence
+**What it does:**
+Zoom out to see capabilities at scale, role duplication, and skill redundancy.
+
+**Features you can deliver:**
+- "Where does this capability live in the organisation?"
+- "Which BUs have similar skill profiles?"
+- "Which locations have overlapping capabilities?"
+- "Where are our single points of failure?"
+
+*Precedent: Gloat's org capability graphs*
+*Strategic Value: Informs restructure decisions, talent movement, and role aggregation*
+
+### 🛑 Caveats and Guardrails
+Because you mentioned this would be internal only, here's how to manage the risks:
+
+| Risk                   | Mitigation                                                                                 |
+|------------------------|------------------------------------------------------------------------------------------|
+| Perceived surveillance | Keep insights team-facing only; don't score or rank individuals publicly                  |
+| Skill data quality     | Introduce confidence scores or tags like "self-assessed", "validated by manager", "inferred from project history" |
+| Equity & transparency  | Be intentional with fairness—e.g., don't let lack of visibility penalise someone with strong but undocumented skills |
+| Overreach risk         | Keep role recommendations as nudges or planning tools, not mandates                      |
+
+### 🚀 Combined Use Case Example
+Say you want to build an internal data science capability in Vietnam. With employee-level skills, you could:
+- Identify current Vietnamese employees with Python, SQL, and analytics
+- Compare them to prescribed skills for 'Data Scientist' roles
+- Run a skill delta analysis and propose upskilling programs
+- Identify internal SMEs across the business who could coach
+- Model potential internal transitions into those roles
+- Track readiness over time
+
+You're suddenly doing build vs. buy at the capability level—powered by actual employee data.
