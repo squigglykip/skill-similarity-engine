@@ -33,6 +33,46 @@ T = TypeVar('T')
 # -----------------------------------------------------------------------------
 
 @dataclass
+class MemoryUsage:
+    """Represents memory usage information at a specific point in time."""
+    
+    timestamp: float
+    current_process_usage: int  # Current process memory usage in bytes
+    system_available: int  # Available system memory in bytes
+    system_total: int  # Total system memory in bytes
+    
+    @property
+    def current_process_usage_mb(self) -> float:
+        """Current process memory usage in megabytes."""
+        return self.current_process_usage / (1024 * 1024)
+    
+    @property
+    def system_available_mb(self) -> float:
+        """Available system memory in megabytes."""
+        return self.system_available / (1024 * 1024)
+    
+    @property
+    def system_total_mb(self) -> float:
+        """Total system memory in megabytes."""
+        return self.system_total / (1024 * 1024)
+    
+    @property
+    def usage_percent(self) -> float:
+        """Memory usage as a percentage of total system memory."""
+        return (1 - (self.system_available / self.system_total)) * 100
+    
+    def __str__(self) -> str:
+        """String representation of the memory usage."""
+        return (
+            f"Memory Usage:\n"
+            f"  Time: {self.timestamp:.2f}s\n"
+            f"  Current Process: {self.current_process_usage_mb:.2f} MB\n"
+            f"  System Available: {self.system_available_mb:.2f} MB\n"
+            f"  System Total: {self.system_total_mb:.2f} MB\n"
+            f"  Usage: {self.usage_percent:.1f}%"
+        )
+
+@dataclass
 class MemorySnapshot:
     """Represents a snapshot of memory usage at a specific point in time."""
     
@@ -76,7 +116,25 @@ class MemorySnapshot:
         )
 
 
-def get_memory_usage() -> MemorySnapshot:
+def get_memory_usage() -> MemoryUsage:
+    """
+    Get the current memory usage.
+    
+    Returns:
+        MemoryUsage object with current memory metrics
+    """
+    process = psutil.Process(os.getpid())
+    virtual_memory = psutil.virtual_memory()
+    
+    return MemoryUsage(
+        timestamp=time.time(),
+        current_process_usage=process.memory_info().rss,
+        system_available=virtual_memory.available,
+        system_total=virtual_memory.total
+    )
+
+
+def get_memory_snapshot() -> MemorySnapshot:
     """
     Get the current memory usage across different metrics.
     
@@ -119,7 +177,7 @@ def memory_profile(func: F) -> F:
             tracemalloc.start()
         
         gc.collect()  # Collect garbage before measuring
-        start_snapshot = get_memory_usage()
+        start_snapshot = get_memory_snapshot()
         
         logger.debug(f"Memory before {func.__name__}() call: {start_snapshot.current_process_usage_mb:.2f} MB")
         
@@ -128,7 +186,7 @@ def memory_profile(func: F) -> F:
             return result
         finally:
             gc.collect()  # Collect garbage after execution
-            end_snapshot = get_memory_usage()
+            end_snapshot = get_memory_snapshot()
             
             # Calculate the difference
             memory_diff = end_snapshot.current_process_usage - start_snapshot.current_process_usage
@@ -234,7 +292,7 @@ def log_memory_summary(log_largest_objects: bool = False) -> None:
     Args:
         log_largest_objects: Whether to include the largest objects in the log
     """
-    snapshot = get_memory_usage()
+    snapshot = get_memory_snapshot()
     logger.info(f"Memory summary: {snapshot.current_process_usage_mb:.2f} MB used")
     
     if log_largest_objects:
@@ -350,7 +408,7 @@ def memory_tracking(name: str = None,
     
     # Take the initial snapshot
     gc.collect()
-    start_snapshot = get_memory_usage()
+    start_snapshot = get_memory_snapshot()
     
     # Create the session
     session = MemoryTrackingSession(
@@ -375,7 +433,7 @@ def memory_tracking(name: str = None,
                 if stop_snapshot_thread:
                     break
                 
-                snapshot = get_memory_usage()
+                snapshot = get_memory_snapshot()
                 session.add_snapshot(snapshot)
                 
                 # Check threshold if specified
@@ -401,7 +459,7 @@ def memory_tracking(name: str = None,
         
         # Take final snapshot
         gc.collect()
-        end_snapshot = get_memory_usage()
+        end_snapshot = get_memory_snapshot()
         session.complete(end_snapshot)
         
         # Generate and log the report

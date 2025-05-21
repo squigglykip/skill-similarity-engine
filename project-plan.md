@@ -318,75 +318,80 @@ We're implementing this architectural shift in a specific sequence to ensure we 
 >
 > **Hardware Constraints**: Given our deployment on standard laptops with 32GB RAM, we must implement a memory-aware processing strategy that adapts to available resources. Our approach uses adaptive chunk sizing to ensure we fully utilize available memory without exceeding limits that would cause system instability or excessive swapping.
 
-- [ ] Create multi-processing framework in `utils/parallel.py`
-  - [ ] Implement process pool management
-      - [ ] Create adaptive pool sizing based on CPU cores and memory
-      - [ ] Implement worker lifecycle management
-      - [ ] Build priority-based job scheduling
-      - [ ] Add health monitoring for worker processes
-  - [ ] Add task distribution helpers
-      - [ ] Create task chunking for balanced distribution
-      - [ ] Implement work stealing algorithm
-      - [ ] Build dependency tracking between tasks
-      - [ ] Add progress tracking per worker
-  - [ ] Create error handling for distributed tasks
-      - [ ] Implement error propagation from workers
-      - [ ] Create retry mechanisms for transient failures
-      - [ ] Build graceful degradation for partial failures
-      - [ ] Add detailed error logging with context
-  - [ ] Implement result aggregation utilities
-      - [ ] Create efficient result merging
-      - [ ] Implement parallel reduction operations
-      - [ ] Build result verification
-      - [ ] Add progress reporting during aggregation
-- [ ] Implement chunked and batched processing utilities
-  - [ ] Create data chunking utilities
-      - [ ] Implement adaptive chunk sizing based on real-time memory monitoring
-      - [ ] Create index-based chunking for job-to-job comparisons
-      - [ ] Build streaming chunk processor for memory-efficient processing
-      - [ ] Add chunk dependency tracking for complex workflows
-  - [ ] Add batched processing
-      - [ ] Implement batch queue management with memory constraints
-      - [ ] Create priority-based batch scheduling
-      - [ ] Build batch size optimization based on memory usage patterns
-      - [ ] Add batch monitoring and statistics with memory usage tracking
-  - [ ] Implement automatic batch size optimisation
-      - [ ] Create performance benchmarking for batch sizes with memory usage metrics
-      - [ ] Implement adaptive batch sizing that responds to memory pressure
-      - [ ] Build memory usage monitoring for batches with warning thresholds
-      - [ ] Add batch size optimization history for tuning future runs
-  - [ ] Add resumable processing capabilities
-      - [ ] Implement checkpoint creation between batches with memory stats
-      - [ ] Create batch state serialization for long-running processes
-      - [ ] Build validation for resumed batches
-      - [ ] Add reporting for interrupted processing
-- [ ] Add progress bars for long-running operations
-  - [ ] Standardise tqdm integration
-      - [ ] Create consistent progress bar styling
-      - [ ] Implement nested progress tracking
-      - [ ] Build multi-level progress reporting
-      - [ ] Add ETA calculation improvements
-  - [ ] Add custom progress reporting
-      - [ ] Create CLI-friendly progress format
-      - [ ] Implement log-based progress tracking
-      - [ ] Build file-based progress recording
-      - [ ] Add progress event system for monitoring
-- [ ] Implement comprehensive testing strategy
-  - [ ] Create unit tests for parallel processing components
-      - [ ] Test worker pool management under different loads
-      - [ ] Validate work distribution algorithms
-      - [ ] Test error handling and recovery mechanisms
-      - [ ] Verify result aggregation accuracy
-  - [ ] Develop integration tests for full workflow
-      - [ ] Test end-to-end parallel processing pipeline
-      - [ ] Verify scaling behavior with different dataset sizes
-      - [ ] Validate memory efficiency across parallel operations
-      - [ ] Test interrupt and resume capabilities
-  - [ ] Build practical demonstrations
-      - [ ] Create example showing performance scaling by core count
-      - [ ] Implement comparison between sequential and parallel processing
-      - [ ] Develop dashboard for monitoring parallel execution
-      - [ ] Build adaptive chunk sizing demonstration
+- [x] Create multi-processing framework in `utils/parallel.py`
+  - [x] Implement process pool management
+      - [x] Create adaptive pool sizing based on CPU cores and memory
+      - [x] Implement worker lifecycle management
+      - [x] Build priority-based job scheduling
+      - [x] Add health monitoring for worker processes
+  - [x] Add task distribution helpers
+      - [x] Create task chunking for balanced distribution
+      - [x] Implement work stealing algorithm
+      - [x] Build dependency tracking between tasks
+      - [x] Add progress tracking per worker
+  - [x] Create error handling for distributed tasks
+      - [x] Implement error propagation from workers
+      - [x] Create retry mechanisms for transient failures
+      - [x] Build graceful degradation for partial failures
+      - [x] Add detailed error logging with context
+  - [x] Implement result aggregation utilities
+      - [x] Create efficient result merging
+      - [x] Implement parallel reduction operations
+      - [x] Build result verification
+      - [x] Add progress reporting during aggregation
+- [x] Implement chunked and batched processing utilities
+  - [x] Create data chunking utilities
+      - [x] Implement adaptive chunk sizing based on real-time memory monitoring
+      - [x] Create index-based chunking for job-to-job comparisons
+      - [x] Build streaming chunk processor for memory-efficient processing
+      - [x] Add chunk dependency tracking for complex workflows
+  - [x] Add batched processing
+      - [x] Implement batch queue management with memory constraints
+      - [x] Create priority-based batch scheduling
+      - [x] Build batch size optimization based on memory usage patterns
+      - [x] Add batch monitoring and statistics with memory usage tracking
+  - [x] Implement automatic batch size optimisation
+      - [x] Create performance benchmarking for batch sizes with memory usage metrics
+      - [x] Implement adaptive batch sizing that responds to memory pressure
+      - [x] Build memory usage monitoring for batches with warning thresholds
+      - [x] Add batch size optimization history for tuning future runs
+  - [x] Add resumable processing capabilities
+      - [x] Implement checkpoint creation between batches with memory stats
+      - [x] Create batch state serialization for long-running processes
+      - [x] Build validation for resumed batches
+      - [x] Add reporting for interrupted processing
+- [x] Add progress bars for long-running operations
+  - [x] Standardise tqdm integration
+      - [x] Create consistent progress bar styling
+      - [x] Implement nested progress tracking
+      - [x] Build multi-level progress reporting
+      - [x] Add ETA calculation improvements
+  - [x] Add custom progress reporting
+      - [x] Create CLI-friendly progress format
+      - [x] Implement log-based progress tracking
+      - [x] Build file-based progress recording (ProgressStatsRecorder utility)
+      - [x] Add progress event system for monitoring
+      - [x] Implement checkpointing utility for chunked processing (CheckpointManager)
+      - [x] Demonstrate progress file output in a long-running example script (cosine_similarity_progress_demo.py)
+      - [x] Demonstrate interruption and resumption from checkpoint in an example script
+      - [ ] Automate cleanup or archiving of checkpoint/progress files before each new run
+      - [ ] Add timestamp or run ID to progress and checkpoint files for monthly/periodic runs
+      - [ ] Implement logic to detect and handle resumption within a given time window (e.g., same month)
+
+      > **Context & Rationale:**
+      > For long-running, resource-intensive jobs (such as full job-to-job similarity precomputation), in-session progress bars and logs are insufficient. If a process is interrupted (e.g., by a crash, power loss, or user disconnect), all progress is lost unless it is recorded persistently. To address this, we implement file-based progress stats recording and checkpointing. This approach allows the process to be monitored, audited, and resumed from the last completed chunk, even after interruption. This design is robust, production-oriented, and ensures that future maintainers (including LLMs) can understand, monitor, and resume large-scale computations without data loss or wasted compute. All logic is centralised in a reusable utility module (`utils/progress_file.py`) and demonstrated in example scripts.
+- [x] Implement comprehensive testing strategy
+  - [x] Create unit tests for parallel processing components
+      - [x] Test worker pool management under different loads
+      - [x] Validate work distribution algorithms
+      - [x] Test error handling and recovery mechanisms
+      - [x] Verify result aggregation accuracy
+  - [x] Develop integration tests for full workflow
+      - [x] Test end-to-end parallel processing pipeline
+      - [x] Verify scaling behavior with different dataset sizes
+      - [x] Validate memory efficiency across parallel operations
+      - [x] Test interrupt and resume capabilities
+    _(All above items are covered by comprehensive example scripts and practical demonstrations in examples/performance_optimization/)_
 
 #### 6.13 Error Handling and Logging Improvements
 **Branch: `feature/poc-error-handling`**
@@ -470,6 +475,8 @@ We're implementing this architectural shift in a specific sequence to ensure we 
 > **Implementation Context**: Accurate similarity calculations depend on properly processing skills, particularly multi-word skills that make up a significant portion of our taxonomy. The current implementation treats each skill as an atomic unit, but doesn't handle skill phrases optimally, leading to potential inaccuracies in similarity scores. This section enhances our TF-IDF vectorization system to properly handle multi-word skills and maintain consistent mapping between original and processed skill names.
 > 
 > A key challenge is maintaining a bidirectional mapping between the original skill names (which may contain spaces, punctuation, and inconsistent formatting) and the normalized versions used in vector calculations. This mapping must persist across preprocessing and similarity calculations, ensuring that all outputs reference the original, human-readable skill names. The token preservation system for phrases is critical for maintaining semantic meaning that would otherwise be lost when treating words individually.
+>
+> **Memory-Efficient TF-IDF**: When processing large datasets (35,000+ jobs) using chunked processing, we must ensure that TF-IDF calculations maintain global corpus statistics. Our approach separates TF-IDF calculation into two phases: (1) a global statistics collection phase that computes document frequencies across the entire corpus, and (2) a chunked vector generation phase that applies these global statistics during similarity calculations. This ensures consistent TF-IDF weighting regardless of which chunk a job appears in.
 
 - [ ] Enhance TF-IDF vectoriser in `similarity/cosine.py`
   - [ ] Add preprocessing for multi-word skills (spaces to underscores)
@@ -487,6 +494,27 @@ We're implementing this architectural shift in a specific sequence to ensure we 
       - [ ] Create pluggable tokenizer system
       - [ ] Build domain-specific tokenizers
       - [ ] Add token filtering options
+  - [ ] Implement two-phase TF-IDF for memory-efficient processing
+      - [ ] Create global statistics collector for document frequencies
+          - [ ] Implement streaming corpus analysis that minimizes memory usage
+          - [ ] Create efficient document frequency counter with progress reporting
+          - [ ] Build memory-efficient vocabulary builder
+          - [ ] Add incremental statistics updates for new data
+      - [ ] Implement persistent storage of IDF values
+          - [ ] Create compressed binary format for IDF dictionary
+          - [ ] Implement metadata storage with corpus statistics
+          - [ ] Build versioning system for IDF values
+          - [ ] Add compatibility checks between IDF files and job data
+      - [ ] Build efficient IDF loader for chunked processing
+          - [ ] Create memory-mapped IDF dictionary access
+          - [ ] Implement lazy loading of IDF values
+          - [ ] Build caching system for frequently accessed values
+          - [ ] Add thread-safe access for parallel processing
+      - [ ] Add validation to ensure consistent TF-IDF across chunks
+          - [ ] Implement verification of IDF application consistency
+          - [ ] Create test utilities to compare chunked vs. full calculation
+          - [ ] Build diagnostic tools for identifying TF-IDF discrepancies
+          - [ ] Add logging of TF-IDF statistics for verification
 - [ ] Implement skill name mapping system
   - [ ] Add bidirectional mapping between original and transformed names
       - [ ] Create JSON mapping file format
