@@ -1,6 +1,6 @@
 # Skill Similarity Engine – Branching Structure
 
-This document outlines the Git branching strategy for the Skill Similarity Engine project, reflecting the structure and workflow described in the project plan.
+This document outlines the Git branching strategy for the Skill Similarity Engine project, reflecting the structure and workflow described in the project plan. **Numbering is used to match phases/features/subfeatures to the project plan for easy cross-reference.**
 
 ---
 
@@ -18,18 +18,24 @@ This document outlines the Git branching strategy for the Skill Similarity Engin
 
 ---
 
-## Feature Branches
+## Feature Branches (Numbered by Project Phase)
 
-- **feature/feature-name**
-  - Used for developing a specific feature or major enhancement
-  - Branches from `develop`
-  - Example: `feature/similarity-engine`, `feature/cli-testing`
-  
-- **feature/feature-name/subfeature-name**
-  - Used for subcomponents or tasks within a feature
-  - Branches from the parent feature branch
-  - Example: `feature/poc-integration/error-handling`, `feature/cli-testing/logging`
-  
+- **1-feature/core-framework**
+- **2-feature/similarity-engine**
+  - **2.1-feature/similarity-engine/tf-idf**
+  - **2.2-feature/similarity-engine/parallel-processing**
+- **3-feature/gap-analysis**
+- **4-feature/reporting-visualization**
+- **5-feature/cli-testing**
+  - **5.1-feature/cli-testing/logging**
+  - **5.2-feature/cli-testing/error-handling**
+- **6-feature/poc-integration**
+  - **6.2-feature/poc-integration/memory-management**
+  - **6.3-feature/poc-integration/performance-optimization**
+  - **6.13-feature/poc-integration/error-handling**
+- **7-feature/data-pipeline**
+- **8-feature/cli-production-readiness**
+
 - Subfeatures are merged into their parent feature branch when complete
 - Feature branches are merged into `develop` when all subfeatures are complete and tested
 
@@ -44,36 +50,37 @@ This document outlines the Git branching strategy for the Skill Similarity Engin
 
 ---
 
-## Example Branch Hierarchy
+## Example Branch Hierarchy (Numbered)
 
 ```
 main
 └── develop
-    ├── feature/core-framework
-    ├── feature/similarity-engine
-    │   ├── feature/similarity-engine/tf-idf
-    │   └── feature/similarity-engine/parallel-processing
-    ├── feature/gap-analysis
-    ├── feature/reporting-visualization
-    ├── feature/cli-testing
-    │   ├── feature/cli-testing/logging
-    │   └── feature/cli-testing/error-handling
-    ├── feature/poc-integration
-    │   ├── feature/poc-integration/memory-management
-    │   ├── feature/poc-integration/performance-optimization
-    │   └── feature/poc-integration/error-handling
-    └── feature/data-pipeline
+    ├── 1-feature/core-framework
+    ├── 2-feature/similarity-engine
+    │   ├── 2.1-feature/similarity-engine/tf-idf
+    │   └── 2.2-feature/similarity-engine/parallel-processing
+    ├── 3-feature/gap-analysis
+    ├── 4-feature/reporting-visualization
+    ├── 5-feature/cli-testing
+    │   ├── 5.1-feature/cli-testing/logging
+    │   └── 5.2-feature/cli-testing/error-handling
+    ├── 6-feature/poc-integration
+    │   ├── 6.2-feature/poc-integration/memory-management
+    │   ├── 6.3-feature/poc-integration/performance-optimization
+    │   └── 6.4-feature/poc-integration/error-handling
+    ├── 7-feature/data-pipeline
+    └── 8-feature/cli-production-readiness
 ```
 
 ---
-****
+
 ## Branch Naming Conventions
 
-- Use `feature/` for new features or enhancements
+- Use `feature/` for new features or enhancements, prefixed with the phase number
 - Use `bugfix/` for bug fixes
 - Use `hotfix/` for urgent production fixes (branch from `main`)
 - Use `release/` for release branches if needed
-- Use descriptive names for clarity (e.g., `feature/cli-production-readiness`)
+- Use descriptive names for clarity (e.g., `8-feature/cli-production-readiness`)
 
 ---
 
@@ -83,4 +90,4 @@ main
 - Delete branches after merging
 - Use pull requests for all merges to `develop` and `main`
 - Reference issues in branch names or pull requests when possible
-- Follow the commit and PR guidelines in the project plan 
+- Follow the commit and PR guidelines in the project plan
