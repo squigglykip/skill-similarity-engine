@@ -16,6 +16,8 @@ import networkx as nx
 import logging
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer as SklearnTfidfVectorizer
+import tempfile
+import shutil
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(name)s:%(levelname)s:%(message)s')
@@ -31,6 +33,8 @@ from skill_similarity_engine.models.jobs import JobArchitecture
 from skill_similarity_engine.data.loaders import JobArchitectureLoader
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator
 from skill_similarity_engine.analysis.gap import TeamGapAnalyzer
+from skill_similarity_engine.hris_adapter.transformer import HRISTransformer
+from tests.functional import BaseFunctionalTest
 
 # Custom TfidfVectorizer for testing
 class TfidfVectorizer:
@@ -249,7 +253,7 @@ class TeamGapAnalyzer:
         # Return as DataFrame
         return pd.DataFrame(gap_data)
 
-class TestJobTransitionPathways(unittest.TestCase):
+class TestJobTransitionPathways(BaseFunctionalTest):
     """Test job transition pathway identification and validation."""
     
     @classmethod
@@ -258,67 +262,58 @@ class TestJobTransitionPathways(unittest.TestCase):
         # Define data paths
         cls.use_real_data = os.environ.get("USE_REAL_DATA", "False").lower() == "true"
         
-        if cls.use_real_data:
-            # Path to real data
-            cls.data_dir = os.environ.get("REAL_DATA_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'real'))
-            logger.info(f"Using real data from: {cls.data_dir}")
-            
-            # Check if real data directory exists
-            if not os.path.exists(cls.data_dir):
-                logger.warning(f"Real data directory does not exist: {cls.data_dir}")
-                logger.warning("Falling back to sample data")
-                cls.use_real_data = False
-        
-        # Use sample data as fallback
-        if not cls.use_real_data:
-            cls.data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'sample')
-            logger.info(f"Using sample data from: {cls.data_dir}")
-        
         # Setup output directory for test artifacts
         cls.output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'output', 'tests', 'transition_paths')
         os.makedirs(cls.output_dir, exist_ok=True)
         
-        # Load data
-        logger.info("Loading skill taxonomy...")
-        cls.skill_taxonomy = SkillTaxonomy.from_file(os.path.join(cls.data_dir, 'skills.csv'))
-        logger.info(f"Loaded {len(cls.skill_taxonomy.skills)} skills")
-        
-        logger.info("Loading job architecture...")
-        job_loader = JobArchitectureLoader(cls.skill_taxonomy)
-        cls.job_architecture = job_loader.load_from_csv(os.path.join(cls.data_dir, 'jobs.csv'))
-        logger.info(f"Loaded {len(cls.job_architecture.jobs)} jobs")
-        
-        # Initialize similarity calculator
-        cls.similarity_calculator = CosineSimilarityCalculator(
-            vectorizer=TfidfVectorizer(),  # Use our custom TfidfVectorizer
-            skill_taxonomy=cls.skill_taxonomy,
-            job_architecture=cls.job_architecture
-        )
-        
-        # Initialize gap analyzer
-        cls.gap_analyzer = TeamGapAnalyzer(
-            skill_taxonomy=cls.skill_taxonomy,
-            job_architecture=cls.job_architecture,
-            employee_database=None  # Add empty employee database parameter
-        )
-        
-        # Initialize pathway generator
-        cls.pathway_generator = CareerPathwayGenerator(
-            skill_taxonomy=cls.skill_taxonomy,
-            job_architecture=cls.job_architecture,
-            similarity_calculator=cls.similarity_calculator,
-            gap_analyzer=cls.gap_analyzer
-        )
-        
-        # Get departments for testing
-        cls.departments = set(job.department for job in cls.job_architecture.jobs.values())
-        logger.info(f"Found {len(cls.departments)} departments")
+        # The rest of the setup will happen in setUp()
+    
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up after all tests."""
+        pass
     
     def setUp(self):
         """Set up test fixtures for each test."""
+        # Call parent setUp to get centralized test data
+        super().setUp()
+        
         # Skip tests if using sample data but real data is required
+        if not hasattr(self, 'use_real_data'):
+            self.__class__.use_real_data = False
         if not self.use_real_data and os.environ.get("REQUIRE_REAL_DATA", "False").lower() == "true":
             self.skipTest("These tests require real data.")
+        
+        # Initialize similarity calculator
+        self.similarity_calculator = CosineSimilarityCalculator(
+            vectorizer=TfidfVectorizer(),  # Use our custom TfidfVectorizer
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture
+        )
+        
+        # Initialize gap analyzer
+        self.gap_analyzer = TeamGapAnalyzer(
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture,
+            employee_database=self.employee_database
+        )
+        
+        # Initialize pathway generator
+        self.pathway_generator = CareerPathwayGenerator(
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture,
+            similarity_calculator=self.similarity_calculator,
+            gap_analyzer=self.gap_analyzer
+        )
+        
+        # Get departments for testing
+        self.departments = set(job.department for job in self.job_architecture.jobs.values())
+        logger.info(f"Found {len(self.departments)} departments")
+        
+        # Set output directory for this test class
+        if not hasattr(self.__class__, 'output_dir'):
+            self.__class__.output_dir = os.path.join(self.output_dir, 'transition_paths')
+            os.makedirs(self.__class__.output_dir, exist_ok=True)
     
     def test_direct_transition_identification(self):
         """Test identification of direct job transitions based on similarity."""

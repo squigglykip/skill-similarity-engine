@@ -1,0 +1,7 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J005,Financial Analyst,Finance,J011,Marketing Specialist,Marketing,0.6470588235294117
+J005,Financial Analyst,Finance,J012,Senior Marketing Specialist,Marketing,0.6470588235294118
+J005,Financial Analyst,Finance,J019,Digital Marketing Specialist,Marketing,0.6470588235294117
+J006,Senior Financial Analyst,Finance,J011,Marketing Specialist,Marketing,0.6470588235294118
+J006,Senior Financial Analyst,Finance,J012,Senior Marketing Specialist,Marketing,0.6470588235294118
+J006,Senior Financial Analyst,Finance,J019,Digital Marketing Specialist,Marketing,0.6470588235294118

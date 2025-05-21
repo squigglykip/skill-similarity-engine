@@ -14,9 +14,9 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 from skill_similarity_engine.models.jobs import Job, JobArchitecture, JobLevel, RoleTrack
-from skill_similarity_engine.models.skills import SkillTaxonomy
+from skill_similarity_engine.models.skills import SkillTaxonomy, Skill, SkillType
 from skill_similarity_engine.similarity.cosine import CosineSimilarityCalculator, TfidfVectorizer
-from skill_similarity_engine.config.settings import ConfigManager, AppConfig, FutureExtensionConfig
+from skill_similarity_engine.config.settings import ConfigManager, Config, FutureExtensionConfig
 
 
 class TestEnhancedSimilarity(unittest.TestCase):
@@ -26,9 +26,28 @@ class TestEnhancedSimilarity(unittest.TestCase):
         """Set up test data and mock objects."""
         # Create a mock skill taxonomy
         self.skill_taxonomy = SkillTaxonomy()
-        self.skill_taxonomy.add_skill("S001", "Programming", "Technical")
-        self.skill_taxonomy.add_skill("S002", "Leadership", "Soft")
-        self.skill_taxonomy.add_skill("S003", "Data Analysis", "Technical")
+        
+        # Create skills with proper Skill objects
+        skill1 = Skill(
+            skill_id="S001",
+            name="Programming",
+            skill_type=SkillType.SPECIALIZED
+        )
+        skill2 = Skill(
+            skill_id="S002",
+            name="Leadership",
+            skill_type=SkillType.COMMON
+        )
+        skill3 = Skill(
+            skill_id="S003",
+            name="Data Analysis",
+            skill_type=SkillType.SPECIALIZED
+        )
+        
+        # Add skills to taxonomy
+        self.skill_taxonomy.add_skill(skill1)
+        self.skill_taxonomy.add_skill(skill2)
+        self.skill_taxonomy.add_skill(skill3)
         
         # Create a job architecture with test jobs
         self.job_architecture = JobArchitecture()
@@ -251,6 +270,94 @@ class TestEnhancedSimilarity(unittest.TestCase):
         # Values should be in [0, 1] range
         self.assertTrue(np.all(matrix >= 0.0))
         self.assertTrue(np.all(matrix <= 1.0))
+
+    def test_skill_type_effect(self):
+        """Test the effect of skill types on similarity."""
+        # Enable only skill type with weight 1.0
+        self.config_manager.config.future_extensions.seniority_weight = 0.0
+        self.config_manager.config.future_extensions.role_track_weight = 0.0
+        self.config_manager.config.future_extensions.location_weight = 0.0
+        self.config_manager.config.future_extensions.skill_type_weight = 1.0
+        
+        # Configure skill type weights
+        self.config_manager.config.future_extensions.skill_type_similarity_weights = {
+            "CERTIFICATION": 1.0,
+            "COMMON": 0.7,
+            "SPECIALIZED": 1.8
+        }
+        
+        # Set up mock skill taxonomy with skill types
+        # Create a specialized skill
+        specialized_skill = Skill(
+            skill_id="S004",
+            name="Advanced Data Science",
+            skill_type=SkillType.SPECIALIZED
+        )
+        self.skill_taxonomy.add_skill(specialized_skill)
+        
+        # Create a common skill
+        common_skill = Skill(
+            skill_id="S005",
+            name="Basic Email",
+            skill_type=SkillType.COMMON
+        )
+        self.skill_taxonomy.add_skill(common_skill)
+        
+        # Create job 5: Senior Developer with specialized skill
+        job5 = Job(
+            job_id="J005",
+            title="Senior Developer with Specialization",
+            department="Engineering",
+            level=JobLevel.SENIOR,
+            skills={"S001": 5, "S003": 4, "S004": 5},
+            seniority=4,
+            role_track=RoleTrack.INDIVIDUAL_CONTRIBUTOR,
+            location="London"
+        )
+        
+        # Create job 6: Senior Developer with common skill
+        job6 = Job(
+            job_id="J006",
+            title="Senior Developer with Common Skills",
+            department="Engineering",
+            level=JobLevel.SENIOR,
+            skills={"S001": 5, "S003": 4, "S005": 5},
+            seniority=4,
+            role_track=RoleTrack.INDIVIDUAL_CONTRIBUTOR,
+            location="London"
+        )
+        
+        # Add jobs to architecture
+        self.job_architecture.add_job(job5)
+        self.job_architecture.add_job(job6)
+        
+        # Create new calculator with updated taxonomy
+        self.vectorizer = TfidfVectorizer(self.skill_taxonomy)
+        self.calculator = CosineSimilarityCalculator(
+            vectorizer=self.vectorizer,
+            skill_taxonomy=self.skill_taxonomy,
+            job_architecture=self.job_architecture,
+            config_manager=self.config_manager
+        )
+        
+        # Calculate similarity between job5 (with specialized skill) and job2 (without specialized skill)
+        similarity_specialized_missing = self.calculator.calculate_job_similarity("J005", "J002")
+        
+        # Calculate similarity between job6 (with common skill) and job2 (without common skill)
+        similarity_common_missing = self.calculator.calculate_job_similarity("J006", "J002")
+        
+        # Missing a specialized skill should reduce similarity more than missing a common skill
+        self.assertLess(similarity_specialized_missing, similarity_common_missing)
+        
+        # Test with different weights
+        # Increase the impact of specialized skills
+        self.config_manager.config.future_extensions.skill_type_similarity_weights["SPECIALIZED"] = 3.0
+        
+        # Recalculate similarity
+        similarity_specialized_high_weight = self.calculator.calculate_job_similarity("J005", "J002")
+        
+        # Increasing specialized weight should further reduce similarity
+        self.assertLess(similarity_specialized_high_weight, similarity_specialized_missing)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,4 @@
+job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
+J007,Software Engineer,Technology,J010,Product Manager,Product,0.6876536899094409
+J008,Senior Software Engineer,Technology,J010,Product Manager,Product,0.6852459897109829
+J009,UI/UX Designer,Technology,J010,Product Manager,Product,0.7557298574688363

@@ -1,0 +1,16 @@
+job_code,job_title,department,level_code,pay_band,track,location,is_active
+101,Senior Software Engineer,Technology,L4,P4,Technical,Melbourne,TRUE
+102,Product Manager,Product,L3,P3,Management,Sydney,TRUE
+103,Data Scientist,Analytics,L3,P3,Technical,Melbourne,TRUE
+104,UX Designer,Design,L2,P2,Technical,Sydney,TRUE
+105,HR Business Partner,Human Resources,L3,P3,Management,Brisbane,TRUE
+106,Marketing Specialist,Marketing,L2,P2,Individual Contributor,Melbourne,TRUE
+107,Finance Analyst,Finance,L2,P2,Individual Contributor,Sydney,TRUE
+108,Customer Service Representative,Customer Support,L1,P1,Individual Contributor,Perth,TRUE
+109,DevOps Engineer,Technology,L3,P3,Technical,Melbourne,TRUE
+110,Business Analyst,Business,L2,P2,Individual Contributor,Sydney,TRUE
+111,Sales Representative,Sales,L2,P2,Individual Contributor,Melbourne,TRUE
+112,Content Writer,Marketing,L2,P2,Individual Contributor,Brisbane,TRUE
+113,Software Engineer,Technology,L2,P2,Technical,Sydney,TRUE
+114,Project Manager,Project Management,L3,P3,Management,Melbourne,TRUE
+115,Quality Assurance Analyst,Technology,L2,P2,Technical,Sydney,FALSE 

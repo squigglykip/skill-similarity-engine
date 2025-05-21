@@ -752,11 +752,13 @@ class ReportConfig:
     """Configuration for report generation."""
     format: str = "csv"
     include_metadata: bool = False
+    include_job_metadata: bool = False
+    include_employee_metadata: bool = False
     add_opportunity_flags: bool = False
     department: Optional[str] = None
     departments: Optional[List[str]] = None
     threshold: float = 0.0
-    include_self_comparisons: bool = False
+    include_self_comparisons: bool = True
     
     def get_threshold(self, name: str, default: float) -> float:
         """Get a threshold value or use the default."""
@@ -775,37 +777,52 @@ class DataExporter:
         self,
         skill_taxonomy: SkillTaxonomy,
         job_architecture: JobArchitecture,
-        employee_database: Optional[EmployeeDatabase] = None,
+        similarity_calculator = None,
         output_dir: Optional[str] = None
     ):
-        """
-        Initialize the data exporter.
+        """Initialize the exporter.
         
         Args:
             skill_taxonomy: Skill taxonomy
             job_architecture: Job architecture
-            employee_database: Employee database (optional)
-            output_dir: Output directory (default: config.output_dir)
+            similarity_calculator: Optional pre-initialized calculator
+            output_dir: Directory for output files
         """
         self.skill_taxonomy = skill_taxonomy
         self.job_architecture = job_architecture
-        self.employee_database = employee_database
-        self.output_dir = output_dir or get_config().output_dir
-        self.similarity_calculator = None
+        self.similarity_calculator = similarity_calculator
+        self.output_dir = output_dir or get_output_path()
+    
+    def _get_original_skill_name(self, processed_name: str) -> str:
+        """
+        Convert a processed skill name back to its original form.
         
+        Args:
+            processed_name: The processed skill name with underscores
+            
+        Returns:
+            The original skill name with spaces
+        """
+        if hasattr(self.skill_taxonomy, 'skill_name_mapping'):
+            return self.skill_taxonomy.skill_name_mapping.get(processed_name, processed_name)
+        return processed_name
+    
     def _initialize_similarity_calculator(self):
-        """Initialize the similarity calculator if not already initialized."""
+        """Initialize the similarity calculator if not already provided."""
         try:
             from ..similarity.cosine import CosineSimilarityCalculator, TfidfVectorizer
+            
+            # Create vectorizer
             vectorizer = TfidfVectorizer(self.skill_taxonomy)
+            
+            # Create calculator
             self.similarity_calculator = CosineSimilarityCalculator(
                 vectorizer=vectorizer,
                 skill_taxonomy=self.skill_taxonomy,
-                job_architecture=self.job_architecture,
-                employee_database=self.employee_database
+                job_architecture=self.job_architecture
             )
-        except ImportError:
-            raise ImportError("Similarity module not available")
+        except ImportError as e:
+            raise ImportError(f"Could not initialize similarity calculator: {e}")
     
     def export_job_similarity_matrix(
         self,
@@ -821,7 +838,7 @@ class DataExporter:
             output_path: Path to save the exported data
             
         Returns:
-            DataFrame containing job similarity matrix
+            DataFrame containing job similarity data in tabular format with enhancement factor contributions
             
         Raises:
             ValueError: If no jobs found for the department
@@ -839,53 +856,105 @@ class DataExporter:
         if not self.similarity_calculator:
             self._initialize_similarity_calculator()
         
-        # Build matrix
+        # Get enhancement factor weights from config
+        enhancement_config = self.similarity_calculator.config_manager.get_config().future_extensions
+        
+        # Build tabular data
         matrix_data = []
         
         for job1 in department_jobs:
             for job2 in department_jobs:
-                # Skip self-comparisons if not needed
-                if job1.job_id == job2.job_id and not config.include_self_comparisons:
-                    continue
-                
-                # Calculate similarity
-                similarity = self._calculate_job_similarity(job1, job2)
+                # For self-comparisons, use 1.0 as similarity with all factors being perfect
+                if job1.job_id == job2.job_id:
+                    row = {
+                        "job1_id": job1.job_id,
+                        "job2_id": job2.job_id,
+                        "similarity": 1.0,
+                        # Enhancement factor weights
+                        "seniority_weight": enhancement_config.seniority_weight,
+                        "role_track_weight": enhancement_config.role_track_weight,
+                        "location_weight": enhancement_config.location_weight,
+                        "skill_type_weight": enhancement_config.skill_type_weight,
+                        # Perfect similarity for self-comparisons
+                        "seniority_factor": 1.0,
+                        "role_track_factor": 1.0,
+                        "location_factor": 1.0,
+                        "skill_type_factor": 1.0,
+                        "base_skill_similarity": 1.0
+                    }
+                else:
+                    # Calculate base skill similarity
+                    base_similarity = self.similarity_calculator._calculate_base_skill_similarity(job1.job_id, job2.job_id)
+                    
+                    # Calculate individual enhancement factors
+                    seniority_factor = self.similarity_calculator._calculate_seniority_similarity(job1, job2)
+                    role_track_factor = self.similarity_calculator._calculate_role_track_similarity(job1, job2)
+                    location_factor = self.similarity_calculator._calculate_location_similarity(job1, job2)
+                    skill_type_factor = self.similarity_calculator._calculate_skill_type_similarity(job1, job2)
+                    
+                    # Calculate final weighted similarity
+                    total_weight = (1.0 + enhancement_config.seniority_weight + 
+                                  enhancement_config.role_track_weight + 
+                                  enhancement_config.location_weight + 
+                                  enhancement_config.skill_type_weight)
+                    
+                    weighted_similarity = (
+                        base_similarity + 
+                        (seniority_factor * enhancement_config.seniority_weight) +
+                        (role_track_factor * enhancement_config.role_track_weight) +
+                        (location_factor * enhancement_config.location_weight) +
+                        (skill_type_factor * enhancement_config.skill_type_weight)
+                    ) / total_weight
+                    
+                    row = {
+                        "job1_id": job1.job_id,
+                        "job2_id": job2.job_id,
+                        "similarity": weighted_similarity,
+                        # Enhancement factor weights
+                        "seniority_weight": enhancement_config.seniority_weight,
+                        "role_track_weight": enhancement_config.role_track_weight,
+                        "location_weight": enhancement_config.location_weight,
+                        "skill_type_weight": enhancement_config.skill_type_weight,
+                        # Individual factor contributions
+                        "seniority_factor": seniority_factor,
+                        "role_track_factor": role_track_factor,
+                        "location_factor": location_factor,
+                        "skill_type_factor": skill_type_factor,
+                        "base_skill_similarity": base_similarity
+                    }
                 
                 # Apply threshold
-                if similarity < config.threshold:
+                if row["similarity"] < config.threshold:
                     continue
-                
-                # Use old column names for backward compatibility with tests
-                row = {
-                    "job1_id": job1.job_id,
-                    "job2_id": job2.job_id,
-                    "similarity": similarity
-                }
                 
                 # Add metadata if needed
                 if config.include_metadata:
                     row.update({
                         "job1_title": job1.title,
                         "job2_title": job2.title,
-                        "department": job1.department
+                        "job1_department": job1.department,
+                        "job2_department": job2.department,
+                        "job1_level": job1.level.value if job1.level else None,
+                        "job2_level": job2.level.value if job2.level else None,
+                        "job1_role_track": job1.role_track.name if job1.role_track else None,
+                        "job2_role_track": job2.role_track.name if job2.role_track else None
                     })
                 
                 # Add opportunity flags if needed
                 if config.add_opportunity_flags:
                     # Determine if this is a high similarity opportunity
-                    is_high_similarity = similarity >= config.get_threshold("high_similarity", 0.8)
+                    is_high_similarity = row["similarity"] >= config.get_threshold("high_similarity", 0.8)
                     
                     # Determine if this is an internal mobility opportunity based on levels
                     is_internal_mobility = False
                     if job1.level and job2.level and job1.level != job2.level:
-                        # For now, a simple level difference counts as mobility
                         is_internal_mobility = True
                     
                     # Add flags to row
                     row.update({
                         "is_high_similarity_opportunity": is_high_similarity,
                         "is_internal_mobility_opportunity": is_internal_mobility,
-                        "is_cross_departmental_opportunity": False  # Same department
+                        "is_cross_departmental_opportunity": job1.department != job2.department
                     })
                 
                 matrix_data.append(row)
@@ -897,24 +966,125 @@ class DataExporter:
         if not df.empty:
             df = df.sort_values(by="similarity", ascending=False)
         
-        # Save to file if path provided
-        if output_path:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        return df 
+
+    def export_job_similarity_matrix_all_departments(
+        self,
+        config: Optional[ReportConfig] = None,
+        include_self_comparisons: bool = True
+    ) -> pd.DataFrame:
+        """Export job similarity matrix for all departments.
+        
+        Args:
+            config: Report configuration (if None, defaults to CSV)
+            include_self_comparisons: Whether to include self-comparisons (diagonal)
             
-            # Export based on format
-            if config.format.lower() == "csv":
-                df.to_csv(output_path, index=False)
-            elif config.format.lower() == "json":
-                df.to_json(output_path, orient="records", indent=2)
-            elif config.format.lower() == "excel":
-                df.to_excel(output_path, index=False)
-        
-        return df
-        
-    def _calculate_job_similarity(self, job1: Any, job2: Any) -> float:
-        """Calculate similarity between two jobs."""
+        Returns:
+            DataFrame containing the similarity matrix
+        """
+        if config is None:
+            config = ReportConfig(format="csv")
+            
+        # Initialize similarity calculator if needed
         if not self.similarity_calculator:
             self._initialize_similarity_calculator()
             
-        return self.similarity_calculator.calculate_job_similarity(job1.job_id, job2.job_id) 
+        # Get all jobs
+        jobs = list(self.job_architecture.jobs.values())
+        n_jobs = len(jobs)
+        
+        # Initialize results list
+        results = []
+        
+        # Calculate similarities
+        for i, job1 in enumerate(jobs):
+            for j, job2 in enumerate(jobs):
+                if not include_self_comparisons and i == j:
+                    continue
+                    
+                # Calculate base similarity
+                base_similarity = self.similarity_calculator.calculate_job_similarity(job1.job_id, job2.job_id)
+                
+                # Get job metadata
+                job1_title = job1.title
+                job1_dept = job1.department
+                job2_title = job2.title
+                job2_dept = job2.department
+                
+                # Add to results
+                results.append({
+                    'job1_id': job1.job_id,
+                    'job1_title': job1_title,
+                    'job1_department': job1_dept,
+                    'job2_id': job2.job_id,
+                    'job2_title': job2_title,
+                    'job2_department': job2_dept,
+                    'similarity': base_similarity
+                })
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(results)
+        
+        # Sort by similarity score
+        df = df.sort_values('similarity', ascending=False)
+        
+        return df 
+
+    def export_job_skills(
+        self,
+        job_id: str,
+        config: Optional[ReportConfig] = None,
+        output_path: Optional[str] = None
+    ) -> pd.DataFrame:
+        """Export skills for a job.
+        
+        Args:
+            job_id: Job ID
+            config: Report configuration
+            output_path: Path to save the exported data
+            
+        Returns:
+            DataFrame containing job skills
+            
+        Raises:
+            ValueError: If job not found
+        """
+        config = config or ReportConfig()
+        
+        # Check if job exists
+        if job_id not in self.job_architecture.jobs:
+            raise ValueError(f"Job not found: {job_id}")
+        
+        # Get job
+        job = self.job_architecture.jobs[job_id]
+        
+        # Build skill data
+        skill_data = []
+        for skill_id, proficiency in job.skills.items():
+            # Get skill from taxonomy
+            skill = self.skill_taxonomy.skills.get(skill_id)
+            if skill:
+                # Get original skill name if available
+                skill_name = self._get_original_skill_name(skill.name) if hasattr(self, '_get_original_skill_name') else skill.name
+                
+                # Add skill data
+                skill_data.append({
+                    "skill_id": skill_id,
+                    "skill_name": skill_name,
+                    "proficiency": proficiency,
+                    "category": self.skill_taxonomy.get_skill_category_name(skill_id),
+                    "skill_type": skill.skill_type.name if skill.skill_type else "UNKNOWN"
+                })
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(skill_data)
+        
+        # Sort by proficiency (descending)
+        if not df.empty:
+            df = df.sort_values(by="proficiency", ascending=False)
+        
+        # Save to file if output path provided
+        if output_path:
+            df.to_csv(output_path, index=False)
+        
+        return df 

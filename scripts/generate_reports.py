@@ -10,17 +10,23 @@ Power BI integration.
 import os
 import sys
 import click
+import pandas as pd
 from pathlib import Path
 
-# Add the src directory to the path so we can import our package
-src_path = str(Path(__file__).parent.parent / 'src')
-sys.path.insert(0, src_path)
-from skill_similarity_engine.config.settings import get_config, ConfigFormat
+# Add the src directory to the Python path
+src_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
 from skill_similarity_engine.models.skills import SkillTaxonomy
 from skill_similarity_engine.models.jobs import JobArchitecture
 from skill_similarity_engine.models.employees import EmployeeDatabase
 from skill_similarity_engine.analysis.gap import SkillGapAnalyzer
-from skill_similarity_engine.visualization.reports import ReportGenerator, ReportConfig
+from skill_similarity_engine.visualization.reports import (
+    ReportGenerator, ReportConfig, GapAnalysisReportGenerator, 
+    ReportConfiguration, ReportFormat, SimilarityReportGenerator
+)
+from skill_similarity_engine.config.settings import ConfigManager, get_config
 
 
 @click.group()
@@ -128,7 +134,12 @@ def skill_gap_analysis(ctx, skill_taxonomy_file, job_architecture_file,
         include_employee_metadata=True,
         add_opportunity_flags=add_opportunity_flags
     )
-    report_generator = ReportGenerator(taxonomy, report_config)
+    report_generator = GapAnalysisReportGenerator(
+        skill_taxonomy=taxonomy,
+        job_architecture=job_arch,
+        employee_database=employee_db,
+        report_config=report_config
+    )
     
     # Generate output filename components
     parts = ["skill_gap"]
@@ -151,15 +162,24 @@ def skill_gap_analysis(ctx, skill_taxonomy_file, job_architecture_file,
         employee = employee_db.get_employee(employee_id)
         job = job_arch.get_job(target_job_id)
         
-        gap_analyzer = SkillGapAnalyzer(taxonomy, config.gap_analysis)
-        gap_analysis = gap_analyzer.analyze_employee_job_gap(employee, job)
+        gap_analyzer = SkillGapAnalyzer(
+            skill_taxonomy=taxonomy,
+            job_architecture=job_arch,
+            employee_database=employee_db
+        )
+        gap_analysis = gap_analyzer.analyze_employee_job_gap(employee_id, target_job_id)
         
+        # Convert to DataFrame
+        df = gap_analysis.to_dataframe()
+        
+        # Save results
+        click.echo(f"Saving results to {output_file}...")
         if output_format == "csv":
-            gap_analysis.to_csv(output_file)
+            df.to_csv(output_file, index=False)
         elif output_format == "json":
-            gap_analysis.to_json(output_file, orient="records")
+            df.to_json(output_file, orient="records")
         else:  # excel
-            gap_analysis.to_excel(output_file, index=False)
+            df.to_excel(output_file, index=False)
     else:
         # Comprehensive gap analysis
         click.echo("Generating comprehensive skill gap analysis...")
@@ -242,7 +262,11 @@ def job_similarity_export(ctx, skill_taxonomy_file, job_architecture_file,
         include_job_metadata=True,
         add_opportunity_flags=add_opportunity_flags
     )
-    report_generator = ReportGenerator(taxonomy, report_config)
+    report_generator = SimilarityReportGenerator(
+        skill_taxonomy=taxonomy,
+        job_architecture=job_arch,
+        report_config=report_config
+    )
     
     # Generate the job similarity export
     click.echo("Generating job similarity export...")
@@ -319,7 +343,12 @@ def employee_similarity_export(ctx, skill_taxonomy_file, job_architecture_file,
         include_job_metadata=True,
         add_opportunity_flags=add_opportunity_flags
     )
-    report_generator = ReportGenerator(taxonomy, report_config)
+    report_generator = SimilarityReportGenerator(
+        skill_taxonomy=taxonomy,
+        job_architecture=job_arch,
+        employee_database=employee_db,
+        report_config=report_config
+    )
     
     # Generate the employee similarity export
     click.echo("Generating employee similarity export...")

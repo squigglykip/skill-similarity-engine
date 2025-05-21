@@ -1,0 +1,6 @@
+skill_id,skill_name,category_id,category_name,job_proficiency,employee_proficiency,proficiency_gap,development_effort,gap_type
+S001,Python,C001,SkillType.SPECIALIZED,3,4,0,0,Match
+S002,Java,C001,SkillType.SPECIALIZED,3,3,0,0,Match
+S003,JavaScript,C001,SkillType.SPECIALIZED,3,5,0,0,Match
+S007,Communication,C002,SkillType.COMMON,3,3,0,0,Match
+S009,Problem Solving,C002,SkillType.COMMON,3,4,0,0,Match

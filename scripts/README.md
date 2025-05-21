@@ -1,60 +1,96 @@
-# Skill Similarity Engine CLI Scripts
+# Skill Similarity Engine Scripts
 
-This directory contains command-line interface (CLI) scripts for the Skill Similarity Engine.
+This directory contains scripts for running the Skill Similarity Engine.
 
-## Overview
+## Available Scripts
 
-- `skillsim.py`: Main entry point that provides access to all commands
-- `run_similarity.py`: Commands for calculating similarity between jobs and employees
-- `generate_reports.py`: Commands for generating reports and data exports
-- `help_docs.py`: Script to generate comprehensive CLI documentation
-
-## Installation
-
-When the package is installed, these scripts are available as the following commands:
-
-- `skillsim`: Main command with all functionality
-- `skill-similarity`: Focused on similarity calculations
-- `skill-reports`: Focused on report generation
+- **skillsim.py**: Main CLI interface for the Skill Similarity Engine
+- **run_similarity.py**: Run various similarity analyses (job-to-job, employee-to-job, etc.)
+- **visualize.py**: Create visualizations of similarity results
+- **generate_reports.py**: Generate reports and summaries from similarity results
+- **hris_transform.py**: Transform HRIS data into formats compatible with the Skill Similarity Engine
 
 ## Usage
 
-### Quick Start
-
-To get started with the CLI, run:
+### Main CLI Interface
 
 ```bash
-# Display help information
-python scripts/skillsim.py --help
-
-# Generate a configuration template
-python scripts/skillsim.py generate-config config.yaml
-
-# Calculate job similarities
-python scripts/skillsim.py job-similarity data/skill_taxonomy.csv data/job_architecture.csv
-
-# Generate skill gap analysis
-python scripts/skillsim.py skill-gap-analysis data/skill_taxonomy.csv data/job_architecture.csv data/employee_database.csv
+python skillsim.py --help
 ```
 
-### Working with Large Datasets
+See the [CLI Documentation](../docs/user_guide.md) for more details.
 
-For large datasets, we recommend filtering by department and using appropriate thresholds:
+### Similarity Analysis
 
 ```bash
-python scripts/skillsim.py job-similarity-export data/skill_taxonomy.csv data/job_architecture.csv --department "Finance"
+python run_similarity.py jobs-to-jobs --config-file path/to/config.yaml
 ```
 
-### Documentation
+See the [Similarity Analysis Documentation](../docs/practical_applications.md) for more details.
 
-To generate comprehensive CLI documentation, run:
+### Visualization
 
 ```bash
-python scripts/help_docs.py
+python visualize.py heatmap --similarity-matrix path/to/matrix.csv --output path/to/output.png
 ```
 
-This will create a markdown file `docs/cli_documentation.md` with detailed usage instructions.
+### HRIS Data Transformation
+
+Transform your organisation's HRIS data into formats compatible with the Skill Similarity Engine:
+
+```bash
+# Transform all data
+python hris_transform.py transform-all
+
+# Transform with a custom configuration
+python hris_transform.py --config-file path/to/custom_mapping.yaml transform-all
+
+# Transform just jobs
+python hris_transform.py transform-jobs
+
+# Transform just skills
+python hris_transform.py transform-skills
+
+# Assign skills to jobs
+python hris_transform.py assign-skills
+```
+
+For detailed information about HRIS integration, see the [HRIS Integration Guide](../docs/hris_integration.md).
 
 ## Examples
 
-For detailed examples, see the [CLI Examples](../docs/cli_examples.md) documentation. 
+Example command sequences for common use cases:
+
+### Full Workflow
+
+```bash
+# Transform HRIS data
+python hris_transform.py transform-all
+
+# Run job-to-job similarity analysis
+python run_similarity.py jobs-to-jobs
+
+# Generate reports
+python generate_reports.py job-similarity-report
+
+# Visualize results
+python visualize.py heatmap --similarity-matrix outputs/job_similarity_matrix.csv
+```
+
+### Department-Specific Analysis
+
+```bash
+# Run analysis for a specific department
+python run_similarity.py jobs-to-jobs --department "Technology"
+
+# Visualize department-specific results
+python visualize.py heatmap --similarity-matrix outputs/Technology_similarity_matrix.csv
+```
+
+## Development
+
+To add a new script:
+
+1. Create a new Python file in this directory
+2. Follow the pattern of existing scripts, using Click for CLI interfaces
+3. Update this README to document the new script 

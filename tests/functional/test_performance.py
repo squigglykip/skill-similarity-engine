@@ -179,11 +179,9 @@ class TestPerformance(unittest.TestCase):
         cls.config_manager.config.gap_analysis.skill_difficulty_factor = 1.2
         cls.config_manager.config.gap_analysis.min_gap_threshold = 0.25
         cls.config_manager.config.gap_analysis.category_weights = {
-            "Technical Skills": 1.2,
-            "Soft Skills": 0.8,
-            "Domain Skills": 1.0,
-            "Leadership Skills": 1.1,
-            "Process Skills": 0.9
+            "COMMON": 0.8,             # Changed from "Technical Skills"
+            "SPECIALIZED": 1.2,        # Changed from "Soft Skills" 
+            "CERTIFICATION": 1.0       # Changed from "Domain Skills"
         }
         
         # Create the gap analyzer that will use the config settings
@@ -206,11 +204,11 @@ class TestPerformance(unittest.TestCase):
         
         # Create categories
         category_types = {
-            "Technical Skills": SkillType.TECHNICAL,
-            "Soft Skills": SkillType.SOFT,
-            "Domain Skills": SkillType.DOMAIN,
-            "Leadership Skills": SkillType.SOFT,
-            "Process Skills": SkillType.METHODOLOGY
+            "Technical Skills": SkillType.SPECIALIZED,
+            "Soft Skills": SkillType.COMMON,
+            "Domain Skills": SkillType.SPECIALIZED,
+            "Leadership Skills": SkillType.COMMON,
+            "Process Skills": SkillType.SPECIALIZED
         }
         
         # Add categories
