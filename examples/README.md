@@ -1,6 +1,86 @@
 # Skill Similarity Engine Examples
 
-This directory contains example data and configurations to help you understand and use the Skill Similarity Engine.
+This directory contains practical examples demonstrating how to use different components of the Skill Similarity Engine. Unlike the test suite, which focuses on verifying functionality, these examples show real-world usage patterns and produce tangible outputs that help understand the system's behavior.
+
+## Purpose
+
+These examples serve multiple purposes:
+
+1. **Documentation**: They show developers how to use various components of the system
+2. **Validation**: They confirm that our APIs are intuitive and usable
+3. **Demonstration**: They provide visual evidence of system behavior (e.g., memory usage patterns)
+4. **Education**: They help new team members understand how different parts of the system work together
+
+## Organization
+
+The examples are organized by module or feature:
+
+- `memory_management/`: Examples showing memory optimization features
+- (Additional directories will be added as we develop examples for other features)
+
+## Running the Examples
+
+### Setup
+
+Before running any examples, ensure that the Skill Similarity Engine package is installed or in your Python path:
+
+```bash
+# Navigate to the skill-similarity-engine root directory
+cd skill-similarity-engine
+
+# Either install in development mode
+pip install -e .
+
+# Or add the project root to PYTHONPATH
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
+
+### Memory Management Examples
+
+The `memory_management/` directory contains examples demonstrating memory tracking, visualization, and optimization:
+
+1. **Dashboard Demo** (`dashboard_demo.py`): Shows real-time memory tracking during data processing.
+
+   ```bash
+   python examples/memory_management/dashboard_demo.py
+   ```
+
+   This script simulates a typical workflow (data loading, vectorization, similarity calculation) while tracking memory usage. It generates visualizations showing memory patterns at each stage.
+
+2. **Memory-Efficient Comparison** (`memory_efficient_comparison.py`): Compares memory usage between standard and memory-efficient implementations.
+
+   ```bash
+   python examples/memory_management/memory_efficient_comparison.py
+   ```
+
+   This script loads progressively larger datasets into both standard and memory-efficient implementations, measuring the memory usage difference. It generates plots showing the memory savings achieved by the optimized implementation.
+
+### Outputs
+
+Most examples generate output files in a `memory_reports/` subdirectory within their own directory. These outputs include:
+
+- PNG visualizations of memory usage
+- CSV files with memory metrics 
+- Text reports summarizing memory behavior
+
+## Contributing New Examples
+
+When adding new examples:
+
+1. Create a subdirectory for the feature area if it doesn't exist
+2. Include comprehensive comments explaining the purpose of the example
+3. Make the example self-contained (include data generation if needed)
+4. Add clear output that helps understand the system behavior
+5. Update this README to include information about the new example
+
+## Relationship to Formal Tests
+
+These examples complement the formal test suite but serve a different purpose:
+
+- **Tests** (in `/tests/`) verify that components work correctly through automated assertions
+- **Examples** (in `/examples/`) demonstrate usage patterns and produce visual/tangible outputs
+
+Both are essential for a complete quality assurance strategy.
 
 ## Available Examples
 

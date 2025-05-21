@@ -1,0 +1,36 @@
+MEMORY USAGE SUMMARY REPORT
+==========================
+
+Generated: 2025-05-16 11:37:39
+
+Current memory usage: 462.83 MB
+Peak allocated memory: 0.00 MB
+Available system memory: 2285.79 MB
+Garbage collector objects: 91,213
+
+Monitoring duration: 45.47 seconds
+Memory change: +380.41 MB
+Growth rate: 8.37 MB/sec
+
+Reference Points:
+  - Start: 0.00s, 82.41 MB
+  - Begin data loading: 0.52s, 82.46 MB
+  - Data loading complete: 10.64s, 326.34 MB
+  - Begin vectorization: 11.81s, 536.13 MB
+  - Vectors created, raw data released: 40.48s, 638.91 MB
+  - Begin similarity calculation: 40.48s, 638.91 MB
+  - Similarity calculation complete: 44.45s, 311.54 MB
+  - Processing complete: 44.45s, 311.54 MB
+
+Memory Usage Prediction:
+  - Time +0.41s: 446.53 MB
+  - Time +0.83s: 441.20 MB
+  - Time +1.24s: 435.75 MB
+  - Time +1.66s: 430.19 MB
+  - Time +2.07s: 424.51 MB
+
+Memory is not predicted to reach 925.66 MB within the prediction window
+
+Memory is not predicted to reach 8192.00 MB within the prediction window
+
+Memory is not predicted to reach 16384.00 MB within the prediction window
