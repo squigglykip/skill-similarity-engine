@@ -34,6 +34,9 @@ from skill_similarity_engine.config.settings import get_config
 # Import HRISWorkflow when needed (in the function that uses it)
 # This prevents the error from occurring at the top level
 
+# Add import for the new asymmetric calculator
+from skill_similarity_engine.similarity.asymmetric import AsymmetricCoverageCalculator
+
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Set up logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
@@ -891,6 +894,12 @@ def main():
         action="store_true",
         help="Skip cross-department comparison"
     )
+    parser.add_argument(
+        "--similarity-metric",
+        choices=["cosine", "asymmetric"],
+        default="cosine",
+        help="Similarity metric to use: 'cosine' (TF-IDF) or 'asymmetric' (raw skill coverage)"
+    )
 
     args = parser.parse_args()
     
@@ -911,79 +920,74 @@ def main():
         taxonomy = None
         
         # Step 1: Load and transform data
-        if args.debug_step in ["load", "all"]:
-            logger.info("Step 1: Loading and transforming data")
-            if args.use_hris_adapter:
-                df, job_architecture, taxonomy = load_data_with_hris_adapter(
-                    args.config,
-                    args.analysis_type,
-                    args.department,
-                    logger
-                )
-            else:
-                if not args.skills_file or not args.jobs_file:
-                    parser.error("When not using HRIS adapter, --skills-file and --jobs-file are required")
-                df, job_architecture, taxonomy = load_data_directly(
-                    args.skills_file,
-                    args.jobs_file,
-                    args.job_skills_file,
-                    args.department,
-                    logger
-                )
-        
-        # Step 2: Save results
-        if args.debug_step in ["transform", "all"]:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot save results: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 2: Saving results")
-            output_file = save_results(
-                df,
-                output_dir,
-                args.output_format,
+        logger.info("Step 1: Loading and transforming data")
+        if args.use_hris_adapter:
+            df, job_architecture, taxonomy = load_data_with_hris_adapter(
+                args.config,
+                args.analysis_type,
+                args.department,
+                logger
+            )
+        else:
+            if not args.skills_file or not args.jobs_file:
+                parser.error("When not using HRIS adapter, --skills-file and --jobs-file are required")
+            df, job_architecture, taxonomy = load_data_directly(
+                args.skills_file,
+                args.jobs_file,
+                args.job_skills_file,
                 args.department,
                 logger
             )
         
-        # Step 3: Generate visualizations
-        if args.debug_step in ["visualize", "all"]:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot generate visualizations: data not loaded. Please run with --debug-step load first.")
-                sys.exit(1)
-                
-            logger.info("Step 3: Generating data exports")
-            
-            # Only generate department visualizations if explicitly requested
-            if args.export_departments and not args.no_visualizations:
-                logger.info("Generating department-specific visualizations...")
-                generate_visualizations(
-                    df,
-                    job_architecture,
-                    taxonomy,
-                    output_dir,
-                    args.department,
-                    logger,
-                    skip_heatmaps=args.no_visualizations,
-                    export_individual_depts=args.export_departments
-                )
-            
-        # Step 4: Generate cross-department similarities (now the primary output)
-        if args.debug_step in ["visualize", "all"] and not args.skip_cross_department:
-            if df is None or job_architecture is None or taxonomy is None:
-                logger.error("Cannot generate cross-department similarities: data not loaded.")
-                sys.exit(1)
-                
-            logger.info("Step 4: Generating cross-department similarities")
-            cross_dept_df = generate_cross_department_similarities(
-                job_architecture,
-                taxonomy,
-                output_dir,
-                logger
-            )
-        
+        # Only run the asymmetric skill coverage pipeline
+        logger.info("\n==============================\nUSING ASYMMETRIC SKILL COVERAGE\n==============================\n")
+        from skill_similarity_engine.config.settings import get_config
+        config = get_config()
+        logger.info("\n--- CONFIGURATION SUMMARY ---\n")
+        logger.info(f"Config object: {config}")
+        logger.info(f"Future extensions: {getattr(config, 'future_extensions', None)}")
+        logger.info(f"Skill category weights: {getattr(config.future_extensions, 'skill_category_weights', None)}")
+        logger.info(f"Skill type similarity weights: {getattr(config.future_extensions, 'skill_type_similarity_weights', None)}")
+        logger.info(f"Seniority weight: {getattr(config.future_extensions, 'seniority_weight', None)}")
+        logger.info(f"Role track weight: {getattr(config.future_extensions, 'role_track_weight', None)}")
+        logger.info(f"Location weight: {getattr(config.future_extensions, 'location_weight', None)}")
+        logger.info(f"Skill type mapping: {getattr(config.future_extensions, 'skill_type_mapping', None)}")
+        logger.info("\n--- TAXONOMY SUMMARY ---\n")
+        logger.info(f"Number of skills: {len(taxonomy.skills) if taxonomy else 'N/A'}")
+        logger.info(f"Skill sample: {list(taxonomy.skills.keys())[:5] if taxonomy else 'N/A'}")
+        logger.info("\n--- JOB ARCHITECTURE SUMMARY ---\n")
+        logger.info(f"Number of jobs: {len(job_architecture.jobs) if job_architecture else 'N/A'}")
+        logger.info(f"Job sample: {list(job_architecture.jobs.keys())[:5] if job_architecture else 'N/A'}")
+        logger.info("\n--- INSTANTIATING ASYMMETRICCOVERAGECALCULATOR ---\n")
+        calculator = AsymmetricCoverageCalculator(
+            job_architecture,
+            taxonomy,
+            skill_category_weights=getattr(config.future_extensions, 'skill_category_weights', None),
+            skill_type_weights=getattr(config.future_extensions, 'skill_type_similarity_weights', None),
+            seniority_weight=getattr(config.future_extensions, 'seniority_weight', 0.0),
+            role_track_weight=getattr(config.future_extensions, 'role_track_weight', 0.0),
+            location_weight=getattr(config.future_extensions, 'location_weight', 0.0)
+        )
+        logger.info("\n--- CALCULATING COVERAGE MATRIX ---\n")
+        try:
+            # --- DEBUG: Print job level types and values for all jobs ---
+            logger.info("\n--- DEBUG: JOB LEVEL TYPES AND VALUES ---\n")
+            for job_id, job in job_architecture.jobs.items():
+                logger.info(f"Job ID: {job_id}, level: {repr(getattr(job, 'level', None))} (type: {type(getattr(job, 'level', None))})")
+            logger.info("--- END DEBUG ---\n")
+            df_asym = calculator.calculate_coverage_matrix()
+            logger.info(f"Asymmetric coverage matrix calculated. Shape: {df_asym.shape}")
+        except Exception as e:
+            logger.error(f"Error during coverage matrix calculation: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
+        output_file = os.path.join(output_dir, "job_asymmetric_coverage.csv")
+        df_asym.to_csv(output_file, index=False)
+        logger.info(f"Asymmetric coverage results saved to: {output_file}")
         logger.info("POC run completed successfully!")
         logger.info(f"All results saved to: {output_dir}")
+        return  # Exit after saving asymmetric results
         
     except Exception as e:
         logger.error(f"Error: {e}")
