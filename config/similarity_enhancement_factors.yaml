@@ -15,7 +15,7 @@
 
 seniority_weight: 1.0     # Controls how much career progression (seniority levels) affects similarity
 role_track_weight: 1.0    # Controls how much role track (IC vs leadership) affects similarity
-location_weight: 0.0      # Controls how much geographical location affects similarity
+location_weight: 1.0      # Controls how much geographical location affects similarity
 skill_type_weight: 1.0    # Controls how much skill types affect similarity
 
 # ==========================================
