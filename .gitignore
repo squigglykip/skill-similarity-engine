@@ -177,3 +177,5 @@ cython_debug/
 config/local.yaml
 config/*.local.yaml
 **/local-config.yaml
+
+*.csv
