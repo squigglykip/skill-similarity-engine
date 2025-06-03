@@ -380,26 +380,6 @@ class SkillTaxonomy:
         
         return result
     
-    def get_skill_category_name(self, skill_id: str) -> str:
-        """
-        Get the category name for a given skill ID.
-        
-        Args:
-            skill_id: The ID of the skill to get the category name for
-            
-        Returns:
-            The category name, or 'Uncategorized' if no category is found
-        """
-        skill = self.skills.get(skill_id)
-        if not skill or not skill.category_id:
-            return "Uncategorized"
-            
-        category = self.categories.get(skill.category_id)
-        if not category:
-            return "Uncategorized"
-            
-        return category.name
-    
     def get_prerequisite_chain(self, skill_id: str) -> List[List[Skill]]:
         """
         Get the prerequisite chains for a skill.
