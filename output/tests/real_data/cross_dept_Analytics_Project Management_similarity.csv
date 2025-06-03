@@ -1,5 +1,0 @@
-job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J001,Data Analyst,Analytics,J020,Project Manager,Project Management,0.6470588235294118
-J002,Senior Data Analyst,Analytics,J020,Project Manager,Project Management,0.6470588235294118
-J003,Data Scientist,Analytics,J020,Project Manager,Project Management,0.6470588235294118
-J017,Business Intelligence Analyst,Analytics,J020,Project Manager,Project Management,0.6470588235294118
