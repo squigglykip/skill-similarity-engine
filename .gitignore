@@ -179,3 +179,4 @@ config/*.local.yaml
 **/local-config.yaml
 
 *.csv
+*.png

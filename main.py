@@ -34,8 +34,38 @@ from skill_similarity_engine.config.settings import get_config
 # Import HRISWorkflow when needed (in the function that uses it)
 # This prevents the error from occurring at the top level
 
+
 # Add import for the new asymmetric calculator
 from skill_similarity_engine.similarity.asymmetric import AsymmetricCoverageCalculator
+
+def display_welcome_banner():
+    """Display a welcome banner for the Skill Similarity Engine."""
+    banner = r"""
+    ███████╗██╗  ██╗██╗██╗     ██╗                                        
+    ██╔════╝██║ ██╔╝██║██║     ██║                                        
+    ███████╗█████╔╝ ██║██║     ██║                                        
+    ╚════██║██╔═██╗ ██║██║     ██║                                        
+    ███████║██║  ██╗██║███████╗███████╗                                   
+    ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝                                   
+                                                                        
+    ███████╗██╗███╗   ███╗██╗██╗      █████╗ ██████╗ ██╗████████╗██╗   ██╗
+    ██╔════╝██║████╗ ████║██║██║     ██╔══██╗██╔══██╗██║╚══██╔══╝╚██╗ ██╔╝
+    ███████╗██║██╔████╔██║██║██║     ███████║██████╔╝██║   ██║    ╚████╔╝ 
+    ╚════██║██║██║╚██╔╝██║██║██║     ██╔══██║██╔══██╗██║   ██║     ╚██╔╝  
+    ███████║██║██║ ╚═╝ ██║██║███████╗██║  ██║██║  ██║██║   ██║      ██║   
+    ╚══════╝╚═╝╚═╝     ╚═╝╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝   ╚═╝      ╚═╝   
+                                                                        
+    ███████╗███╗   ██╗ ██████╗ ██╗███╗   ██╗███████╗                      
+    ██╔════╝████╗  ██║██╔════╝ ██║████╗  ██║██╔════╝                      
+    █████╗  ██╔██╗ ██║██║  ███╗██║██╔██╗ ██║█████╗                        
+    ██╔══╝  ██║╚██╗██║██║   ██║██║██║╚██╗██║██╔══╝                        
+    ███████╗██║ ╚████║╚██████╔╝██║██║ ╚████║███████╗                      
+    ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝                                                      
+    """
+    print(banner)
+    print("="*80)
+    print("Skill Similarity Engine - POC Run Tool".center(80))
+    print("="*80)
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Set up logging configuration."""
@@ -800,6 +830,12 @@ def main():
     """Main entry point for the HRIS POC analysis tool."""
     description = """
     Skill Similarity Engine - Calculate similarity between jobs based on their skill profiles.
+    
+    parser = argparse.ArgumentParser(
+        description="Run skill similarity analysis POC on synthetic HRIS data. "
+                    "When run without arguments, an interactive menu will be displayed. "
+                    "Use --help to see all available command-line options."
+    )
     
     By default, this script will generate cross-department job similarity comparisons,
     which is the recommended dataset for Power BI analysis. The individual department
