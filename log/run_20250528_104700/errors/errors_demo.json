@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": "2025-05-28T10:47:00.338314",
+    "category": "data",
+    "severity": "error",
+    "context": {
+      "job_id": 123
+    },
+    "message": "Simulated data error",
+    "type": "EngineError"
+  },
+  {
+    "timestamp": "2025-05-28T10:47:00.338314",
+    "category": "validation",
+    "severity": "warning",
+    "context": {
+      "field": "salary"
+    },
+    "message": "Simulated validation warning",
+    "type": "EngineError"
+  }
+]
