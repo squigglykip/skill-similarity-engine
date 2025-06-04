@@ -413,20 +413,13 @@ class ConfigManager:
         
         # If we're loading a specific config and the enhancement file is the default, skip loading
         if is_explicit_config and enhancement_file == "config/similarity_enhancement_factors.yaml":
-            print("Skipping loading default enhancement factors when using explicit config")
             return
-        
-        # Print debug information
-        print(f"Loading enhancement factors from file: {enhancement_file}")
-        print(f"File exists: {os.path.exists(enhancement_file)}")
         
         # Load if the file exists
         if os.path.exists(enhancement_file):
             try:
                 with open(enhancement_file, "r") as f:
                     enhancement_config = yaml.safe_load(f)
-                
-                print(f"Loaded enhancement config: {enhancement_config}")
                 
                 # Update specific settings from enhancement factors
                 if enhancement_config:
@@ -438,7 +431,6 @@ class ConfigManager:
                     for key, value in enhancement_config.items():
                         if hasattr(self.config.future_extensions, key):
                             setattr(self.config.future_extensions, key, value)
-                            print(f"Updated future_extensions.{key} to {value}")
                     
                     # Update skill type similarity weights if available
                     if "skill_type_similarity_weights" in enhancement_config:
@@ -448,8 +440,8 @@ class ConfigManager:
                     if "skill_type_mapping" in enhancement_config:
                         self.config.future_extensions.skill_type_mapping = enhancement_config["skill_type_mapping"]
             except Exception as e:
-                # Log the error but continue with default values
-                print(f"Error loading enhancement factors: {e}")
+                # Silently ignore errors and continue with default values
+                pass
     
     def _update_config_attr(self, config_dict, attr_name, config_obj):
         """Helper method to update a config attribute if it exists in the dict."""

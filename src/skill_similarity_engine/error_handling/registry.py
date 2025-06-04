@@ -89,15 +89,3 @@ def _new_init(self, *args, **kwargs):
     _old_init(self, *args, **kwargs)
     ErrorRegistry().register(self)
 EngineError.__init__ = _new_init
-
-# Example usage (as a comment):
-# from skill_similarity_engine.error_handling.core import EngineError, ErrorCategory, ErrorSeverity
-# from skill_similarity_engine.error_handling.registry import ErrorRegistry, ErrorContext
-# try:
-#     raise EngineError("Test error", category=ErrorCategory.DATA, severity=ErrorSeverity.WARNING, context={"job_id": 42})
-# except EngineError:
-#     pass
-# registry = ErrorRegistry()
-# print(registry.summary())
-# registry.export_json("errors.json")
-# registry.export_csv("errors.csv") 
