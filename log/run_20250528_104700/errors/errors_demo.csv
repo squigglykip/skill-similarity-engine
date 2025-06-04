@@ -1,0 +1,3 @@
+timestamp,category,severity,context,message,type
+2025-05-28T10:47:00.338314,data,error,{'job_id': 123},Simulated data error,EngineError
+2025-05-28T10:47:00.338314,validation,warning,{'field': 'salary'},Simulated validation warning,EngineError
