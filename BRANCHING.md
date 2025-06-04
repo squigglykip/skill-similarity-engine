@@ -32,7 +32,7 @@ This document outlines the Git branching strategy for the Skill Similarity Engin
 - **6-feature/poc-integration**
   - *6.2-feature/poc-integration/memory-management*
   - *6.3-feature/poc-integration/performance-optimization*
-  - 6.4-feature/poc-integration/error-handling
+  - *6.4-feature/poc-integration/error-handling*
   - 6.5-feature/poc-integration/core-data-loading
   - 6.6-feature/poc-integration/tfidf-skill-processing
   - 6.7-feature/poc-integration/precomputation-strategy

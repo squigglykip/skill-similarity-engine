@@ -399,642 +399,165 @@ We're implementing this architectural shift in a specific sequence to ensure we 
 
 > **Implementation Context**: The pre-computation phase involves long-running, resource-intensive processes that require robust error handling and detailed logging. When processing tens of thousands of jobs over hours, errors must be properly captured, contextualized, and where possible, recovered from without losing progress. Similarly, data quality issues must be detected and reported clearly to ensure the validity of results.
 > 
-> A key requirement is the ability to identify exactly where and why an error occurred in a large dataset, so the system can be restarted from that point rather than beginning again. The logging system must balance verbosity with performance impact, as excessive logging can slow down computation. The validation reporting will be critical for ensuring that the precomputed data meets quality standards before being used for analysis.
+> **Architecture Decision**: To ensure proper separation of concerns and future extensibility, we will implement these critical infrastructure components in dedicated modules with their own namespaces. This approach enables independent development and testing of each component while making these cross-cutting concerns more visible in the codebase.
+>
+> **Output Management Standard:** All outputs (logs, errors, checkpoints, progress, validation reports, metrics, etc.) must be written to dedicated subdirectories within each run's date-time stamped folder in `log/`. This ensures outputs are organised, auditable, and easy to manage for each run.
 
-- [ ] Create centralised logging framework
-  - [ ] Add configurable log levels
-  - [ ] Implement file and console logging
-  - [ ] Add structured logging support
-- [ ] Implement enhanced error handling
-  - [ ] Create contextual error messages
-  - [ ] Add error categorisation
-  - [ ] Implement recovery mechanisms
-- [ ] Add data validation reporting
-  - [ ] Create validation summary reports
-  - [ ] Implement data quality metrics
-  - [ ] Add warning thresholds
+##### 6.4.1 Dedicated Module Structure
+- [x] Create dedicated module directories
+  - [x] Implement `logging/` directory for all logging functionality
+  - [x] Create `error_handling/` directory for error management components
+  - [x] Add `data_validation/` directory for validation framework
+  - [x] Ensure each module has proper `__init__.py` with public API exports
+  - [x] **[Output]** Ensure all module outputs are written to the appropriate subdirectory in the current run folder in `log/`. *(Confirmed by working examples)*
+
+##### 6.4.2 Centralised Logging Framework
+- [x] Create centralised logging framework in `logging/`
+  - [x] Implement `logging/config.py` for logging configuration management
+      - [x] Add configurable log levels from environment and settings
+      - [x] Support flexible log targets (console, file, both)
+      - [x] Create rotation and retention policy management
+      - [x] Add formatter configuration options
+  - [x] Build `logging/formatters.py` for output formatting
+      - [x] Create detailed formatter for debugging
+      - [x] Implement console-friendly formatter for regular use
+      - [x] Add JSON formatter for machine-readable logs
+      - [x] Build consistent format across all logging targets
+  - [x] Develop `logging/structured.py` for structured logging support
+      - [x] Implement structured log record with additional context
+      - [x] Create structured logging methods for all log levels
+      - [x] Add field standardisation and validation
+      - [x] Build query/filter support for structured logs
+  - [x] Ensure backward compatibility
+      - [x] Create compatibility layer for existing logger usage
+      - [x] Add graceful fallback for non-structured log calls
+      - [x] Build migration utilities for legacy logging code
+      - [x] Update documentation with migration guidelines
+  - [x] **[Output]** All log files must be written to the `logs/` subdirectory of the current run folder in `log/`.
+
+##### 6.4.3 Enhanced Error Handling
+- [x] Migrate and enhance error handling in `error_handling/`
+  - [x] Create `error_handling/core.py` for base functionality
+      - [x] Implement error categorisation system
+      - [x] Add standardised error severity levels
+      - [x] Create enhanced error base classes with context
+      - [x] Build context enrichment utilities
+  - [x] Implement `error_handling/registry.py` for error tracking
+      - [x] Migrate existing ErrorRegistry functionality
+      - [x] Add classification by category and severity
+      - [x] Implement enhanced reporting and analytics
+      - [x] Create exportable error reports with filtering
+      - [x] **[Output]** All error reports (JSON, CSV) must be written to the `errors/` subdirectory of the current run folder in `log/`.
+  - [x] Develop `error_handling/recovery.py` for recovery mechanisms
+      - [x] Implement recovery strategy pattern
+      - [x] Create configurable retry mechanisms
+      - [x] Add circuit breaker pattern for failing operations
+      - [x] Build fallback mechanisms for critical paths
+  - [x] Migrate and enhance `error_handling/checkpoint.py`
+      - [x] Move existing Checkpoint and ResumableOperation classes
+      - [x] Enhance with additional metadata support
+      - [x] Add progress tracking and estimation
+      - [x] Implement automatic recovery from recent checkpoints
+      - [x] **[Output]** All checkpoint files must be written to the `checkpoints/` subdirectory of the current run folder in `log/`.
+
+##### 6.4.4 Data Validation Reporting
+- [x] Implement data validation framework in `data_validation/`
+  - [x] Create `data_validation/validators.py` for validation execution
+      - [ ] Implement reusable validation framework **[future feature if required]**
+      - [ ] Create validation rule pattern with composability **[future feature if required]**
+      - [ ] Add conditional validation logic **[future feature if required]**
+      - [ ] Build validation context for detailed error reporting **[future feature if required]**
+  - [ ] Develop `data_validation/reporting.py` for quality metrics **[future feature if required]**
+      - [ ] Create standardised validation report format **[future feature if required]**
+      - [ ] Implement data quality metrics calculations **[future feature if required]**
+      - [ ] Add summary statistics and failure analysis **[future feature if required]**
+      - [ ] Build exportable reports (JSON, CSV, etc.) **[future feature if required]**
+      - [ ] **[Output]** All validation reports must be written to the `validation/` subdirectory of the current run folder in `log/`. **[future feature if required]**
+  - [ ] Add `data_validation/rules.py` for predefined validation rules **[future feature if required]**
+      - [ ] Create domain-specific validation rules for skills **[future feature if required]**
+      - [ ] Implement job data validation rules **[future feature if required]**
+      - [ ] Add data format and schema validators **[future feature if required]**
+      - [ ] Build configurable warning thresholds for common issues **[future feature if required]**
+- [x] Create `config/data_validation_schema.yaml` for schema-driven validation
+- [x] Update validation engine to dynamically load and apply validators from config
+- [ ] Add support for extending schema config with allowed values, ranges, and cross-field rules **[future feature if required]**
+
+This approach enables a clean separation of concerns while providing a clear migration path for existing code. Each component can evolve independently, making the system more maintainable and extensible.
 
 #### 6.5 Core Data Loading Enhancements
 **Branch: `6.5-feature/poc-integration/core-data-loading`**
 
-> **Implementation Context**: Efficient data loading is crucial for our system, as it processes large datasets with complex relationships between skills, jobs, and job-skill mappings. The current implementation loads all data into memory at once, which doesn't scale to our full dataset of 35,000+ jobs and their associated skills. This section implements streaming and chunked loading capabilities that reduce memory pressure while maintaining data integrity.
-> 
-> A particular challenge is handling the many-to-many relationship between jobs and skills, where a single job may have hundreds of skills, and common skills appear in thousands of jobs. The composite key generation system is essential for addressing issues with duplicate job IDs across different organizational contexts. The enhanced loaders must maintain referential integrity across chunked loads while providing progress feedback for long-running operations.
+> **Context & Rationale (2024-06):**
+> The Skill Similarity Engine now uses JobProfileID as the canonical key for all job-skill mappings, reflecting the business reality that skills are prescribed at the job profile level, not at the level of individual HRIS job instances. This approach ensures the engine is future-proofed for when more granular skill mappings become available (e.g., different skills for different seniority levels or job variants). Org Unit context (Org Unit Number, Name, etc.) is explicitly excluded from similarity calculations, as it does not affect the fundamental skill requirements of a role. However, applied HRIS context (such as Salary Group, People Leader Flag, and Location) is still loaded and stored for use as modifiers at query/reporting time. The data loading pipeline is designed to be robust, efficient, and maintainable, supporting chunked and parallel loading for scalability, but is now simplified to avoid unnecessary complexity from legacy HRIS transformation logic. All loaders, models, and downstream logic are updated to use JobProfileID as the canonical identifier, and the system is designed to be easily extensible as new data or requirements emerge.
 
-- [ ] Update `SkillTaxonomyLoader` class
-  - [ ] Add chunked loading support
-      - [ ] Implement streaming CSV parser
-      - [ ] Create progress tracking during load
-      - [ ] Build partial taxonomy construction
-      - [ ] Add incremental taxonomy updates
-  - [ ] Implement memory-efficient processing
-      - [ ] Create generator-based loading
-      - [ ] Implement deferred object construction
-      - [ ] Build dictionary sharing for common values
-      - [ ] Add automatic string interning
-  - [ ] Enhance validation for HRIS formats
-      - [ ] Create comprehensive schema validation
-      - [ ] Implement data quality checks
-      - [ ] Build error recovery options
-      - [ ] Add detailed validation reporting
-- [ ] Update `JobArchitectureLoader` class
-  - [ ] Add chunked loading support
-      - [ ] Implement streaming job loading
-      - [ ] Create job batching by department
-      - [ ] Build partial architecture construction
-      - [ ] Add job dependencies handling
-  - [ ] Implement unique job ID creation
-      - [ ] Create composite key generation system
-      - [ ] Implement sanitization for key components
-      - [ ] Build collision detection and resolution
-      - [ ] Add compatibility with existing systems
-  - [ ] Add flexible column mapping
-      - [ ] Create configuration-driven column mapping
-      - [ ] Implement auto-detection of column formats
-      - [ ] Build translation layer for different HRIS exports
-      - [ ] Add column validation and type checking
-- [ ] Create utility for data validation and error reporting
-  - [ ] Implement comprehensive validation rules
-      - [ ] Create rule engine for data validation
-      - [ ] Implement field-level validation rules
-      - [ ] Build cross-field validation
-      - [ ] Add business rule validation
-  - [ ] Add detailed error reporting
-      - [ ] Create structured error format
-      - [ ] Implement error categorization
-      - [ ] Build error location tracking
-      - [ ] Add error severity classification
-  - [ ] Create data quality metrics
-      - [ ] Implement completeness metrics
-      - [ ] Create consistency metrics
-      - [ ] Build accuracy scoring
-      - [ ] Add data quality dashboard
+- [x] Utilities for chunked/streaming loading, memory-efficient processing, parallel/batched processing, and progress tracking implemented in `utils/` (see `chunking.py`, `parallel.py`, etc.)
+- [x] Demonstrations and tests of these utilities in `examples/` (see `performance_optimization/`, `memory_management/`, etc.)
+- [ ] Refactor `SkillTaxonomyLoader` class to use chunked/streaming loading, validation, and progress tracking
+  - [ ] Add `chunked` and `chunksize` parameters
+  - [ ] Use `pandas.read_csv(..., chunksize=...)` and/or `AdaptiveChunker`
+  - [ ] Integrate row/chunk-level validation using the validation engine
+  - [ ] Build taxonomy incrementally with progress tracking
+- [ ] Refactor `JobArchitectureLoader` class to use chunked/streaming loading, validation, and progress tracking
+  - [ ] Add `chunked` and `chunksize` parameters
+  - [ ] Use streaming/chunking for jobs and job-skills files
+  - [ ] Integrate row/chunk-level validation
+  - [ ] Use `JobProfileID` as canonical key (map/rename as needed)
+  - [ ] Exclude Org Unit context from similarity calculations (retain for reporting)
+  - [ ] Build architecture incrementally with progress tracking
+- [ ] Build out `main-v2.py` as the new entry point, evolving the pipeline brick by brick
+  - [ ] Add welcome banner and CLI
+  - [ ] Add modular, testable pipeline steps (data loading, validation, processing, reporting, etc.)
+  - [ ] Document and maintain the new structure
 
-#### 6.6 TF-IDF and Skill Processing Improvements
-**Branch: `6.6-feature/poc-integration/tfidf-skill-processing`**
+#### 6.6 Skill Processing and Asymmetric Similarity
+**Branch: `6.6-feature/poc-integration/skill-processing-asymmetric`**
 
-> **Implementation Context**: Accurate similarity calculations depend on properly processing skills, particularly multi-word skills that make up a significant portion of our taxonomy. The current implementation treats each skill as an atomic unit, but doesn't handle skill phrases optimally, leading to potential inaccuracies in similarity scores. This section enhances our TF-IDF vectorization system to properly handle multi-word skills and maintain consistent mapping between original and processed skill names.
-> 
-> A key challenge is maintaining a bidirectional mapping between the original skill names (which may contain spaces, punctuation, and inconsistent formatting) and the normalized versions used in vector calculations. This mapping must persist across preprocessing and similarity calculations, ensuring that all outputs reference the original, human-readable skill names. The token preservation system for phrases is critical for maintaining semantic meaning that would otherwise be lost when treating words individually.
->
-> **Memory-Efficient TF-IDF**: When processing large datasets (35,000+ jobs) using chunked processing, we must ensure that TF-IDF calculations maintain global corpus statistics. Our approach separates TF-IDF calculation into two phases: (1) a global statistics collection phase that computes document frequencies across the entire corpus, and (2) a chunked vector generation phase that applies these global statistics during similarity calculations. This ensures consistent TF-IDF weighting regardless of which chunk a job appears in.
+> **Context & Rationale (2024-06):**
+> The engine has moved away from TF-IDF and vectorisation-based similarity, as these methods produced non-literal, less interpretable outputs and over-weighted rare skills. Instead, all skill processing is now direct and literal: each JobProfileID is mapped to its prescribed set of skills, and similarity is calculated using an asymmetric coverage approach. This method is more transparent, aligns with business expectations, and is easier to maintain and explain. Optional weighting by skill category/type and blending of other factors (seniority, role track, location) is supported, but these modifiers are applied only at query/reporting time, not during precomputation. The engine does not precompute or store context-modified similarities, nor does it use Org Unit or other non-skill attributes in the core similarity calculation. This design ensures that the system is scalable, interpretable, and ready for future enhancements as the JobProfileID-to-skills mapping becomes more granular.
 
-- [ ] Enhance TF-IDF vectoriser in `similarity/cosine.py`
-  - [ ] Add preprocessing for multi-word skills (spaces to underscores)
-      - [ ] Implement configurable token transformation
-      - [ ] Create bidirectional mapping storage
-      - [ ] Build token normalization pipeline
-      - [ ] Add compatibility with existing skill IDs
-  - [ ] Implement token preservation for skill phrases
-      - [ ] Create phrase detection system
-      - [ ] Implement custom tokenizer for skill phrases
-      - [ ] Build n-gram preservation
-      - [ ] Add domain-specific stop words
-  - [ ] Create configuration options for tokenisation strategies
-      - [ ] Implement YAML-based tokenizer configuration
-      - [ ] Create pluggable tokenizer system
-      - [ ] Build domain-specific tokenizers
-      - [ ] Add token filtering options
-  - [ ] Implement two-phase TF-IDF for memory-efficient processing
-      - [ ] Create global statistics collector for document frequencies
-          - [ ] Implement streaming corpus analysis that minimizes memory usage
-          - [ ] Create efficient document frequency counter with progress reporting
-          - [ ] Build memory-efficient vocabulary builder
-          - [ ] Add incremental statistics updates for new data
-      - [ ] Implement persistent storage of IDF values
-          - [ ] Create compressed binary format for IDF dictionary
-          - [ ] Implement metadata storage with corpus statistics
-          - [ ] Build versioning system for IDF values
-          - [ ] Add compatibility checks between IDF files and job data
-      - [ ] Build efficient IDF loader for chunked processing
-          - [ ] Create memory-mapped IDF dictionary access
-          - [ ] Implement lazy loading of IDF values
-          - [ ] Build caching system for frequently accessed values
-          - [ ] Add thread-safe access for parallel processing
-      - [ ] Add validation to ensure consistent TF-IDF across chunks
-          - [ ] Implement verification of IDF application consistency
-          - [ ] Create test utilities to compare chunked vs. full calculation
-          - [ ] Build diagnostic tools for identifying TF-IDF discrepancies
-          - [ ] Add logging of TF-IDF statistics for verification
-- [ ] Implement skill name mapping system
-  - [ ] Add bidirectional mapping between original and transformed names
-      - [ ] Create JSON mapping file format
-      - [ ] Implement in-memory bidirectional lookup
-      - [ ] Build persistence of mappings across runs
-      - [ ] Add version tracking for mappings
-  - [ ] Ensure consistency in all outputs
-      - [ ] Implement mapping application in all exports
-      - [ ] Create name resolution middleware
-      - [ ] Build validation for mapping consistency
-      - [ ] Add automatic detection of inconsistencies
-  - [ ] Create utility methods for conversion
-      - [ ] Implement transformation API
-      - [ ] Create batch conversion utilities
-      - [ ] Build streaming conversion
-      - [ ] Add context-aware transformation
-- [ ] Update skill taxonomy handling
-  - [ ] Add validation for skill uniqueness post-transformation
-      - [ ] Create collision detection for transformed names
-      - [ ] Implement automatic disambiguation
-      - [ ] Build validation reporting
-      - [ ] Add manual override capability
-  - [ ] Implement improved normalisation in SkillTaxonomyLoader
-      - [ ] Create comprehensive normalization pipeline
-      - [ ] Implement case normalization
-      - [ ] Build punctuation handling
-      - [ ] Add domain-specific normalization rules
-  - [ ] Add configurability for normalisation strategies
-      - [ ] Create YAML configuration for normalization
-      - [ ] Implement strategy pattern for normalizers
-      - [ ] Build pluggable normalizer system
-      - [ ] Add normalization rule testing
+- [ ] Update skill processing pipeline
+  - [ ] Remove TF-IDF vectorisation and related configuration/code
+  - [ ] Implement direct, literal skill mapping for each JobProfileID
+  - [ ] Add support for skill category/type weighting in similarity calculations
+  - [ ] Ensure all skill name/ID mappings are preserved in outputs
+  - [ ] Build robust handling for multi-word and non-normalised skill names (for reporting, not vectorisation)
+- [ ] Update similarity calculation logic
+  - [ ] Use asymmetric skill coverage as the primary similarity metric
+  - [ ] Support blending of seniority, role track, and location as per config
+  - [ ] Provide clear documentation and configuration for all weighting factors
+- [ ] Future-proof for enhanced granularity
+  - [ ] Ensure all loaders, models, and outputs are keyed by JobProfileID
+  - [ ] Add validation and reporting to highlight when JobProfileID-to-skills mapping is 1:1 vs. more granular
+  - [ ] Document the migration path and benefits as vendor data is enriched
 
 #### 6.7 Pre-computation Strategy for Local Performance
 **Branch: `6.7-feature/poc-integration/precomputation-strategy`**
 
-> **Implementation Context**: This section represents the core of our architectural redesign - transforming from on-demand calculation to a precomputation-based approach. The current system calculates similarities directly when requested, which doesn't scale to tens of thousands of jobs. The precomputation strategy introduces a "database-like" structure that stores vectorized job data and similarity matrices for rapid retrieval.
-> 
-> This approach addresses the quadratic complexity problem by performing the intensive calculations infrequently and storing the results in an optimized format. The system must efficiently store sparse vectors and matrices (most jobs have only a small subset of all possible skills, and most job pairs have very low similarity scores that can be filtered out). The versioning system ensures that precomputed data remains compatible with the job architecture as it evolves, while the incremental update capability avoids recalculating the entire matrix when only a small portion of the data changes.
+> **Context & Rationale (2024-06):**
+> The precomputation phase of the engine is focused solely on generating and storing the base JobProfileID-to-JobProfileID skill similarity matrix, with no context modifiers applied. This keeps the precomputed data small, fast, and reusable, and allows for flexible, on-demand application of context modifiers (seniority, role track, location, etc.) at query or reporting time. The engine does not precompute or store a full context-modified similarity matrix, nor does it use Org Unit or other applied HRIS context in the precomputation phase. This approach is motivated by the need for scalability, maintainability, and business-aligned outputs, and is designed to be extensible if data scale or requirements change in the future. All context modifiers are loaded from configuration (e.g., similarity_enhancement_factors.yaml) and applied dynamically at query time, ensuring that the engine can support a wide range of business scenarios without unnecessary computational or storage overhead.
 
-> **Strategy Overview**: Transform the engine from a calculation-heavy system to a query-based system through intelligent pre-computation and storage of both input vectors and similarity matrices. This approach dramatically improves performance on standard laptops while maintaining accuracy and enabling interactive analysis.
-
-##### 6.7.1 Input Data Vectorization Framework
-**Branch: `6.7.1-feature/poc-integration/input-vectorisation`**
-
-> **Implementation Context**: The vectorization framework transforms raw job and skill data into mathematical representations (vectors) that can be efficiently compared. These vectors must be stored in a compact format that preserves the sparse nature of skill distributions across jobs. The metadata system must maintain a complete record of how vectors were generated to ensure reproducibility and proper interpretation of results.
-> 
-> A key challenge is maintaining the relationship between the original job data (with all its contextual attributes) and the mathematical vectors used for similarity calculations. The bidirectional mapping system ensures that we can always connect vector indices back to the original job IDs, which may be composite keys incorporating department, location, and other contextual elements. The storage system must balance compression for space efficiency with quick access for the query interface.
-
-- [ ] Implement vector preprocessing framework
-  - [ ] Create vector computation pipeline for skills, jobs, and job-skills mappings
-      - [ ] Implement data extraction stage that preserves all metadata attributes
-      - [ ] Develop preprocessing hooks for each data type (skills, jobs, mappings)
-      - [ ] Create configurable TF-IDF parameters via YAML configuration
-      - [ ] Build logging system that captures all preprocessing decisions
-  - [ ] Implement optimized TF-IDF vector storage format
-      - [ ] Use compressed numpy arrays (.npz format) with sparse matrix support
-      - [ ] Implement binary serialization for faster loading
-      - [ ] Create index mapping between job IDs and vector positions
-      - [ ] Support for partial vector loading based on department
-  - [ ] Add metadata storage alongside vectors (computation parameters, timestamps)
-      - [ ] Create JSON manifest files containing vectorization parameters
-      - [ ] Store all job attributes in a queryable metadata store
-      - [ ] Implement bidirectional mapping between original and composite job IDs
-      - [ ] Add provenance tracking for data sources and version information
-  - [ ] Create validation utilities for vector integrity
-      - [ ] Implement checksum verification for vector files
-      - [ ] Add consistency checking between vectors and metadata
-      - [ ] Create self-test functionality to verify vector quality
-      - [ ] Build diagnostic tools for identifying corrupted or outdated vectors
-- [ ] Design efficient storage strategy
-  - [ ] Implement compressed numpy array storage for vectors
-      - [ ] Use scipy.sparse CSR format for skill vectors
-      - [ ] Implement automatic precision selection (float32 vs float64)
-      - [ ] Create custom serialization for minimal file size
-      - [ ] Add compression level configuration based on speed vs size tradeoff
-  - [ ] Create directory structure to organize vectors by department and date
-      - [ ] Implement standardized directory layout:
-        ```
-        precomputed_data/
-        ├── vectors/
-        │   ├── by_date/
-        │   │   ├── YYYYMMDD/
-        │   │   │   ├── all_vectors.npz
-        │   │   │   └── metadata.json
-        │   ├── by_department/
-        │   │   ├── dept_name/
-        │   │   │   ├── vectors.npz
-        │   │   │   └── metadata.json
-        │   └── latest/ (symlinks to most recent)
-        ```
-      - [ ] Add automatic cleanup of old vector files based on configurable retention
-      - [ ] Create departmental subdirectories with standalone vector files
-      - [ ] Implement date-based versioning for historical tracking
-  - [ ] Add indexing for quick vector lookup by job ID
-      - [ ] Create JSON index files mapping job IDs to vector indices
-      - [ ] Implement multiple index types (by department, by original ID, by composite ID)
-      - [ ] Build indexing system supporting O(1) lookups
-      - [ ] Add search functionality for finding jobs by partial ID match
-  - [ ] Implement versioning to track vector changes
-      - [ ] Add automatic version incrementation in metadata
-      - [ ] Create vector differencing tool to identify changes between versions
-      - [ ] Store version history in metadata for audit purposes
-      - [ ] Implement version compatibility checking for matrices
-- [ ] Build incremental update capability
-  - [ ] Create utilities to identify changed data since last vectorization
-      - [ ] Implement file-based change detection system
-      - [ ] Build data comparison tool to identify modified job/skill records
-      - [ ] Create change detection hooks for HRIS-integrated workflows
-      - [ ] Add configurable change sensitivity thresholds
-  - [ ] Implement targeted recalculation for only affected vectors
-      - [ ] Identify dependency graph of affected vectors when a skill changes
-      - [ ] Create efficient selective recalculation algorithm
-      - [ ] Implement change propagation to dependent matrices
-      - [ ] Add "changed vectors only" processing mode
-  - [ ] Add vector merging to maintain complete dataset
-      - [ ] Create vector merge operation that preserves existing vectors
-      - [ ] Build conflict resolution for overlapping vector changes
-      - [ ] Implement transactional vector updates (all succeed or all fail)
-      - [ ] Add verification of merged vector integrity
-  - [ ] Create change logs for vector updates
-      - [ ] Implement structured logging of all vector changes
-      - [ ] Create human-readable change summaries
-      - [ ] Store change history in metadata for auditing
-      - [ ] Add reporting tool for summarizing update scope
+- [ ] Refactor precomputation pipeline to output only base JobProfileID-to-JobProfileID skill similarity (no context modifiers applied)
+- [ ] Document the rationale and update all relevant code and configuration references
 
 ##### 6.7.2 Similarity Matrix Pre-computation
 **Branch: `6.7.2-feature/poc-integration/similarity-matrix-precomp`**
 
-> **Implementation Context**: Computing similarity matrices for 35,000+ jobs requires over 1.2 billion pairwise comparisons, which cannot be performed in a single pass on standard hardware with 32GB RAM. Our approach divides this massive computation into manageable chunks with adaptive sizing based on real-time memory monitoring. This ensures we maximize hardware utilization while preventing out-of-memory errors.
->
-> The memory-adaptive chunking strategy dynamically adjusts processing batch sizes based on observed memory usage patterns, allowing the system to find the optimal balance between processing speed and memory consumption. For a typical laptop with 32GB RAM, we target keeping memory usage below 28GB to leave room for the operating system and other processes.
-
-- [ ] Create similarity matrix computation framework
-  - [ ] Implement batch processing for manageable chunks
-      - [ ] Create adaptive chunking based on available memory and usage patterns
-      - [ ] Implement sliding window matrix computation with memory monitoring
-      - [ ] Build matrix reassembly from computed chunks with verification
-      - [ ] Add progress tracking per chunk with ETA and memory predictions
-  - [ ] Create department-based matrix segmentation
-      - [ ] Implement storage of matrices by department pairs for memory efficiency
-      - [ ] Create cross-department matrix calculation strategy with priority queuing
-      - [ ] Build index system for department-specific lookups
-      - [ ] Add metadata about department relationships
-  - [ ] Add configurable priority for in-department vs cross-department calculations
-      - [ ] Implement priority queue for matrix computation based on business value
-      - [ ] Create configuration for department importance weighting
-      - [ ] Build adaptive scheduling based on prior query patterns
-      - [ ] Develop interrupt/resume capability for long computations
-  - [ ] Implement checkpoint saving for long-running processes
-      - [ ] Create standardized checkpoint file format with memory statistics
-      - [ ] Add automatic checkpoint creation at configurable intervals or memory thresholds
-      - [ ] Implement recovery from checkpoint after interruption
-      - [ ] Build checkpoint verification system
-- [ ] Develop sparse matrix storage
-  - [ ] Implement threshold-based filtering (only store similarities above threshold)
-      - [ ] Create configurable similarity threshold system
-      - [ ] Implement matrix filtering pipeline
-      - [ ] Add metadata tracking of applied thresholds
-      - [ ] Build automatic threshold optimization based on density
-  - [ ] Create efficient compressed sparse format
-      - [ ] Use scipy.sparse.csr_matrix for storage
-      - [ ] Implement custom serialization for better compression
-      - [ ] Create memory-mapped sparse matrix loading
-      - [ ] Add specialized sparse matrix operations
-  - [ ] Add row/column indexing for fast lookup
-      - [ ] Create JSON index files mapping job IDs to matrix indices
-      - [ ] Implement bidirectional lookup (ID to index and index to ID)
-      - [ ] Build indexing system supporting O(1) lookups
-      - [ ] Add search functionality for finding related jobs
-  - [ ] Implement block-based storage for department pairs
-      - [ ] Create matrix blocks organized by department pairs
-      - [ ] Implement standardized block naming convention:
-        ```
-        matrices/
-        ├── dept_pairs/
-        │   ├── dept1_dept2.npz
-        │   ├── dept1_dept3.npz
-        │   └── ...
-        ├── within_dept/
-        │   ├── dept1.npz
-        │   ├── dept2.npz
-        │   └── ...
-        └── full_matrix.npz (optional)
-        ```
-      - [ ] Create "matrix map" for locating specific job pairs
-      - [ ] Add lazy loading capabilities for matrix blocks
-- [ ] Build department-prioritized computation
-  - [ ] Create priority queue for department-pair processing
-      - [ ] Implement priority scoring for department pairs
-      - [ ] Create configuration for business-driven priorities
-      - [ ] Build adaptive priority adjustment based on usage patterns
-      - [ ] Develop APIs for priority management
-  - [ ] Implement background processing for lower-priority pairs
-      - [ ] Create worker pool for background processing
-      - [ ] Implement priority-based task scheduler
-      - [ ] Add resource monitoring to adapt worker count
-      - [ ] Build pausable background processing system
-  - [ ] Add resume capability for interrupted computation
-      - [ ] Implement computation state serialization
-      - [ ] Create resume flags and state tracking
-      - [ ] Build verification of resumed computation
-      - [ ] Add diagnostic tools for interrupted computations
-  - [ ] Create usage-based prioritization (recently viewed departments get priority)
-      - [ ] Implement query logging to track department access
-      - [ ] Create heat map of department access patterns
-      - [ ] Build adaptive priority system based on recent queries
-      - [ ] Develop cache warming for frequently accessed departments
-
-#### 6.8 Job Context and Metadata Handling
-**Branch: `6.8-feature/poc-integration/job-context-metadata`**
-
-> **Implementation Context**: Our system needs to handle complex organizational contexts where the same job title may appear multiple times with different attributes (department, location, seniority level, etc.). The current implementation uses simple job IDs that don't capture this complexity, leading to potential inconsistencies and confusion in the similarity results.
-> 
-> This section implements a robust composite key system that ensures each job is uniquely identified with its full organizational context. The enhanced Job model will maintain rich metadata that can be used for filtering and analysis beyond simple similarity scores. The context-aware utilities enable powerful multi-dimensional analysis that considers organizational structure alongside skill similarity.
-
-- [ ] Enhance `Job` model in `models/jobs.py`
-  - [ ] Add rich contextual metadata support
-  - [ ] Implement organisation unit information
-  - [ ] Add salary group and people leader flag as standard attributes
-  - [ ] Support location-based data
-  - [ ] Add standardised attribute sanitisation
-- [ ] Implement robust job identifier system
-  - [ ] Create a `generate_unique_id()` method that produces a composite key
-  - [ ] Include all differentiating factors in composite key (job_id, org_unit, location, seniority, role_track)
-  - [ ] Implement sanitisation of key components for consistent formatting
-  - [ ] Add storage of original "simple" job ID alongside composite ID
-  - [ ] Create documentation of composite key structure and components
-- [ ] Develop context-aware utilities
-  - [ ] Implement job filtering by any context dimension
-  - [ ] Create grouping and aggregation helpers for multi-dimensional analysis
-  - [ ] Add duplicate context detection and handling
-  - [ ] Add utility methods to extract business context from composite IDs
-
-#### 6.9 Similarity Calculation Enhancements
-**Branch: `6.9-feature/poc-integration/similarity-enhancements`**
-
-> **Implementation Context**: While our core similarity calculation uses cosine similarity between skill vectors, real-world job similarity involves additional factors like seniority level, role type, and location. The current implementation has basic support for these factors, but they need to be enhanced and optimized for the two-phase architecture.
-> 
-> The similarity calculator must be updated to leverage our parallel processing framework for better performance with large datasets. The factor tracking system is important for transparency, allowing users to understand which aspects of similarity (skills, seniority, role track, location) contributed most to a given similarity score. This transparency is crucial for business users to trust and effectively use the system's recommendations.
-
-- [ ] Enhance `CosineSimilarityCalculator`
-  - [ ] Add parallel processing support
-  - [ ] Implement batched processing
-  - [ ] Optimise vector computation
-- [ ] Add department filtering capability
-  - [ ] Pre-filtering for better performance
-  - [ ] Optimised subset processing
-- [ ] Implement memory-efficient similarity matrix generation
-  - [ ] Add sparse matrix support
-  - [ ] Create incremental matrix building
-  - [ ] Add memory-mapped storage for large matrices
-- [ ] Add similarity enhancement factor tracking
-  - [ ] Track which factors influenced each similarity score
-  - [ ] Record threshold application effects
-  - [ ] Add configuration parameterisation to similarity scores
-  - [ ] Create factor breakdown views
-
-#### 6.10 Advanced Optimisation Strategies
-**Branch: `6.10-feature/poc-integration/advanced-optimisation`**
-
-> **Implementation Context**: This section focuses on specialized optimizations that can dramatically improve performance for our specific use case. The sparse matrix support is critical since most job pairs have very low similarity scores that can be filtered out, potentially reducing storage requirements by 90%+ without losing significant information.
-> 
-> The pre-filtering framework can avoid unnecessary calculations by quickly identifying job pairs that are unlikely to have high similarity based on metadata (e.g., jobs from completely different departments or with very different seniority levels). This approach can reduce the computation load by orders of magnitude. The incremental processing system ensures that we don't recalculate the entire similarity matrix when only a small portion of the data changes.
-
-- [ ] Implement sparse matrix support
-  - [ ] Integrate scipy.sparse or similar libraries
-  - [ ] Add compression options for large datasets
-  - [ ] Create memory-efficient matrix operations
-- [ ] Develop IDF precomputation system
-  - [ ] Implement caching for IDF values
-  - [ ] Add cache update mechanisms
-  - [ ] Create configuration for calculation strategies
-- [ ] Create advanced filtering framework
-  - [ ] Implement pre-filtering by multiple dimensions
-  - [ ] Develop filter pipeline architecture
-  - [ ] Add similarity threshold filters for early stopping
-- [ ] Build incremental processing system
-  - [ ] Support for segmented matrix generation
-  - [ ] Add resumable calculation capabilities
-  - [ ] Implement result merging for distributed processing
+- [ ] Ensure precomputed similarity matrix is context-agnostic (skills only)
+- [ ] Remove application of context modifiers (seniority, role track, location) from precompute phase
+- [ ] Add tests to verify that precomputed similarities are invariant to context
 
 #### 6.11 Query Interface for Pre-computed Data
 **Branch: `6.11-feature/poc-integration/query-interface`**
 
-> **Implementation Context**: The query interface is the user-facing component of our two-phase architecture, providing rapid access to the precomputed similarity data. Unlike the current approach which calculates similarities on demand, this interface primarily retrieves and filters precomputed results, delivering near-instantaneous responses even for complex queries across large datasets.
-> 
-> This interface must balance performance with flexibility, allowing users to explore similarity data with various filters and thresholds without requiring recalculation. The memory-efficient loading is crucial for keeping the interface responsive on standard hardware, loading only the relevant portions of the precomputed matrices. The hybrid execution model handles cases where the exact precomputed data isn't available, falling back to targeted on-demand calculation when necessary.
+- [ ] Implement dynamic application of context modifiers at query/reporting time
+    - [ ] Load relevant weights from `similarity_enhancement_factors.yaml`
+    - [ ] For each query, retrieve base similarity and apply context modifiers as per config
+    - [ ] Ensure reporting/export tools use the dynamic, context-aware similarity
+- [ ] Add documentation and usage examples for context-aware querying
+- [ ] Add tests to verify correct application of modifiers at query time
 
-- [ ] Create high-performance query API
-  - [ ] Implement job-to-job similarity lookups
-  - [ ] Add similar-jobs-by-department queries
-  - [ ] Create top-K similar jobs functionality
-  - [ ] Implement composite queries (similar jobs with filters)
-- [ ] Develop memory-efficient data loading
-  - [ ] Implement on-demand loading of relevant matrix blocks
-  - [ ] Create memory mapping for large matrices
-  - [ ] Add caching for frequently accessed data
-  - [ ] Implement data eviction strategies for memory management
-- [ ] Build hybrid query execution
-  - [ ] Create query planning to utilize pre-computed data when available
-  - [ ] Implement fallback to on-demand calculation for missing data
-  - [ ] Add query results caching
-  - [ ] Create asynchronous background computation for frequently accessed missing data
-
-#### 6.12 Configuration Transparency System
-**Branch: `6.12-feature/poc-integration/config-transparency`**
-
-> **Implementation Context**: Our similarity calculations involve numerous configurable parameters that significantly impact the results, but the current implementation doesn't track or expose these parameters adequately. This section creates a comprehensive system for tracking, versioning, and exposing the configuration values that influence similarity scores.
-> 
-> This transparency is crucial for reproducibility and auditability - we need to know exactly what configuration produced a given set of results. The configuration embedding mechanism ensures that outputs always include the configuration that generated them, while the scenario management system enables users to compare different configuration approaches to find the optimal settings for their specific needs.
-
-- [ ] Create configuration tracking framework in `config/tracking.py`
-  - [ ] Implement configuration versioning
-  - [ ] Create serialisation of active configuration
-  - [ ] Add configuration context management
-  - [ ] Implement configuration diffing capabilities
-- [ ] Develop configuration embedding mechanism
-  - [ ] Create metadata enrichment for output data frames
-  - [ ] Implement factor contribution analysis
-  - [ ] Add configuration impact calculation
-  - [ ] Build configuration documentation generator
-- [ ] Implement configuration scenario management
-  - [ ] Add scenario definition capabilities
-  - [ ] Create scenario comparison reports
-  - [ ] Implement run history tracking
-  - [ ] Build configuration validation engine
-
-#### 6.13 CLI Commands for Pre-computation and Query
-**Branch: `6.13-feature/poc-integration/cli-precomp-query`**
-
-> **Implementation Context**: The command-line interface is the primary way users will interact with our system, particularly for triggering the resource-intensive precomputation phase and managing precomputed data. The current CLI is basic and doesn't support the two-phase architecture or provide adequate feedback for long-running operations.
-> 
-> The enhanced CLI must provide comprehensive commands for both phases of our system, with appropriate progress tracking and error handling for precomputation, and flexible query options for the interactive phase. The management commands are essential for maintaining the precomputed data over time, cleaning up outdated files and verifying the integrity of the data store.
->
-> **Memory Management Context**: Given our deployment on standard laptops with 32GB RAM, the CLI must expose memory management options that allow users to control resource utilization. These options enable processing of large datasets (35,000+ jobs) by adapting chunk sizes and processing strategies based on available memory.
-
-- [ ] Implement vector pre-computation command
-  - [ ] Add `precompute-vectors` command with input source options
-  - [ ] Create progress tracking and error handling
-  - [ ] Add incremental update mode
-  - [ ] Implement verification and validation options
-  - [ ] Add memory management flags:
-      - [ ] `--memory-limit` to set maximum memory usage (default: 28GB)
-      - [ ] `--adaptive-chunks` to enable memory-based chunk sizing
-      - [ ] `--min-chunk-size` and `--max-chunk-size` to set boundaries
-- [ ] Create similarity matrix computation command
-  - [ ] Add `precompute-similarity` command with department prioritization
-  - [ ] Create options for chunk size and memory limits
-  - [ ] Implement threading and parallel processing options
-  - [ ] Add resumable execution with checkpoints
-  - [ ] Implement memory-aware processing options:
-      - [ ] `--memory-strategy` with options (conservative, balanced, aggressive)
-      - [ ] `--memory-monitor-interval` to control sampling frequency
-      - [ ] `--memory-threshold-warning` and `--memory-threshold-critical`
-- [ ] Develop management commands
-  - [ ] Create `list-precomputed` to show available pre-computed data
-  - [ ] Add `verify-integrity` to validate pre-computed files
-  - [ ] Implement `clean-outdated` to remove stale pre-computed data
-  - [ ] Add `repair-precomputed` to fix corrupted data
-  - [ ] Create `memory-estimate` to predict memory needs for a given dataset
-- [ ] Update query interface CLI
-  - [ ] Add performance tuning parameters
-  - [ ] Implement memory optimisation flags
-  - [ ] Create output format selection
-  - [ ] Add configuration scenario options
-  - [ ] Add department filtering
-  - [ ] Add job level filtering
-  - [ ] Create custom filter expressions
-- [ ] Enhance help documentation
-  - [ ] Add comprehensive option descriptions
-  - [ ] Create usage examples
-  - [ ] Implement configuration templates
-  - [ ] Add troubleshooting section
-  - [ ] Create memory management guide with hardware recommendations
-
-#### 6.14 Focused Data Export and Insight-Driven Visualisation
-**Branch: `6.14-feature/poc-integration/focused-exports`**
-
-> **Implementation Context**: The ultimate goal of our system is to provide actionable insights through easily consumable outputs. The current implementation generates excessive data with limited prioritization, overwhelming users with raw similarity scores instead of focusing on the most relevant insights. This section implements a more focused approach to data export and visualization.
-> 
-> The primary output remains a comprehensive cross-department similarity dataset optimized for Power BI, but with enhanced metadata and configurability. The "highlights" mode addresses information overload by surfacing only the most significant findings. The departmental batching ensures that exports remain manageable even for the full dataset of 35,000+ jobs.
-
-- [ ] Create Power BI optimised exporters in `visualization/power_bi.py`
-  - [ ] Implement standardised tabular "fact table" format for comprehensive data
-  - [ ] Add relationship-friendly data structures
-  - [ ] Create metadata generation
-  - [ ] Implement configuration factor inclusion in exports
-- [ ] Implement departmental batching for exports
-  - [ ] Add configurable batch sizes
-  - [ ] Create memory-efficient batch processing
-  - [ ] Add resume capability for interrupted exports
-- [ ] Add statistics generation utilities
-  - [ ] Create summary statistics
-  - [ ] Implement department-specific metrics
-  - [ ] Add opportunity flag generation
-  - [ ] Create configuration impact metrics
-- [ ] Design focused visualisation approach
-  - [ ] Create "highlights" mode showing only most significant findings
-  - [ ] Implement significance thresholds to limit output volume
-  - [ ] Develop aggregated visualisation methods to replace unit-by-unit comparisons
-  - [ ] Create executive summary visualisations for key insights
-- [ ] Enhance cross-department similarity exports
-  - [ ] Optimize the primary tabular output format
-  - [ ] Add configurable options for controlling the level of detail
-  - [ ] Create efficient processing for full cross-department comparisons
-  - [ ] Implement memory-efficient design for large job datasets
-
-#### 6.15 Examples and Practical Testing
-**Branch: `6.15-feature/poc-integration/examples-testing`**
-
-> **Implementation Context**: While our test suite (unit, integration, functional) verifies that components work correctly in isolation and together, we need practical examples that demonstrate real-world usage patterns. These examples serve multiple purposes: they document how to use the components, validate that our APIs are intuitive, and provide a way to visually inspect memory behavior during actual operations rather than just in test scenarios. This practical testing is essential for memory management features where the proof is in the actual usage with real-scale data.
->
-> A key difference between formal tests and these practical examples is that examples focus on demonstrating usage patterns and producing tangible outputs (like memory graphs) that developers can review, while formal tests focus on automated verification of correctness. Both are necessary for a complete quality assurance strategy.
-
-- [x] Create example scripts to demonstrate memory management utilities
-  - [x] Develop dashboard demonstration example
-      - [x] Create script that tracks memory during a realistic workflow
-      - [x] Generate visualizations showing memory usage patterns
-      - [x] Add annotations for different processing stages
-      - [x] Include prediction visualization for memory growth
-  - [x] Implement memory-efficient comparison demo
-      - [x] Create side-by-side comparison between standard and memory-efficient implementations
-      - [x] Measure and display memory savings from optimizations
-      - [x] Plot memory usage differences as operations scale
-      - [x] Add commentary on memory pattern differences
-  - [x] Create function-level profiling example
-      - [x] Demonstrate profiling decorator on key functions
-      - [x] Show relationship between input size and memory usage
-      - [x] Implement reporting of per-function memory statistics
-      - [x] Include visualization of memory footprint by function
-  - [x] Build memory leakage detection example
-      - [x] Create demonstration of leak detection utilities
-      - [x] Show how to identify problematic object types
-      - [x] Implement reference tracking for common leak patterns
-      - [x] Include remediation examples for typical memory leaks
-- [x] Create practical examples of memory optimization approaches
-  - [x] Develop context manager usage examples
-      - [x] Show how to identify memory-intensive code blocks
-      - [x] Create nested context examples for detailed memory tracking
-      - [x] Implement combined CPU and memory profiling
-      - [x] Show real-time decision making based on memory metrics
-  - [x] Implement CLI tool monitoring examples
-      - [x] Create example of integrating memory monitoring into CLI
-      - [x] Show configuration options for memory optimization
-      - [x] Implement adaptive behavior based on available memory
-      - [x] Demonstrate reporting options for memory usage
-  - [x] Create real-world batch processing example
-      - [x] Implement chunk size optimization based on memory constraints
-      - [x] Show memory-aware parallel processing
-      - [x] Create adaptive resource utilization example
-      - [x] Implement checkpoint and resume capabilities
-- [x] Set up example data and configuration
-  - [x] Create realistic sample datasets for memory testing
-      - [x] Generate scalable synthetic job and skill data
-      - [x] Implement configuration templates for memory testing
-      - [x] Create data generation scripts with controllable complexity
-      - [x] Add documentation on data characteristics
-  - [x] Implement configuration examples
-      - [x] Create optimized configurations for different memory constraints
-      - [x] Document memory-critical configuration parameters
-      - [x] Implement templates for various hardware profiles
-      - [x] Create configuration impact analysis examples
-
-#### 6.16 Memory-Aware Processing Framework
-**Branch: `6.16-feature/poc-integration/memory-aware-processing`**
-
-> **Implementation Context**: Processing 35,000+ jobs with over 1.2 billion comparisons on standard laptops with 32GB RAM requires sophisticated memory management. Our testing has shown that neither a fully memory-efficient approach nor a standard implementation alone can solve this challenge. Instead, we need a hybrid approach that continuously monitors memory usage and adapts processing strategies in real-time.
->
-> This section implements a comprehensive memory-aware processing framework that integrates with the chunking and parallel processing components to ensure optimal resource utilization while preventing out-of-memory conditions. The framework provides both low-level utilities for fine-grained memory control and high-level abstractions that make memory-aware processing accessible throughout the codebase.
-
-- [ ] Implement memory-aware processing controller
-  - [ ] Create `MemoryAwareProcessor` class in `utils/memory_aware.py`
-      - [ ] Implement continuous memory monitoring with configurable sampling rate
-      - [ ] Create adaptive chunk size calculation based on memory trends
-      - [ ] Build memory pressure detection with multiple warning levels
-      - [ ] Add automatic garbage collection triggering based on thresholds
-  - [ ] Develop memory-based execution strategies
-      - [ ] Implement progressive chunk sizing that starts conservative and scales up
-      - [ ] Create fallback mechanisms for when memory pressure is detected
-      - [ ] Build emergency cleanup protocols for critical memory situations
-      - [ ] Add memory reservation system for critical operations
-  - [ ] Add configuration options for memory-aware processing
-      - [ ] Create YAML configuration section for memory thresholds and strategies
-      - [ ] Implement runtime adjustment of memory parameters
-      - [ ] Build memory strategy profiles for different hardware configurations
-      - [ ] Add documentation of memory parameters and their impacts
-- [ ] Create memory-efficient data structures for similarity calculations
-  - [ ] Implement sparse vector representation for job skills
-      - [ ] Create compressed skill vector format using scipy.sparse
-      - [ ] Implement memory-mapped vector storage for large datasets
-      - [ ] Build vector slicing for partial loading
-      - [ ] Add vector compression with configurable precision (float32/float16)
-  - [ ] Develop incremental similarity matrix builder
-      - [ ] Create block-based matrix construction that processes and saves in chunks
-      - [ ] Implement threshold-based filtering to only store significant similarities
-      - [ ] Build memory-mapped matrix access for efficient queries
-      - [ ] Add matrix compression techniques for storage efficiency
-  - [ ] Add memory usage analytics
-      - [ ] Create detailed memory profiling for similarity calculations
-      - [ ] Implement memory usage prediction based on job counts
-      - [ ] Build visualization of memory usage patterns during processing
-      - [ ] Add memory efficiency scoring for different implementation approaches
-- [ ] Integrate with existing components
-  - [ ] Update similarity calculator to use memory-aware processing
-      - [ ] Implement memory-efficient cosine similarity calculation
-      - [ ] Create chunked matrix operations that respect memory limits
-      - [ ] Build adaptive precision control based on memory availability
-      - [ ] Add fallback to disk-based processing for extreme cases
-  - [ ] Enhance job architecture loading with memory awareness
-      - [ ] Implement progressive loading of job data based on memory availability
-      - [ ] Create memory-efficient job representation with shared attributes
-      - [ ] Build lazy loading of job details
-      - [ ] Add memory impact estimates for job loading operations
-  - [ ] Update CLI with memory management options
-      - [ ] Add `--memory-limit` flag to control maximum memory usage
-      - [ ] Implement `--adaptive-chunks` option for memory-based chunking
-      - [ ] Create `--memory-profile` option to output detailed memory analytics
-      - [ ] Build memory strategy selection through configuration
+> **Rationale (2024-06):**
+> This change was made to keep the precomputed similarity matrix small, fast, and reusable, and to allow for flexible, on-demand application of context modifiers. This approach supports both performance and business needs, and is aligned with the current data model and scale.
 
 ### Phase 7: Data Pipeline & Integration - **IN PROGRESS**
 **Branch: `7-feature/data-pipeline`**
