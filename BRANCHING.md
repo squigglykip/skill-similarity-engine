@@ -33,9 +33,9 @@ This document outlines the Git branching strategy for the Skill Similarity Engin
   - *6.2-feature/poc-integration/memory-management*
   - *6.3-feature/poc-integration/performance-optimization*
   - *6.4-feature/poc-integration/error-handling*
-  - 6.5-feature/poc-integration/core-data-loading
-  - 6.6-feature/poc-integration/tfidf-skill-processing
-  - 6.7-feature/poc-integration/precomputation-strategy
+  - *6.5-feature/poc-integration/core-data-loading* ✅
+  - *6.6-feature/poc-integration/skill-processing-asymmetric* ✅
+  - *6.7-feature/poc-integration/precomputation-strategy
     - 6.7.1-feature/poc-integration/input-vectorisation
     - 6.7.2-feature/poc-integration/similarity-matrix-precomp
   - 6.8-feature/poc-integration/job-context-metadata
@@ -131,7 +131,7 @@ main
     │   ├── 6.3-feature/poc-integration/performance-optimization
     │   ├── 6.4-feature/poc-integration/error-handling
     │   ├── 6.5-feature/poc-integration/core-data-loading
-    │   ├── 6.6-feature/poc-integration/tfidf-skill-processing
+    │   ├── 6.6-feature/poc-integration/skill-processing-asymmetric
     │   ├── 6.7-feature/poc-integration/precomputation-strategy
     │   │   ├── 6.7.1-feature/poc-integration/input-vectorisation
     │   │   └── 6.7.2-feature/poc-integration/similarity-matrix-precomp
