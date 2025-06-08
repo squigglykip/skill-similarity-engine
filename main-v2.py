@@ -150,10 +150,10 @@ def load_and_validate_data(logger):
     print("[INFO] Data loading complete. Ready to bolt on more functionality!")
 
     # Print any registered errors
-    if error_registry.has_errors():
+    if len(error_registry.get_all()) > 0:
         print("\n[WARNING] Some errors were registered during execution:")
-        for err in error_registry.get_errors():
-            print(f"- {err}")
+        for err in error_registry.get_all():
+            print(f"- {err.get('message', err)}")
 
 def main():
     logger = setup_logging(level='INFO')
