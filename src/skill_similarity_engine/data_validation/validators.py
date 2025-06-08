@@ -1,11 +1,29 @@
-import yaml
 import os
+import yaml
 import sys
 import argparse
 import pandas as pd
 from skill_similarity_engine.logging.config import setup_logging
 
+# Import field mapping utilities
+from ..config.field_mapping import get_field_mapper, get_raw_field_name
+
 logger = setup_logging()
+
+# --- Robust schema path resolution: search upwards for config/data_validation_schema.yaml ---
+def find_schema_path():
+    here = os.path.abspath(os.path.dirname(__file__))
+    while True:
+        config_dir = os.path.join(here, 'config')
+        schema_path = os.path.join(config_dir, 'data_validation_schema.yaml')
+        if os.path.isfile(schema_path):
+            return schema_path
+        parent = os.path.dirname(here)
+        if parent == here:
+            raise RuntimeError("Could not find 'config/data_validation_schema.yaml' in any parent directory.")
+        here = parent
+
+SCHEMA_PATH = find_schema_path()
 
 class ValidationResult:
     def __init__(self, passed, message=None, context=None):
@@ -90,29 +108,101 @@ class TypeValidator(Validator):
 class ValidationEngine:
     """
     Loads a schema config and applies validators to a dataset.
+    Now integrated with field mapping system to use canonical field names internally.
     """
     def __init__(self, schema_section, config_path=None):
         if config_path is None:
-            config_path = os.path.join(os.path.dirname(__file__), '../../config/data_validation_schema.yaml')
+            config_path = SCHEMA_PATH
         with open(config_path, 'r') as f:
             self.schema = yaml.safe_load(f)[schema_section]
+        self.schema_section = schema_section
+        
+        # Initialize field mapper for canonical name resolution
+        self.field_mapper = get_field_mapper()
+        
         self.validators = self._create_validators()
 
     def _create_validators(self):
+        """
+        Create validators using canonical field names.
+        Maps raw schema field names to canonical names.
+        """
         validators = []
-        for field, rules in self.schema.items():
+        for raw_field_name, rules in self.schema.items():
+            # Map raw field name to canonical name
+            canonical_field_name = self._map_to_canonical_name(raw_field_name)
+            
             if rules.get('required', False):
-                validators.append(NotNullValidator(field))
+                validators.append(NotNullValidator(canonical_field_name))
             if 'type' in rules:
-                validators.append(TypeValidator(field, rules['type']))
+                validators.append(TypeValidator(canonical_field_name, rules['type']))
         return validators
+    
+    def _map_to_canonical_name(self, raw_field_name):
+        """
+        Map raw schema field name to canonical field name.
+        
+        Args:
+            raw_field_name: Raw field name from schema (e.g., 'Skill_ID', 'RoleSet')
+            
+        Returns:
+            Canonical field name (e.g., 'skill_id', 'title')
+        """
+        # Create reverse mapping from field mapping configuration
+        field_mappings = self.field_mapper.get_field_mapping_dict(self.schema_section)
+        
+        # Look for canonical name that maps to this raw field name
+        for canonical_name, raw_mapping in field_mappings.items():
+            if isinstance(raw_mapping, str):
+                if raw_mapping == raw_field_name:
+                    return canonical_name
+            elif isinstance(raw_mapping, list):
+                if raw_field_name in raw_mapping:
+                    return canonical_name
+        
+        # If no mapping found, use the raw field name as canonical 
+        # (with some basic normalisation)
+        canonical_name = raw_field_name.lower().replace(' ', '_')
+        logger.warning(f"No canonical mapping found for raw field '{raw_field_name}' in section '{self.schema_section}', using normalised name '{canonical_name}'")
+        return canonical_name
 
     def validate_row(self, row):
+        """
+        Validate a row using canonical field names.
+        Maps row fields from raw to canonical names before validation.
+        
+        Args:
+            row: Dictionary with raw field names
+            
+        Returns:
+            List of ValidationResult objects
+        """
+        # Map row fields from raw to canonical names
+        canonical_row = self._map_row_to_canonical(row)
+        
         results = []
         for validator in self.validators:
-            result = validator.validate(row)
+            result = validator.validate(canonical_row)
             results.append(result)
         return results
+    
+    def _map_row_to_canonical(self, row):
+        """
+        Map row fields from raw names to canonical names.
+        
+        Args:
+            row: Dictionary with raw field names
+            
+        Returns:
+            Dictionary with canonical field names
+        """
+        canonical_row = {}
+        
+        for raw_field_name, value in row.items():
+            canonical_name = self._map_to_canonical_name(raw_field_name)
+            canonical_row[canonical_name] = value
+            
+        return canonical_row
 
     def validate_dataset(self, dataset):
         """

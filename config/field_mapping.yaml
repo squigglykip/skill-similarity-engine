@@ -1,0 +1,137 @@
+# Field Mapping Configuration
+# Maps canonical variable names (used throughout the codebase) to raw data column names
+# This allows the system to work with different input file formats without code changes
+# Based on the schema defined in data_validation_schema.yaml
+
+# Version for compatibility tracking
+version: "1.0.0"
+
+# Skills taxonomy field mappings (from raw data schema)
+skills:
+  # Core skill fields - mapping canonical names to actual raw data column names
+  skill_id: "Skill_ID"        # Raw data uses Skill_ID
+  name: "Skill_Name"          # Raw data uses Skill_Name  
+  skill_type: "SkillType"     # Raw data uses SkillType
+  category: "Category"        # Raw data has Category field
+  subcategory: "Subcategory"  # Raw data has Subcategory field
+  
+  # Optional fields that may not exist in raw data but are used in code
+  description: "description"   # Fallback if description field exists
+  category_id: "category_id"   # Fallback if category_id field exists
+  aliases: "aliases"           # Fallback if aliases field exists
+  related_skills: "related_skills"     # Fallback if related_skills field exists
+  prerequisites: "prerequisites"       # Fallback if prerequisites field exists
+
+# Skill categories field mappings (may not be in separate file)
+skill_categories:
+  category_id: "category_id"
+  name: "name"
+  parent_id: "parent_id"
+  description: "description"
+
+# Jobs field mappings (from raw data schema)
+jobs:
+  # Core job fields - mapping canonical names to actual raw data column names
+  job_id: "JobProfileID"           # Raw data uses JobProfileID
+  title: "RoleSet"                 # Raw data uses RoleSet
+  salary_group: "Salary Group"     # Raw data uses "Salary Group"
+  people_leader_flag: "People Leader Flag"  # Raw data uses "People Leader Flag"
+  
+  # Location fields from raw data
+  street: "Street"
+  suburb: "Suburb" 
+  location: "Location"
+  city: "Cty"                      # Raw data uses Cty for city
+  
+  # Fields that may be derived or mapped from other sources
+  department: "department"         # May need to be derived from other fields
+  level: "level"                   # May need to be derived
+  seniority: "seniority"          # May need to be derived
+  role_track: "role_track"        # May need to be derived
+  skills: "skills"                # For embedded skills data
+
+# Job-skill mapping field mappings (from raw data schema)
+job_skill_mapping:
+  job_id: "JobProfileID"    # Raw data uses JobProfileID (same as jobs table!)
+  skill_id: "Skill_ID"      # Raw data uses Skill_ID
+  proficiency: "proficiency"  # This may need to be added or derived
+
+# Employee field mappings (not in current schema but may be added)
+employees:
+  employee_id: "employee_id"
+  name: "name"
+  current_job: "current_job"
+  skills: "skills"
+
+# Employee-skill mapping field mappings
+employee_skills:
+  employee_id: "employee_id"
+  skill_id: "skill_id"
+  proficiency: "proficiency"
+
+# Legacy/alternative field mappings for backward compatibility
+legacy:
+  # Alternative mappings that might exist in different data sources
+  skills:
+    skill_id: 
+      - "Skill_ID"      # Primary from schema
+      - "skill_id"      # Legacy/alternative
+    name:
+      - "Skill_Name"    # Primary from schema  
+      - "name"          # Legacy/alternative
+    skill_type:
+      - "SkillType"     # Primary from schema
+      - "skill_type"    # Legacy/alternative
+      - "category"      # Alternative interpretation
+  
+  jobs:
+    job_id:
+      - "JobProfileID"  # Primary from schema
+      - "job_id"        # Legacy/alternative
+    title:
+      - "RoleSet"       # Primary from schema
+      - "title"         # Legacy/alternative
+  
+  job_skill_mapping:
+    job_id:
+      - "JobProfileID"      # Primary from schema (corrected!)
+      - "JobID"             # Legacy/alternative (old incorrect name)
+      - "job_id"            # Legacy/alternative
+    skill_id:
+      - "Skill_ID"          # Primary from schema
+      - "skill_id"          # Legacy/alternative
+
+# Visualisation and analysis field mappings
+visualisation:
+  skill_gaps:
+    skill_id: "skill_id"
+    skill_name: "skill_name"
+    proficiency_gap: "proficiency_gap"
+    criticality: "criticality"
+    department: "department"
+
+# Transition analysis field mappings
+transition_analysis:
+  similarity: "similarity"
+  total_gap: "total_gap"
+
+# Configuration for handling alternative field names
+field_name_alternatives:
+  # When a canonical field has multiple possible raw column names,
+  # the system will try each in order until one is found
+  enable_fallback: true
+  
+  # Whether to log when fallback field names are used
+  log_fallback_usage: true
+  
+  # Whether to be case-sensitive when matching field names
+  case_sensitive: false
+
+# Data source priority configuration
+data_source_priority:
+  # Which section to try first when looking up field mappings
+  default_order:
+    - "skills"          # Try main skills mapping first
+    - "jobs"            # Then jobs mapping  
+    - "job_skill_mapping"      # Then job_skills mapping
+    - "legacy"          # Finally try legacy mappings 
