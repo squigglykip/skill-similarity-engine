@@ -8,6 +8,9 @@ version: "0.1.0"
 data_dir: "./data"
 output_dir: "./output"
 
+# Field mapping configuration
+field_mapping_file: "config/field_mapping.yaml"
+
 # Logging settings
 logging:
   level: "INFO"

@@ -51,24 +51,6 @@ class TfidfVectorizer:
         
         self.num_skills = len(self.skill_indices)
         logger.info(f"Vectorizer initialized with {self.num_skills} skills")
-        
-        # Check if skill name mapping exists
-        if hasattr(self.skill_taxonomy, 'skill_name_mapping'):
-            logger.info(f"Using preprocessed skill names with underscores")
-    
-    def get_original_skill_name(self, processed_name: str) -> str:
-        """
-        Convert a processed skill name back to its original form.
-        
-        Args:
-            processed_name: The processed skill name with underscores
-            
-        Returns:
-            The original skill name with spaces
-        """
-        if hasattr(self.skill_taxonomy, 'skill_name_mapping'):
-            return self.skill_taxonomy.skill_name_mapping.get(processed_name, processed_name)
-        return processed_name
     
     def fit(self, job_architecture: JobArchitecture) -> None:
         """
@@ -212,7 +194,7 @@ class CosineSimilarityCalculator:
     employee_database: Optional[EmployeeDatabase] = None
     job_vectors: Dict[str, np.ndarray] = field(default_factory=dict)
     employee_vectors: Dict[str, np.ndarray] = field(default_factory=dict)
-    config_manager: ConfigManager = field(default_factory=ConfigManager)
+    config_manager: ConfigManager = ConfigManager()
     
     def __post_init__(self):
         """Initialize the calculator by fitting the vectorizer and caching vectors."""
@@ -254,31 +236,6 @@ class CosineSimilarityCalculator:
         for job_id, job in self.job_architecture.jobs.items():
             self.job_vectors[job_id] = self.vectorizer.transform_job(job)
     
-    def _calculate_base_skill_similarity(self, job1_id: str, job2_id: str) -> float:
-        """
-        Calculate the base similarity between two jobs using only their skill vectors.
-        
-        Args:
-            job1_id: ID of the first job
-            job2_id: ID of the second job
-            
-        Returns:
-            Base similarity score between the two jobs based on skills only
-            
-        Raises:
-            ValueError: If any of the job IDs are not found
-        """
-        if job1_id not in self.job_vectors:
-            raise ValueError(f"Job with ID {job1_id} not found")
-        
-        if job2_id not in self.job_vectors:
-            raise ValueError(f"Job with ID {job2_id} not found")
-        
-        # Calculate base similarity using skills
-        vector1 = self.job_vectors[job1_id].reshape(1, -1)
-        vector2 = self.job_vectors[job2_id].reshape(1, -1)
-        return float(sklearn_cosine_similarity(vector1, vector2)[0, 0])
-    
     def calculate_job_similarity(self, job1_id: str, job2_id: str) -> float:
         """
         Calculate the similarity between two jobs, including enhancements for seniority, role track, and location.
@@ -304,7 +261,9 @@ class CosineSimilarityCalculator:
         job2 = self.job_architecture.jobs[job2_id]
         
         # Calculate base similarity using skills
-        skill_similarity = self._calculate_base_skill_similarity(job1_id, job2_id)
+        vector1 = self.job_vectors[job1_id].reshape(1, -1)
+        vector2 = self.job_vectors[job2_id].reshape(1, -1)
+        skill_similarity = float(sklearn_cosine_similarity(vector1, vector2)[0, 0])
         
         # Get extension weights from config
         config = self.config_manager.get_config()
@@ -377,28 +336,33 @@ class CosineSimilarityCalculator:
             This implementation strongly favours career progression using configurable thresholds.
             Typically, same level and one step up are favourably scored, while steps down are penalised.
         """
-        # Get configuration values
         config = self.config_manager.get_config().future_extensions
-        
-        # Calculate difference in seniority (positive if job2 is higher level)
-        seniority_diff = job2.seniority - job1.seniority
-        
-        # Same level = highest similarity
+        # Use .numeric property if available, else fallback
+        try:
+            if hasattr(job1.level, 'numeric'):
+                level1 = int(job1.level.numeric)
+            elif hasattr(job1.level, 'value'):
+                level1 = int(job1.level.value)
+            else:
+                level1 = int(job1.level)
+            if hasattr(job2.level, 'numeric'):
+                level2 = int(job2.level.numeric)
+            elif hasattr(job2.level, 'value'):
+                level2 = int(job2.level.value)
+            else:
+                level2 = int(job2.level)
+        except Exception:
+            # Fallback to seniority attribute if present
+            level1 = int(getattr(job1, 'seniority', 3))
+            level2 = int(getattr(job2, 'seniority', 3))
+        seniority_diff = level2 - level1
         if seniority_diff == 0:
             return config.seniority_same_level_similarity
-        
-        # One step up = good similarity
         elif seniority_diff == 1:
             return config.seniority_one_up_similarity
-        
-        # Multiple steps up = moderate similarity decreasing with distance
         elif seniority_diff > 1:
-            # Similarity decreases based on the configured step penalty
             return max(0.0, config.seniority_one_up_similarity - ((seniority_diff - 1) * config.seniority_up_step_penalty))
-        
-        # Any step down = extremely low similarity (effectively eliminating demotion recommendations)
         else:
-            # Apply a severe penalty for any downward movement
             abs_diff = abs(seniority_diff)
             if abs_diff == 1:
                 return config.seniority_one_down_similarity
@@ -710,7 +674,7 @@ class CosineSimilarityCalculator:
         
         return similarities[:top_n]
     
-    def calculate_similarity_matrix(self, analysis_type: str, job_architecture: Optional[JobArchitecture] = None) -> Tuple[np.ndarray, List[str]]:
+    def calculate_similarity_matrix(self, analysis_type: str, job_architecture: Optional[JobArchitecture] = None):
         """
         Calculate similarity matrix for all jobs or employees.
         

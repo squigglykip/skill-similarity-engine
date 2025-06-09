@@ -22,49 +22,20 @@ class JobLevel(str, Enum):
     MANAGER = "Manager"
     DIRECTOR = "Director"
     EXECUTIVE = "Executive"
-    
-    @classmethod
-    def from_string(cls, level_str: str) -> 'JobLevel':
-        """
-        Convert a string representation to a JobLevel enum value.
-        
-        Args:
-            level_str: String representation of job level
-            
-        Returns:
-            Corresponding JobLevel enum value
-            
-        Raises:
-            ValueError: If the string doesn't match any known job level
-        """
-        level_map = {
-            "Entry": cls.ENTRY,
-            "Associate": cls.ASSOCIATE,
-            "Mid-level": cls.MID_LEVEL,
-            "Senior": cls.SENIOR,
-            "Lead": cls.LEAD,
-            "Manager": cls.MANAGER,
-            "Director": cls.DIRECTOR,
-            "Executive": cls.EXECUTIVE,
-            # Add uppercase variants
-            "ENTRY": cls.ENTRY,
-            "ASSOCIATE": cls.ASSOCIATE,
-            "MID_LEVEL": cls.MID_LEVEL,
-            "PROFESSIONAL": cls.MID_LEVEL,  # Map PROFESSIONAL to MID_LEVEL
-            "SENIOR": cls.SENIOR,
-            "LEAD": cls.LEAD,
-            "MANAGER": cls.MANAGER,
-            "DIRECTOR": cls.DIRECTOR,
-            "EXECUTIVE": cls.EXECUTIVE,
-            "PRINCIPAL": cls.SENIOR  # Map PRINCIPAL to SENIOR
-        }
-        
-        normalized_level = level_str.strip()
-        if normalized_level in level_map:
-            return level_map[normalized_level]
-        
-        raise ValueError(f"Unknown job level: {level_str}")
 
+    @property
+    def numeric(self) -> int:
+        level_map = {
+            JobLevel.ENTRY: 1,
+            JobLevel.ASSOCIATE: 2,
+            JobLevel.MID_LEVEL: 3,
+            JobLevel.SENIOR: 4,
+            JobLevel.LEAD: 5,
+            JobLevel.MANAGER: 6,
+            JobLevel.DIRECTOR: 7,
+            JobLevel.EXECUTIVE: 8
+        }
+        return level_map[self]
 
 class RoleTrack(str, Enum):
     """Role tracks in the organizational hierarchy."""
@@ -231,13 +202,13 @@ class JobArchitecture:
         role_tracks: Set of all role tracks in the architecture
         locations: Set of all locations in the architecture
     """
-    jobs: Dict[str, Job] = field(default_factory=dict)
+    jobs: Dict[str, 'Job'] = field(default_factory=dict)
     departments: Set[str] = field(default_factory=set)
-    levels: Set[JobLevel] = field(default_factory=set)
-    role_tracks: Set[RoleTrack] = field(default_factory=set)
+    levels: Set['JobLevel'] = field(default_factory=set)
+    role_tracks: Set['RoleTrack'] = field(default_factory=set)
     locations: Set[str] = field(default_factory=set)
     
-    def add_job(self, job: Job) -> None:
+    def add_job(self, job: 'Job') -> None:
         """
         Add a job to the architecture.
         
@@ -257,7 +228,7 @@ class JobArchitecture:
         if job.location:
             self.locations.add(job.location)
     
-    def get_job(self, job_id: str) -> Optional[Job]:
+    def get_job(self, job_id: str) -> Optional['Job']:
         """
         Retrieve a job by its ID.
         
@@ -269,7 +240,7 @@ class JobArchitecture:
         """
         return self.jobs.get(job_id)
     
-    def get_jobs_by_department(self, department: str) -> List[Job]:
+    def get_jobs_by_department(self, department: str) -> List['Job']:
         """
         Retrieve all jobs in a specific department.
         
@@ -281,7 +252,7 @@ class JobArchitecture:
         """
         return [job for job in self.jobs.values() if job.department == department]
     
-    def get_jobs_by_level(self, level: JobLevel) -> List[Job]:
+    def get_jobs_by_level(self, level: 'JobLevel') -> List['Job']:
         """
         Retrieve all jobs at a specific level.
         
@@ -299,7 +270,7 @@ class JobArchitecture:
         
         return [job for job in self.jobs.values() if job.level == level]
     
-    def get_jobs_by_role_track(self, role_track: RoleTrack) -> List[Job]:
+    def get_jobs_by_role_track(self, role_track: 'RoleTrack') -> List['Job']:
         """
         Retrieve all jobs with a specific role track.
         
@@ -317,7 +288,7 @@ class JobArchitecture:
         
         return [job for job in self.jobs.values() if job.role_track == role_track]
     
-    def get_jobs_by_location(self, location: str) -> List[Job]:
+    def get_jobs_by_location(self, location: str) -> List['Job']:
         """
         Retrieve all jobs at a specific location.
         
@@ -329,7 +300,7 @@ class JobArchitecture:
         """
         return [job for job in self.jobs.values() if job.location == location]
     
-    def get_jobs_by_seniority(self, seniority: int) -> List[Job]:
+    def get_jobs_by_seniority(self, seniority: int) -> List['Job']:
         """
         Retrieve all jobs with a specific seniority level.
         
@@ -344,7 +315,7 @@ class JobArchitecture:
         
         return [job for job in self.jobs.values() if job.seniority == seniority]
     
-    def get_jobs_requiring_skill(self, skill_id: str, min_proficiency: int = 1) -> List[Job]:
+    def get_jobs_requiring_skill(self, skill_id: str, min_proficiency: int = 1) -> List['Job']:
         """
         Retrieve all jobs requiring a specific skill at minimum proficiency.
         

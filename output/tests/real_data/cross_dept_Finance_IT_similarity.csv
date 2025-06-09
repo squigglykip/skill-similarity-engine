@@ -1,5 +1,0 @@
-job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J005,Financial Analyst,Finance,J015,IT Support Specialist,IT,0.1236190645567584
-J005,Financial Analyst,Finance,J016,Cybersecurity Analyst,IT,0.04668162613011909
-J006,Senior Financial Analyst,Finance,J015,IT Support Specialist,IT,0.0930278382720261
-J006,Senior Financial Analyst,Finance,J016,Cybersecurity Analyst,IT,0.22826575897284165

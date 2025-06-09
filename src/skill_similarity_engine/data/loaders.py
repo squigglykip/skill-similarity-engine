@@ -5,11 +5,13 @@ This module provides functionality for loading data from CSV and Excel files.
 """
 
 import os
+import logging
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 
 from ..config.settings import get_config, get_data_path
+from ..config.field_mapping import get_field_mapper, get_raw_field_name
 from ..models.employees import Employee, EmployeeDatabase
 from ..models.jobs import Job, JobArchitecture, JobLevel
 from ..models.skills import Skill, SkillCategory, SkillTaxonomy, SkillType
@@ -21,6 +23,7 @@ class SkillTaxonomyLoader:
     
     Attributes:
         base_dir: Base directory for data files
+        field_mapper: Field mapping utility for handling different data schemas
     """
     
     def __init__(self, base_dir: Optional[str] = None):
@@ -31,127 +34,202 @@ class SkillTaxonomyLoader:
             base_dir: Base directory for data files (default: from config)
         """
         self.base_dir = base_dir or get_config().data_dir
+        self.field_mapper = get_field_mapper()
     
     def load_from_csv(self, 
                     skills_file: str,
-                    categories_file: Optional[str] = None) -> SkillTaxonomy:
+                    categories_file: Optional[str] = None,
+                    chunked: bool = False,
+                    chunksize: int = 10000,
+                    validate: bool = True) -> SkillTaxonomy:
         """
-        Load skill taxonomy from CSV files.
+        Load skill taxonomy from CSV files, with optional chunked/streaming loading and validation.
         
         Args:
             skills_file: Path to the skills CSV file
             categories_file: Path to the categories CSV file (optional)
+            chunked: Whether to use chunked/streaming loading (default: False)
+            chunksize: Number of rows per chunk if chunked (default: 10000)
+            validate: Whether to validate rows using the validation engine (default: True)
             
         Returns:
             Loaded skill taxonomy
         """
+        from skill_similarity_engine.data_validation.validators import ValidationEngine
+        from skill_similarity_engine.utils.progress import ProgressTracker
+        import logging
+        logger = logging.getLogger("skill_similarity_engine.data.loaders")
+        
         # Create empty taxonomy
         taxonomy = SkillTaxonomy()
         
-        # Load categories if provided
+        # Load categories if provided (not chunked, as usually small)
         if categories_file:
             categories_path = os.path.join(self.base_dir, categories_file)
             categories_df = pd.read_csv(categories_path)
-            
             for _, row in categories_df.iterrows():
-                category = SkillCategory(
-                    category_id=str(row["category_id"]),
-                    name=row["name"],
-                    parent_id=str(row["parent_id"]) if pd.notna(row.get("parent_id", None)) else None,
-                    description=row.get("description", "")
-                )
-                taxonomy.add_category(category)
+                category = self._parse_category_row(row)
+                if category:
+                    taxonomy.add_category(category)
         
-        # Load skills
+        # Prepare validation engine if needed
+        validator = None
+        if validate:
+            try:
+                validator = ValidationEngine('skills')
+            except Exception as e:
+                logger.warning(f"Could not initialise validation engine: {e}")
+                validator = None
+        
+        # Load skills (chunked or not)
         skills_path = os.path.join(self.base_dir, skills_file)
-        skills_df = pd.read_csv(skills_path)
+        total_rows = None
+        if chunked:
+            # Try to get total rows for progress bar
+            try:
+                with open(skills_path, 'r', encoding='utf-8') as f:
+                    total_rows = sum(1 for _ in f) - 1  # minus header
+            except Exception:
+                total_rows = 0
+            reader = pd.read_csv(skills_path, chunksize=chunksize)
+            processed = 0
+            with ProgressTracker(total=total_rows if total_rows is not None else 0, desc="Loading skills (chunked)", show_tqdm=True) as progress:
+                for chunk in reader:
+                    for idx, row in chunk.iterrows():
+                        row_dict = row.to_dict()
+                        # Validate row if enabled
+                        if validator:
+                            results = validator.validate_row(row_dict)
+                            if any(not r.passed for r in results):
+                                logger.warning(f"Validation failed for row {int(processed)+1}: {[r.message for r in results if not r.passed]}")
+                                continue
+                        # Parse and add skill
+                        skill = self._parse_skill_row(row, taxonomy)
+                        if skill:
+                            taxonomy.add_skill(skill)
+                        processed += 1
+                        progress.update(1)
+        else:
+            skills_df = pd.read_csv(skills_path)
+            total_rows = len(skills_df)
+            with ProgressTracker(total=total_rows, desc="Loading skills", show_tqdm=True) as progress:
+                for idx, row in skills_df.iterrows():
+                    row_dict = row.to_dict()
+                    if validator:
+                        results = validator.validate_row(row_dict)
+                        if any(not r.passed for r in results):
+                            logger.warning(f"Validation failed for row {idx+1}: {[r.message for r in results if not r.passed]}")
+                            continue
+                    skill = self._parse_skill_row(row, taxonomy)
+                    if skill:
+                        taxonomy.add_skill(skill)
+                    progress.update(1)
+        logger.info(f"Loaded {len(taxonomy.skills)} skills into taxonomy.")
+        return taxonomy
+    
+    def _parse_category_row(self, row: pd.Series) -> Optional[SkillCategory]:
+        """
+        Parse a category row into a SkillCategory object using field mapping.
         
-        # Create category mapping if categories are in skills file
-        category_mapping = {}
-        if "category" in skills_df.columns and not categories_file:
-            for _, row in skills_df.iterrows():
-                if pd.notna(row.get("category", None)):
-                    # Create a category ID based on category name
-                    category_name = row["category"]
-                    parent_id = None
-                    
-                    if category_name not in category_mapping:
-                        category_id = "C" + str(len(category_mapping) + 1).zfill(3)
-                        category_mapping[category_name] = category_id
-                        
-                        # Add category to taxonomy
-                        if not taxonomy.get_category(category_id):
-                            taxonomy.add_category(SkillCategory(
-                                category_id=category_id,
-                                name=category_name,
-                                parent_id=parent_id,
-                                description=f"{category_name} skills"
-                            ))
-                    
-                    # Handle subcategory if available
-                    if pd.notna(row.get("subcategory", None)):
-                        subcategory_name = row["subcategory"]
-                        parent_id = category_mapping[category_name]
-                        
-                        if subcategory_name not in category_mapping:
-                            subcategory_id = "C" + str(len(category_mapping) + 1).zfill(3)
-                            category_mapping[subcategory_name] = subcategory_id
-                            
-                            # Add subcategory to taxonomy with parent relationship
-                            if not taxonomy.get_category(subcategory_id):
-                                taxonomy.add_category(SkillCategory(
-                                    category_id=subcategory_id,
-                                    name=subcategory_name,
-                                    parent_id=parent_id,
-                                    description=f"{subcategory_name} skills"
-                                ))
-        
-        for _, row in skills_df.iterrows():
-            # Parse skill type - try multiple approaches
-            skill_type = SkillType.COMMON  # Default to COMMON instead of OTHER
+        Args:
+            row: Pandas Series representing a category row
             
-            # First check the dedicated skill_type field if it exists
-            if "skill_type" in row and pd.notna(row["skill_type"]):
-                try:
-                    skill_type = SkillType.from_string(row["skill_type"])
-                except ValueError:
-                    pass
-            # Next check if category contains a SkillType value (test data approach)
-            elif "category" in row and pd.notna(row["category"]):
-                try:
-                    skill_type = SkillType.from_string(row["category"])
-                except ValueError:
-                    pass
-            # Finally check if we have a SkillType field from HRIS schema
-            elif "SkillType" in row and pd.notna(row["SkillType"]):
-                try:
-                    skill_type = SkillType.from_string(row["SkillType"])
-                except ValueError:
-                    pass
+        Returns:
+            SkillCategory object or None if parsing fails
+        """
+        try:
+            # Get field names using field mapping
+            category_id_field = get_raw_field_name('category_id', 'skill_categories')
+            name_field = get_raw_field_name('name', 'skill_categories')
+            parent_id_field = get_raw_field_name('parent_id', 'skill_categories')
+            description_field = get_raw_field_name('description', 'skill_categories')
             
-            # Parse lists
-            aliases = self._parse_list_field(row, "aliases")
-            related_skills = self._parse_list_field(row, "related_skills")
-            prerequisites = self._parse_list_field(row, "prerequisites")
+            # Extract values using mapped field names
+            category_id = str(row[category_id_field]) if category_id_field in row else None
+            name = row[name_field] if name_field in row else None
+            parent_id = str(row[parent_id_field]) if parent_id_field in row and pd.notna(row.get(parent_id_field, None)) else None
+            description = row.get(description_field, "") if description_field in row else ""
             
-            # Get category ID from mapping if available
-            category_id = None
-            if "category" in row and "subcategory" in row:
-                category_id = category_mapping.get(row["subcategory"]) or category_mapping.get(row["category"])
-            
-            skill = Skill(
-                skill_id=str(row["skill_id"]),
-                name=row["name"],
-                description=row.get("description", ""),
+            if not category_id or not name:
+                return None
+                
+            return SkillCategory(
                 category_id=category_id,
-                skill_type=skill_type,  # Use the parsed skill_type instead of row.get("category", SkillType.COMMON)
+                name=name,
+                parent_id=parent_id,
+                description=description
+            )
+        except Exception as e:
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.warning(f"Failed to parse category row: {e}")
+            return None
+    
+    def _parse_skill_row(self, row: pd.Series, taxonomy: SkillTaxonomy) -> Optional[Skill]:
+        """
+        Parse a skill row into a Skill object using field mapping.
+        
+        Args:
+            row: Pandas Series representing a skill row
+            taxonomy: The skill taxonomy for context
+            
+        Returns:
+            Skill object or None if parsing fails
+        """
+        try:
+            # Get field names using field mapping
+            skill_id_field = get_raw_field_name('skill_id', 'skills')
+            name_field = get_raw_field_name('name', 'skills')
+            description_field = get_raw_field_name('description', 'skills')
+            category_id_field = get_raw_field_name('category_id', 'skills')
+            
+            # Handle skill_type which may have multiple possible field names
+            skill_type_field = None
+            skill_type_value = None
+            
+            # Try different possible skill type field names
+            for possible_field in ['skill_type', 'category', 'SkillType']:
+                mapped_field = get_raw_field_name(possible_field, 'skills')
+                if mapped_field in row and pd.notna(row[mapped_field]):
+                    skill_type_field = mapped_field
+                    skill_type_value = row[mapped_field]
+                    break
+            
+            # Determine skill type
+            skill_type = SkillType.COMMON  # Default
+            if skill_type_value:
+                try:
+                    skill_type = SkillType.from_string(skill_type_value)
+                except ValueError:
+                    pass  # Keep default
+            
+            # Parse list fields using field mapping
+            aliases = self._parse_list_field(row, "aliases", 'skills')
+            related_skills = self._parse_list_field(row, "related_skills", 'skills')
+            prerequisites = self._parse_list_field(row, "prerequisites", 'skills')
+            
+            # Extract core values
+            skill_id = str(row[skill_id_field]) if skill_id_field in row else None
+            name = row[name_field] if name_field in row else None
+            description = row.get(description_field, "") if description_field in row else ""
+            category_id = str(row[category_id_field]) if category_id_field in row and pd.notna(row.get(category_id_field, None)) else None
+            
+            if not skill_id or not name:
+                return None
+                
+            return Skill(
+                skill_id=skill_id,
+                name=name,
+                description=description,
+                category_id=category_id,
+                skill_type=skill_type,
                 aliases=aliases,
                 related_skills=related_skills,
                 prerequisites=prerequisites
             )
-            taxonomy.add_skill(skill)
-        
-        return taxonomy
+        except Exception as e:
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.warning(f"Failed to parse skill row: {e}")
+            return None
     
     def load_from_excel(self,
                        excel_file: str,
@@ -179,88 +257,67 @@ class SkillTaxonomyLoader:
                 categories_df = pd.read_excel(excel_path, sheet_name=categories_sheet)
                 
                 for _, row in categories_df.iterrows():
-                    category = SkillCategory(
-                        category_id=str(row["category_id"]),
-                        name=row["name"],
-                        parent_id=str(row["parent_id"]) if pd.notna(row.get("parent_id", None)) else None,
-                        description=row.get("description", "")
-                    )
-                    taxonomy.add_category(category)
-            except ValueError:
-                # Sheet doesn't exist, continue without categories
-                pass
+                    category = self._parse_category_row(row)
+                    if category:
+                        taxonomy.add_category(category)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger("skill_similarity_engine.data.loaders")
+                logger.warning(f"Could not load categories from Excel sheet '{categories_sheet}': {e}")
         
         # Load skills
-        skills_df = pd.read_excel(excel_path, sheet_name=skills_sheet)
-        
-        for _, row in skills_df.iterrows():
-            # Parse skill type - try multiple approaches
-            skill_type = SkillType.COMMON  # Default to COMMON instead of OTHER
+        try:
+            skills_df = pd.read_excel(excel_path, sheet_name=skills_sheet)
             
-            # First check the dedicated skill_type field if it exists
-            if "skill_type" in row and pd.notna(row["skill_type"]):
-                try:
-                    skill_type = SkillType.from_string(row["skill_type"])
-                except ValueError:
-                    pass
-            # Next check if category contains a SkillType value (test data approach)
-            elif "category" in row and pd.notna(row["category"]):
-                try:
-                    skill_type = SkillType.from_string(row["category"])
-                except ValueError:
-                    pass
-            # Finally check if we have a SkillType field from HRIS schema
-            elif "SkillType" in row and pd.notna(row["SkillType"]):
-                try:
-                    skill_type = SkillType.from_string(row["SkillType"])
-                except ValueError:
-                    pass
-            
-            # Parse lists
-            aliases = self._parse_list_field(row, "aliases")
-            related_skills = self._parse_list_field(row, "related_skills")
-            prerequisites = self._parse_list_field(row, "prerequisites")
-            
-            skill = Skill(
-                skill_id=str(row["skill_id"]),
-                name=row["name"],
-                description=row.get("description", ""),
-                category_id=str(row["category_id"]) if pd.notna(row.get("category_id", None)) else None,
-                skill_type=skill_type,  # Use the parsed skill_type instead of row.get("category", SkillType.COMMON)
-                aliases=aliases,
-                related_skills=related_skills,
-                prerequisites=prerequisites
-            )
-            taxonomy.add_skill(skill)
+            for _, row in skills_df.iterrows():
+                skill = self._parse_skill_row(row, taxonomy)
+                if skill:
+                    taxonomy.add_skill(skill)
+                    
+        except Exception as e:
+            import logging
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.error(f"Could not load skills from Excel sheet '{skills_sheet}': {e}")
+            raise
         
         return taxonomy
-    
-    def _parse_list_field(self, row: pd.Series, field_name: str) -> List[str]:
+
+    def _parse_list_field(self, row: pd.Series, field_name: str, section: str = 'skills') -> List[str]:
         """
-        Parse a list field from a CSV/Excel row.
+        Parse a list field from a DataFrame row using field mapping.
         
         Args:
             row: DataFrame row
-            field_name: Name of the field to parse
+            field_name: Canonical field name to parse
+            section: Configuration section for field mapping
             
         Returns:
-            List of values (empty if field doesn't exist or is empty)
+            List of values
         """
-        if field_name not in row or pd.isna(row[field_name]):
+        # Get the raw field name using field mapping
+        raw_field_name = get_raw_field_name(field_name, section)
+        
+        if raw_field_name not in row or pd.isna(row[raw_field_name]):
             return []
+            
+        value = row[raw_field_name]
         
-        # Handle different delimiter formats
-        value = row[field_name]
+        # If already a list, return it
         if isinstance(value, list):
-            return [str(item) for item in value]
-        
-        if ";" in value:
-            return [item.strip() for item in value.split(";") if item.strip()]
-        elif "," in value:
-            return [item.strip() for item in value.split(",") if item.strip()]
-        
-        # Single value
-        return [value.strip()]
+            return value
+            
+        # If string, parse based on delimiters
+        if isinstance(value, str):
+            if ',' in value:
+                return [item.strip() for item in value.split(',') if item.strip()]
+            elif ';' in value:
+                return [item.strip() for item in value.split(';') if item.strip()]
+            else:
+                # Single value
+                return [value.strip()]
+                
+        # If other type, convert to string and return as single item
+        return [str(value)]
 
 
 class JobArchitectureLoader:
@@ -270,6 +327,7 @@ class JobArchitectureLoader:
     Attributes:
         base_dir: Base directory for data files
         skill_taxonomy: Skill taxonomy for validation
+        field_mapper: Field mapping utility for handling different data schemas
     """
     
     def __init__(self, skill_taxonomy: SkillTaxonomy, base_dir: Optional[str] = None):
@@ -282,107 +340,313 @@ class JobArchitectureLoader:
         """
         self.skill_taxonomy = skill_taxonomy
         self.base_dir = base_dir or get_config().data_dir
+        self.field_mapper = get_field_mapper()
     
     def load_from_csv(self,
                      jobs_file: str,
-                     job_skills_file: Optional[str] = None) -> JobArchitecture:
+                     job_skills_file: Optional[str] = None,
+                     chunked: bool = False,
+                     chunksize: int = 10000,
+                     validate: bool = True) -> JobArchitecture:
         """
-        Load job architecture from CSV files.
+        Load job architecture from CSV files, with optional chunked/streaming loading and validation.
         
         Args:
             jobs_file: Path to the jobs CSV file
             job_skills_file: Path to the job skills CSV file (optional)
+            chunked: Whether to use chunked/streaming loading (default: False)
+            chunksize: Number of rows per chunk if chunked (default: 10000)
+            validate: Whether to validate rows using the validation engine (default: True)
             
         Returns:
             Loaded job architecture
         """
+        from skill_similarity_engine.data_validation.validators import ValidationEngine
+        from skill_similarity_engine.utils.progress import ProgressTracker
+        logger = logging.getLogger("skill_similarity_engine.data.loaders")
+        
         # Create empty job architecture
         architecture = JobArchitecture()
         
-        # Load jobs
+        # Prepare validation engines if needed
+        jobs_validator = None
+        skills_validator = None
+        if validate:
+            try:
+                jobs_validator = ValidationEngine('jobs')
+            except Exception as e:
+                logger.warning(f"Could not initialise jobs validation engine: {e}")
+                jobs_validator = None
+            if job_skills_file:
+                try:
+                    skills_validator = ValidationEngine('job_skill_mapping')
+                except Exception as e:
+                    logger.warning(f"Could not initialise job_skill_mapping validation engine: {e}")
+                    skills_validator = None
+        
+        # Load jobs (chunked or not)
         jobs_path = os.path.join(self.base_dir, jobs_file)
-        jobs_df = pd.read_csv(jobs_path)
-        
-        # Create dictionary to store job skills
-        job_skills: Dict[str, Dict[str, int]] = {}
-        
-        for _, row in jobs_df.iterrows():
-            job_id = str(row["job_id"])
-            
-            # Parse job level
-            job_level = JobLevel.ASSOCIATE
-            if "level" in row and pd.notna(row["level"]):
-                try:
-                    job_level = JobLevel.from_string(str(row["level"]))
-                except ValueError:
-                    # Default to ASSOCIATE if invalid
-                    pass
-            
-            # Parse seniority if available
-            seniority = 3  # Default to mid-level seniority
-            if "seniority" in row and pd.notna(row["seniority"]):
-                try:
-                    seniority = int(row["seniority"])
-                except ValueError:
-                    # Default to 3 if not a valid integer
-                    pass
-            
-            # Parse skills if they're embedded in the row
-            skills_dict = {}
-            if "skills" in row and pd.notna(row["skills"]):
-                skills_str = str(row["skills"])
-                # Handle different delimiter formats
-                if ";" in skills_str:
-                    skill_pairs = skills_str.split(";")
-                elif "," in skills_str:
-                    skill_pairs = skills_str.split(",")
-                else:
-                    skill_pairs = [skills_str]
-                
-                for pair in skill_pairs:
-                    if ":" in pair:
-                        skill_id, proficiency = pair.split(":")
-                        skills_dict[skill_id.strip()] = int(proficiency.strip())
-            
-            job = Job(
-                job_id=job_id,
-                title=row["title"],
-                department=row["department"],
-                level=job_level,
-                skills=skills_dict,
-                seniority=seniority  # Add seniority parameter
-            )
-            
-            # Add job to architecture
-            architecture.add_job(job)
-        
-        # Load job skills if provided as a separate file
+        total_rows = None
+        if chunked:
+            try:
+                with open(jobs_path, 'r', encoding='utf-8') as f:
+                    total_rows = sum(1 for _ in f) - 1
+            except Exception:
+                total_rows = 0
+            reader = pd.read_csv(jobs_path, chunksize=chunksize)
+            processed = 0
+            with ProgressTracker(total=total_rows if total_rows is not None else 0, desc="Loading jobs (chunked)", show_tqdm=True) as progress:
+                for chunk in reader:
+                    for idx, row in chunk.iterrows():
+                        row_dict = row.to_dict()
+                        # Validate row if enabled
+                        if jobs_validator:
+                            results = jobs_validator.validate_row(row_dict)
+                            if any(not r.passed for r in results):
+                                logger.warning(f"Validation failed for job row {int(processed)+1}: {[r.message for r in results if not r.passed]}")
+                                continue
+                        # Parse and add job
+                        job = self._parse_job_row(row)
+                        if job:
+                            architecture.add_job(job)
+                        processed += 1
+                        progress.update(1)
+        else:
+            jobs_df = pd.read_csv(jobs_path)
+            total_rows = len(jobs_df)
+            with ProgressTracker(total=total_rows, desc="Loading jobs", show_tqdm=True) as progress:
+                for idx, row in jobs_df.iterrows():
+                    row_dict = row.to_dict()
+                    if jobs_validator:
+                        results = jobs_validator.validate_row(row_dict)
+                        if any(not r.passed for r in results):
+                            logger.warning(f"Validation failed for job row {idx+1}: {[r.message for r in results if not r.passed]}")
+                            continue
+                    job = self._parse_job_row(row)
+                    if job:
+                        architecture.add_job(job)
+                    progress.update(1)
+                    
+        # Load job skills if provided
         if job_skills_file:
-            job_skills_path = os.path.join(self.base_dir, job_skills_file)
-            job_skills_df = pd.read_csv(job_skills_path)
-            
-            for _, row in job_skills_df.iterrows():
-                job_id = str(row["job_id"])
-                skill_id = str(row["skill_id"])
-                proficiency = int(row["proficiency"])
-                
-                # Validate job_id
-                if job_id not in architecture.jobs:
-                    continue
-                
-                # Validate skill_id
-                if skill_id not in self.skill_taxonomy.skills:
-                    continue
-                
-                # Validate proficiency
-                if not 0 <= proficiency <= 5:
-                    continue
-                
-                # Add skill to job
-                architecture.jobs[job_id].add_skill(skill_id, proficiency)
+            self._load_job_skills(architecture, job_skills_file, chunked, chunksize, skills_validator)
         
+        logger.info(f"Loaded {len(architecture.jobs)} jobs into architecture.")
         return architecture
     
+    def _parse_job_row(self, row: pd.Series) -> Optional[Job]:
+        """
+        Parse a job row into a Job object using field mapping.
+        
+        Args:
+            row: Pandas Series representing a job row
+            
+        Returns:
+            Job object or None if parsing fails
+        """
+        try:
+            # Get field names using field mapping
+            job_id_field = get_raw_field_name('job_id', 'jobs')
+            title_field = get_raw_field_name('title', 'jobs')
+            
+            # For department, we might need to derive it from other fields
+            # Check if we have a direct department field or need to use location info
+            department_field = get_raw_field_name('department', 'jobs')
+            
+            # Extract core values
+            job_id = None
+            # Try to get job_id - might be JobProfileID in the schema
+            if job_id_field in row and pd.notna(row[job_id_field]):
+                job_id = str(row[job_id_field])
+            elif 'JobProfileID' in row and pd.notna(row['JobProfileID']):
+                job_id = str(row['JobProfileID'])  # Fallback to raw schema
+            elif 'job_id' in row and pd.notna(row['job_id']):
+                job_id = str(row['job_id'])  # Legacy fallback
+                
+            title = None
+            if title_field in row and pd.notna(row[title_field]):
+                title = row[title_field]
+            elif 'RoleSet' in row and pd.notna(row['RoleSet']):
+                title = row['RoleSet']  # Fallback to raw schema
+            elif 'title' in row and pd.notna(row['title']):
+                title = row['title']  # Legacy fallback
+                
+            # For department, check multiple possibilities
+            department = "Unknown"  # Default value
+            if department_field in row and pd.notna(row[department_field]):
+                department = row[department_field]
+            elif 'Org Unit Name' in row and pd.notna(row['Org Unit Name']):
+                department = row['Org Unit Name']  # HRIS fallback
+            elif 'department' in row and pd.notna(row['department']):
+                department = row['department']  # Legacy fallback
+            elif 'Location' in row and pd.notna(row['Location']):
+                department = row['Location']  # Use location as department fallback
+                
+            if not job_id or not title:
+                logger = logging.getLogger("skill_similarity_engine.data.loaders")
+                logger.warning(f"Missing required fields (job_id or title) in job row, skipping")
+                return None
+            
+            # Handle other optional fields
+            job_level = JobLevel.ASSOCIATE  # Default level
+            level_field = get_raw_field_name('level', 'jobs')
+            if level_field in row and pd.notna(row[level_field]):
+                try:
+                    job_level = JobLevel(str(row[level_field]))
+                except ValueError:
+                    pass  # Keep default
+            
+            # Handle seniority
+            seniority = 3  # Default seniority
+            seniority_field = get_raw_field_name('seniority', 'jobs')
+            if seniority_field in row and pd.notna(row[seniority_field]):
+                try:
+                    seniority = int(row[seniority_field])
+                except ValueError:
+                    pass  # Keep default
+            
+            # Handle embedded skills data
+            skills = {}
+            skills_field = get_raw_field_name('skills', 'jobs')
+            if skills_field in row and pd.notna(row[skills_field]):
+                skills_str = str(row[skills_field])
+                skills = self._parse_embedded_skills(skills_str)
+            
+            return Job(
+                job_id=job_id,
+                title=title,
+                department=department,
+                level=job_level,
+                skills=skills,
+                seniority=seniority
+            )
+        except Exception as e:
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.warning(f"Failed to parse job row: {e}")
+            return None
+    
+    def _load_job_skills(self, 
+                        architecture: JobArchitecture, 
+                        job_skills_file: str,
+                        chunked: bool = False,
+                        chunksize: int = 10000,
+                        skills_validator = None) -> None:
+        """
+        Load job-skill mappings from a separate file using field mapping.
+        
+        Args:
+            architecture: Job architecture to update
+            job_skills_file: Path to job skills file
+            chunked: Whether to use chunked loading
+            chunksize: Chunk size for loading
+            skills_validator: Validation engine for skills
+        """
+        from skill_similarity_engine.utils.progress import ProgressTracker
+        logger = logging.getLogger("skill_similarity_engine.data.loaders")
+        
+        job_skills_path = os.path.join(self.base_dir, job_skills_file)
+        total_skills_rows = None
+        
+        if chunked:
+            try:
+                with open(job_skills_path, 'r', encoding='utf-8') as f:
+                    total_skills_rows = sum(1 for _ in f) - 1
+            except Exception:
+                total_skills_rows = 0
+            reader = pd.read_csv(job_skills_path, chunksize=chunksize)
+            processed = 0
+            with ProgressTracker(total=total_skills_rows if total_skills_rows is not None else 0, desc="Loading job skills (chunked)", show_tqdm=True) as progress:
+                for chunk in reader:
+                    for idx, row in chunk.iterrows():
+                        row_dict = row.to_dict()
+                        if skills_validator:
+                            results = skills_validator.validate_row(row_dict)
+                            if any(not r.passed for r in results):
+                                logger.warning(f"Validation failed for job skill row {int(processed)+1}: {[r.message for r in results if not r.passed]}")
+                                continue
+                        self._parse_job_skill_row(architecture, row)
+                        processed += 1
+                        progress.update(1)
+        else:
+            job_skills_df = pd.read_csv(job_skills_path)
+            total_skills_rows = len(job_skills_df)
+            with ProgressTracker(total=total_skills_rows, desc="Loading job skills", show_tqdm=True) as progress:
+                for idx, row in job_skills_df.iterrows():
+                    row_dict = row.to_dict()
+                    if skills_validator:
+                        results = skills_validator.validate_row(row_dict)
+                        if any(not r.passed for r in results):
+                            logger.warning(f"Validation failed for job skill row {idx+1}: {[r.message for r in results if not r.passed]}")
+                            continue
+                    self._parse_job_skill_row(architecture, row)
+                    progress.update(1)
+    
+    def _parse_job_skill_row(self, architecture: JobArchitecture, row: pd.Series) -> None:
+        """
+        Parse a job-skill mapping row using field mapping.
+        
+        Args:
+            architecture: Job architecture to update
+            row: Pandas Series representing a job-skill row
+        """
+        try:
+            # Get field names using field mapping
+            job_id_field = get_raw_field_name('job_id', 'job_skill_mapping')
+            skill_id_field = get_raw_field_name('skill_id', 'job_skill_mapping')
+            proficiency_field = get_raw_field_name('proficiency', 'job_skill_mapping')
+            
+            # Extract values
+            job_id = str(row[job_id_field]) if job_id_field in row else None
+            skill_id = str(row[skill_id_field]) if skill_id_field in row else None
+            
+            # Handle proficiency - may have different field names
+            proficiency = 1  # Default proficiency
+            if proficiency_field in row and pd.notna(row[proficiency_field]):
+                try:
+                    proficiency = int(row[proficiency_field])
+                except ValueError:
+                    pass  # Keep default
+            elif 'Proficiency' in row and pd.notna(row['Proficiency']):
+                try:
+                    proficiency = int(row['Proficiency'])  # HRIS schema fallback
+                except ValueError:
+                    pass
+            
+            if not job_id or not skill_id:
+                return  # Skip invalid rows
+                
+            # Add skill to job if job exists
+            job = architecture.get_job(job_id)
+            if job:
+                job.add_skill(skill_id, proficiency)
+        except Exception as e:
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.warning(f"Failed to parse job-skill row: {e}")
+    
+    def _parse_embedded_skills(self, skills_str: str) -> Dict[str, int]:
+        """
+        Parse embedded skills data from a string.
+        
+        Args:
+            skills_str: String containing skills data (e.g., "skill1:3,skill2:4")
+            
+        Returns:
+            Dictionary mapping skill IDs to proficiency levels
+        """
+        skills = {}
+        try:
+            for skill_entry in skills_str.split(','):
+                if ':' in skill_entry:
+                    skill_id, proficiency = skill_entry.split(':', 1)
+                    skills[skill_id.strip()] = int(proficiency.strip())
+                else:
+                    # Assume proficiency 1 if not specified
+                    skills[skill_entry.strip()] = 1
+        except Exception as e:
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.warning(f"Failed to parse embedded skills '{skills_str}': {e}")
+        return skills
+
     def load_from_excel(self,
                        excel_file: str,
                        jobs_sheet: str = "Jobs",
@@ -410,13 +674,11 @@ class JobArchitectureLoader:
         job_skills: Dict[str, Dict[str, int]] = {}
         
         for _, row in jobs_df.iterrows():
-            job_id = str(row["job_id"])
-            
             # Parse job level
             job_level = JobLevel.ASSOCIATE
             if "level" in row and pd.notna(row["level"]):
                 try:
-                    job_level = JobLevel.from_string(str(row["level"]))
+                    job_level = JobLevel(str(row["level"]))
                 except ValueError:
                     # Default to ASSOCIATE if invalid
                     pass
@@ -448,7 +710,7 @@ class JobArchitectureLoader:
                         skills_dict[skill_id.strip()] = int(proficiency.strip())
             
             job = Job(
-                job_id=job_id,
+                job_id=str(row["job_id"]),
                 title=row["title"],
                 department=row["department"],
                 level=job_level,
@@ -498,6 +760,7 @@ class EmployeeLoader:
         base_dir: Base directory for data files
         skill_taxonomy: Skill taxonomy for validation
         job_architecture: Job architecture for validation
+        field_mapper: Field mapping utility for handling different data schemas
     """
     
     def __init__(self,
@@ -515,6 +778,7 @@ class EmployeeLoader:
         self.skill_taxonomy = skill_taxonomy
         self.job_architecture = job_architecture
         self.base_dir = base_dir or get_config().data_dir
+        self.field_mapper = get_field_mapper()
     
     def load_from_csv(self,
                      employees_file: str,
@@ -539,35 +803,58 @@ class EmployeeLoader:
         employee_skills: Dict[str, Dict[str, int]] = {}
         
         for _, row in employees_df.iterrows():
-            employee_id = str(row["employee_id"])
-            job_id = str(row["current_job"])
+            # Use field mapping for employee data
+            employee_id_field = get_raw_field_name('employee_id', 'employees')
+            current_job_field = get_raw_field_name('current_job', 'employees')
+            name_field = get_raw_field_name('name', 'employees')
+            
+            # Extract values using mapped field names with fallbacks
+            employee_id = None
+            if employee_id_field in row and pd.notna(row[employee_id_field]):
+                employee_id = str(row[employee_id_field])
+            elif 'employee_id' in row and pd.notna(row['employee_id']):
+                employee_id = str(row['employee_id'])  # Legacy fallback
+                
+            current_job = None
+            if current_job_field in row and pd.notna(row[current_job_field]):
+                current_job = str(row[current_job_field])
+            elif 'current_job' in row and pd.notna(row['current_job']):
+                current_job = str(row['current_job'])  # Legacy fallback
+                
+            name = None
+            if name_field in row and pd.notna(row[name_field]):
+                name = row[name_field]
+            elif 'name' in row and pd.notna(row['name']):
+                name = row['name']  # Legacy fallback
+                
+            if not employee_id or not current_job or not name:
+                logger = logging.getLogger("skill_similarity_engine.data.loaders")
+                logger.warning(f"Missing required employee fields, skipping row")
+                continue
             
             # Validate job_id only if job_architecture is provided
             if self.job_architecture is not None:
-                if job_id not in self.job_architecture.jobs:
+                if current_job not in self.job_architecture.jobs:
                     continue
             
-            # Parse skills if they're embedded in the row
+            # Parse embedded skills using field mapping
             skills_dict = {}
-            if "skills" in row and pd.notna(row["skills"]):
-                skills_str = str(row["skills"])
-                # Handle different delimiter formats
-                if ";" in skills_str:
-                    skill_pairs = skills_str.split(";")
-                elif "," in skills_str:
-                    skill_pairs = skills_str.split(",")
-                else:
-                    skill_pairs = [skills_str]
+            skills_field = get_raw_field_name('skills', 'employees')
+            
+            # Check for embedded skills data
+            skills_data = None
+            if skills_field in row and pd.notna(row[skills_field]):
+                skills_data = str(row[skills_field])
+            elif 'skills' in row and pd.notna(row['skills']):
+                skills_data = str(row['skills'])  # Legacy fallback
                 
-                for pair in skill_pairs:
-                    if ":" in pair:
-                        skill_id, proficiency = pair.split(":")
-                        skills_dict[skill_id.strip()] = int(proficiency.strip())
+            if skills_data:
+                skills_dict = self._parse_embedded_skills(skills_data)
             
             employee = Employee(
                 employee_id=employee_id,
-                name=row["name"],
-                current_job=job_id,
+                name=name,
+                current_job=current_job,
                 skills=skills_dict
             )
             
@@ -580,9 +867,38 @@ class EmployeeLoader:
             employee_skills_df = pd.read_csv(employee_skills_path)
             
             for _, row in employee_skills_df.iterrows():
-                employee_id = str(row["employee_id"])
-                skill_id = str(row["skill_id"])
-                proficiency = int(row["proficiency"])
+                # Use field mapping for employee-skills data
+                employee_id_field = get_raw_field_name('employee_id', 'employee_skills')
+                skill_id_field = get_raw_field_name('skill_id', 'employee_skills')
+                proficiency_field = get_raw_field_name('proficiency', 'employee_skills')
+                
+                # Extract values with fallbacks
+                employee_id = None
+                if employee_id_field in row and pd.notna(row[employee_id_field]):
+                    employee_id = str(row[employee_id_field])
+                elif 'employee_id' in row and pd.notna(row['employee_id']):
+                    employee_id = str(row['employee_id'])  # Legacy fallback
+                    
+                skill_id = None
+                if skill_id_field in row and pd.notna(row[skill_id_field]):
+                    skill_id = str(row[skill_id_field])
+                elif 'skill_id' in row and pd.notna(row['skill_id']):
+                    skill_id = str(row['skill_id'])  # Legacy fallback
+                    
+                proficiency = 1  # Default proficiency
+                if proficiency_field in row and pd.notna(row[proficiency_field]):
+                    try:
+                        proficiency = int(row[proficiency_field])
+                    except ValueError:
+                        pass  # Keep default
+                elif 'proficiency' in row and pd.notna(row['proficiency']):
+                    try:
+                        proficiency = int(row['proficiency'])  # Legacy fallback
+                    except ValueError:
+                        pass
+                
+                if not employee_id or not skill_id:
+                    continue  # Skip invalid rows
                 
                 # Validate employee_id
                 if employee_id not in database.employees:
@@ -601,6 +917,38 @@ class EmployeeLoader:
         
         return database
     
+    def _parse_embedded_skills(self, skills_str: str) -> Dict[str, int]:
+        """
+        Parse embedded skills data from a string.
+        
+        Args:
+            skills_str: String containing skills data (e.g., "skill1:3,skill2:4")
+            
+        Returns:
+            Dictionary mapping skill IDs to proficiency levels
+        """
+        skills = {}
+        try:
+            # Handle different delimiter formats
+            if ";" in skills_str:
+                skill_pairs = skills_str.split(";")
+            elif "," in skills_str:
+                skill_pairs = skills_str.split(",")
+            else:
+                skill_pairs = [skills_str]
+            
+            for pair in skill_pairs:
+                if ":" in pair:
+                    skill_id, proficiency = pair.split(":", 1)
+                    skills[skill_id.strip()] = int(proficiency.strip())
+                else:
+                    # Assume proficiency 1 if not specified
+                    skills[pair.strip()] = 1
+        except Exception as e:
+            logger = logging.getLogger("skill_similarity_engine.data.loaders")
+            logger.warning(f"Failed to parse embedded skills '{skills_str}': {e}")
+        return skills
+
     def load_from_excel(self,
                        excel_file: str,
                        employees_sheet: str = "Employees",
@@ -628,35 +976,58 @@ class EmployeeLoader:
         employee_skills: Dict[str, Dict[str, int]] = {}
         
         for _, row in employees_df.iterrows():
-            employee_id = str(row["employee_id"])
-            job_id = str(row["current_job"])
+            # Use field mapping for employee data
+            employee_id_field = get_raw_field_name('employee_id', 'employees')
+            current_job_field = get_raw_field_name('current_job', 'employees')
+            name_field = get_raw_field_name('name', 'employees')
+            
+            # Extract values using mapped field names with fallbacks
+            employee_id = None
+            if employee_id_field in row and pd.notna(row[employee_id_field]):
+                employee_id = str(row[employee_id_field])
+            elif 'employee_id' in row and pd.notna(row['employee_id']):
+                employee_id = str(row['employee_id'])  # Legacy fallback
+                
+            current_job = None
+            if current_job_field in row and pd.notna(row[current_job_field]):
+                current_job = str(row[current_job_field])
+            elif 'current_job' in row and pd.notna(row['current_job']):
+                current_job = str(row['current_job'])  # Legacy fallback
+                
+            name = None
+            if name_field in row and pd.notna(row[name_field]):
+                name = row[name_field]
+            elif 'name' in row and pd.notna(row['name']):
+                name = row['name']  # Legacy fallback
+                
+            if not employee_id or not current_job or not name:
+                logger = logging.getLogger("skill_similarity_engine.data.loaders")
+                logger.warning(f"Missing required employee fields, skipping row")
+                continue
             
             # Validate job_id only if job_architecture is provided
             if self.job_architecture is not None:
-                if job_id not in self.job_architecture.jobs:
+                if current_job not in self.job_architecture.jobs:
                     continue
             
-            # Parse skills if they're embedded in the row
+            # Parse embedded skills using field mapping
             skills_dict = {}
-            if "skills" in row and pd.notna(row["skills"]):
-                skills_str = str(row["skills"])
-                # Handle different delimiter formats
-                if ";" in skills_str:
-                    skill_pairs = skills_str.split(";")
-                elif "," in skills_str:
-                    skill_pairs = skills_str.split(",")
-                else:
-                    skill_pairs = [skills_str]
+            skills_field = get_raw_field_name('skills', 'employees')
+            
+            # Check for embedded skills data
+            skills_data = None
+            if skills_field in row and pd.notna(row[skills_field]):
+                skills_data = str(row[skills_field])
+            elif 'skills' in row and pd.notna(row['skills']):
+                skills_data = str(row['skills'])  # Legacy fallback
                 
-                for pair in skill_pairs:
-                    if ":" in pair:
-                        skill_id, proficiency = pair.split(":")
-                        skills_dict[skill_id.strip()] = int(proficiency.strip())
+            if skills_data:
+                skills_dict = self._parse_embedded_skills(skills_data)
             
             employee = Employee(
                 employee_id=employee_id,
-                name=row["name"],
-                current_job=job_id,
+                name=name,
+                current_job=current_job,
                 skills=skills_dict
             )
             
@@ -669,9 +1040,38 @@ class EmployeeLoader:
                 employee_skills_df = pd.read_excel(excel_path, sheet_name=employee_skills_sheet)
                 
                 for _, row in employee_skills_df.iterrows():
-                    employee_id = str(row["employee_id"])
-                    skill_id = str(row["skill_id"])
-                    proficiency = int(row["proficiency"])
+                    # Use field mapping for employee-skills data
+                    employee_id_field = get_raw_field_name('employee_id', 'employee_skills')
+                    skill_id_field = get_raw_field_name('skill_id', 'employee_skills')
+                    proficiency_field = get_raw_field_name('proficiency', 'employee_skills')
+                    
+                    # Extract values with fallbacks
+                    employee_id = None
+                    if employee_id_field in row and pd.notna(row[employee_id_field]):
+                        employee_id = str(row[employee_id_field])
+                    elif 'employee_id' in row and pd.notna(row['employee_id']):
+                        employee_id = str(row['employee_id'])  # Legacy fallback
+                        
+                    skill_id = None
+                    if skill_id_field in row and pd.notna(row[skill_id_field]):
+                        skill_id = str(row[skill_id_field])
+                    elif 'skill_id' in row and pd.notna(row['skill_id']):
+                        skill_id = str(row['skill_id'])  # Legacy fallback
+                        
+                    proficiency = 1  # Default proficiency
+                    if proficiency_field in row and pd.notna(row[proficiency_field]):
+                        try:
+                            proficiency = int(row[proficiency_field])
+                        except ValueError:
+                            pass  # Keep default
+                    elif 'proficiency' in row and pd.notna(row['proficiency']):
+                        try:
+                            proficiency = int(row['proficiency'])  # Legacy fallback
+                        except ValueError:
+                            pass
+                    
+                    if not employee_id or not skill_id:
+                        continue  # Skip invalid rows
                     
                     # Validate employee_id
                     if employee_id not in database.employees:
