@@ -12,6 +12,10 @@ from collections import defaultdict
 import os
 import pandas as pd
 import json
+import logging
+
+# Import field mapping utilities
+from ..config.field_mapping import get_field_mapper, get_raw_field_name
 
 
 class SkillType(Enum):
@@ -380,26 +384,6 @@ class SkillTaxonomy:
         
         return result
     
-    def get_skill_category_name(self, skill_id: str) -> str:
-        """
-        Get the category name for a given skill ID.
-        
-        Args:
-            skill_id: The ID of the skill to get the category name for
-            
-        Returns:
-            The category name, or 'Uncategorized' if no category is found
-        """
-        skill = self.skills.get(skill_id)
-        if not skill or not skill.category_id:
-            return "Uncategorized"
-            
-        category = self.categories.get(skill.category_id)
-        if not category:
-            return "Uncategorized"
-            
-        return category.name
-    
     def get_prerequisite_chain(self, skill_id: str) -> List[List[Skill]]:
         """
         Get the prerequisite chains for a skill.
@@ -536,27 +520,78 @@ class SkillTaxonomy:
             # Load from CSV file
             df = pd.read_csv(file_path)
             
-            # Check if the necessary columns are present
-            required_columns = ['skill_id', 'name']
+            # Use field mapping to get the required column names
+            skill_id_field = get_raw_field_name('skill_id', 'skills')
+            name_field = get_raw_field_name('name', 'skills')
+            
+            # Check if the necessary columns are present (using mapped field names)
+            required_columns = [skill_id_field, name_field]
             for column in required_columns:
                 if column not in df.columns:
-                    raise ValueError(f"CSV file is missing required column: {column}")
+                    # Try legacy/canonical names as fallback
+                    if column == skill_id_field and 'skill_id' in df.columns:
+                        continue  # Will handle in row parsing
+                    elif column == name_field and 'name' in df.columns:
+                        continue  # Will handle in row parsing
+                    else:
+                        raise ValueError(f"CSV file is missing required column: {column} (mapped from canonical field)")
             
             # Load skills from DataFrame
             duplicate_count = 0
             for _, row in df.iterrows():
-                # Parse lists from strings if present as strings
+                # Parse lists from strings if present as strings using field mapping
                 aliases = cls._parse_list_field(row, 'aliases')
                 related_skills = cls._parse_list_field(row, 'related_skills')
                 prerequisites = cls._parse_list_field(row, 'prerequisites')
                 
+                # Use field mapping for core fields
+                skill_id_field = get_raw_field_name('skill_id', 'skills')
+                name_field = get_raw_field_name('name', 'skills')
+                description_field = get_raw_field_name('description', 'skills')
+                category_id_field = get_raw_field_name('category_id', 'skills')
+                skill_type_field = get_raw_field_name('skill_type', 'skills')
+                
+                # Extract values using mapped field names with fallbacks
+                skill_id = None
+                if skill_id_field in row and pd.notna(row[skill_id_field]):
+                    skill_id = str(row[skill_id_field])
+                elif 'skill_id' in row and pd.notna(row['skill_id']):
+                    skill_id = str(row['skill_id'])  # Legacy fallback
+                    
+                name = None
+                if name_field in row and pd.notna(row[name_field]):
+                    name = row[name_field]
+                elif 'name' in row and pd.notna(row['name']):
+                    name = row['name']  # Legacy fallback
+                    
+                description = ""
+                if description_field in row and pd.notna(row[description_field]):
+                    description = row[description_field]
+                elif 'description' in row and pd.notna(row['description']):
+                    description = row['description']  # Legacy fallback
+                    
+                category_id = None
+                if category_id_field in row and pd.notna(row[category_id_field]):
+                    category_id = str(row[category_id_field])
+                elif 'category_id' in row and pd.notna(row['category_id']):
+                    category_id = str(row['category_id'])  # Legacy fallback
+                    
+                skill_type = SkillType.COMMON  # Default
+                if skill_type_field in row and pd.notna(row[skill_type_field]):
+                    skill_type = row[skill_type_field]
+                elif 'skill_type' in row and pd.notna(row['skill_type']):
+                    skill_type = row['skill_type']  # Legacy fallback
+                
+                if not skill_id or not name:
+                    continue  # Skip rows with missing required fields
+                
                 # Create skill
                 skill = Skill(
-                    skill_id=str(row['skill_id']),
-                    name=row['name'],
-                    description=row.get('description', ''),
-                    category_id=str(row['category_id']) if pd.notna(row.get('category_id', None)) else None,
-                    skill_type=row.get('skill_type', SkillType.COMMON),
+                    skill_id=skill_id,
+                    name=name,
+                    description=description,
+                    category_id=category_id,
+                    skill_type=skill_type,
                     aliases=aliases,
                     related_skills=related_skills,
                     prerequisites=prerequisites
@@ -623,20 +658,26 @@ class SkillTaxonomy:
     @classmethod
     def _parse_list_field(cls, row, field_name):
         """
-        Parse a list field from a DataFrame row.
+        Parse a list field from a DataFrame row using field mapping.
         
         Args:
             row: DataFrame row
-            field_name: Name of the field to parse
+            field_name: Canonical field name to parse
             
         Returns:
             List of values
         """
-        if field_name not in row or pd.isna(row[field_name]):
+        # Get the raw field name using field mapping
+        raw_field_name = get_raw_field_name(field_name, 'skills')
+        
+        # Check mapped field name first, then fallback to canonical name
+        if raw_field_name in row and pd.notna(row[raw_field_name]):
+            value = row[raw_field_name]
+        elif field_name in row and pd.notna(row[field_name]):
+            value = row[field_name]  # Legacy fallback to canonical name
+        else:
             return []
             
-        value = row[field_name]
-        
         # If already a list, return it
         if isinstance(value, list):
             return value

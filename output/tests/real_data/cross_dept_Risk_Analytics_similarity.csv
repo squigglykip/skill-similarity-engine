@@ -1,5 +1,0 @@
-job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J018,Risk Analyst,Risk,J001,Data Analyst,Analytics,0.33999668217510715
-J018,Risk Analyst,Risk,J002,Senior Data Analyst,Analytics,0.2824377640486798
-J018,Risk Analyst,Risk,J003,Data Scientist,Analytics,0.18856676250470059
-J018,Risk Analyst,Risk,J017,Business Intelligence Analyst,Analytics,0.06603444518445781
