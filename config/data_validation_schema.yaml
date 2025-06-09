@@ -1,0 +1,50 @@
+jobs:
+  JobProfileID:
+    type: string
+    required: true
+  RoleSet:
+    type: string
+    required: true
+  Salary Group:
+    type: string
+    required: true
+  People Leader Flag:
+    type: string
+    required: true
+  Street:
+    type: string
+    required: false
+  Suburb:
+    type: string
+    required: false
+  Location:
+    type: string
+    required: false
+  Cty:
+    type: string
+    required: false
+
+job_skill_mapping:
+  JobProfileID:
+    type: string
+    required: true
+  Skill_ID:
+    type: string
+    required: true
+
+skills:
+  Skill_ID:
+    type: string
+    required: true
+  Skill_Name:
+    type: string
+    required: true
+  SkillType:
+    type: string
+    required: true
+  Category:
+    type: string
+    required: false
+  Subcategory:
+    type: string
+    required: false 

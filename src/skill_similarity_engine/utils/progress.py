@@ -29,7 +29,7 @@ TQDM_STYLE = {
     'colour': 'green',
     'ascii': False,
     'dynamic_ncols': True,
-    'leave': True
+    'leave': False  # Don't leave progress bars after completion for cleaner output
 }
 
 @dataclass
@@ -138,6 +138,14 @@ class ProgressTracker:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """End tracking progress"""
         if self.pbar:
+            if exc_type is None:
+                # Successful completion - make sure the final progress bar stays visible
+                self.pbar.leave = True
+                # Ensure it shows 100% completion
+                if self.stats.completed_items < self.stats.total_items:
+                    remaining = self.stats.total_items - self.stats.completed_items
+                    self.pbar.update(remaining)
+            
             self.pbar.close()
         
         if exc_type is None:
@@ -170,13 +178,17 @@ class ProgressTracker:
                     eta=self.stats.format_eta()
                 )
         
-        # Log progress periodically
+        # Log progress periodically using tqdm.write() to avoid interfering with progress bar
         if self.stats.completed_items % self.log_interval == 0:
-            logger.info(f"{self.desc}: {self.stats.completed_items}/{self.stats.total_items} "
-                       f"({self.stats.percent_complete:.1f}%) - ETA: {self.stats.format_eta()}")
+            progress_msg = (f"{self.desc}: {self.stats.completed_items}/{self.stats.total_items} "
+                           f"({self.stats.percent_complete:.1f}%) - ETA: {self.stats.format_eta()}")
             
-            if self.memory_tracking and self.stats.memory_usage:
-                logger.info(f"Memory usage: {self.stats.memory_usage.current_process_usage_mb:.1f} MB")
+            # Only log when progress bar is NOT active to avoid interference
+            if not (self.show_tqdm and self.pbar):
+                logger.info(progress_msg)
+                
+                if self.memory_tracking and self.stats.memory_usage:
+                    logger.info(f"Memory usage: {self.stats.memory_usage.current_process_usage_mb:.1f} MB")
     
     def get_stats(self) -> ProgressStats:
         """
@@ -297,7 +309,7 @@ class RefreshableProgressDisplay:
         display.initialize()
         
         for i, chunk in enumerate(chunks):
-            with tqdm.tqdm(total=len(chunk), desc=f"Chunk {i+1}", leave=True) as chunk_bar:
+            with tqdm.tqdm(total=len(chunk), desc=f"Chunk {i+1}", leave=False) as chunk_bar:
                 # Process chunk
                 ...
                 chunk_bar.update(1)
@@ -481,7 +493,7 @@ def refreshable_progress_context(total_items: int,
             # Process each chunk with a progress bar
             for i, chunk in enumerate(chunks):
                 # Create and display chunk progress bar
-                with tqdm.tqdm(total=len(chunk), desc=f"Chunk {i+1}", ncols=100, leave=True) as chunk_bar:
+                with tqdm.tqdm(total=len(chunk), desc=f"Chunk {i+1}", leave=False) as chunk_bar:
                     # Process the chunk
                     chunk_processor(chunk, chunk_bar)
                 

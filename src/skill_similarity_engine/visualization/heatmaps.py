@@ -15,6 +15,7 @@ import pandas as pd
 import seaborn as sns
 
 from ..config.settings import get_config
+from ..config.field_mapping import get_raw_field_name
 from ..models.employees import EmployeeDatabase
 from ..models.jobs import JobArchitecture
 from ..models.skills import SkillTaxonomy
@@ -594,17 +595,28 @@ class GapAnalysisHeatmapGenerator:
             
             # Store gaps for this department
             for _, row in critical_gaps.iterrows():
-                skill_id = row["skill_id"]
+                # Use field mapping for consistent field access
+                skill_id_field = get_raw_field_name('skill_id', 'skills')
+                skill_name_field = get_raw_field_name('skill_name', 'skills')
+                proficiency_gap_field = get_raw_field_name('proficiency_gap', 'skills')
+                criticality_field = get_raw_field_name('criticality', 'skills')
+                
+                # Get values with fallback to direct field names
+                skill_id = row.get(skill_id_field, row.get("skill_id"))
+                skill_name = row.get(skill_name_field, row.get("skill_name"))
+                proficiency_gap = row.get(proficiency_gap_field, row.get("proficiency_gap"))
+                criticality = row.get(criticality_field, row.get("criticality"))
+                
                 if skill_id not in skill_gaps:
                     skill_gaps[skill_id] = {
-                        "skill_name": row["skill_name"],
+                        "skill_name": skill_name,
                         "gaps": {},
                         "criticality": 0
                     }
                 
                 # Store gap and update total criticality
-                skill_gaps[skill_id]["gaps"][department] = row["proficiency_gap"]
-                skill_gaps[skill_id]["criticality"] += row["criticality"]
+                skill_gaps[skill_id]["gaps"][department] = proficiency_gap
+                skill_gaps[skill_id]["criticality"] += criticality
         
         # Sort skills by criticality and limit to max_skills
         top_skills = sorted(skill_gaps.items(), key=lambda x: x[1]["criticality"], reverse=True)[:max_skills]
