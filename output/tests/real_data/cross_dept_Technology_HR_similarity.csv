@@ -1,7 +1,0 @@
-job1_id,job1_title,job1_department,job2_id,job2_title,job2_department,similarity
-J007,Software Engineer,Technology,J013,HR Coordinator,HR,0.6470588235294117
-J007,Software Engineer,Technology,J014,HR Business Partner,HR,0.6470588235294117
-J008,Senior Software Engineer,Technology,J013,HR Coordinator,HR,0.6470588235294117
-J008,Senior Software Engineer,Technology,J014,HR Business Partner,HR,0.6470588235294118
-J009,UI/UX Designer,Technology,J013,HR Coordinator,HR,0.764077702469592
-J009,UI/UX Designer,Technology,J014,HR Business Partner,HR,0.7276836134877942
