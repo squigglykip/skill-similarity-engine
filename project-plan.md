@@ -267,11 +267,512 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 #### 8.1 Web Application Foundation - **PLANNED** 📋
 **Branch: `8.1-feature/query-layer-webapp/foundation`**
 
-**8.1.1 Enhanced Data Pipeline**
-- [ ] Expand CLI to ingest full job architecture (including job families)
-- [ ] Integrate complete skills taxonomy with hierarchical relationships
-- [ ] Include full SAP/HRIS data for comprehensive role information
-- [ ] Create rich metadata for enhanced query capabilities
+**8.1.0 Skills Library API Foundation** ✅ **COMPLETED**
+- [x] **Create Skills Library API Module** (`src/skill_similarity_engine/api/`)
+  - [x] `SkillsLibraryAPI` class with Lightcast OAuth 2.0 authentication
+  - [x] Version tracking and incremental update logic  
+  - [x] CSV generation for downstream business context integration
+  - [x] Comprehensive logging and error handling
+
+- [x] **API Integration & Testing**:
+  - [x] Test API authentication with provided Lightcast credentials ✅ **COMPLETED**
+  - [x] Validate incremental update logic (fetch only new versions) ✅ **COMPLETED** 
+  - [x] Generate initial `skills_library.csv` from all historical versions ✅ **COMPLETED**
+  - [x] Performance testing for full vs incremental updates ✅ **COMPLETED**
+
+**8.1.1 Dummy Data Structure Completion** ✅ **COMPLETED**
+- [x] **Skills Library Data** ✅ **COMPLETED**
+  - [x] `data/skills_library/lightcast_skills_comprehensive.csv` (5.1MB, 38,395 skills) 
+  - [x] Generated via Lightcast API integration with incremental updates
+  - [x] Includes skill taxonomy with categories, subcategories, types, and latest versions
+
+- [x] **Workforce Context Data** ✅ **COMPLETED** 
+  - [x] `data/workforce_context/dummy_workforce_context.csv` (2.2MB)
+  - [x] SAP/HRIS-style employee and position data for business context
+
+- [x] **Job Architecture Data** ✅ **COMPLETED**
+  - [x] `data/job_architecture/dummy_job_architecture.csv` (74KB, 717 records) ✅ **COMPLETED**
+  - [x] Matches real schema: JobProfileID, JobProfile, JobID, Job, JobFamily, JobFamilyGroup
+  - [x] Uses real JobProfileIDs from user's data (R0001.5 format)
+  - [x] NAB-realistic job families and organizational structure
+  - [x] Generated via `scripts/generate_dummy_job_architecture.py`
+
+- [x] **Job Architecture to Positions Mapping** ✅ **COMPLETED**
+  - [x] `data/job_architecture_to_positions_mapping/position_job_mapping.csv` ✅ **COMPLETED** 
+  - [x] Simple one-to-one mapping: Position_Number → JobProfileID
+  - [x] Bridge between workforce positions and job architecture
+  - [x] Links job architecture data to workforce context for comprehensive analysis
+  - [x] Enables filtering and contextual queries in the webapp
+  - [x] Generated via `scripts/generate_position_job_mapping.py`
+
+**8.1.2 Data Exploration & Schema Design** ⚡ **NEXT PRIORITY** (dummy data completion ✅)
+- [ ] **Cross-Dataset Key Analysis**
+  - [ ] Create exploration script: `scripts/explore_data_relationships.py`
+  - [ ] Analyze primary keys, foreign keys, and relationship cardinalities
+  - [ ] Document data quality: completeness, consistency, duplicates
+  - [ ] Identify optimal join strategies and performance considerations
+
+- [ ] **Schema Design & Documentation**
+  - [ ] Design SQLite schema with proper normalization
+  - [ ] Define table relationships and foreign key constraints  
+  - [ ] Plan indexes for fast webapp queries (by job family, location, etc.)
+  - [ ] Document schema in `docs/sqlite_schema_design.md`
+  - [ ] Create entity-relationship diagram for schema visualization
+
+- [ ] **Data Integration Strategy**
+  - [ ] Plan JOIN operations between datasets
+  - [ ] Handle missing data and data quality issues
+  - [ ] Design aggregation tables for performance (if needed)
+  - [ ] Validate relationship integrity across all datasets
+
+**8.1.3 CLI Enhancement for Business Context Database** 📋 **PLANNED** (after schema design)
+- [ ] **Extend main.py menu system** to include business context processing
+  - [ ] Add new menu option: "2. Generate Business Context Database"  
+  - [ ] Create sub-menu for business context configuration options
+  - [ ] Integrate with existing model versioning system (output to `models/2025-Q2/`)
+
+- [ ] **Create new src modules for relational data processing**:
+  - [ ] `src/skill_similarity_engine/business_context/` directory structure
+  - [ ] `src/skill_similarity_engine/business_context/data_integrator.py` - Join JobProfiles → Positions → SAP data
+  - [ ] `src/skill_similarity_engine/business_context/sqlite_builder.py` - Create optimised SQLite schema and indexes
+  - [ ] `src/skill_similarity_engine/business_context/orchestrator.py` - Main CLI integration module
+
+- [ ] **Enhanced data loaders for new folders**:
+  - [ ] Extend existing loaders to read from `data/job_architecture/`, `data/skills_library/`, `data/workforce_context/`
+  - [ ] Create validation and quality checks for relational data integrity
+  - [ ] Handle missing data and provide fallback strategies
+
+- [ ] **SQLite database design and creation**:
+  - [ ] Design optimised schema for webapp queries (JobProfiles, Positions, BusinessContext tables)
+  - [ ] Create indexes for fast filtering (by business_unit, job_family, location, etc.)
+  - [ ] Build aggregation tables for performance (position counts by role/location)
+  - [ ] Output: `models/2025-Q2/business_context.sqlite` (alongside existing similarity matrices)
+
+- [ ] **CLI integration and user experience**:
+  - [ ] Progress tracking and logging for large dataset processing
+  - [ ] Validation reports (data quality, coverage, relationship integrity)
+  - [ ] Option to regenerate only business context without re-running similarity computation
+  - [ ] Error handling and recovery for partial processing
+
+**Updated CLI Menu Structure:**
+```
+Main Menu:
+1. Precompute Skill Similarities
+2. Generate Business Context Database     # NEW
+3. Query Skill Similarities (coming soon)
+0. Exit
+
+Business Context Menu:
+1. Update Skills Library (API)            # NEW - Fetch from Lightcast API
+2. Load and validate enhanced data        # NEW - Load from job_architecture/, workforce_context/
+3. Generate business context database     # NEW - Create SQLite with relational joins
+4. Validate business context integrity    # NEW - Data quality reports
+0. Back to main menu
+```
+
+**Updated Development Workflow:**
+```
+Phase 1: Complete Dummy Data Structure ✅ **COMPLETED**
+1. ✅ Create job_architecture/*.csv files with realistic NAB structure
+2. ✅ Create job_architecture_to_positions_mapping/ bridge data  
+3. ✅ Validate all data relationships and integrity
+
+Phase 2: Data Exploration & Schema Design ⚡ **CURRENT PRIORITY**
+1. Explore relationships between all datasets using analysis scripts
+2. Document data quality, completeness, and key relationships
+3. Design optimal SQLite schema with proper normalization and indexes
+4. Create entity-relationship diagram and schema documentation
+
+Phase 3: CLI Integration 📋 **NEXT**
+1. Extend main.py with business context menu
+2. Build data integration modules in business_context/
+3. Create SQLite generation with optimised schema
+4. Test end-to-end with complete dummy data
+
+Phase 3: Quarterly Production Workflow (FINAL STATE)
+1. Data Scientist runs: "1. Precompute Skill Similarities" → generates similarity matrices
+2. Data Scientist runs: "2. Generate Business Context Database" → 
+   a. Updates skills library via Lightcast API (incremental)
+   b. Loads job architecture & workforce context from CSVs  
+   c. Creates business_context.sqlite with all combined data
+3. Output to OneDrive: models/2025-Q2/ contains both similarity data + business context
+4. Users double-click .bat file → webapp loads from models/2025-Q2/
+
+Result: Fast webapp with pre-computed similarities + optimised relational queries
+```
+
+**Immediate Dummy Data Requirements:**
+
+**Priority 1: Job Architecture Data**
+```
+data/job_architecture/job_families.csv:
+- Job_Family (Technology, Risk, Finance, Operations, etc.)
+- Job_Subfamily (Data & Analytics, Cyber Security, Personal Banking, etc.)  
+- Business_Domain (Corporate, Retail Banking, Business Banking, etc.)
+- Function_Category (Technology, Finance, Risk & Compliance, etc.)
+
+data/job_architecture/career_levels.csv:  
+- Career_Level (1-8 scale matching NAB structure)
+- Level_Name (Graduate, Analyst, Senior Analyst, Manager, etc.)
+- Salary_Grade_Mapping (External, Group 1-7 from existing data)
+- Leadership_Track (Individual Contributor, People Leader)
+
+data/job_architecture/business_units.csv:
+- Business_Unit (Personal Banking, Business Banking, Corporate & Investment Banking, etc.)
+- Division (Technology, Finance, Risk, Operations, etc.)  
+- Region (Australia, New Zealand, Asia)
+- Location_Hub (Melbourne, Sydney, Brisbane, Perth, Auckland, etc.)
+
+data/job_architecture/job_progressions.csv:
+- From_JobProfile, To_JobProfile (career pathway mappings)
+- Progression_Type (promotion, lateral, function_change)
+- Typical_Timeline (1-2 years, 2-3 years, etc.)
+- Success_Rate (estimated % of successful transitions)
+```
+
+**Priority 2: Architecture to Positions Mapping**  
+```
+data/job_architecture_to_positions_mapping/position_mappings.csv:
+- JobProfileID (from existing job_data.csv)
+- Position_Count (how many actual positions exist)
+- Current_Headcount (filled positions)
+- Geographic_Distribution (by location)
+- Team_Assignment (specific team/department mappings)
+```
+
+**Data Exploration Checklist:**
+
+**Dataset Analysis Required:**
+```
+1. Skills Library (lightcast_skills_comprehensive.csv):
+   - Primary Key: Skill_ID? 
+   - Columns: Skill_Name, Category, Subcategory, SkillType, Latest_Version
+   - Cardinality: ~38,395 skills
+   - Question: How does this relate to job_skill_mapping.csv?
+
+2. Job Architecture (dummy_job_architecture.csv):  
+   - Primary Key: JobProfileID ✅ CONFIRMED
+   - Columns: JobProfile, JobID, Job, JobFamily, JobFamilyGroup  
+   - Cardinality: 717 job profiles
+   - Foreign Keys: None currently
+
+3. Workforce Context (dummy_workforce_context.csv):
+   - Primary Key: Position_Number ✅ CONFIRMED  
+   - Columns: Employee data + 10-level org hierarchy + location + salary
+   - Cardinality: ~5,000 positions  
+   - Foreign Keys: People_Leader_Number → Position_Number
+
+4. Position Mapping (position_job_mapping.csv):
+   - Bridge Table: Position_Number → JobProfileID ✅ CONFIRMED
+   - Cardinality: 1:1 mapping, 5,000 records
+   - Critical for joining workforce context to job architecture
+
+5. Existing Engine Data (job_data.csv, skill_data.csv, job_skill_mapping.csv):
+   - How do these relate to the new enhanced datasets?
+   - Do we need to maintain backward compatibility?
+   - Are there conflicting JobProfileIDs or skill definitions?
+```
+
+**Key Relationship Questions to Explore:**
+```
+1. Skills Integration:
+   - How do skills in lightcast_skills_comprehensive.csv map to skill_data.csv?
+   - Can we join on Skill_Name or do we need new mapping tables?
+   - Are there skill ID conflicts between datasets?
+
+2. Job Profile Consistency:
+   - Do JobProfileIDs in dummy_job_architecture.csv match job_data.csv?
+   - How many job profiles exist vs actual positions vs similarity engine data?
+   - What happens if a position references a JobProfileID not in job architecture?
+
+3. Organizational Hierarchy:
+   - How deep should we normalize the 10-level org structure?
+   - Which levels are most important for webapp filtering?
+   - Should we create separate tables for business units, locations, cost centers?
+
+4. Data Quality & Completeness:
+   - What percentage of positions have assigned employees?
+   - Are there orphaned records (positions without job profiles, etc.)?
+   - How should we handle missing data in joins?
+```
+
+**Data Flow Strategy:**
+```
+Skills Data Flow: ✅ COMPLETE
+Lightcast API → skills_library.csv → business_context.sqlite → webapp
+
+Job Architecture Flow: ✅ COMPLETE  
+job_architecture/*.csv → business_context.sqlite → webapp
+
+Workforce Context Flow: ✅ COMPLETE
+workforce_context/*.csv → business_context.sqlite → webapp
+
+Integration Point: All three sources combined in SQLite with optimised schema
+NEXT: Explore relationships and design optimal schema
+```
+
+**Benefits of CLI-based Business Context Generation:**
+- ✅ **Leverages existing infrastructure**: Model versioning, logging, error handling
+- ✅ **Separation of concerns**: Heavy processing in CLI, fast queries in webapp  
+- ✅ **Performance optimisation**: Pre-computed joins and indexes for webapp speed
+- ✅ **Data governance**: Business context processing in controlled CLI environment
+- ✅ **Deployment simplicity**: Webapp receives pre-optimised SQLite file
+- ✅ **Incremental updates**: Can regenerate business context without re-running similarity computation
+- ✅ **API-first skills management**: Consistent access to Lightcast data alongside CSV sources
+- ✅ **Unified data versioning**: Skills library updates tied to quarterly model releases
+- ✅ **Incremental API efficiency**: Only fetch new versions, 2-5 minute updates vs 60+ minute full refresh
+
+**8.1.1 Enhanced Data Pipeline - Analysis & Requirements**
+
+> **Current State Analysis**: The existing system processes basic job similarity using minimal fields (`JobProfileID`, `RoleSet`, `Salary Group`, basic skills). This enables pure skill-based similarity but lacks contextual richness for career pathway exploration and business filtering.
+
+**Data Enhancement Priority Analysis:**
+
+**Priority 1: Essential for MVP Webapp (Implement First)**
+- [ ] **Job Family Context**: `Job_Family`, `Job_Subfamily` for grouping related roles
+  - *Enables*: "Show me similar roles within Technology" filtering
+  - *User Value*: Contextual similarity within business domains
+  - *Data Source*: Job architecture master data (likely available)
+
+- [ ] **Career Level Progression**: `Career_Level`, `Career_Track` for hierarchy
+  - *Enables*: "What's the next level up?" pathway analysis
+  - *User Value*: Natural career progression recommendations
+  - *Data Source*: HR level/grade mappings (likely available)
+
+- [ ] **Business Unit Context**: `Business_Unit`, `Function` for organisational filtering
+  - *Enables*: "Show pathways within Personal Banking" scope filtering
+  - *User Value*: Relevant opportunities within user's business area
+  - *Data Source*: Organisational structure data (likely available)
+
+**Priority 2: Enhanced User Experience (Second Phase)**
+- [ ] **Skills Taxonomy Hierarchy**: `Parent_Skill_ID`, `Related_Skills`, `Prerequisites`
+  - *Enables*: "What skills lead to this capability?" pathway visualisation
+  - *User Value*: Skill development roadmaps with logical progression
+  - *Data Source*: Skills framework (may need curation)
+
+- [ ] **Geographic Context**: `Region`, `Country`, `City`, `Remote_Eligible`
+  - *Enables*: Location-aware opportunity filtering
+  - *User Value*: Practical mobility options based on location preferences
+  - *Data Source*: Job posting/office location data (likely available)
+
+**Priority 3: Advanced Features (Future Enhancement)**
+- [ ] **Workforce Analytics**: Current headcount, team sizes, demand signals
+  - *Enables*: "Where are the actual opportunities?" capacity planning
+  - *User Value*: Market reality vs theoretical similarities
+  - *Data Source*: HRIS employment data (privacy/aggregation considerations)
+
+- [ ] **Career Pathway History**: `Progression_From`, `Progression_To`, success rates
+  - *Enables*: Evidence-based pathway recommendations
+  - *User Value*: "What do successful transitions actually look like?"
+  - *Data Source*: Historical movement data (complex data governance)
+
+**Data Feasibility Assessment:**
+
+| Data Category | Availability | Complexity | Business Value | Implementation Priority |
+|---------------|--------------|------------|----------------|------------------------|
+| Job Families | High | Low | High | Priority 1 |
+| Career Levels | High | Low | High | Priority 1 |
+| Business Units | High | Low | High | Priority 1 |
+| Skills Hierarchy | Medium | Medium | High | Priority 2 |
+| Geographic Data | High | Low | Medium | Priority 2 |
+| Workforce Counts | Medium | High | Medium | Priority 3 |
+| Career History | Low | Very High | High | Priority 3 |
+
+**Enhanced Data Pipeline Implementation Strategy:**
+
+**Data Organization Tasks:**
+- [ ] **Create Enhanced Data Structure**:
+  - [ ] Populate `data/job_architecture/` with job family, career level, and business unit mappings
+  - [ ] Populate `data/skills_library/` with skills hierarchy, prerequisites, and competency frameworks  
+  - [ ] Populate `data/workforce_context/` with aggregated SAP/HRIS team and department data
+  - [ ] Update `config/field_mapping.yaml` to include mappings for enhanced fields
+  - [ ] Create enhanced field derivation rules in `config/enhanced_field_mapping.yaml`
+
+**Data Pipeline Extensions:**
+- [ ] **Phase A**: Extend existing CSV loaders to handle Priority 1 fields from new data folders
+- [ ] **Phase B**: Create new data models for hierarchical skills (Priority 2) 
+- [ ] **Phase C**: Integrate HRIS/SAP extracts for workforce context (Priority 3)
+- [ ] **Phase D**: Build pathway history analysis from HR movement data (Priority 3)
+
+**Data Flow Integration:**
+- [ ] **CLI Enhancement**: Extend CLI to read from `data/job_architecture/`, `data/skills_library/`, `data/workforce_context/`
+- [ ] **Output Integration**: Enhanced pre-computed data outputs to existing `models/2025-Q2/` structure
+- [ ] **WebApp Data Loading**: Create webapp data loader to read from `models/` quarterly outputs
+- [ ] **Configuration Management**: Extend `config/` files to support webapp-specific settings
+
+**Data-to-Feature Mapping Analysis:**
+
+> This section maps specific enhanced data fields to webapp features, showing how data investments translate to user value.
+
+**Feature: Career Pathway Explorer**
+```
+Required Data: Job_Family + Career_Level + Business_Unit
+Current Limitation: Can only show "similar jobs" without context
+Enhanced Capability: "Show me Data Science roles in Technology at Senior level"
+User Journey: Risk Analyst → filters by (Function=Technology, Level=Senior) → sees Data Scientist, Solutions Architect, Tech Lead options
+```
+
+**Feature: Skills Gap Analysis**  
+```
+Required Data: Skills_Hierarchy + Prerequisites + Related_Skills
+Current Limitation: Shows skill differences but no learning pathway
+Enhanced Capability: "You need Python → suggests JavaScript first (related), then Python (builds on JS)"
+User Journey: Business Analyst → wants Machine Learning Engineer → sees prerequisite chain: Statistics → Python → ML
+```
+
+**Feature: Geographic Mobility Filter**
+```
+Required Data: Region + Country + City + Remote_Eligible  
+Current Limitation: Location-blind recommendations
+Enhanced Capability: "Show Sydney opportunities" or "Remote-eligible roles only"
+User Journey: Melbourne employee → filters Sydney opportunities → sees realistic relocation options
+```
+
+**Feature: Team Transition Planning**
+```
+Required Data: Business_Unit + Function + Current_Headcount (aggregated)
+Current Limitation: Theoretical similarities without business context
+Enhanced Capability: "Personal Banking has 15 similar roles with capacity for 3 more"
+User Journey: Manager planning team restructure → sees absorption capacity by business unit
+```
+
+**Minimum Viable Enhancement (Priority 1 Only):**
+
+With just `Job_Family`, `Career_Level`, and `Business_Unit`, the webapp could deliver:
+- **Contextual Filtering**: "Technology roles only" or "Senior level opportunities"  
+- **Progressive Pathways**: "Next level up in your function"
+- **Business-Relevant Results**: "Opportunities within Personal Banking"
+- **White Paper Generation**: Context-aware role transitions with business unit considerations
+
+**Data Quality & Validation Requirements:**
+
+| Field | Validation Rule | Data Quality Check | Fallback Strategy |
+|-------|----------------|-------------------|------------------|
+| Job_Family | Must be from controlled list | Cross-reference with org chart | Default to "General" |
+| Career_Level | Sequential hierarchy (1-8) | No gaps in progression | Map to salary grade |
+| Business_Unit | Must exist in current structure | Validate against HRIS | Use "Corporate" default |
+| Skills_Hierarchy | No circular references | Tree structure validation | Flatten to categories |
+
+**Success Metrics for Enhanced Data:**
+- **User Engagement**: % of queries using filters (target: >60%)
+- **Relevance**: User ratings of pathway suggestions (target: >4.0/5)
+- **Business Value**: White papers generated vs manual analysis time saved
+- **Data Quality**: % of records with complete Priority 1 fields (target: >95%)
+
+**Current Data State Analysis:**
+
+> Based on examination of existing data files in `data/input_data/`, here's what we have vs what we need:
+
+**Job Data - Current State (`job_data.csv`, 717 records):**
+```
+HAVE: JobProfileID, RoleSet, Salary Group, People Leader Flag, Street, Suburb, Location, Cty
+MISSING: Job_Family, Job_Subfamily, Career_Level, Business_Unit, Function, Career_Track
+```
+
+**Sample Current Data Patterns:**
+- ✅ **Location Data**: Good geographic detail (`VIC`, `NSW`, `QLD`, `WA` + cities)
+- ✅ **Role Hierarchy**: Salary Groups (`External`, `Group 1-7`) suggest career levels  
+- ✅ **Leadership Context**: `People Leader Flag` provides management track info
+- ❌ **Business Context**: No job families, business units, or functions
+- ❌ **Career Progression**: No explicit career level or advancement pathways
+
+**Skills Data - Current State (`skill_data.csv`, 2,070 records):**
+```
+HAVE: Skill_ID, Skill_Name, SkillType, Category, Subcategory  
+MISSING: Parent_Skill_ID, Prerequisites, Related_Skills, Difficulty_Rating, Learning_Time
+```
+
+**Sample Current Skills Analysis:**
+- ✅ **Rich Taxonomy**: 2,070 skills with detailed categories (Finance, IT, Marketing, etc.)
+- ✅ **Skill Types**: `Common Skill`, `Specialized Skill`, `Certification` distinctions
+- ✅ **Categorisation**: Business domains well-represented
+- ❌ **Hierarchy**: No parent-child relationships or prerequisites
+- ❌ **Learning Context**: No difficulty ratings or time estimates
+
+**Data Enhancement Opportunity Analysis:**
+
+**Quick Wins (Can be derived from existing data):**
+1. **Career Level Mapping**: `Salary Group` → Career levels (External=0, Group1=Junior, Group7=Executive)
+2. **Leadership Track**: `People Leader Flag` → Career track classification  
+3. **Business Unit Inference**: Role patterns suggest business domains (e.g., "Data Engineer" → Technology)
+4. **Geographic Clustering**: Existing location data can enable geographic filtering
+
+**Medium Enhancement (Requires external data):**
+1. **Job Family Classification**: Manual mapping of `RoleSet` to business functions
+2. **Skills Hierarchy**: SME input to define prerequisite relationships
+3. **Business Unit Assignment**: Mapping roles to NAB's organisational structure
+
+**Complex Enhancement (Requires HRIS integration):**
+1. **Workforce Distribution**: Current headcount by role/location
+2. **Career Movement History**: Historical transition success rates
+
+**Immediate Implementation Strategy:**
+
+**Phase A (Leverage Existing Data - 2 weeks):**
+- Create mapping tables to derive Priority 1 fields from existing data
+- Map `Salary Group` to `Career_Level` (1-7 scale)
+- Map `People Leader Flag` to `Career_Track` (IC vs Leadership)
+- Group similar roles into job families using keyword analysis
+- Enhance location context with region mapping
+
+**Phase B (External Classification - 4 weeks):**
+- Business SME sessions to classify roles into job families
+- Map job families to NAB business units and functions
+- Create skills hierarchy through workshop sessions
+- Define skill prerequisites and related skill relationships
+
+**Data Quality Assessment:**
+- **Completeness**: 100% for basic fields, 0% for enhanced fields
+- **Consistency**: High (clean JobProfileID format, standardised salary groups)
+- **Accuracy**: Good location data, reasonable role titles
+- **Opportunity**: Strong foundation that can be enhanced systematically
+
+**Actual Data Structure (Updated):**
+
+```
+data/
+├── input_data/                    # Current CLI input (EXISTING - NO CHANGES)
+│   ├── job_data.csv              # Basic job profiles for similarity computation
+│   ├── skill_data.csv            # Core skills taxonomy
+│   └── job_skill_mapping.csv     # Job-skill relationships
+│
+├── job_architecture/              # NEW - Rich job context data
+│   ├── job_families.csv          # Job family classifications
+│   ├── career_levels.csv         # Career progression framework
+│   ├── business_units.csv        # Organisational structure
+│   └── job_progressions.csv      # Career pathway mappings
+│
+├── skills_library/                # NEW - Enhanced skills taxonomy
+│   ├── skills_hierarchy.csv      # Parent-child skill relationships
+│   ├── skill_prerequisites.csv   # Learning pathway dependencies
+│   ├── skill_adjacencies.csv     # Related/transferable skills
+│   └── competency_frameworks.csv # Skill groupings and domains
+│
+└── workforce_context/             # NEW - SAP/HRIS derived data
+    ├── team_structure.csv        # Current team assignments
+    ├── department_hierarchy.csv  # Organisational structure
+    ├── workforce_distribution.csv # Aggregated headcount by role/location
+    └── role_demand_signals.csv   # Hiring/growth patterns
+
+config/                            # EXISTING - Enhanced for webapp
+├── field_mapping.yaml            # EXISTING - Extend for enhanced fields
+├── enhanced_field_mapping.yaml   # NEW - Webapp-specific field mappings
+├── webapp_config.yaml            # NEW - Webapp configuration
+└── [existing config files...]    # EXISTING - No changes
+
+models/                            # EXISTING - Enhanced outputs
+├── 2025-Q2/                      # EXISTING - Current quarterly model
+│   ├── precompute_*/             # EXISTING - Base similarity matrices
+│   ├── enhanced_job_metadata.parquet      # NEW - Rich job context
+│   ├── enhanced_skills_metadata.parquet   # NEW - Skills hierarchy
+│   └── webapp_filters.json       # NEW - UI dropdown options
+└── [previous quarters...]        # EXISTING - Historical models
+```
+
+**Data Pipeline Integration Points:**
+1. **CLI reads**: `data/input_data/` + new enhancement folders → outputs to `models/2025-Q2/`
+2. **WebApp reads**: `models/2025-Q2/` (pre-computed + enhanced metadata)
+3. **Configuration**: `config/` files drive both CLI enhancement and webapp behavior
 
 **8.1.2 Flask Application Setup**
 - [ ] Flask application setup and project structure
@@ -281,6 +782,70 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 - [ ] Basic routing structure and API endpoints
 - [ ] Error handling and logging for web requests
 - [ ] Local development environment setup
+
+**8.1.3 CSS Architecture & Design System**
+- [ ] Select CSS framework (Bootstrap 5 or Tailwind CSS for rapid development)
+- [ ] Establish CSS architecture methodology (BEM naming convention)
+- [ ] Create modular SCSS/CSS structure with variables and mixins
+- [ ] Define responsive breakpoint system (mobile-first approach)
+- [ ] Set up CSS build pipeline with autoprefixer and minification
+- [ ] Implement CSS custom properties for dynamic theming
+
+**8.1.4 NAB Brand Style Guide Implementation**
+- [ ] Research and implement NAB colour palette and brand guidelines
+- [ ] Define typography scale (headings, body text, captions) with web-safe fonts
+- [ ] Create NAB-compliant component library (buttons, forms, cards, tables)
+- [ ] Establish spacing and layout grid system aligned with corporate standards
+- [ ] Design icon system and illustration guidelines
+- [ ] Define interaction states (hover, focus, active, disabled) for all components
+
+**8.1.5 Component System Architecture**
+- [ ] Create reusable Jinja2 macro library for UI components
+- [ ] Implement component documentation with usage examples
+- [ ] Build form component system (inputs, selects, checkboxes, validation)
+- [ ] Design data visualisation component templates (tables, charts, graphs)
+- [ ] Create layout components (headers, navigation, sidebars, footers)
+- [ ] Establish loading and error state component patterns
+
+**8.1.6 Frontend Architecture & JavaScript Structure**
+- [ ] Set up modern JavaScript architecture (ES6+ with Babel if needed)
+- [ ] Implement module system for JavaScript components
+- [ ] Create utility functions library for common webapp interactions
+- [ ] Set up event handling patterns for dynamic content
+- [ ] Implement AJAX/fetch patterns for API communication
+- [ ] Create JavaScript build pipeline with bundling and minification
+
+**8.1.7 Template & Layout System**
+- [ ] Design master template hierarchy with inheritance structure
+- [ ] Create page layout templates (single-column, two-column, dashboard)
+- [ ] Implement navigation template with active state management
+- [ ] Build breadcrumb and page header template system
+- [ ] Create responsive table templates for similarity data display
+- [ ] Design form layout templates with validation display
+
+**8.1.8 Asset Management & Performance**
+- [ ] Set up static asset organisation (CSS, JS, images, fonts)
+- [ ] Implement asset versioning and cache busting strategy
+- [ ] Optimise images and create responsive image system
+- [ ] Set up font loading strategy for performance
+- [ ] Implement CSS and JavaScript minification pipeline
+- [ ] Create development vs production asset handling
+
+**8.1.9 Accessibility & User Experience Foundation**
+- [ ] Implement WCAG 2.1 AA compliance baseline
+- [ ] Create semantic HTML structure templates
+- [ ] Establish keyboard navigation patterns
+- [ ] Implement screen reader compatibility
+- [ ] Design focus management and skip link system
+- [ ] Create accessible form validation and error messaging
+
+**8.1.10 Responsive Design System**
+- [ ] Define mobile-first responsive strategy
+- [ ] Create tablet and desktop layout variations
+- [ ] Implement touch-friendly interactions for mobile
+- [ ] Design responsive navigation patterns (hamburger menu, etc.)
+- [ ] Create responsive table solutions for large datasets
+- [ ] Test cross-device compatibility and performance
 
 #### 8.2 Career Pathway Engine - **PLANNED** 📋
 **Branch: `8.2-feature/query-layer-webapp/career-pathways`**
