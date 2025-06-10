@@ -104,9 +104,9 @@ class ModelVersionManager:
                 return quarter_dir
                 
             elif choice == '2':
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                timestamped_dir = quarter_dir.parent / f"{quarter_dir.name}_{timestamp}"
-                print(f"Using timestamped location: {timestamped_dir}")
+                datestamp = datetime.now().strftime("%Y%m%d")
+                timestamped_dir = quarter_dir.parent / f"{quarter_dir.name}_{datestamp}"
+                print(f"Using date-stamped location: {timestamped_dir}")
                 return timestamped_dir
                 
             elif choice == '3':
