@@ -26,6 +26,7 @@ from skill_similarity_engine.error_handling.registry import ErrorRegistry
 from skill_similarity_engine.data.loaders import SkillTaxonomyLoader, JobArchitectureLoader
 from skill_similarity_engine.similarity.precompute import create_precomputer, PrecomputeConfig
 from skill_similarity_engine.models.versioning import setup_model_output_directory
+from skill_similarity_engine.business_context import BusinessContextOrchestrator
 
 # Welcome banner
 BANNER = r'''
@@ -82,7 +83,8 @@ def main_menu():
     print(BANNER)
     print("Please select an option:")
     print("1. Precompute Skill Similarities")
-    print("2. Query Skill Similarities (coming soon)")
+    print("2. Generate Business Context Database")
+    print("3. Query Skill Similarities (coming soon)")
     print("0. Exit")
     return input("Enter your choice: ").strip()
 
@@ -312,6 +314,14 @@ def main():
                 else:
                     print("[INFO] Option not yet implemented.")
         elif choice == '2':
+            # Business Context Database Generation
+            try:
+                orchestrator = BusinessContextOrchestrator()
+                orchestrator.handle_business_context_menu()
+            except Exception as e:
+                logger.error(f"Business context menu error: {e}")
+                print(f"[ERROR] Business context menu failed: {e}")
+        elif choice == '3':
             print("[INFO] Query Skill Similarities is coming soon.")
         elif choice == '0':
             print("Exiting. Goodbye!")

@@ -264,49 +264,312 @@ This enhancement addresses the real-world scenario where explicit proficiency le
 
 > **Business Priority**: Urgent need for career pathway exploration and white paper generation for colleagues facing role transitions. This phase delivers the query layer of our two-phase architecture, making the pre-computed similarity data accessible to non-technical business users.
 
-#### 8.1 Web Application Foundation - **PLANNED** 📋
-**Branch: `8.1-feature/query-layer-webapp/foundation`**
+#### 8.1 Business Context Database Foundation - **COMPLETED** ✅
+**Branch: `8.1-feature/business-context-foundation`**
 
-**8.1.1 Enhanced Data Pipeline**
-- [ ] Expand CLI to ingest full job architecture (including job families)
-- [ ] Integrate complete skills taxonomy with hierarchical relationships
-- [ ] Include full SAP/HRIS data for comprehensive role information
-- [ ] Create rich metadata for enhanced query capabilities
+This phase created the comprehensive business context database that powers the Flask webapp, integrating job similarities, skills taxonomy, workforce positions, and job architecture into a single optimised SQLite database for fast querying.
 
-**8.1.2 Flask Application Setup**
-- [ ] Flask application setup and project structure
-- [ ] .bat file launcher for seamless user deployment
-- [ ] Configuration management for webapp settings
-- [ ] Data loading pipeline for all pre-computed datasets
-- [ ] Basic routing structure and API endpoints
-- [ ] Error handling and logging for web requests
-- [ ] Local development environment setup
+**Core Tasks:**
 
-#### 8.2 Career Pathway Engine - **PLANNED** 📋
-**Branch: `8.2-feature/query-layer-webapp/career-pathways`**
+**8.1.0 Skills Library API Foundation** ✅ **COMPLETED**
+- [x] **Create Skills Library API Module** (`src/skill_similarity_engine/api/`)
+  - [x] `SkillsLibraryAPI` class with Lightcast OAuth 2.0 authentication
+  - [x] Version tracking and incremental update logic  
+  - [x] CSV generation for downstream business context integration
+  - [x] Comprehensive logging and error handling
 
-> **Technical Challenge**: With 510K+ job comparisons, multi-hop career pathway queries could explode to millions of combinations. Pre-computing pathways to depth 4 provides optimal performance for interactive exploration.
+- [x] **API Integration & Testing**:
+  - [x] Test API authentication with provided Lightcast credentials ✅ **COMPLETED**
+  - [x] Validate incremental update logic (fetch only new versions) ✅ **COMPLETED** 
+  - [x] Generate initial `skills_library.csv` from all historical versions ✅ **COMPLETED**
+  - [x] Performance testing for full vs incremental updates ✅ **COMPLETED**
 
-**8.2.1 Pathway Pre-Computation Strategy**
-- [ ] Design efficient pathway graph algorithms
-- [ ] Implement depth-limited pathway discovery (max 4 progressions)
-- [ ] Create pathway ranking based on similarity scores and skill gaps
-- [ ] Build pathway caching system for frequently accessed routes
-- [ ] Optimise memory usage for large pathway networks
+**8.1.1 Dummy Data Structure Completion** ✅ **COMPLETED**
+- [x] **Skills Library Data** ✅ **COMPLETED**
+  - [x] `data/skills_library/lightcast_skills_comprehensive.csv` (5.1MB, 38,395 skills) 
+  - [x] Generated via Lightcast API integration with incremental updates
+  - [x] Includes skill taxonomy with categories, subcategories, types, and latest versions
 
-**8.2.2 Interactive Pathway Queries**
-- [ ] Real-time pathway search and filtering
-- [ ] Similarity threshold adjustment for pathway discovery
-- [ ] Multi-destination pathway exploration ("show paths to role A, B, C")
-- [ ] Skill gap analysis for each pathway step
-- [ ] Geographic and business unit filtering for pathways
+- [x] **Workforce Context Data** ✅ **COMPLETED** 
+  - [x] `data/workforce_context/dummy_workforce_context.csv` (2.2MB)
+  - [x] SAP/HRIS-style employee and position data for business context
 
-**8.2.3 Pathway Visualisation**
-- [ ] Network graph rendering for pathway relationships
-- [ ] Interactive pathway exploration interface
-- [ ] Similarity strength visualisation (edge weights)
-- [ ] Skill overlap heatmaps for pathway steps
-- [ ] Export pathway diagrams for presentations
+- [x] **Job Architecture Data** ✅ **COMPLETED**
+  - [x] `data/job_architecture/dummy_job_architecture.csv` (74KB, 717 records) ✅ **COMPLETED**
+  - [x] Matches real schema: JobProfileID, JobProfile, JobID, Job, JobFamily, JobFamilyGroup
+  - [x] Uses real JobProfileIDs from user's data (R0001.5 format)
+  - [x] NAB-realistic job families and organizational structure
+  - [x] Generated via `scripts/generate_dummy_job_architecture.py`
+
+- [x] **Job Architecture to Positions Mapping** ✅ **COMPLETED**
+  - [x] `data/job_architecture_to_positions_mapping/position_job_mapping.csv` ✅ **COMPLETED** 
+  - [x] Simple one-to-one mapping: Position_Number → JobProfileID
+  - [x] Bridge between workforce positions and job architecture
+  - [x] Links job architecture data to workforce context for comprehensive analysis
+  - [x] Enables filtering and contextual queries in the webapp
+  - [x] Generated via `scripts/generate_position_job_mapping.py`
+
+**8.1.2 Data Exploration & Schema Design** ⚡ **NEXT PRIORITY** (dummy data completion ✅)
+- [x] **Cross-Dataset Key Analysis**
+  - [x] Create exploration script: `scripts/explore_data_relationships.py`
+  - [x] Analyze primary keys, foreign keys, and relationship cardinalities
+  - [x] Document data quality: completeness, consistency, duplicates
+  - [x] Identify optimal join strategies and performance considerations
+
+- [x] **Schema Design & Documentation**
+  - [x] Design SQLite schema with proper normalization
+  - [x] Define table relationships and foreign key constraints  
+  - [x] Plan indexes for fast webapp queries (by job family, location, etc.)
+  - [x] Document schema in `docs/sqlite_schema_design.md`
+  - [x] Create entity-relationship diagram for schema visualization
+
+- [x] **Data Integration Strategy**
+  - [x] Plan JOIN operations between datasets
+  - [x] Handle missing data and data quality issues
+  - [x] Design aggregation tables for performance (if needed)
+  - [x] Validate relationship integrity across all datasets
+
+**8.1.3 CLI Enhancement for Business Context Database** ✅ **COMPLETED** (schema design ✅, data pipeline ✅)
+- [x] **Extend main.py menu system** to include business context processing
+  - [x] Add new menu option: "2. Generate Business Context Database"  
+  - [x] Create sub-menu for business context configuration options
+  - [x] Integrate with existing model versioning system (output to `models/2025-Q2/`)
+
+- [x] **Create new src modules for relational data processing**:
+  - [x] `src/skill_similarity_engine/business_context/` directory structure ✅ **COMPLETED**
+  - [x] `src/skill_similarity_engine/business_context/schema_builder.py` - SQLite schema with 2-table architecture ✅ **COMPLETED**
+  - [x] `src/skill_similarity_engine/business_context/data_loader.py` - Enhanced data loading with position enrichment ✅ **COMPLETED**
+  - [x] `src/skill_similarity_engine/business_context/validator.py` - Data validation and relationship integrity ✅ **COMPLETED**
+
+- [x] **Enhanced data loaders for new folders**:
+  - [x] Extend existing loaders to read from `data/job_architecture/`, `data/skills_library/`, `data/workforce_context/` ✅ **COMPLETED**
+  - [x] Create validation and quality checks for relational data integrity ✅ **COMPLETED**
+  - [x] Handle missing data and provide fallback strategies ✅ **COMPLETED**
+
+- [x] **SQLite database design and creation**:
+  - [x] Design optimised schema for webapp queries (jobs, skills, positions, job_similarities tables) ✅ **COMPLETED**
+  - [x] Implement 2-table architecture (simplified from original 3-table design) ✅ **COMPLETED**
+  - [x] Create indexes for fast filtering (by JobProfileID, business unit, job family, etc.) ✅ **COMPLETED**
+  - [x] Position enrichment: 100% JobProfileID population via position_job_mapping integration ✅ **COMPLETED**
+  - [x] Skills enhancement: 14 columns including Category, Subcategory, Description, Info_URL, Is_Language ✅ **COMPLETED**
+  - [x] Output: `models/2025-Q2/business_context.sqlite` (alongside existing similarity matrices) ✅ **COMPLETED**
+
+- [x] **CLI integration and user experience**:
+  - [x] Progress tracking and logging for large dataset processing ✅ **COMPLETED**
+  - [x] Validation reports (data quality, coverage, relationship integrity) ✅ **COMPLETED**
+  - [x] Option to regenerate only business context without re-running similarity computation ✅ **COMPLETED**
+  - [x] Error handling and recovery for partial processing ✅ **COMPLETED**
+  - [x] Configuration-driven data loading with `data_sources.yaml` ✅ **COMPLETED**
+
+**8.1.1 Enhanced Data Pipeline - Analysis & Requirements**
+
+> **Current State Analysis**: The existing system processes basic job similarity using minimal fields (`JobProfileID`, `RoleSet`, `Salary Group`, basic skills). This enables pure skill-based similarity but lacks contextual richness for career pathway exploration and business filtering.
+
+#### 8.2 Flask Webapp Development - **NEXT PRIORITY** 📋
+**Branch: `8.2-feature/webapp-foundation`**
+
+This phase builds a professional Flask webapp that queries the SQLite business context database we've successfully created. The webapp provides two core features: **career pathway exploration** based on skills similarity between jobs, and **white paper generation** for producing Word documents when jobs are being sunset (single or multiple roles). The system will be expandable for additional use cases as business needs evolve.
+
+**Key User Journeys:**
+
+**Career Pathway Explorer:**
+- **Basic Journey**: Risk Analyst → searches similar roles → sees Data Scientist, Business Analyst, Compliance Officer options
+- **Enhanced Journey**: Risk Analyst → filters by (Function=Technology, Level=Senior) → sees Data Scientist, Solutions Architect, Tech Lead options
+- **Skills Focus**: "What skills do I need to become a Data Scientist?" → Interactive skill comparison with learning pathway recommendations
+
+**White Paper Generation:**
+- **Single Role Sunset**: "Generate transition report for Risk Analyst role being eliminated" → Word document with similar roles, transition pathways, skill gaps
+- **Multiple Role Sunset**: "Generate transition report for entire Risk team restructure" → Comprehensive document covering team migration options, capacity analysis
+- **Team Planning**: Manager planning team restructure → sees absorption capacity by business unit
+
+**Core Tasks:**
+- [ ] Set up Flask application foundation with proper project structure
+- [ ] Integrate SQLite business context database with read-only access
+- [ ] Create career pathway exploration interface with skills-based similarity queries
+- [ ] Build white paper generation system for role sunset scenarios
+- [ ] Implement responsive UI with professional styling
+- [ ] Add local deployment system (.bat launcher for Windows)
+- [ ] Create user-friendly interface for non-technical business users
+- [ ] Establish extensible architecture for future feature expansion
+
+**8.2.2 User Interface Foundation** 📋 **PLANNED**  
+**Branch: `8.2.2-feature/webapp-foundation/ui-framework`**
+
+- [ ] **HTML Template System**
+  - [ ] Create base template with NAB-inspired styling
+  - [ ] Implement responsive navigation header and footer
+  - [ ] Set up Jinja2 macro library for reusable components
+  - [ ] Create page layout templates (single-column, dashboard)
+  - [ ] Add breadcrumb navigation system
+
+- [ ] **CSS Framework & Styling**
+  - [ ] Choose CSS framework (Bootstrap 5 or Tailwind CSS)
+  - [ ] Create professional colour scheme inspired by NAB branding
+  - [ ] Implement responsive design system (mobile-first)
+  - [ ] Set up component-based CSS architecture (BEM methodology)
+  - [ ] Create utility classes for spacing, typography, colours
+
+- [ ] **JavaScript Architecture**
+  - [ ] Set up modern JavaScript (ES6+) with module system
+  - [ ] Implement AJAX patterns for dynamic content loading
+  - [ ] Create utility functions for API communication
+  - [ ] Add loading states and user feedback mechanisms
+  - [ ] Set up event handling for interactive components
+
+- [ ] **Component Library**
+  - [ ] Build form components (inputs, selects, checkboxes)
+  - [ ] Create data table components for similarity results
+  - [ ] Implement modal dialogs for detailed views
+  - [ ] Add button components with consistent styling
+  - [ ] Create loading spinners and progress indicators
+
+**8.2.3 Core Job Similarity Functionality** 📋 **PLANNED**
+**Branch: `8.2.3-feature/webapp-foundation/similarity-queries`**
+
+- [ ] **Job Search & Selection Interface**
+  - [ ] Create job search autocomplete using JobProfile data
+  - [ ] Implement job filtering by JobFamily, Business Unit, Career Level
+  - [ ] Add advanced filtering options (location, salary group)
+  - [ ] Create "Recently Viewed Jobs" functionality
+  - [ ] Build job comparison selection interface (multi-select)
+
+- [ ] **Similarity Results Display**
+  - [ ] Query job_similarities table for top matches
+  - [ ] Display similarity scores with visual indicators (progress bars)
+  - [ ] Show skill overlap summaries for each similar job
+  - [ ] Implement similarity threshold filtering
+  - [ ] Add sorting options (similarity score, alphabetical, job family)
+
+- [ ] **Job Details & Comparison**
+  - [ ] Create detailed job profile view with skills breakdown
+  - [ ] Implement side-by-side job comparison interface
+  - [ ] Show skill gaps and overlaps between selected jobs
+  - [ ] Display position count and business context
+  - [ ] Add links to related job families and progressions
+
+- [ ] **Results Export & Sharing**
+  - [ ] Export similarity results to CSV for further analysis
+  - [ ] Generate shareable URLs for specific job comparisons
+  - [ ] Create printable summary reports
+  - [ ] Add email sharing functionality for results
+  - [ ] Save user queries and favourite comparisons
+
+**8.2.4 Career Pathway Explorer** 📋 **PLANNED**
+**Branch: `8.2.4-feature/webapp-foundation/career-pathways`**
+
+- [ ] **Pathway Discovery Engine**
+  - [ ] Implement multi-hop pathway queries (depth 2-4)
+  - [ ] Create pathway ranking algorithm based on similarity scores
+  - [ ] Add career progression logic (junior → senior roles)
+  - [ ] Filter pathways by business unit and job family
+  - [ ] Cache frequently accessed pathway combinations
+
+- [ ] **Interactive Pathway Interface**
+  - [ ] Build "Start from current role" pathway explorer
+  - [ ] Create "Find paths to target role" reverse search
+  - [ ] Implement pathway filtering by timeframe/difficulty
+  - [ ] Add geographic mobility filtering for pathways
+  - [ ] Show skill development requirements for each step
+
+- [ ] **Pathway Visualisation**
+  - [ ] Create pathway tree/flowchart visualisation
+  - [ ] Show similarity strength between pathway steps
+  - [ ] Highlight recommended vs alternative pathways
+  - [ ] Add interactive pathway exploration (click to drill down)
+  - [ ] Export pathway diagrams for presentations
+
+- [ ] **Skills Gap Analysis per Pathway**
+  - [ ] Calculate skill gaps for each pathway step
+  - [ ] Prioritise skills by importance and transferability
+  - [ ] Show estimated learning effort for skill development
+  - [ ] Recommend skill adjacencies and prerequisites
+  - [ ] Create personalised skill development roadmaps
+
+**8.2.5 White Paper Generation System** 📋 **PLANNED**
+**Branch: `8.2.5-feature/webapp-foundation/white-papers`**
+
+- [ ] **Template Engine & Content Generation**
+  - [ ] Create Jinja2 templates for different white paper types
+  - [ ] Implement automated content generation from similarity data
+  - [ ] Add career transition opportunity analysis
+  - [ ] Generate skill gap assessments and recommendations
+  - [ ] Create market context and opportunity scoring
+
+- [ ] **Professional Report Formatting**
+  - [ ] Design professional PDF templates with NAB-inspired branding
+  - [ ] Implement multi-page reports with consistent styling
+  - [ ] Add executive summary and detailed analysis sections
+  - [ ] Include data visualisations (charts, tables, diagrams)
+  - [ ] Create appendices with supporting data
+
+- [ ] **Report Customisation**
+  - [ ] Allow customisation of report sections and focus areas
+  - [ ] Implement different report types (individual vs team analysis)
+  - [ ] Add personalisation options (recipient name, current role)
+  - [ ] Create bulk report generation for multiple roles
+  - [ ] Allow custom branding and messaging
+
+- [ ] **Output Formats & Distribution**
+  - [ ] Generate high-quality PDF reports for distribution
+  - [ ] Create HTML versions for web viewing and email
+  - [ ] Export to Word documents for collaborative editing
+  - [ ] Generate PowerPoint slides for presentations
+  - [ ] Add email integration for automatic report distribution
+
+**8.2.6 Data Analytics & Insights Dashboard** 📋 **PLANNED**
+**Branch: `8.2.6-feature/webapp-foundation/analytics-dashboard`**
+
+- [ ] **Usage Analytics & Reporting**
+  - [ ] Track most frequently searched jobs and pathways
+  - [ ] Monitor white paper generation patterns
+  - [ ] Analyse user behaviour and feature adoption
+  - [ ] Create admin dashboard for system insights
+  - [ ] Generate usage reports for stakeholders
+
+- [ ] **Data Quality Monitoring**
+  - [ ] Display current data version and last update timestamp
+  - [ ] Show data coverage statistics (jobs, skills, positions)
+  - [ ] Monitor query performance and response times
+  - [ ] Alert on data quality issues or missing relationships
+  - [ ] Provide data refresh status and validation reports
+
+- [ ] **Business Intelligence Features**
+  - [ ] Create summary statistics for skill demand trends
+  - [ ] Show most common career transitions and success patterns
+  - [ ] Analyse skill gaps across business units and job families
+  - [ ] Generate workforce planning insights and recommendations
+  - [ ] Export analytics data for external reporting
+
+**8.2.7 Deployment & User Experience** 📋 **PLANNED**
+**Branch: `8.2.7-feature/webapp-foundation/deployment`**
+
+- [ ] **Local Deployment System**
+  - [ ] Create `.bat` file launcher for seamless Windows deployment
+  - [ ] Implement automatic dependency checking and installation
+  - [ ] Add data version detection and compatibility checking
+  - [ ] Create user-friendly startup and shutdown procedures
+  - [ ] Add desktop shortcut creation and browser launching
+
+- [ ] **User Experience Optimisation**
+  - [ ] Implement responsive design for tablet and mobile access
+  - [ ] Add keyboard shortcuts for power users
+  - [ ] Create context-sensitive help and tooltips
+  - [ ] Implement progressive loading for large datasets
+  - [ ] Add accessibility features (WCAG compliance)
+
+- [ ] **Performance & Reliability**
+  - [ ] Optimise database queries for sub-2-second response times
+  - [ ] Implement smart caching for frequently accessed data
+  - [ ] Add graceful error handling and recovery
+  - [ ] Create system health monitoring and diagnostics
+  - [ ] Test with full production dataset sizes
+
+- [ ] **Documentation & Training**
+  - [ ] Create user guide with screenshots and tutorials
+  - [ ] Write technical documentation for maintenance
+  - [ ] Develop video tutorials for key workflows
+  - [ ] Create troubleshooting guide for common issues
+  - [ ] Add in-app onboarding and feature discovery
 
 #### 8.3 White Paper Generation System - **PLANNED** 📋
 **Branch: `8.3-feature/query-layer-webapp/white-papers`**
