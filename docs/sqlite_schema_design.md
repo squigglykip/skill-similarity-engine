@@ -49,13 +49,16 @@ erDiagram
     
     POSITIONS {
         string Position_Number PK
-        string JobProfileID FK
         string Employee_Number
         string Business_Unit
-        string ORG_UNIT_NAME_1
-        string ORG_UNIT_NAME_2
+        string Division
         string Location
-        decimal Salary_Grade
+        string Salary_Grade
+    }
+    
+    POSITION_JOB_MAPPING {
+        string Position_Number PK_FK
+        string JobProfileID FK
     }
     
     SKILLS {
@@ -76,7 +79,8 @@ erDiagram
     
     JOBS ||--o{ JOB_SIMILARITIES : "job_from"
     JOBS ||--o{ JOB_SIMILARITIES : "job_to"
-    JOBS ||--o{ POSITIONS : "JobProfileID"
+    JOBS ||--o{ POSITION_JOB_MAPPING : "JobProfileID"
+    POSITIONS ||--|| POSITION_JOB_MAPPING : "Position_Number"
     JOBS ||--o{ JOB_SKILLS : "JobProfileID"
     SKILLS ||--o{ JOB_SKILLS : "Skill_ID"
 ```
@@ -122,20 +126,24 @@ CREATE TABLE job_similarities (
 
 **Key Insights**: 510,510 similarity pairs with 100% coverage of all JobProfileIDs.
 
-### 3. **positions** - Workforce Context (Simplified)
+### 3. **positions** - Workforce Context with Full Organizational Hierarchy
 *Source: `data/workforce_context/dummy_workforce_context.csv`*
 
 ```sql
 CREATE TABLE positions (
-    Position_Number TEXT PRIMARY KEY,       -- Unique position identifier
-    JobProfileID TEXT,                      -- Link to job architecture
+    Position_Number TEXT PRIMARY KEY,       -- Unique position identifier  
     Employee_Number TEXT,                   -- Current employee (if filled)
     
-    -- Business Context
-    Business_Unit TEXT,                     -- "Personal Banking", "Technology"
-    Function TEXT,                          -- Derived from org units
-    Department TEXT,                        -- ORG_UNIT_NAME_1
-    Team TEXT,                              -- ORG_UNIT_NAME_2
+    -- Organizational Hierarchy (10-level structure)
+    Division TEXT,                          -- ORG_UNIT_NAME_2: Divisions
+    Business_Unit TEXT,                     -- ORG_UNIT_NAME_3: Business Unit
+    Team TEXT,                              -- ORG_UNIT_NAME_4: Team
+    SubTeam TEXT,                           -- ORG_UNIT_NAME_5: SubTeam
+    Function TEXT,                          -- ORG_UNIT_NAME_6: Function
+    SubFunction TEXT,                       -- ORG_UNIT_NAME_7: SubFunction
+    Org_Level_8 TEXT,                       -- ORG_UNIT_NAME_8: Org Level 8
+    Org_Level_9 TEXT,                       -- ORG_UNIT_NAME_9: Org Level 9
+    Org_Level_10 TEXT,                      -- ORG_UNIT_NAME_10: Org Level 10
     
     -- Geographic Context  
     Location TEXT,                          -- "Melbourne", "Sydney"
@@ -145,15 +153,28 @@ CREATE TABLE positions (
     -- Employment Details
     Employment_Type TEXT,                   -- "Permanent", "Contract"
     Salary_Grade REAL,                      -- Numeric grade
-    Work_Pattern TEXT,                      -- "Full Time", "Part Time"
+    Work_Pattern TEXT                       -- "Full Time", "Part Time"
+);
+```
+
+**Design Decision**: Maintain full 10-level organizational hierarchy for comprehensive business context analysis. Position table contains only workforce context - job linkage happens through separate mapping table.
+
+### 4. **position_job_mapping** - Position to Job Architecture Mapping
+*Source: `data/job_architecture_to_positions_mapping/position_job_mapping.csv`*
+
+```sql
+CREATE TABLE position_job_mapping (
+    Position_Number TEXT PRIMARY KEY,       -- Links to positions table
+    JobProfileID TEXT NOT NULL,             -- Links to jobs table
     
+    FOREIGN KEY (Position_Number) REFERENCES positions(Position_Number),
     FOREIGN KEY (JobProfileID) REFERENCES jobs(JobProfileID)
 );
 ```
 
-**Design Decision**: Flattened org hierarchy (keep top 3-4 levels) instead of separate hierarchy table for query simplicity.
+**Key Insights**: 5,001 position-to-job mappings providing the bridge between workforce context and job architecture.
 
-### 4. **skills** - Comprehensive Skills Library
+### 5. **skills** - Comprehensive Skills Library
 *Source: `data/skills_library/lightcast_skills_comprehensive.csv`*
 
 ```sql
@@ -173,23 +194,22 @@ CREATE TABLE skills (
 
 **Key Insights**: 38,395 skills from Lightcast API with rich taxonomy structure.
 
-### 5. **job_skills** - Job-to-Skills Mapping
+### 6. **job_skills** - Job-to-Skills Mapping
 *Source: `data/input_data/job_skill_mapping.csv`*
 
 ```sql
 CREATE TABLE job_skills (
     JobProfileID TEXT NOT NULL,             -- Link to jobs table
-    Skill_ID TEXT,                          -- Link to skills table (nullable for legacy)
-    Skill_Name TEXT NOT NULL,               -- For compatibility with existing data
+    Skill_ID TEXT NOT NULL,                 -- Link to skills table
     Skill_Weight REAL DEFAULT 1.0,         -- Importance weight (0-1)
     
-    PRIMARY KEY (JobProfileID, Skill_Name),
+    PRIMARY KEY (JobProfileID, Skill_ID),
     FOREIGN KEY (JobProfileID) REFERENCES jobs(JobProfileID),
     FOREIGN KEY (Skill_ID) REFERENCES skills(Skill_ID)
 );
 ```
 
-**Design Decision**: Include both Skill_ID and Skill_Name for flexibility between Lightcast and existing skills.
+**Design Decision**: Use Skill_ID as primary relationship key. Skill_Name can be derived through JOIN with skills table, avoiding data duplication and ensuring consistency.
 
 ---
 
@@ -206,14 +226,17 @@ CREATE INDEX idx_similarities_to ON job_similarities(job_to, similarity_score DE
 CREATE INDEX idx_similarities_score ON job_similarities(similarity_score DESC);
 
 -- Position filtering 
-CREATE INDEX idx_positions_job ON positions(JobProfileID);
+CREATE INDEX idx_position_job_mapping ON position_job_mapping(JobProfileID);
 CREATE INDEX idx_positions_business_unit ON positions(Business_Unit);
-CREATE INDEX idx_positions_location ON positions(Location, State);
+CREATE INDEX idx_positions_division ON positions(Division);
+CREATE INDEX idx_positions_team ON positions(Team);
+CREATE INDEX idx_positions_function ON positions(Function);
+CREATE INDEX idx_positions_location ON positions(Location, Rg);
 
 
 -- Skills analysis
 CREATE INDEX idx_job_skills_job ON job_skills(JobProfileID);
-CREATE INDEX idx_job_skills_skill ON job_skills(Skill_Name);
+CREATE INDEX idx_job_skills_skill ON job_skills(Skill_ID);
 CREATE INDEX idx_skills_category ON skills(Category, Subcategory);
 ```
 
@@ -240,7 +263,8 @@ ORDER BY js.similarity_score DESC;
 SELECT DISTINCT j.JobProfile, js.similarity_score, COUNT(p.Position_Number) as available_positions
 FROM job_similarities js
 JOIN jobs j ON js.job_to = j.JobProfileID
-JOIN positions p ON j.JobProfileID = p.JobProfileID
+JOIN position_job_mapping pjm ON j.JobProfileID = pjm.JobProfileID
+JOIN positions p ON pjm.Position_Number = p.Position_Number
 WHERE js.job_from = 'R0123.4'  -- Current role
   AND j.JobFamily = 'Technology'
   AND p.Location = 'Melbourne'
@@ -253,10 +277,10 @@ ORDER BY js.similarity_score DESC;
 ```sql
 -- "What skills do I need for target role?"
 SELECT s.Skill_Name, s.Category,
-       CASE WHEN current_skills.Skill_Name IS NULL THEN 'MISSING' ELSE 'HAVE' END as status
+       CASE WHEN current_skills.Skill_ID IS NULL THEN 'MISSING' ELSE 'HAVE' END as status
 FROM job_skills target_skills
-JOIN skills s ON target_skills.Skill_Name = s.Skill_Name
-LEFT JOIN job_skills current_skills ON current_skills.Skill_Name = target_skills.Skill_Name 
+JOIN skills s ON target_skills.Skill_ID = s.Skill_ID
+LEFT JOIN job_skills current_skills ON current_skills.Skill_ID = target_skills.Skill_ID 
   AND current_skills.JobProfileID = 'R0123.4'  -- Current role
 WHERE target_skills.JobProfileID = 'R0567.8'   -- Target role
 ORDER BY status, s.Category;
@@ -264,11 +288,12 @@ ORDER BY status, s.Category;
 
 ### **4. Team Context Analysis**
 ```sql
--- "Who in my business unit has done this role?"
-SELECT p.Employee_Number, p.Department, j.JobProfile
+-- "Who in my division has done this role?"
+SELECT p.Employee_Number, p.Division, p.Business_Unit, p.Team, j.JobProfile
 FROM positions p
-JOIN jobs j ON p.JobProfileID = j.JobProfileID
-WHERE p.Business_Unit = 'Technology'
+JOIN position_job_mapping pjm ON p.Position_Number = pjm.Position_Number
+JOIN jobs j ON pjm.JobProfileID = j.JobProfileID
+WHERE p.Division = 'Technology'
   AND j.JobProfile LIKE '%Data%'
   AND p.Employee_Number IS NOT NULL;
 ```
