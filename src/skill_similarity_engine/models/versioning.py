@@ -37,13 +37,15 @@ class ModelVersionManager:
     
     def setup_output_directory(self, 
                               interactive: bool = True,
-                              custom_path: Optional[str] = None) -> Path:
+                              custom_path: Optional[str] = None,
+                              output_type: str = "similarity_matrix") -> Path:
         """
         Set up versioned output directory with conflict resolution.
         
         Args:
             interactive: Whether to prompt user for conflict resolution
             custom_path: Optional custom path (overrides quarterly logic)
+            output_type: Type of output ('similarity_matrix', 'business_context', etc.)
             
         Returns:
             Path to the output directory to use
@@ -56,9 +58,9 @@ class ModelVersionManager:
             quarter_dir = self.base_models_dir / current_quarter
             logger.info(f"Default output location: {quarter_dir}")
         
-        # Handle conflicts if directory exists
+        # Handle conflicts if directory exists and has conflicting output type
         if quarter_dir.exists() and interactive:
-            quarter_dir = self._handle_directory_conflict(quarter_dir)
+            quarter_dir = self._handle_directory_conflict(quarter_dir, output_type)
         
         # Create directory structure
         self._create_directory_structure(quarter_dir)
@@ -70,26 +72,30 @@ class ModelVersionManager:
         logger.info(f"Output directory ready: {quarter_dir}")
         return quarter_dir
     
-    def _handle_directory_conflict(self, quarter_dir: Path) -> Path:
+    def _handle_directory_conflict(self, quarter_dir: Path, output_type: str) -> Path:
         """
         Handle conflicts when output directory already exists.
         
         Args:
             quarter_dir: The conflicting directory path
+            output_type: Type of output being generated
             
         Returns:
             Path to use (may be modified for timestamped version)
         """
-        print(f"[WARNING] Output directory already exists: {quarter_dir}")
+        # Check for existing outputs of the same type
+        existing_outputs = self._check_existing_outputs(quarter_dir, output_type)
         
-        # Check for existing similarity matrix files
-        similarity_dir = quarter_dir / "similarity_matrices"
-        if similarity_dir.exists():
-            existing_files = list(similarity_dir.glob("job_similarity_matrix.*"))
-            if existing_files:
-                print("Existing similarity matrix files found:")
-                for file in existing_files:
-                    print(f"  - {file}")
+        if not existing_outputs:
+            # No conflict for this output type, proceed with existing directory
+            print(f"[INFO] Using existing directory: {quarter_dir}")
+            print(f"[INFO] No existing {output_type} outputs found - safe to proceed")
+            return quarter_dir
+        
+        print(f"[WARNING] Output directory already exists: {quarter_dir}")
+        print(f"Existing {output_type} outputs found:")
+        for output in existing_outputs:
+            print(f"  - {output}")
         
         print("\nOptions:")
         print("1. Overwrite existing files (recommended for quarterly refresh)")
@@ -104,9 +110,9 @@ class ModelVersionManager:
                 return quarter_dir
                 
             elif choice == '2':
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                timestamped_dir = quarter_dir.parent / f"{quarter_dir.name}_{timestamp}"
-                print(f"Using timestamped location: {timestamped_dir}")
+                datestamp = datetime.now().strftime("%Y%m%d")
+                timestamped_dir = quarter_dir.parent / f"{quarter_dir.name}_{datestamp}"
+                print(f"Using date-stamped location: {timestamped_dir}")
                 return timestamped_dir
                 
             elif choice == '3':
@@ -117,6 +123,39 @@ class ModelVersionManager:
                 
             else:
                 print("Please enter 1, 2, or 3.")
+    
+    def _check_existing_outputs(self, quarter_dir: Path, output_type: str) -> list[Path]:
+        """
+        Check for existing outputs of a specific type in the directory.
+        
+        Args:
+            quarter_dir: Directory to check
+            output_type: Type of output to look for
+            
+        Returns:
+            List of existing output files/directories
+        """
+        existing_outputs = []
+        
+        if output_type == "similarity_matrix":
+            # Check for similarity matrix files
+            similarity_patterns = [
+                "job_similarity_matrix.parquet",
+                "job_similarity_matrix.csv",
+                "precompute_*"  # Timestamped precompute directories
+            ]
+            
+            for pattern in similarity_patterns:
+                matches = list(quarter_dir.glob(pattern))
+                existing_outputs.extend(matches)
+                
+        elif output_type == "business_context":
+            # Check for business context database
+            business_context_file = quarter_dir / "business_context.sqlite"
+            if business_context_file.exists():
+                existing_outputs.append(business_context_file)
+                
+        return existing_outputs
     
     def _create_directory_structure(self, output_dir: Path) -> None:
         """
@@ -233,7 +272,8 @@ class ModelVersionManager:
 
 def setup_model_output_directory(base_dir: str = "models", 
                                 interactive: bool = True,
-                                custom_path: Optional[str] = None) -> Path:
+                                custom_path: Optional[str] = None,
+                                output_type: str = "similarity_matrix") -> Path:
     """
     Convenience function to set up a versioned model output directory.
     
@@ -241,9 +281,14 @@ def setup_model_output_directory(base_dir: str = "models",
         base_dir: Base directory for model versions
         interactive: Whether to prompt for conflict resolution
         custom_path: Optional custom path
+        output_type: Type of output ('similarity_matrix', 'business_context', etc.)
         
     Returns:
         Path to the configured output directory
     """
     manager = ModelVersionManager(base_dir)
-    return manager.setup_output_directory(interactive=interactive, custom_path=custom_path) 
+    return manager.setup_output_directory(
+        interactive=interactive, 
+        custom_path=custom_path, 
+        output_type=output_type
+    ) 

@@ -1,0 +1,156 @@
+# Data Sources Configuration for Business Context Database
+# Defines file paths and column mappings for all CSV data sources
+
+data_sources:
+  # Job Architecture Data
+  jobs:
+    file_path: "job_architecture/dummy_job_architecture.csv"
+    table_name: "jobs"
+    description: "Job architecture master data with JobProfileID as primary key"
+    expected_columns:
+      - JobProfileID
+      - JobProfile
+      - JobID
+      - Job
+      - JobFamily
+      - JobFamilyGroup
+    column_mapping:
+      JobProfileID: JobProfileID
+      JobProfile: JobProfile
+      JobID: JobID
+      Job: Job
+      JobFamily: JobFamily
+      JobFamilyGroup: JobFamilyGroup
+
+  # Skills Library Data
+  skills:
+    file_path: "skills_library/lightcast_skills_comprehensive.csv"
+    table_name: "skills"
+    description: "Comprehensive skills library from Lightcast API"
+    expected_columns:
+      - skill_id
+      - name
+      - category_name
+      - subcategory_name
+      - type_name
+      - latest_version
+      - description
+      - info_url
+    column_mapping:
+      skill_id: Skill_ID
+      name: Skill_Name
+      category_name: Category
+      subcategory_name: Subcategory
+      type_name: SkillType
+      latest_version: Latest_Version
+      description: Description
+      info_url: Info_URL
+      is_language: Is_Language
+      category_id: Category_ID
+      subcategory_id: Subcategory_ID
+      type_id: Type_ID
+    default_values:
+      Market_Demand: ""
+      Rarity_Score: null
+    chunk_size: 10000  # Large dataset - process in chunks
+
+  # Job-Skill Mapping Data
+  job_skills:
+    file_path: "input_data/job_skill_mapping.csv"
+    table_name: "job_skills"
+    description: "Mapping between jobs and their required skills"
+    expected_columns:
+      - JobProfileID
+      - Skill_ID
+    column_mapping:
+      JobProfileID: JobProfileID
+      Skill_ID: Skill_ID
+    default_values:
+      Skill_Weight: 1.0
+
+  # Workforce Context Data
+  positions:
+    file_path: "workforce_context/dummy_workforce_context.csv"
+    table_name: "positions"
+    description: "Current workforce context and position information with enriched JobProfileID"
+    expected_columns:
+      - "Position Number"
+    optional_columns:
+      - "Employee Number"
+      - "Business Unit"
+      - "ORG_UNIT_NAME_1"  # Enterprise level - single value, can ignore
+      - "ORG_UNIT_NAME_2"  # Division
+      - "ORG_UNIT_NAME_3"  # Business Unit
+      - "ORG_UNIT_NAME_4"  # Team
+      - "ORG_UNIT_NAME_5"  # SubTeam
+      - "ORG_UNIT_NAME_6"  # Function
+      - "ORG_UNIT_NAME_7"  # SubFunction
+      - "ORG_UNIT_NAME_8"  # Org Level 8
+      - "ORG_UNIT_NAME_9"  # Org Level 9
+      - "ORG_UNIT_NAME_10" # Org Level 10
+      - "Location"
+      - "State/Territory"
+      - "Country"
+      - "Employment Type"
+      - "Salary Group"
+      - "Work Pattern"
+    column_mapping:
+      # Keep original field names
+      "Position Number": "Position Number"
+      "JobProfileID": "JobProfileID"  # Include enriched JobProfileID
+      "Employee Number": "Employee Number"
+      "Location": "Location"
+      "Rg": "Rg"
+      "Cty": "Cty"
+      "Employee Group": "Employee Group"
+      "Salary Group": "Salary Group"
+      "Employee Subgroup": "Employee Subgroup"
+      # Only rename organisational hierarchy for clarity
+      "ORG_UNIT_NAME_2": "Division"
+      "ORG_UNIT_NAME_3": "Business_Unit"
+      "ORG_UNIT_NAME_4": "Team"
+      "ORG_UNIT_NAME_5": "SubTeam"
+      "ORG_UNIT_NAME_6": "Function"
+      "ORG_UNIT_NAME_7": "SubFunction"
+      "ORG_UNIT_NAME_8": "Org_Level_8"
+      "ORG_UNIT_NAME_9": "Org_Level_9"
+      "ORG_UNIT_NAME_10": "Org_Level_10"
+    # Enable position enrichment with job mapping
+    enrichment:
+      enabled: true
+      mapping_file: "job_architecture_to_positions_mapping/position_job_mapping.csv"
+      merge_key: "Position Number"
+    # Skip derived columns since we're mapping directly from org hierarchy
+    data_types:
+      "Salary Group": text
+
+# Data Quality Settings
+data_quality:
+  # Validation rules
+  validation:
+    allow_empty_strings: true
+    max_null_percentage: 10  # Maximum acceptable null percentage per column
+    remove_duplicate_keys: true
+    
+  # Cleaning rules
+  cleaning:
+    remove_empty_primary_keys: true
+    remove_self_references: true  # For similarity data
+    validate_similarity_range: [0, 1]  # Similarity scores must be 0-1
+
+# Loading Configuration
+loading:
+  default_chunk_size: 1000
+  large_file_threshold: 10000  # Rows - use chunking above this
+  progress_reporting: true
+  
+  # Foreign key validation
+  foreign_key_validation:
+    enabled: true
+    strict_mode: false  # If true, fail on any FK violations
+    
+# Error Handling
+error_handling:
+  continue_on_warnings: true
+  max_errors_per_file: 100
+  log_skipped_rows: true 
