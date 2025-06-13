@@ -2823,4 +2823,1676 @@
     console.log('✅ Modal management system initialized');
     console.log('🎭 Available modals: job-details, skills-comparison, career-pathway');
 </script>
+
+<!-- =============================================================== -->
+<!-- WORKFORCE INTELLIGENCE COMPONENTS (Section 8.2.3)               -->
+<!-- =============================================================== -->
+
+<!-- Job Search & Discovery Interface -->
+<section class="mb-12 border-t-4 border-red-600 pt-8">
+    <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">
+        🔍 Workforce Intelligence - Job Search & Discovery
+    </h2>
+    <p class="text-sm font-source text-gray-600 mb-6">
+        Strategic job analysis interface with advanced filtering for Future Skills team
+    </p>
+    
+    <!-- Advanced Search Interface -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Strategic Job Search</h3>
+        
+        <!-- Search Controls Row 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <!-- Job Profile Selection -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Job Profile Selection
+                </label>
+                <div class="relative">
+                    <input type="text" 
+                           id="workforce-job-search"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source"
+                           placeholder="Search job profiles..."
+                           autocomplete="off"
+                           onkeyup="filterJobProfiles()"
+                           onfocus="showJobProfileDropdown()"
+                           onblur="hideJobProfileDropdown()">
+                    
+                    <!-- Dropdown Results -->
+                    <div id="job-profile-dropdown" 
+                         class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                        <div id="job-profile-options" class="py-1">
+                            <!-- Options will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Selected Job Profiles -->
+                <div id="selected-job-profiles" class="mt-2 flex flex-wrap gap-2">
+                    <!-- Selected items will appear here -->
+                </div>
+            </div>
+            
+            <!-- Job Family Filter -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Job Family
+                </label>
+                <select id="workforce-family-filter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source">
+                    <option value="">All Families</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Risk & Compliance">Risk & Compliance</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Customer">Customer</option>
+                </select>
+            </div>
+            
+            <!-- Division Filter -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Division
+                </label>
+                <select id="workforce-division-filter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source">
+                    <option value="">All Divisions</option>
+                    <option value="Business & Private Banking">Business & Private Banking</option>
+                    <option value="Corporate & Institutional Banking">Corporate & Institutional Banking</option>
+                    <option value="Personal Banking">Personal Banking</option>
+                    <option value="Group Functions">Group Functions</option>
+                </select>
+            </div>
+            
+            <!-- Search Action -->
+            <div class="flex items-end">
+                <button onclick="performWorkforceJobSearch()" 
+                        class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200 w-full">
+                    Search Jobs
+                </button>
+            </div>
+        </div>
+        
+        <!-- Advanced Filters Row 2 -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 border-t border-gray-200 pt-4">
+            <!-- Career Level -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Career Level
+                </label>
+                <select id="workforce-level-filter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source text-sm">
+                    <option value="">All Levels</option>
+                    <option value="Graduate">Graduate</option>
+                    <option value="Associate">Associate</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Principal">Principal</option>
+                    <option value="Manager">Manager</option>
+                </select>
+            </div>
+            
+            <!-- Business Unit -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Business Unit
+                </label>
+                <select id="workforce-business-unit-filter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source text-sm">
+                    <option value="">All Business Units</option>
+                    <option value="Group Technology">Group Technology</option>
+                    <option value="Business Banking">Business Banking</option>
+                    <option value="Corporate Banking">Corporate Banking</option>
+                    <option value="Institutional Banking">Institutional Banking</option>
+                    <option value="Personal Banking">Personal Banking</option>
+                    <option value="Group Risk">Group Risk</option>
+                    <option value="Group Finance">Group Finance</option>
+                </select>
+            </div>
+            
+            <!-- Location -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Location
+                </label>
+                <select id="workforce-location-filter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source text-sm">
+                    <option value="">All Locations</option>
+                    <option value="Melbourne">Melbourne</option>
+                    <option value="Sydney">Sydney</option>
+                    <option value="Brisbane">Brisbane</option>
+                    <option value="Perth">Perth</option>
+                    <option value="Adelaide">Adelaide</option>
+                </select>
+            </div>
+            
+            <!-- Similarity Threshold -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Min Similarity
+                </label>
+                <select id="workforce-similarity-threshold" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source text-sm">
+                    <option value="0.4">40% (Low)</option>
+                    <option value="0.6" selected>60% (Medium)</option>
+                    <option value="0.8">80% (High)</option>
+                </select>
+            </div>
+            
+            <!-- Results Limit -->
+            <div>
+                <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                    Max Results
+                </label>
+                <select id="workforce-results-limit" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source text-sm">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            
+            <!-- Clear Filters -->
+            <div class="flex items-end">
+                <button onclick="clearWorkforceFilters()" 
+                        class="border border-gray-300 text-gray-700 hover:bg-gray-50 font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 w-full text-sm">
+                    Clear Filters
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search Results Display -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Strategic Job Analysis Results</h3>
+                <div class="flex items-center space-x-4">
+                    <span id="workforce-results-count" class="text-sm font-source text-gray-600">0 jobs found</span>
+                    <button onclick="exportWorkforceResults()" 
+                            class="text-red-600 hover:text-red-700 font-source font-medium text-sm transition-colors duration-200">
+                        Export CSV →
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" id="workforce-select-all" onchange="toggleAllWorkforceJobs()" 
+                                   class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            Job Profile
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            Division
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            Business Unit
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            Position Count
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            Location Spread
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="workforce-search-results" class="bg-white divide-y divide-gray-200">
+                    <!-- Demo Results - Will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Selection Actions -->
+        <div id="workforce-selection-actions" class="px-6 py-4 border-t border-gray-200 bg-gray-50 hidden">
+            <div class="flex items-center justify-between">
+                <span id="workforce-selection-count" class="text-sm font-source text-gray-600">2 jobs selected</span>
+                <div class="flex space-x-3">
+                    <button onclick="compareSelectedJobs()" 
+                            class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm">
+                        Compare Selected Jobs
+                    </button>
+                    <button onclick="analyseTransitionPaths()" 
+                            class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm">
+                        Analyse Transition Paths
+                    </button>
+                    <button onclick="exportSelectedJobs()" 
+                            class="text-red-600 hover:text-red-700 font-source font-medium px-4 py-2 transition-colors duration-200 text-sm">
+                        Export Selected →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// ===============================================================
+// WORKFORCE INTELLIGENCE JAVASCRIPT FUNCTIONS
+// ===============================================================
+
+// Job Profile Selection Data and Functions
+let allJobProfiles = [
+    { id: 'R0041.5', title: 'Senior Data Scientist', family: 'Technology - Data & Analytics' },
+    { id: 'R0042.3', title: 'Principal Data Scientist', family: 'Technology - Data & Analytics' },
+    { id: 'R0128.3', title: 'Principal Risk Analyst', family: 'Risk & Compliance - Credit Risk' },
+    { id: 'R0089.1', title: 'Risk Data Analyst', family: 'Risk & Compliance - Analytics' },
+    { id: 'R0076.2', title: 'Financial Controller', family: 'Finance - Management Accounting' },
+    { id: 'R0203.4', title: 'Business Analyst', family: 'Technology - Business Analysis' },
+    { id: 'R0156.2', title: 'Senior Business Analyst', family: 'Technology - Business Analysis' },
+    { id: 'R0156.1', title: 'Product Manager', family: 'Customer - Product Development' },
+    { id: 'R0203.5', title: 'Senior Product Analyst', family: 'Customer - Analytics' },
+    { id: 'R0167.2', title: 'Financial Data Analyst', family: 'Finance - Analytics' },
+    { id: 'R0124.4', title: 'Operations Research Analyst', family: 'Operations - Analytics' },
+    { id: 'R0098.1', title: 'Machine Learning Engineer', family: 'Technology - Engineering' },
+    { id: 'R0187.3', title: 'Credit Risk Analyst', family: 'Risk & Compliance - Credit Risk' },
+    { id: 'R0089.3', title: 'Compliance Specialist', family: 'Risk & Compliance - Regulatory' },
+    { id: 'R0234.1', title: 'Software Engineer', family: 'Technology - Engineering' },
+    { id: 'R0145.2', title: 'UX Designer', family: 'Technology - Design' },
+    { id: 'R0178.4', title: 'Project Manager', family: 'Operations - Project Management' },
+    { id: 'R0267.1', title: 'Marketing Analyst', family: 'Customer - Marketing' },
+    { id: 'R0198.3', title: 'Treasury Analyst', family: 'Finance - Treasury' },
+    { id: 'R0223.2', title: 'Cybersecurity Specialist', family: 'Technology - Security' }
+];
+
+let selectedJobProfiles = [];
+let filteredJobProfiles = [...allJobProfiles];
+
+function initializeJobProfileSearch() {
+    // Load job profiles from API in production
+    // For now, using demo data above
+    console.log('🔍 Initialized job profile search with', allJobProfiles.length, 'profiles');
+}
+
+function filterJobProfiles() {
+    const searchTerm = document.getElementById('workforce-job-search').value.toLowerCase();
+    const dropdown = document.getElementById('job-profile-dropdown');
+    const optionsContainer = document.getElementById('job-profile-options');
+    
+    if (searchTerm.length === 0) {
+        filteredJobProfiles = [...allJobProfiles];
+    } else {
+        filteredJobProfiles = allJobProfiles.filter(profile => 
+            profile.title.toLowerCase().includes(searchTerm) ||
+            profile.id.toLowerCase().includes(searchTerm) ||
+            profile.family.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Remove already selected profiles from dropdown
+    const availableProfiles = filteredJobProfiles.filter(profile => 
+        !selectedJobProfiles.some(selected => selected.id === profile.id)
+    );
+    
+    // Populate dropdown options
+    optionsContainer.innerHTML = availableProfiles.length > 0 
+        ? availableProfiles.slice(0, 10).map(profile => `
+            <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                 onmousedown="selectJobProfile('${profile.id}')">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-source font-medium text-gray-900">${profile.title}</div>
+                        <div class="text-xs font-source text-gray-500">${profile.id} • ${profile.family}</div>
+                    </div>
+                    <div class="text-xs font-source text-blue-600">Select</div>
+                </div>
+            </div>
+        `).join('')
+        : `<div class="px-4 py-2 text-sm font-source text-gray-500">No job profiles found</div>`;
+    
+    // Show dropdown if there are results and search term exists
+    if (searchTerm.length > 0) {
+        dropdown.classList.remove('hidden');
+    }
+}
+
+function showJobProfileDropdown() {
+    const dropdown = document.getElementById('job-profile-dropdown');
+    const searchTerm = document.getElementById('workforce-job-search').value;
+    
+    if (searchTerm.length > 0) {
+        filterJobProfiles();
+        dropdown.classList.remove('hidden');
+    }
+}
+
+function hideJobProfileDropdown() {
+    // Delay hiding to allow for click events
+    setTimeout(() => {
+        const dropdown = document.getElementById('job-profile-dropdown');
+        dropdown.classList.add('hidden');
+    }, 150);
+}
+
+function selectJobProfile(profileId) {
+    const profile = allJobProfiles.find(p => p.id === profileId);
+    if (!profile || selectedJobProfiles.some(selected => selected.id === profileId)) {
+        return;
+    }
+    
+    selectedJobProfiles.push(profile);
+    updateSelectedJobProfilesDisplay();
+    
+    // Clear search input and hide dropdown
+    document.getElementById('workforce-job-search').value = '';
+    document.getElementById('job-profile-dropdown').classList.add('hidden');
+    
+    console.log('✅ Selected job profile:', profile.title, '(' + profile.id + ')');
+}
+
+function removeJobProfile(profileId) {
+    selectedJobProfiles = selectedJobProfiles.filter(profile => profile.id !== profileId);
+    updateSelectedJobProfilesDisplay();
+    
+    console.log('❌ Removed job profile:', profileId);
+}
+
+function updateSelectedJobProfilesDisplay() {
+    const container = document.getElementById('selected-job-profiles');
+    
+    if (selectedJobProfiles.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = selectedJobProfiles.map(profile => `
+        <div class="inline-flex items-center bg-red-100 text-red-800 text-xs font-source font-medium px-2.5 py-1 rounded-full">
+            <span class="mr-1">${profile.title}</span>
+            <span class="text-red-600 font-mono text-xs">(${profile.id})</span>
+            <button onclick="removeJobProfile('${profile.id}')" 
+                    class="ml-2 text-red-600 hover:text-red-800 focus:outline-none">
+                ×
+            </button>
+        </div>
+    `).join('');
+}
+
+function clearAllJobProfiles() {
+    selectedJobProfiles = [];
+    updateSelectedJobProfilesDisplay();
+    document.getElementById('workforce-job-search').value = '';
+    console.log('🧹 Cleared all selected job profiles');
+}
+
+// Job Search & Discovery Functions
+async function performWorkforceJobSearch() {
+    // Check if any job profiles are selected
+    if (selectedJobProfiles.length === 0) {
+        alert('Please select at least one job profile to search.');
+        return;
+    }
+    
+    const familyFilter = document.getElementById('workforce-family-filter').value;
+    const divisionFilter = document.getElementById('workforce-division-filter').value;
+    const businessUnitFilter = document.getElementById('workforce-business-unit-filter').value;
+    const levelFilter = document.getElementById('workforce-level-filter').value;
+    const locationFilter = document.getElementById('workforce-location-filter').value;
+    const similarityThreshold = document.getElementById('workforce-similarity-threshold').value;
+    const resultsLimit = document.getElementById('workforce-results-limit').value;
+    
+    console.log('🔎 Performing workforce job search:', {
+        selectedProfiles: selectedJobProfiles.map(p => p.id), 
+        familyFilter, divisionFilter, businessUnitFilter, levelFilter, 
+        locationFilter, similarityThreshold, resultsLimit
+    });
+    
+    // Show loading state
+    const resultsBody = document.getElementById('workforce-search-results');
+    const resultsCount = document.getElementById('workforce-results-count');
+    
+    resultsBody.innerHTML = `
+        <tr>
+            <td colspan="7" class="px-6 py-8 text-center">
+                <div class="flex flex-col items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-4"></div>
+                    <p class="text-sm font-source text-gray-600">Searching strategic workforce intelligence...</p>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    try {
+        // Simulate API call - replace with actual endpoint
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Demo results based on search criteria
+        const demoResults = generateDemoWorkforceResults(selectedJobProfiles, familyFilter, divisionFilter, businessUnitFilter);
+        
+        resultsBody.innerHTML = demoResults.map(position => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <input type="checkbox" class="rounded border-gray-300 text-red-600 focus:ring-red-500" 
+                           value="${position.checkboxValue}" onchange="updateWorkforceSelection()">
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div>
+                        <div class="text-sm font-source font-medium text-gray-900">${position.jobTitle}</div>
+                        <div class="text-xs font-source text-gray-500">${position.jobProfileId}</div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">
+                    ${position.division}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">
+                    ${position.businessUnit}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <span class="text-lg font-epilogue font-bold text-gray-900 mr-2">${position.positionCount}</span>
+                        <span class="text-xs font-source text-gray-500">positions</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">
+                    <div class="text-xs font-mono text-gray-600">${position.locationSpread}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source">
+                    <div class="flex space-x-2">
+                        <button onclick="viewPositionDetails('${position.checkboxValue}')" 
+                                class="text-red-600 hover:text-red-700 font-medium">
+                            View Positions
+                        </button>
+                        <button onclick="findSimilarJobs('${position.jobProfileId}')" 
+                                class="text-red-600 hover:text-red-700 font-medium">
+                            Find Similar
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        
+        resultsCount.textContent = `${demoResults.length} jobs found`;
+        
+        console.log('✅ Workforce search completed:', demoResults.length, 'results');
+        
+    } catch (error) {
+        console.error('❌ Error performing workforce search:', error);
+        resultsBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-8 text-center">
+                    <p class="text-sm font-source text-gray-600">Error loading search results. Please try again.</p>
+                </td>
+            </tr>
+        `;
+        resultsCount.textContent = '0 jobs found';
+    }
+}
+
+function generateDemoWorkforceResults(selectedProfiles, familyFilter, divisionFilter, businessUnitFilter) {
+    // Demo position data - each row represents positions of a JobProfile in a specific Division/Business Unit
+    const positionData = [
+        // Senior Data Scientist positions across the organization
+        {
+            jobProfileId: 'R0041.5', jobTitle: 'Senior Data Scientist', 
+            division: 'Group Functions', businessUnit: 'Group Technology', 
+            positionCount: 8, locationSpread: 'MEL(5), SYD(2), BNE(1)', 
+            checkboxValue: 'R0041.5-GroupFunctions-GroupTechnology'
+        },
+        {
+            jobProfileId: 'R0041.5', jobTitle: 'Senior Data Scientist', 
+            division: 'Business & Private Banking', businessUnit: 'Business Banking', 
+            positionCount: 3, locationSpread: 'SYD(2), MEL(1)', 
+            checkboxValue: 'R0041.5-BusinessPrivateBanking-BusinessBanking'
+        },
+        {
+            jobProfileId: 'R0041.5', jobTitle: 'Senior Data Scientist', 
+            division: 'Corporate & Institutional Banking', businessUnit: 'Corporate Banking', 
+            positionCount: 2, locationSpread: 'SYD(2)', 
+            checkboxValue: 'R0041.5-CorporateInstitutionalBanking-CorporateBanking'
+        },
+        
+        // Principal Risk Analyst positions
+        {
+            jobProfileId: 'R0128.3', jobTitle: 'Principal Risk Analyst', 
+            division: 'Group Functions', businessUnit: 'Group Risk', 
+            positionCount: 12, locationSpread: 'MEL(7), SYD(4), BNE(1)', 
+            checkboxValue: 'R0128.3-GroupFunctions-GroupRisk'
+        },
+        {
+            jobProfileId: 'R0128.3', jobTitle: 'Principal Risk Analyst', 
+            division: 'Business & Private Banking', businessUnit: 'Business Banking', 
+            positionCount: 6, locationSpread: 'SYD(3), MEL(2), BNE(1)', 
+            checkboxValue: 'R0128.3-BusinessPrivateBanking-BusinessBanking'
+        },
+        {
+            jobProfileId: 'R0128.3', jobTitle: 'Principal Risk Analyst', 
+            division: 'Corporate & Institutional Banking', businessUnit: 'Corporate Banking', 
+            positionCount: 4, locationSpread: 'SYD(3), MEL(1)', 
+            checkboxValue: 'R0128.3-CorporateInstitutionalBanking-CorporateBanking'
+        },
+        
+        // Business Analyst positions
+        {
+            jobProfileId: 'R0203.4', jobTitle: 'Business Analyst', 
+            division: 'Group Functions', businessUnit: 'Group Technology', 
+            positionCount: 15, locationSpread: 'MEL(8), SYD(5), BNE(2)', 
+            checkboxValue: 'R0203.4-GroupFunctions-GroupTechnology'
+        },
+        {
+            jobProfileId: 'R0203.4', jobTitle: 'Business Analyst', 
+            division: 'Personal Banking', businessUnit: 'Personal Banking', 
+            positionCount: 7, locationSpread: 'MEL(4), SYD(2), BNE(1)', 
+            checkboxValue: 'R0203.4-PersonalBanking-PersonalBanking'
+        },
+        
+        // Product Manager positions
+        {
+            jobProfileId: 'R0156.1', jobTitle: 'Product Manager', 
+            division: 'Personal Banking', businessUnit: 'Personal Banking', 
+            positionCount: 9, locationSpread: 'MEL(5), SYD(3), BNE(1)', 
+            checkboxValue: 'R0156.1-PersonalBanking-PersonalBanking'
+        },
+        {
+            jobProfileId: 'R0156.1', jobTitle: 'Product Manager', 
+            division: 'Business & Private Banking', businessUnit: 'Business Banking', 
+            positionCount: 4, locationSpread: 'SYD(2), MEL(2)', 
+            checkboxValue: 'R0156.1-BusinessPrivateBanking-BusinessBanking'
+        }
+    ];
+    
+    // Start with selected job profiles
+    const selectedIds = selectedProfiles.map(p => p.id);
+    let filteredResults = positionData.filter(position => selectedIds.includes(position.jobProfileId));
+    
+    // Apply filters
+    if (divisionFilter) {
+        filteredResults = filteredResults.filter(position => 
+            position.division === divisionFilter
+        );
+    }
+    
+    if (businessUnitFilter) {
+        filteredResults = filteredResults.filter(position => 
+            position.businessUnit === businessUnitFilter
+        );
+    }
+    
+    return filteredResults;
+}
+
+function clearWorkforceFilters() {
+    // Clear job profile selection
+    clearAllJobProfiles();
+    
+    // Clear other filters
+    document.getElementById('workforce-family-filter').value = '';
+    document.getElementById('workforce-division-filter').value = '';
+    document.getElementById('workforce-business-unit-filter').value = '';
+    document.getElementById('workforce-level-filter').value = '';
+    document.getElementById('workforce-location-filter').value = '';
+    document.getElementById('workforce-similarity-threshold').value = '0.6';
+    document.getElementById('workforce-results-limit').value = '20';
+    
+    console.log('🧹 Cleared workforce search filters');
+}
+
+function toggleAllWorkforceJobs() {
+    const selectAll = document.getElementById('workforce-select-all');
+    const checkboxes = document.querySelectorAll('#workforce-search-results input[type="checkbox"]');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateWorkforceSelection();
+}
+
+function updateWorkforceSelection() {
+    const checkboxes = document.querySelectorAll('#workforce-search-results input[type="checkbox"]:checked');
+    const selectionActions = document.getElementById('workforce-selection-actions');
+    const selectionCount = document.getElementById('workforce-selection-count');
+    
+    if (checkboxes.length > 0) {
+        selectionActions.classList.remove('hidden');
+        selectionCount.textContent = `${checkboxes.length} job${checkboxes.length === 1 ? '' : 's'} selected`;
+    } else {
+        selectionActions.classList.add('hidden');
+    }
+    
+    // Update select all checkbox state
+    const allCheckboxes = document.querySelectorAll('#workforce-search-results input[type="checkbox"]');
+    const selectAll = document.getElementById('workforce-select-all');
+    
+    if (checkboxes.length === allCheckboxes.length && allCheckboxes.length > 0) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+    } else if (checkboxes.length > 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+    } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+    }
+}
+
+// Individual job actions
+function viewJobDetails(jobId) {
+    console.log('👁️ Viewing job details for:', jobId);
+    
+    // Demo job details modal
+    openJobDetailsModal({
+        id: jobId,
+        title: 'Senior Data Scientist',
+        family: 'Technology - Data & Analytics',
+        businessUnit: 'Group Technology'
+    });
+}
+
+function viewPositionDetails(positionKey) {
+    console.log('👥 Viewing position details for:', positionKey);
+    
+    // Parse the position key to extract details
+    const [jobProfileId, division, businessUnit] = positionKey.split('-');
+    
+    alert(`Position Details:\n\nJob Profile: ${jobProfileId}\nDivision: ${division.replace(/([A-Z])/g, ' $1').trim()}\nBusiness Unit: ${businessUnit.replace(/([A-Z])/g, ' $1').trim()}\n\nThis would show:\n• Individual position numbers\n• Employee names (if authorized)\n• Detailed location breakdown\n• Reporting structure\n• Position status`);
+}
+
+function findSimilarJobs(jobId) {
+    console.log('🔍 Finding similar jobs for:', jobId);
+    
+    // This would trigger the similarity search interface
+    alert(`Finding similar jobs for ${jobId}...\n\nThis would open the Similarity Results Display component.`);
+}
+
+// Selection-based actions
+function compareSelectedJobs() {
+    const selected = Array.from(document.querySelectorAll('#workforce-search-results input[type="checkbox"]:checked'))
+                          .map(cb => cb.value);
+    
+    console.log('⚖️ Comparing selected jobs:', selected);
+    
+    if (selected.length < 2) {
+        alert('Please select at least 2 jobs to compare.');
+        return;
+    }
+    
+    if (selected.length > 3) {
+        alert('Please select no more than 3 jobs for comparison.');
+        return;
+    }
+    
+    alert(`Comparing jobs: ${selected.join(', ')}\n\nThis would open the Side-by-Side Job Comparison interface.`);
+}
+
+function analyseTransitionPaths() {
+    const selected = Array.from(document.querySelectorAll('#workforce-search-results input[type="checkbox"]:checked'))
+                          .map(cb => cb.value);
+    
+    console.log('🛣️ Analysing transition paths for:', selected);
+    
+    if (selected.length === 0) {
+        alert('Please select jobs to analyse transition paths.');
+        return;
+    }
+    
+    alert(`Analysing transition paths for: ${selected.join(', ')}\n\nThis would open the Transition Assessment interface.`);
+}
+
+function exportWorkforceResults() {
+    console.log('📊 Exporting workforce search results');
+    alert('Exporting search results to CSV...\n\nThis would generate a strategic workforce intelligence report.');
+}
+
+function exportSelectedJobs() {
+    const selected = Array.from(document.querySelectorAll('#workforce-search-results input[type="checkbox"]:checked'))
+                          .map(cb => cb.value);
+    
+    console.log('📊 Exporting selected jobs:', selected);
+    
+    if (selected.length === 0) {
+        alert('Please select jobs to export.');
+        return;
+    }
+    
+    alert(`Exporting ${selected.length} selected jobs to CSV...`);
+}
+
+// Initialize job profile search
+initializeJobProfileSearch();
+
+console.log('✅ Workforce Intelligence - Job Search & Discovery loaded');
+
+// ===============================================================
+// SIMILARITY RESULTS DISPLAY (Section 8.2.3 - Task 2)
+// ===============================================================
+
+async function showJobSimilarityResults(jobId, jobTitle) {
+    console.log('🔍 Loading similarity results for:', jobId, jobTitle);
+    
+    // Hide job search results and show similarity interface
+    const searchSection = document.querySelector('.mb-12.border-t-4.border-red-600.pt-8');
+    const similaritySection = document.getElementById('similarity-results-section');
+    
+    if (!similaritySection) {
+        // Create similarity results section if it doesn't exist
+        createSimilarityResultsSection(searchSection, jobId, jobTitle);
+    } else {
+        // Update existing section
+        updateSimilarityResultsSection(jobId, jobTitle);
+    }
+    
+    // Scroll to similarity results
+    document.getElementById('similarity-results-section').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+function createSimilarityResultsSection(afterElement, jobId, jobTitle) {
+    const similarityHTML = `
+    <!-- Similarity Results Display -->
+    <section id="similarity-results-section" class="mb-12 border-t-4 border-blue-600 pt-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900">
+                    🎯 Similarity Analysis Results
+                </h2>
+                <p class="text-sm font-source text-gray-600">
+                    Jobs similar to: <span class="font-medium text-blue-600">${jobTitle}</span> (${jobId})
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="hideSimilarityResults()" 
+                        class="text-gray-500 hover:text-gray-700 font-source font-medium px-4 py-2 transition-colors duration-200">
+                    ← Back to Search
+                </button>
+                <button onclick="exportSimilarityResults()" 
+                        class="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                    Export Results
+                </button>
+            </div>
+        </div>
+        
+        <!-- Similarity Controls -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Similarity Filters & Controls</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <!-- Minimum Similarity -->
+                <div>
+                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        Minimum Similarity
+                        <button onclick="showMethodologyTooltip('similarity-calculation')" 
+                                class="ml-1 text-blue-600 hover:text-blue-800 text-xs">
+                            ℹ️
+                        </button>
+                    </label>
+                    <select id="similarity-min-threshold" onchange="refreshSimilarityResults()" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source">
+                        <option value="0.3">30% (Very Low)</option>
+                        <option value="0.4">40% (Low)</option>
+                        <option value="0.6" selected>60% (Medium)</option>
+                        <option value="0.8">80% (High)</option>
+                    </select>
+                </div>
+                
+                <!-- Job Family Filter -->
+                <div>
+                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        Target Job Family
+                    </label>
+                    <select id="similarity-family-filter" onchange="refreshSimilarityResults()" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source">
+                        <option value="">All Families</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Risk & Compliance">Risk & Compliance</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Operations">Operations</option>
+                        <option value="Customer">Customer</option>
+                    </select>
+                </div>
+                
+                <!-- Cross-Family Only -->
+                <div>
+                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        Focus Area
+                    </label>
+                    <select id="similarity-focus-filter" onchange="refreshSimilarityResults()" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source">
+                        <option value="all">All Similar Jobs</option>
+                        <option value="cross-family">Cross-Family Only</option>
+                        <option value="same-family">Same Family Only</option>
+                    </select>
+                </div>
+                
+                <!-- Results Limit -->
+                <div>
+                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        Max Results
+                    </label>
+                    <select id="similarity-results-limit" onchange="refreshSimilarityResults()" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source">
+                        <option value="10">Top 10</option>
+                        <option value="20" selected>Top 20</option>
+                        <option value="50">Top 50</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Similarity Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <!-- Total Matches -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Total Matches</p>
+                        <p id="similarity-total-count" class="text-2xl font-epilogue font-bold text-gray-900">18</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- High Similarity -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">High Similarity (80%+)</p>
+                        <p id="similarity-high-count" class="text-2xl font-epilogue font-bold text-gray-900">5</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cross-Family -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-100 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Cross-Family</p>
+                        <p id="similarity-cross-family-count" class="text-2xl font-epilogue font-bold text-gray-900">7</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Average Similarity -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-orange-100 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Average Similarity</p>
+                        <p id="similarity-avg-score" class="text-2xl font-epilogue font-bold text-gray-900">72%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Similarity Results Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Similar Jobs Analysis</h3>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="showSimilarityVisualization()" 
+                                class="text-blue-600 hover:text-blue-700 font-source font-medium text-sm transition-colors duration-200">
+                            📊 View Chart
+                        </button>
+                        <span id="similarity-results-summary" class="text-sm font-source text-gray-600">Showing top 20 results</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Rank
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Job Profile
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Similarity Score
+                                <button onclick="showMethodologyTooltip('similarity-scoring')" 
+                                        class="ml-1 text-blue-600 hover:text-blue-800 text-xs">
+                                    ℹ️
+                                </button>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Job Family
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Transition Category
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Shared Skills
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="similarity-results-table" class="bg-white divide-y divide-gray-200">
+                        <!-- Results will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    `;
+    
+    // Insert the similarity section after the search section
+    afterElement.insertAdjacentHTML('afterend', similarityHTML);
+    
+    // Load similarity results
+    loadSimilarityResults(jobId, jobTitle);
+}
+
+async function loadSimilarityResults(jobId, jobTitle) {
+    const resultsTableBody = document.getElementById('similarity-results-table');
+    
+    // Show loading state
+    resultsTableBody.innerHTML = `
+        <tr>
+            <td colspan="7" class="px-6 py-8 text-center">
+                <div class="flex flex-col items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+                    <p class="text-sm font-source text-gray-600">Calculating job similarities...</p>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Generate demo similarity results
+        const similarityResults = generateDemoSimilarityResults(jobId, jobTitle);
+        
+        // Populate results table
+        resultsTableBody.innerHTML = similarityResults.map((result, index) => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <span class="text-lg font-epilogue font-bold text-gray-900">#${index + 1}</span>
+                        ${index < 3 ? '<span class="ml-2 text-yellow-500">⭐</span>' : ''}
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div>
+                        <div class="text-sm font-source font-medium text-gray-900">${result.title}</div>
+                        <div class="text-xs font-source text-gray-500">${result.id}</div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-1 bg-gray-200 rounded-full h-3 mr-3 max-w-[80px]">
+                            <div class="bg-blue-600 h-3 rounded-full" style="width: ${result.similarity}%"></div>
+                        </div>
+                        <span class="text-sm font-source font-bold text-gray-900">${result.similarity}%</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-source text-gray-900">${result.family}</div>
+                    ${result.crossFamily ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-source font-medium bg-purple-100 text-purple-800 mt-1">Cross-Family</span>' : ''}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium ${result.categoryBadge}">
+                        ${result.category}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">
+                    ${result.sharedSkills} skills
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source">
+                    <div class="flex space-x-2">
+                        <button onclick="compareJobs('${jobId}', '${result.id}')" 
+                                class="text-blue-600 hover:text-blue-700 font-medium">
+                            Compare
+                        </button>
+                        <button onclick="viewTransitionAnalysis('${jobId}', '${result.id}')" 
+                                class="text-blue-600 hover:text-blue-700 font-medium">
+                            Transition
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        
+        console.log('✅ Similarity results loaded for:', jobId);
+        
+    } catch (error) {
+        console.error('❌ Error loading similarity results:', error);
+        resultsTableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-8 text-center">
+                    <p class="text-sm font-source text-gray-600">Error loading similarity results. Please try again.</p>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function generateDemoSimilarityResults(sourceJobId, sourceJobTitle) {
+    const allSimilarJobs = [
+        {
+            id: 'R0042.3', title: 'Principal Data Scientist', family: 'Technology - Data & Analytics',
+            similarity: 91, category: 'High Match', categoryBadge: 'bg-green-100 text-green-800',
+            sharedSkills: 21, crossFamily: false
+        },
+        {
+            id: 'R0156.2', title: 'Senior Business Analyst', family: 'Technology - Business Analysis',
+            similarity: 87, category: 'High Match', categoryBadge: 'bg-green-100 text-green-800',
+            sharedSkills: 18, crossFamily: false
+        },
+        {
+            id: 'R0089.1', title: 'Risk Data Analyst', family: 'Risk & Compliance - Analytics',
+            similarity: 84, category: 'High Match', categoryBadge: 'bg-green-100 text-green-800',
+            sharedSkills: 17, crossFamily: true
+        },
+        {
+            id: 'R0203.5', title: 'Senior Product Analyst', family: 'Customer - Analytics',
+            similarity: 79, category: 'Good Match', categoryBadge: 'bg-blue-100 text-blue-800',
+            sharedSkills: 16, crossFamily: true
+        },
+        {
+            id: 'R0167.2', title: 'Financial Data Analyst', family: 'Finance - Analytics',
+            similarity: 76, category: 'Good Match', categoryBadge: 'bg-blue-100 text-blue-800',
+            sharedSkills: 15, crossFamily: true
+        },
+        {
+            id: 'R0124.4', title: 'Operations Research Analyst', family: 'Operations - Analytics',
+            similarity: 73, category: 'Good Match', categoryBadge: 'bg-blue-100 text-blue-800',
+            sharedSkills: 14, crossFamily: true
+        },
+        {
+            id: 'R0098.1', title: 'Machine Learning Engineer', family: 'Technology - Engineering',
+            similarity: 71, category: 'Moderate Match', categoryBadge: 'bg-yellow-100 text-yellow-800',
+            sharedSkills: 13, crossFamily: false
+        },
+        {
+            id: 'R0187.3', title: 'Credit Risk Analyst', family: 'Risk & Compliance - Credit Risk',
+            similarity: 68, category: 'Moderate Match', categoryBadge: 'bg-yellow-100 text-yellow-800',
+            sharedSkills: 12, crossFamily: true
+        }
+    ];
+    
+    return allSimilarJobs;
+}
+
+function refreshSimilarityResults() {
+    const threshold = document.getElementById('similarity-min-threshold').value;
+    const familyFilter = document.getElementById('similarity-family-filter').value;
+    const focusFilter = document.getElementById('similarity-focus-filter').value;
+    const limit = document.getElementById('similarity-results-limit').value;
+    
+    console.log('🔄 Refreshing similarity results with filters:', {
+        threshold, familyFilter, focusFilter, limit
+    });
+    
+    // Re-load results with new filters
+    // This would call the actual API endpoint in production
+    alert('Refreshing similarity results with new filters...');
+}
+
+function hideSimilarityResults() {
+    const similaritySection = document.getElementById('similarity-results-section');
+    if (similaritySection) {
+        similaritySection.remove();
+    }
+    
+    console.log('🔙 Returned to job search interface');
+}
+
+function exportSimilarityResults() {
+    console.log('📊 Exporting similarity results');
+    alert('Exporting similarity analysis to CSV...\n\nThis would generate a detailed similarity report.');
+}
+
+function showSimilarityVisualization() {
+    console.log('📊 Showing similarity visualization');
+    alert('Opening similarity visualization...\n\nThis would show a chart/graph of the similarity results.');
+}
+
+function compareJobs(sourceJobId, targetJobId) {
+    console.log('⚖️ Comparing jobs:', sourceJobId, 'vs', targetJobId);
+    alert(`Opening job comparison:\n${sourceJobId} vs ${targetJobId}\n\nThis would open the Side-by-Side Job Comparison interface.`);
+}
+
+function viewTransitionAnalysis(sourceJobId, targetJobId) {
+    console.log('🛣️ Viewing transition analysis:', sourceJobId, '→', targetJobId);
+    alert(`Opening transition analysis:\n${sourceJobId} → ${targetJobId}\n\nThis would open the Transition Assessment interface.`);
+}
+
+function showMethodologyTooltip(type) {
+    const tooltips = {
+        'similarity-calculation': 'Similarity scores are calculated using asymmetric skill coverage analysis, comparing the overlap of required skills between job profiles.',
+        'similarity-scoring': 'Scores represent the percentage of skills from the target job that are present in the source job. Higher scores indicate better skill alignment.'
+    };
+    
+    alert(`Methodology: ${type}\n\n${tooltips[type] || 'Detailed methodology documentation available in the platform help section.'}`);
+}
+
+// Update the findSimilarJobs function to use the new similarity interface
+window.findSimilarJobs = function(jobId) {
+    console.log('🔍 Finding similar jobs for:', jobId);
+    
+    // Get job title from the search results
+    const jobRow = document.querySelector(`input[value="${jobId}"]`).closest('tr');
+    const jobTitle = jobRow.querySelector('.text-sm.font-source.font-medium.text-gray-900').textContent;
+    
+    showJobSimilarityResults(jobId, jobTitle);
+};
+
+console.log('✅ Workforce Intelligence - Similarity Results Display loaded');
+
+// ===============================================================
+// SIDE-BY-SIDE JOB COMPARISON (Section 8.2.3 - Task 3)
+// ===============================================================
+
+async function showJobComparison(jobIds) {
+    console.log('⚖️ Loading job comparison for:', jobIds);
+    
+    if (jobIds.length < 2 || jobIds.length > 3) {
+        alert('Please select 2-3 jobs for comparison.');
+        return;
+    }
+    
+    // Hide other sections and show comparison interface
+    const existingComparison = document.getElementById('job-comparison-section');
+    if (existingComparison) {
+        existingComparison.remove();
+    }
+    
+    // Find where to insert (after similarity section if present, or after search section)
+    const similaritySection = document.getElementById('similarity-results-section');
+    const searchSection = document.querySelector('.mb-12.border-t-4.border-red-600.pt-8');
+    const insertAfter = similaritySection || searchSection;
+    
+    createJobComparisonSection(insertAfter, jobIds);
+    
+    // Scroll to comparison
+    document.getElementById('job-comparison-section').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+function createJobComparisonSection(afterElement, jobIds) {
+    const comparisonHTML = `
+    <!-- Side-by-Side Job Comparison -->
+    <section id="job-comparison-section" class="mb-12 border-t-4 border-green-600 pt-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900">
+                    ⚖️ Strategic Job Comparison Analysis
+                </h2>
+                <p class="text-sm font-source text-gray-600">
+                    Comparative analysis for ${jobIds.length} selected job profiles
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="hideJobComparison()" 
+                        class="text-gray-500 hover:text-gray-700 font-source font-medium px-4 py-2 transition-colors duration-200">
+                    ← Back
+                </button>
+                <button onclick="exportJobComparison()" 
+                        class="border border-green-600 text-green-600 hover:bg-green-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                    Export Comparison
+                </button>
+            </div>
+        </div>
+        
+        <!-- Comparison Controls -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Comparison Controls</h3>
+                <div class="flex space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="show-skills-details" checked onchange="toggleSkillsDetails()" 
+                               class="rounded border-gray-300 text-green-600 focus:ring-green-500 mr-2">
+                        <span class="text-sm font-source text-gray-700">Show Skills Details</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="highlight-differences" checked onchange="toggleDifferences()" 
+                               class="rounded border-gray-300 text-green-600 focus:ring-green-500 mr-2">
+                        <span class="text-sm font-source text-gray-700">Highlight Differences</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Job Overview Comparison -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Job Profile Overview</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider w-48">
+                                Attribute
+                            </th>
+                            ${jobIds.map((jobId, index) => `
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                    Job ${index + 1}
+                                </th>
+                            `).join('')}
+                        </tr>
+                    </thead>
+                    <tbody id="job-overview-comparison" class="bg-white divide-y divide-gray-200">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Skills Comparison -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Skills & Competencies Analysis</h3>
+                    <button onclick="showMethodologyTooltip('skills-comparison')" 
+                            class="text-green-600 hover:text-green-800 text-sm font-source font-medium">
+                        ℹ️ Methodology
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Skills Summary Cards -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="skills-summary-cards">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Skills Breakdown -->
+            <div class="p-6">
+                <div class="mb-4">
+                    <div class="flex space-x-4">
+                        <button onclick="showSkillsCategory('all')" 
+                                class="skills-category-btn active px-4 py-2 text-sm font-source font-medium rounded-md transition-colors duration-200 bg-green-100 text-green-800">
+                            All Skills
+                        </button>
+                        <button onclick="showSkillsCategory('shared')" 
+                                class="skills-category-btn px-4 py-2 text-sm font-source font-medium rounded-md transition-colors duration-200 text-gray-600 hover:bg-gray-100">
+                            Shared Skills
+                        </button>
+                        <button onclick="showSkillsCategory('unique')" 
+                                class="skills-category-btn px-4 py-2 text-sm font-source font-medium rounded-md transition-colors duration-200 text-gray-600 hover:bg-gray-100">
+                            Unique Skills
+                        </button>
+                        <button onclick="showSkillsCategory('gaps')" 
+                                class="skills-category-btn px-4 py-2 text-sm font-source font-medium rounded-md transition-colors duration-200 text-gray-600 hover:bg-gray-100">
+                            Skill Gaps
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider w-64">
+                                    Skill / Competency
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider w-32">
+                                    Category
+                                </th>
+                                ${jobIds.map((jobId, index) => `
+                                    <th class="px-6 py-3 text-center text-xs font-source font-medium text-gray-500 uppercase tracking-wider w-32">
+                                        Job ${index + 1}
+                                    </th>
+                                `).join('')}
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider w-32">
+                                    Analysis
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="skills-comparison-table" class="bg-white divide-y divide-gray-200">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transition Analysis -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Strategic Transition Analysis</h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="transition-analysis">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </section>
+    `;
+    
+    // Insert the comparison section
+    afterElement.insertAdjacentHTML('afterend', comparisonHTML);
+    
+    // Load comparison data
+    loadJobComparisonData(jobIds);
+}
+
+async function loadJobComparisonData(jobIds) {
+    console.log('📊 Loading comparison data for jobs:', jobIds);
+    
+    try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Generate demo comparison data
+        const comparisonData = generateDemoComparisonData(jobIds);
+        
+        // Populate job overview comparison
+        populateJobOverview(comparisonData.jobs);
+        
+        // Populate skills summary
+        populateSkillsSummary(comparisonData.skillsSummary);
+        
+        // Populate skills comparison table
+        populateSkillsComparison(comparisonData.skillsComparison);
+        
+        // Populate transition analysis
+        populateTransitionAnalysis(comparisonData.transitionAnalysis);
+        
+        console.log('✅ Job comparison data loaded');
+        
+    } catch (error) {
+        console.error('❌ Error loading comparison data:', error);
+    }
+}
+
+function generateDemoComparisonData(jobIds) {
+    const jobs = [
+        {
+            id: 'R0041.5', title: 'Senior Data Scientist', family: 'Technology - Data & Analytics',
+            level: 'Senior', businessUnit: 'Group Technology', skillsCount: 23, location: 'Melbourne'
+        },
+        {
+            id: 'R0128.3', title: 'Principal Risk Analyst', family: 'Risk & Compliance - Credit Risk', 
+            level: 'Principal', businessUnit: 'Business Banking', skillsCount: 19, location: 'Sydney'
+        }
+    ];
+    
+    const skillsComparison = [
+        {
+            skill: 'Python Programming', category: 'Technical', 
+            job1: 'Required', job2: 'Not Required', analysis: 'Skills Gap', 
+            analysisClass: 'bg-red-100 text-red-800'
+        },
+        {
+            skill: 'Statistical Analysis', category: 'Analytical', 
+            job1: 'Required', job2: 'Required', analysis: 'Shared Skill', 
+            analysisClass: 'bg-green-100 text-green-800'
+        },
+        {
+            skill: 'Risk Assessment', category: 'Domain', 
+            job1: 'Not Required', job2: 'Required', analysis: 'Skills Gap', 
+            analysisClass: 'bg-red-100 text-red-800'
+        },
+        {
+            skill: 'Data Visualisation', category: 'Technical', 
+            job1: 'Required', job2: 'Preferred', analysis: 'Partial Match', 
+            analysisClass: 'bg-yellow-100 text-yellow-800'
+        },
+        {
+            skill: 'Communication', category: 'Soft Skills', 
+            job1: 'Required', job2: 'Required', analysis: 'Shared Skill', 
+            analysisClass: 'bg-green-100 text-green-800'
+        }
+    ];
+    
+    return {
+        jobs,
+        skillsSummary: {
+            totalSkills: [23, 19],
+            sharedSkills: 12,
+            uniqueSkills: [11, 7],
+            skillsGaps: [7, 11]
+        },
+        skillsComparison,
+        transitionAnalysis: {
+            similarity: 76,
+            difficulty: 'Moderate',
+            recommendedPath: 'Direct transition with 3-6 months skills development'
+        }
+    };
+}
+
+function populateJobOverview(jobs) {
+    const overviewTable = document.getElementById('job-overview-comparison');
+    
+    const attributes = [
+        { label: 'Job Profile ID', key: 'id' },
+        { label: 'Job Title', key: 'title' },
+        { label: 'Job Family', key: 'family' },
+        { label: 'Career Level', key: 'level' },
+        { label: 'Business Unit', key: 'businessUnit' },
+        { label: 'Location', key: 'location' },
+        { label: 'Total Skills', key: 'skillsCount' }
+    ];
+    
+    overviewTable.innerHTML = attributes.map(attr => `
+        <tr>
+            <td class="px-6 py-4 text-sm font-source font-medium text-gray-700 bg-gray-50">
+                ${attr.label}
+            </td>
+            ${jobs.map(job => `
+                <td class="px-6 py-4 text-sm font-source text-gray-900">
+                    ${job[attr.key]}
+                </td>
+            `).join('')}
+        </tr>
+    `).join('');
+}
+
+function populateSkillsSummary(summary) {
+    const summaryCards = document.getElementById('skills-summary-cards');
+    
+    summaryCards.innerHTML = `
+        <div class="text-center">
+            <div class="text-3xl font-epilogue font-bold text-gray-900 mb-2">${summary.sharedSkills}</div>
+            <div class="text-sm font-source font-medium text-gray-500 uppercase tracking-wide">Shared Skills</div>
+            <div class="text-xs font-source text-gray-400 mt-1">Skills common to all jobs</div>
+        </div>
+        
+        <div class="text-center">
+            <div class="text-3xl font-epilogue font-bold text-gray-900 mb-2">${summary.uniqueSkills.join(' / ')}</div>
+            <div class="text-sm font-source font-medium text-gray-500 uppercase tracking-wide">Unique Skills</div>
+            <div class="text-xs font-source text-gray-400 mt-1">Skills specific to each job</div>
+        </div>
+        
+        <div class="text-center">
+            <div class="text-3xl font-epilogue font-bold text-gray-900 mb-2">${Math.round((summary.sharedSkills / Math.max(...summary.totalSkills)) * 100)}%</div>
+            <div class="text-sm font-source font-medium text-gray-500 uppercase tracking-wide">Skills Overlap</div>
+            <div class="text-xs font-source text-gray-400 mt-1">Percentage of skills alignment</div>
+        </div>
+    `;
+}
+
+function populateSkillsComparison(skillsData) {
+    const skillsTable = document.getElementById('skills-comparison-table');
+    
+    skillsTable.innerHTML = skillsData.map(skill => `
+        <tr>
+            <td class="px-6 py-4 text-sm font-source font-medium text-gray-900">
+                ${skill.skill}
+            </td>
+            <td class="px-6 py-4 text-xs font-source text-gray-500 uppercase tracking-wide">
+                ${skill.category}
+            </td>
+            <td class="px-6 py-4 text-center">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-source font-medium ${
+                    skill.job1 === 'Required' ? 'bg-blue-100 text-blue-800' : 
+                    skill.job1 === 'Preferred' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-gray-100 text-gray-800'
+                }">
+                    ${skill.job1}
+                </span>
+            </td>
+            <td class="px-6 py-4 text-center">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-source font-medium ${
+                    skill.job2 === 'Required' ? 'bg-blue-100 text-blue-800' : 
+                    skill.job2 === 'Preferred' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-gray-100 text-gray-800'
+                }">
+                    ${skill.job2}
+                </span>
+            </td>
+            <td class="px-6 py-4">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-source font-medium ${skill.analysisClass}">
+                    ${skill.analysis}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function populateTransitionAnalysis(analysis) {
+    const transitionDiv = document.getElementById('transition-analysis');
+    
+    transitionDiv.innerHTML = `
+        <div class="bg-gray-50 rounded-lg p-6">
+            <h4 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Transition Viability</h4>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-source text-gray-700">Overall Similarity</span>
+                        <span class="text-sm font-source font-bold text-gray-900">${analysis.similarity}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-green-600 h-3 rounded-full" style="width: ${analysis.similarity}%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <span class="text-sm font-source text-gray-700">Transition Difficulty:</span>
+                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-yellow-100 text-yellow-800">
+                        ${analysis.difficulty}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-6">
+            <h4 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Strategic Recommendation</h4>
+            <p class="text-sm font-source text-gray-700">
+                ${analysis.recommendedPath}
+            </p>
+            <div class="mt-4 flex space-x-3">
+                <button onclick="generateTransitionPlan()" 
+                        class="bg-green-600 hover:bg-green-700 text-white font-source font-medium px-4 py-2 rounded-md text-sm transition-colors duration-200">
+                    Generate Transition Plan
+                </button>
+                <button onclick="exportTransitionAnalysis()" 
+                        class="border border-green-600 text-green-600 hover:bg-green-600 hover:text-white font-source font-medium px-4 py-2 rounded-md text-sm transition-colors duration-200">
+                    Export Analysis
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Comparison interface controls
+function toggleSkillsDetails() {
+    const isChecked = document.getElementById('show-skills-details').checked;
+    console.log('🔍 Toggle skills details:', isChecked);
+    // Implementation would show/hide detailed skills information
+}
+
+function toggleDifferences() {
+    const isChecked = document.getElementById('highlight-differences').checked;
+    console.log('🎨 Toggle differences highlighting:', isChecked);
+    // Implementation would highlight/unhighlight differences between jobs
+}
+
+function showSkillsCategory(category) {
+    // Update active button
+    document.querySelectorAll('.skills-category-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-green-100', 'text-green-800');
+        btn.classList.add('text-gray-600', 'hover:bg-gray-100');
+    });
+    
+    event.target.classList.add('active', 'bg-green-100', 'text-green-800');
+    event.target.classList.remove('text-gray-600', 'hover:bg-gray-100');
+    
+    console.log('📋 Showing skills category:', category);
+    // Implementation would filter the skills table based on category
+}
+
+function hideJobComparison() {
+    const comparisonSection = document.getElementById('job-comparison-section');
+    if (comparisonSection) {
+        comparisonSection.remove();
+    }
+    console.log('🔙 Hidden job comparison interface');
+}
+
+function exportJobComparison() {
+    console.log('📊 Exporting job comparison');
+    alert('Exporting job comparison analysis to CSV...\n\nThis would generate a detailed comparison report.');
+}
+
+function generateTransitionPlan() {
+    console.log('🛣️ Generating transition plan');
+    alert('Generating strategic transition plan...\n\nThis would create a detailed transition roadmap with timelines and milestones.');
+}
+
+function exportTransitionAnalysis() {
+    console.log('📊 Exporting transition analysis');
+    alert('Exporting transition analysis...\n\nThis would generate a transition feasibility report.');
+}
+
+// Update the compareSelectedJobs function to use the new comparison interface
+window.compareSelectedJobs = function() {
+    const selected = Array.from(document.querySelectorAll('#workforce-search-results input[type="checkbox"]:checked'))
+                          .map(cb => cb.value);
+    
+    console.log('⚖️ Comparing selected jobs:', selected);
+    
+    if (selected.length < 2) {
+        alert('Please select at least 2 jobs to compare.');
+        return;
+    }
+    
+    if (selected.length > 3) {
+        alert('Please select no more than 3 jobs for comparison.');
+        return;
+    }
+    
+    showJobComparison(selected);
+};
+
+// Update the compareJobs function for similarity results
+window.compareJobs = function(sourceJobId, targetJobId) {
+    console.log('⚖️ Comparing jobs:', sourceJobId, 'vs', targetJobId);
+    showJobComparison([sourceJobId, targetJobId]);
+};
+
+console.log('✅ Workforce Intelligence - Side-by-Side Job Comparison loaded');
+</script>
 {% endblock %} 

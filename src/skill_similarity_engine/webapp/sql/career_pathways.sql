@@ -1,173 +1,226 @@
 -- =================================================================
--- CAREER PATHWAY QUERIES
--- Queries for career progression analysis and pathway discovery
+-- CAREER PATHWAY QUERIES (OPTIMIZED PRE-COMPUTED VERSION)
+-- Queries for career pathway exploration using pre-computed relationships
 -- =================================================================
 
--- query_name: get_career_progression_options
--- Find potential career progression paths from a starting job
+-- query_name: get_career_tree_fast
+-- Generate hierarchical tree data for D3.js using pre-computed career pathways
+-- Much faster than on-the-fly computation
 SELECT 
-    target.id as target_job_id,
-    target.job_title as target_job_title,
-    target.job_family as target_family,
-    target.job_level as target_level,
-    js.similarity_score,
-    CASE 
-        WHEN target.job_level > source.job_level THEN 'Promotion'
-        WHEN target.job_level = source.job_level THEN 'Lateral Move'
-        ELSE 'Role Change'
-    END as move_type,
-    skills_gap.skills_to_develop,
-    skills_gap.common_skills_count
-FROM jobs source
-JOIN job_similarities js ON source.id = js.job_id
-JOIN jobs target ON js.similar_job_id = target.id
-LEFT JOIN (
-    -- Calculate skills gap between source and target jobs
+    'job' as node_type,
+    j.JobProfileID as id,
+    j.JobProfile as name,
+    NULL as parent_id,
+    0 as level,
+    j.JobFamily as category,
+    0.0 as similarity_score,
+    j.JobProfileID as path,
+    j.JobProfileID as unique_id
+FROM jobs j
+WHERE j.JobProfileID IN ({job_placeholders})
+
+UNION ALL
+
+-- Recursive levels using pre-computed career pathways
+WITH RECURSIVE pathway_tree AS (
+    -- Level 0: Starting jobs
     SELECT 
-        source_skills.job_id as source_job_id,
-        target_skills.job_id as target_job_id,
-        COUNT(CASE WHEN target_skills.skills_skill_id IS NULL THEN 1 END) as skills_to_develop,
-        COUNT(CASE WHEN source_skills.skills_skill_id IS NOT NULL THEN 1 END) as common_skills_count
-    FROM job_skills source_skills
-    FULL OUTER JOIN job_skills target_skills 
-        ON source_skills.skills_skill_id = target_skills.skills_skill_id
-        AND target_skills.job_id = ?
-    WHERE source_skills.job_id = ?
-    GROUP BY source_skills.job_id, target_skills.job_id
-) skills_gap ON skills_gap.source_job_id = source.id AND skills_gap.target_job_id = target.id
-WHERE source.id = ?
-    AND js.similarity_score >= ?
-    AND target.id != source.id
-ORDER BY js.similarity_score DESC, move_type
+        cp.source_job_id as current_job_id,
+        cp.target_job_id as next_job_id,
+        1 as level,
+        cp.similarity_rank,
+        cp.similarity_score,
+        cp.career_move_type,
+        CAST(cp.source_job_id || '->' || cp.target_job_id AS TEXT) as path
+    FROM career_pathways cp
+    WHERE cp.source_job_id IN ({job_placeholders})
+      AND cp.similarity_score >= ?
+      AND cp.similarity_rank <= ?
+    
+    UNION ALL
+    
+    -- Recursive levels: Continue building tree
+    SELECT 
+        cp.source_job_id as current_job_id,
+        cp.target_job_id as next_job_id,
+        pt.level + 1,
+        cp.similarity_rank,
+        cp.similarity_score,
+        cp.career_move_type,
+        pt.path || '->' || cp.target_job_id as path
+    FROM pathway_tree pt
+    JOIN career_pathways cp ON pt.next_job_id = cp.source_job_id
+    WHERE pt.level < ?  -- max_depth parameter
+      AND cp.similarity_score >= ?
+      AND cp.similarity_rank <= ?
+      AND cp.target_job_id NOT IN (
+          SELECT DISTINCT job_id 
+          FROM (
+              SELECT cp.source_job_id as job_id FROM career_pathways cp WHERE cp.source_job_id IN ({job_placeholders})
+              UNION 
+              SELECT value as job_id FROM (
+                  SELECT TRIM(value) as value
+                  FROM (
+                      SELECT SUBSTR(pt.path || '->', start_pos, end_pos - start_pos) as value
+                      FROM (
+                          SELECT pt.path, 
+                                 INSTR(pt.path || '->', cp.target_job_id || '->') as start_pos,
+                                 INSTR(pt.path || '->', '->') as end_pos
+                          FROM (SELECT pt.path) pt
+                      ) positions
+                      WHERE start_pos > 0
+                  )
+              )
+              WHERE LENGTH(value) > 0
+          )
+      )  -- Prevent cycles
+)
+SELECT 
+    'similar_job' as node_type,
+    pt.next_job_id as id,
+    j.JobProfile as name,
+    pt.current_job_id as parent_id,
+    pt.level,
+    j.JobFamily as category,
+    pt.similarity_score,
+    pt.path,
+    pt.current_job_id || '_' || pt.next_job_id as unique_id
+FROM pathway_tree pt
+JOIN jobs j ON pt.next_job_id = j.JobProfileID
+LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+WHERE (? = '' OR ? = '' OR p.Division = ? OR p.Division = ?)
+  AND (? = '' OR ? = '' OR p.Business_Unit = ? OR p.Business_Unit = ?)
+  AND (? = '' OR ? = '' OR p.Location = ? OR p.Location = ?)
+  AND (? = '' OR ? = '' OR p.Rg = ? OR p.Rg = ?)
+ORDER BY level, similarity_score DESC;
+
+-- query_name: get_top_career_pathways
+-- Get top N career pathways for a specific job (simple version)
+SELECT 
+    cp.target_job_id,
+    j.JobProfile as target_job_name,
+    j.JobFamily as target_family,
+    cp.similarity_score,
+    cp.similarity_rank,
+    cp.career_move_type,
+    cp.difficulty_score,
+    cp.shared_skills_count
+FROM career_pathways cp
+JOIN jobs j ON cp.target_job_id = j.JobProfileID
+WHERE cp.source_job_id = ?
+  AND cp.similarity_score >= ?
+ORDER BY cp.similarity_rank
 LIMIT ?;
 
--- query_name: get_skills_gap_analysis
--- Analyse skills gap between two specific jobs
+-- query_name: get_career_pathways_by_move_type
+-- Get career pathways filtered by move type
 SELECT 
-    s.skill_name,
-    s.skill_category,
-    s.skill_subcategory,
-    source_skills.proficiency_level as current_proficiency,
-    target_skills.proficiency_level as required_proficiency,
-    CASE 
-        WHEN source_skills.skills_skill_id IS NULL THEN 'New Skill Required'
-        WHEN target_skills.skills_skill_id IS NULL THEN 'Transferable Skill'
-        WHEN source_skills.proficiency_level < target_skills.proficiency_level THEN 'Skill Development Required'
-        ELSE 'Skill Match'
-    END as skill_status
-FROM skills s
-LEFT JOIN job_skills source_skills ON s.id = source_skills.skills_skill_id AND source_skills.job_id = ?
-LEFT JOIN job_skills target_skills ON s.id = target_skills.skills_skill_id AND target_skills.job_id = ?
-WHERE source_skills.skills_skill_id IS NOT NULL OR target_skills.skills_skill_id IS NOT NULL
-ORDER BY s.skill_category, skill_status, s.skill_name;
+    cp.source_job_id,
+    j1.JobProfile as source_job_name,
+    cp.target_job_id,
+    j2.JobProfile as target_job_name,
+    cp.similarity_score,
+    cp.career_move_type,
+    cp.difficulty_score
+FROM career_pathways cp
+JOIN jobs j1 ON cp.source_job_id = j1.JobProfileID
+JOIN jobs j2 ON cp.target_job_id = j2.JobProfileID
+WHERE cp.career_move_type = ?
+  AND cp.similarity_score >= ?
+ORDER BY cp.similarity_score DESC
+LIMIT ?;
 
--- query_name: get_pathway_by_level_progression
--- Find career pathways by job level progression within job families
+-- query_name: get_pathway_statistics
+-- Get statistics about career pathways
 SELECT 
-    family_progression.job_family,
-    family_progression.current_level,
-    family_progression.next_level,
-    COUNT(*) as available_positions,
-    AVG(js.similarity_score) as avg_similarity,
-    GROUP_CONCAT(DISTINCT next_jobs.job_title, '; ') as available_roles
-FROM (
-    SELECT DISTINCT 
-        j1.job_family,
-        j1.job_level as current_level,
-        j2.job_level as next_level
-    FROM jobs j1
-    CROSS JOIN jobs j2
-    WHERE j1.job_family = j2.job_family
-        AND j2.job_level > j1.job_level
-        AND j1.id = ?
-) family_progression
-JOIN jobs current_jobs ON family_progression.job_family = current_jobs.job_family 
-    AND family_progression.current_level = current_jobs.job_level
-JOIN jobs next_jobs ON family_progression.job_family = next_jobs.job_family 
-    AND family_progression.next_level = next_jobs.job_level
-JOIN job_similarities js ON current_jobs.id = js.job_id AND next_jobs.id = js.similar_job_id
-WHERE current_jobs.id = ?
-GROUP BY family_progression.job_family, family_progression.current_level, family_progression.next_level
+    career_move_type,
+    COUNT(*) as pathway_count,
+    AVG(similarity_score) as avg_similarity,
+    AVG(difficulty_score) as avg_difficulty,
+    MIN(similarity_score) as min_similarity,
+    MAX(similarity_score) as max_similarity
+FROM career_pathways
+WHERE similarity_score >= ?
+GROUP BY career_move_type
 ORDER BY avg_similarity DESC;
 
--- query_name: get_cross_family_pathways
--- Find pathways to other job families with high skill overlap
+-- query_name: get_most_connected_jobs
+-- Find jobs with the most career pathway options
 SELECT 
-    target_family.job_family as target_family,
-    COUNT(DISTINCT target_jobs.id) as available_positions,
-    AVG(js.similarity_score) as avg_similarity,
-    MAX(js.similarity_score) as best_similarity,
-    skill_overlap.common_skills_percentage,
-    GROUP_CONCAT(DISTINCT target_jobs.job_title, '; ') as example_roles
-FROM jobs source_job
-JOIN job_similarities js ON source_job.id = js.job_id
-JOIN jobs target_jobs ON js.similar_job_id = target_jobs.id
-JOIN (
-    SELECT DISTINCT job_family 
-    FROM jobs 
-    WHERE job_family != (SELECT job_family FROM jobs WHERE id = ?)
-) target_family ON target_jobs.job_family = target_family.job_family
-LEFT JOIN (
-    -- Calculate skill overlap percentage
-    SELECT 
-        target_jobs.job_family,
-        (COUNT(DISTINCT common_skills.skills_skill_id) * 100.0 / 
-         COUNT(DISTINCT all_source_skills.skills_skill_id)) as common_skills_percentage
-    FROM job_skills all_source_skills
-    LEFT JOIN job_skills common_skills ON all_source_skills.skills_skill_id = common_skills.skills_skill_id
-    LEFT JOIN jobs target_jobs ON common_skills.job_id = target_jobs.id
-    WHERE all_source_skills.job_id = ?
-        AND (common_skills.job_id IS NULL OR target_jobs.job_family != (SELECT job_family FROM jobs WHERE id = ?))
-    GROUP BY target_jobs.job_family
-) skill_overlap ON skill_overlap.job_family = target_family.job_family
-WHERE source_job.id = ?
-    AND js.similarity_score >= ?
-    AND target_jobs.job_family != source_job.job_family
-GROUP BY target_family.job_family, skill_overlap.common_skills_percentage
-HAVING COUNT(DISTINCT target_jobs.id) >= 1
-ORDER BY avg_similarity DESC, common_skills_percentage DESC
+    cp.source_job_id,
+    j.JobProfile as job_name,
+    j.JobFamily,
+    COUNT(*) as pathway_count,
+    AVG(cp.similarity_score) as avg_similarity,
+    COUNT(CASE WHEN cp.career_move_type = 'lateral' THEN 1 END) as lateral_moves,
+    COUNT(CASE WHEN cp.career_move_type = 'progression' THEN 1 END) as progression_moves,
+    COUNT(CASE WHEN cp.career_move_type = 'cross_family' THEN 1 END) as cross_family_moves
+FROM career_pathways cp
+JOIN jobs j ON cp.source_job_id = j.JobProfileID
+WHERE cp.similarity_score >= ?
+GROUP BY cp.source_job_id, j.JobProfile, j.JobFamily
+ORDER BY pathway_count DESC
 LIMIT ?;
 
--- query_name: get_common_career_transitions
--- Find most common career transitions across the organisation
+-- query_name: get_pathway_skills_analysis
+-- Get skills analysis for a specific career pathway
 SELECT 
-    source.job_family as from_family,
-    target.job_family as to_family,
-    source.job_level as from_level,
-    target.job_level as to_level,
-    COUNT(*) as transition_frequency,
-    AVG(js.similarity_score) as avg_similarity,
+    js_source.Skill_Name as skill_name,
+    js_source.Skill_ID as skill_id,
+    s.Category as skill_category,
     CASE 
-        WHEN target.job_level > source.job_level THEN 'Promotion'
-        WHEN target.job_level = source.job_level AND source.job_family != target.job_family THEN 'Cross-Family Move'
-        WHEN target.job_level = source.job_level THEN 'Lateral Move'
-        ELSE 'Level Change'
-    END as transition_type
-FROM job_similarities js
-JOIN jobs source ON js.job_id = source.id
-JOIN jobs target ON js.similar_job_id = target.id
-WHERE js.similarity_score >= ?
-GROUP BY source.job_family, target.job_family, source.job_level, target.job_level
-HAVING transition_frequency >= ?
-ORDER BY transition_frequency DESC, avg_similarity DESC;
+        WHEN js_target.Skill_ID IS NOT NULL THEN 'Transferable'
+        ELSE 'Source Only'
+    END as skill_status,
+    js_source.Skill_Weight as source_weight,
+    js_target.Skill_Weight as target_weight
+FROM job_skills js_source
+JOIN skills s ON js_source.Skill_ID = s.Skill_ID
+LEFT JOIN job_skills js_target ON js_source.Skill_ID = js_target.Skill_ID 
+    AND js_target.JobProfileID = ?
+WHERE js_source.JobProfileID = ?
 
--- query_name: get_skill_development_recommendations
--- Get skill development recommendations for a career target
+UNION
+
 SELECT 
-    s.skill_name,
-    s.skill_category,
-    s.skill_subcategory,
-    target_skills.proficiency_level as required_level,
-    COUNT(similar_jobs.id) as jobs_requiring_skill,
-    AVG(similar_js.similarity_score) as avg_job_similarity
-FROM skills s
-JOIN job_skills target_skills ON s.id = target_skills.skills_skill_id
-LEFT JOIN job_skills source_skills ON s.id = source_skills.skills_skill_id AND source_skills.job_id = ?
-JOIN jobs similar_jobs ON target_skills.job_id = similar_jobs.id
-JOIN job_similarities similar_js ON similar_jobs.id = similar_js.similar_job_id
-WHERE target_skills.job_id = ?
-    AND source_skills.skills_skill_id IS NULL  -- Skills not currently possessed
-    AND similar_js.job_id = ?  -- Similar to current job
-    AND similar_js.similarity_score >= ?
-GROUP BY s.id, s.skill_name, s.skill_category, s.skill_subcategory, target_skills.proficiency_level
-ORDER BY jobs_requiring_skill DESC, avg_job_similarity DESC; 
+    js_target.Skill_Name as skill_name,
+    js_target.Skill_ID as skill_id,
+    s.Category as skill_category,
+    'Target Required' as skill_status,
+    NULL as source_weight,
+    js_target.Skill_Weight as target_weight
+FROM job_skills js_target
+JOIN skills s ON js_target.Skill_ID = s.Skill_ID
+LEFT JOIN job_skills js_source ON js_target.Skill_ID = js_source.Skill_ID 
+    AND js_source.JobProfileID = ?
+WHERE js_target.JobProfileID = ?
+  AND js_source.Skill_ID IS NULL
+
+ORDER BY skill_status, skill_category, skill_name;
+
+-- query_name: get_career_pathway_recommendations
+-- Get personalized career pathway recommendations with ranking
+SELECT 
+    cp.target_job_id,
+    j.JobProfile as target_job_name,
+    j.JobFamily as target_family,
+    cp.similarity_score,
+    cp.career_move_type,
+    cp.difficulty_score,
+    cp.shared_skills_count,
+    -- Position availability context
+    COUNT(DISTINCT p.JobProfileID) as available_positions,
+    COUNT(DISTINCT CASE WHEN p."Employee Number" IS NULL THEN p.JobProfileID END) as vacant_positions,
+    -- Recommendation score (combines similarity, difficulty, and availability)
+    (cp.similarity_score * 0.5 + 
+     (1.0 - cp.difficulty_score) * 0.3 + 
+     CASE WHEN COUNT(DISTINCT p.JobProfileID) > 0 THEN 0.2 ELSE 0.0 END) as recommendation_score
+FROM career_pathways cp
+JOIN jobs j ON cp.target_job_id = j.JobProfileID
+LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+WHERE cp.source_job_id = ?
+  AND cp.similarity_score >= ?
+GROUP BY cp.target_job_id, j.JobProfile, j.JobFamily, 
+         cp.similarity_score, cp.career_move_type, cp.difficulty_score, cp.shared_skills_count
+ORDER BY recommendation_score DESC
+LIMIT ?; 

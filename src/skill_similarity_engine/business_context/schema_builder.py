@@ -59,6 +59,7 @@ class SchemaBuilder:
                 self._create_positions_table(conn)
                 self._create_skills_table(conn)
                 self._create_job_skills_table(conn)
+                self._create_career_pathways_table(conn)
                 
                 # Create performance indexes
                 self._create_indexes(conn)
@@ -76,7 +77,7 @@ class SchemaBuilder:
     
     def _drop_existing_tables(self, conn: sqlite3.Connection) -> None:
         """Drop all existing tables in dependency order."""
-        tables = ['job_skills', 'job_similarities', 'positions', 'skills', 'jobs', 'schema_metadata']
+        tables = ['job_skills', 'job_similarities', 'career_pathways', 'positions', 'skills', 'jobs', 'schema_metadata']
         
         for table in tables:
             try:
@@ -198,6 +199,27 @@ class SchemaBuilder:
         conn.execute(sql)
         logger.debug("Created job_skills table")
     
+    def _create_career_pathways_table(self, conn: sqlite3.Connection) -> None:
+        """Create career_pathways table - Pre-computed Career Pathway Relationships."""
+        sql = """
+        CREATE TABLE career_pathways (
+            source_job_id TEXT NOT NULL,            -- Source JobProfileID
+            target_job_id TEXT NOT NULL,            -- Target JobProfileID
+            similarity_rank INTEGER NOT NULL,       -- Rank (1-N) based on similarity score
+            similarity_score REAL NOT NULL,        -- Overall similarity (0-1)
+            skill_overlap_score REAL,              -- Skills-specific similarity
+            shared_skills_count INTEGER,           -- Number of overlapping skills
+            career_move_type TEXT,                  -- 'lateral', 'progression', 'cross_family'
+            difficulty_score REAL,                 -- Estimated transition difficulty (0-1)
+            
+            PRIMARY KEY (source_job_id, target_job_id),
+            FOREIGN KEY (source_job_id) REFERENCES jobs(JobProfileID),
+            FOREIGN KEY (target_job_id) REFERENCES jobs(JobProfileID)
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created career_pathways table")
+    
     def _create_indexes(self, conn: sqlite3.Connection) -> None:
         """Create performance indexes for webapp queries."""
         indexes = [
@@ -209,6 +231,12 @@ class SchemaBuilder:
             "CREATE INDEX idx_similarities_from ON job_similarities(job_from, similarity_score DESC);",
             "CREATE INDEX idx_similarities_to ON job_similarities(job_to, similarity_score DESC);",
             "CREATE INDEX idx_similarities_score ON job_similarities(similarity_score DESC);",
+            
+            # Career pathways queries (NEW - optimized for tree building)
+            "CREATE INDEX idx_career_pathways_source ON career_pathways(source_job_id, similarity_rank);",
+            "CREATE INDEX idx_career_pathways_target ON career_pathways(target_job_id, similarity_rank);",
+            "CREATE INDEX idx_career_pathways_rank ON career_pathways(similarity_rank, similarity_score DESC);",
+            "CREATE INDEX idx_career_pathways_move_type ON career_pathways(career_move_type, similarity_score DESC);",
             
             # Position filtering 
             "CREATE INDEX idx_positions_job_profile ON positions(JobProfileID);",
