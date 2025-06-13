@@ -287,11 +287,16 @@ WITH RECURSIVE job_tree AS (
         FROM job_similarities
         WHERE similarity_score >= ? 
             AND similarity_score < 0.99  -- More permissive than 1.0
-    ) js ON jt.id = js.job_from AND js.rank <= 3  -- Reduced for performance
+    ) js ON jt.id = js.job_from AND js.rank <= ?  -- Now configurable via max_results parameter
     JOIN jobs similar_job ON js.job_to = similar_job.JobProfileID
     LEFT JOIN positions p ON similar_job.JobProfileID = p.JobProfileID
     WHERE jt.level < ?
-        AND jt.path NOT LIKE '%' || js.job_to || '%'
+        AND js.job_to != jt.id  -- Prevent immediate self-reference
+        AND (
+            jt.path NOT LIKE '%' || js.job_to || ' -> %'  -- job_to not in middle of path
+            AND jt.path NOT LIKE js.job_to || ' -> %'     -- job_to not at start of path  
+            AND jt.path != js.job_to                      -- job_to not the entire path
+        )  -- More precise cycle detection: only prevent if job appears in current ancestor path
         -- Organizational filters (optional - empty string means no filter)
         AND (? = '' OR p.Division = ?)
         AND (? = '' OR p.Business_Unit = ?)

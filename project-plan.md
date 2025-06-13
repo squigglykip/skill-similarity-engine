@@ -4,13 +4,15 @@
 
 This document outlines the development plan for the NAB Skill Similarity Engine, a system designed to analyse skill similarities between jobs to identify reskilling opportunities. The project implements a two-phase architecture optimised for JobProfile-level analysis.
 
+> **📋 WEBAPP SITEMAP**: Detailed user stories, feature specifications, and development roadmap for the Flask webapp are documented in [`docs/webapp-sitemap-user-stories.md`](docs/webapp-sitemap-user-stories.md)
+
 > **ARCHITECTURAL FOCUS**: The system operates on **JobProfile similarity** (architectural blueprints with prescribed skills) rather than complex individual position analysis. This aligns with current business priorities and data availability, delivering core value through pure skill-based similarity calculations.
 
 > **PRIMARY OUTPUT OBJECTIVE**: The core deliverable is a comprehensive **JobProfile similarity dataset in tabular format** optimised for Power BI integration. This tabular output (structured as a fact table with job1, job2, and similarity metrics) serves as the foundation for all downstream analytics.
 
 > **TWO-PHASE ARCHITECTURE**: 
 > 1. **Pre-computation Phase**: Generates pure JobProfileID-to-JobProfileID skill similarity matrices (production-ready)
-> 2. **Query Phase**: Applies contextual weightings when needed (future enhancement)
+> 2. **Query Phase**: Applies contextual weightings when needed (Flask webapp implementation)
 
 ## Project Status Index
 
@@ -365,32 +367,40 @@ Successfully created the comprehensive business context database that powers the
 
 > **Current State Analysis**: The existing system processes basic job similarity using minimal fields (`JobProfileID`, `RoleSet`, `Salary Group`, basic skills). This enables pure skill-based similarity but lacks contextual richness for career pathway exploration and business filtering.
 
-#### 8.2 Flask Webapp Development - **NEXT PRIORITY** 📋
+#### 8.2 Flask Webapp Development - **IN PROGRESS** 🚧
 **Branch: `8.2-feature/webapp-foundation`**
 
-This phase builds a professional Flask webapp that queries the SQLite business context database we've successfully created. The webapp provides two core features: **career pathway exploration** based on skills similarity between jobs, and **white paper generation** for producing Word documents when jobs are being sunset (single or multiple roles). The system will be expandable for additional use cases as business needs evolve.
+> **📋 STRATEGIC REFERENCE**: Detailed sitemap, user stories, and feature specifications are documented in [`docs/webapp-sitemap-user-stories.md`](docs/webapp-sitemap-user-stories.md)
 
-**Key User Journeys:**
+This phase builds a **restricted-access strategic intelligence platform** exclusively for the Future Skills team to support data-driven workforce planning and capability analysis. The webapp queries the SQLite business context database to provide sensitive workforce intelligence for strategic decision-making.
 
-**Career Pathway Explorer:**  
-- **Basic Journey**: Risk Analyst → searches similar roles → sees Data Scientist, Business Analyst, Compliance Officer options
-- **Enhanced Journey**: Risk Analyst → filters by (Function=Technology, Level=Senior) → sees Data Scientist, Solutions Architect, Tech Lead options
-- **Skills Focus**: "What skills do I need to become a Data Scientist?" → Interactive skill comparison with learning pathway recommendations
+> ⚠️ **RESTRICTED ACCESS TOOL**: This platform contains highly sensitive workforce intelligence that informs strategic organizational decisions. Access is strictly limited to authorized Future Skills team members and selected strategic partners.
 
-**White Paper Generation:**
-- **Single Role Sunset**: "Generate transition report for Risk Analyst role being eliminated" → Word document with similar roles, transition pathways, skill gaps
-- **Multiple Role Sunset**: "Generate transition report for entire Risk team restructure" → Comprehensive document covering team migration options, capacity analysis
-- **Team Planning**: Manager planning team restructure → sees absorption capacity by business unit
+**Primary User Personas** (RESTRICTED ACCESS ONLY):
+- **Future Skills Team Members** - Strategic workforce analysts conducting capability assessments
+- **Future Skills Team Leaders** - Senior strategists making workforce transformation recommendations  
+- **Authorized Strategic Partners** - Selected HR and business leaders with specific project access
 
-**Core Tasks:**
-- [ ] Set up Flask application foundation with proper project structure
-- [ ] Integrate SQLite business context database with read-only access
-- [ ] Create career pathway exploration interface with skills-based similarity queries
-- [ ] Build white paper generation system for role sunset scenarios
-- [ ] Implement responsive UI with professional styling
-- [ ] Add local deployment system (.bat launcher for Windows)
-- [ ] Create user-friendly interface for non-technical business users
-- [ ] Establish extensible architecture for future feature expansion
+**Strategic Platform Features:**
+1. **🔍 Workforce Intelligence** - Job similarity analysis and skills capability mapping
+2. **📋 Strategic Reports** - Professional transition impact analysis and capability assessment reports
+3. **🎯 Transition Pathways** - Role transition analysis and redeployment opportunity identification
+4. **📊 Advanced Analytics** - Skills drift analysis and workforce planning insights
+5. **📚 Comprehensive Documentation** - Methodology documentation and calculation transparency
+
+**Technical Foundation** (✅ Already Built):
+- Flask app architecture with SQLite integration
+- Organised SQL queries (`similarities.sql`, `jobs.sql`, etc.)
+- Professional NAB-styled UI components
+- D3.js visualisation foundation (career pathways)
+- Business context database with comprehensive job/skills/position data
+
+**Current Implementation Status:**
+- ✅ UI Framework & Component Library (8.2.2) - **COMPLETED**
+- ✅ Workforce Intelligence Core (8.2.3) - **COMPLETED**
+- 📋 Transition Pathways Analysis (8.2.4) - **NEXT PRIORITY**
+- 📋 Strategic Reports Generator (8.2.5) - **PLANNED**
+- 📋 Documentation & Methodology Transparency (8.2.6) - **PLANNED**
 
 **8.2.2 User Interface Foundation** ✅ **COMPLETED**  
 **Branch: `8.2.2-feature/webapp-foundation/ui-framework`**
@@ -423,67 +433,152 @@ This phase builds a professional Flask webapp that queries the SQLite business c
   - [x] Add button components with consistent styling ✅ **COMPLETED**
   - [x] Create loading spinners and progress indicators ✅ **COMPLETED**
 
-**8.2.3 Core Job Similarity Functionality** 📋 **PLANNED**
-**Branch: `8.2.3-feature/webapp-foundation/similarity-queries`**
+**8.2.3 Workforce Intelligence Core** ✅ **COMPLETED**
+**Branch: `8.2.3-feature/webapp-foundation/workforce-intelligence`**
 
-- [ ] **Job Search & Selection Interface**
-  - [ ] Create job search autocomplete using JobProfile data
-  - [ ] Implement job filtering by JobFamily, Business Unit, Career Level
-  - [ ] Add advanced filtering options (location, salary group)
-  - [ ] Create "Recently Viewed Jobs" functionality
-  - [ ] Build job comparison selection interface (multi-select)
+> **Strategic Focus**: *"As a Future Skills analyst, I need comprehensive workforce intelligence tools to assess role transitions and support strategic workforce planning decisions."*
 
-- [ ] **Similarity Results Display**
-  - [ ] Query job_similarities table for top matches
-  - [ ] Display similarity scores with visual indicators (progress bars)
-  - [ ] Show skill overlap summaries for each similar job
-  - [ ] Implement similarity threshold filtering
-  - [ ] Add sorting options (similarity score, alphabetical, job family)
+**Successfully Implemented Components** (in `components.html`):
 
-- [ ] **Job Details & Comparison**
-  - [ ] Create detailed job profile view with skills breakdown
-  - [ ] Implement side-by-side job comparison interface
-  - [ ] Show skill gaps and overlaps between selected jobs
-  - [ ] Display position count and business context
-  - [ ] Add links to related job families and progressions
+- [x] **Job Search & Discovery Interface** ✅ **COMPLETED**
+  - [x] Searchable multi-select dropdown for JobProfile selection with real-time filtering
+  - [x] Advanced filtering by Job Family, Division, Business Unit, Career Level, Location
+  - [x] Visual tag system for selected profiles with removal capability
+  - [x] Prevention of duplicates and validation requiring selections
+  - [x] 20 demo job profiles with realistic NAB data structure
+  - [x] Export functionality for search results
 
-- [ ] **Results Export & Sharing**
-  - [ ] Export similarity results to CSV for further analysis
-  - [ ] Generate shareable URLs for specific job comparisons
-  - [ ] Create printable summary reports
-  - [ ] Add email sharing functionality for results
-  - [ ] Save user queries and favourite comparisons
+- [x] **Strategic Job Analysis Results Display** ✅ **COMPLETED**
+  - [x] Aggregated position deployment view by Division + Business Unit combination
+  - [x] Position counts showing actual workforce deployment (e.g., "8 positions")
+  - [x] Location spread with geographic codes (e.g., "MEL(5), SYD(2), BNE(1)")
+  - [x] Strategic organizational deployment context for workforce planning
+  - [x] "View Positions" action for detailed drill-down capability
+  - [x] "Find Similar" action for similarity analysis integration
 
-**8.2.4 Career Pathway Explorer** 📋 **PLANNED**
+- [x] **Enhanced Filtering & Business Intelligence** ✅ **COMPLETED**
+  - [x] Separate Division filter (Business & Private Banking, Corporate & Institutional Banking, etc.)
+  - [x] Separate Business Unit filter (Group Technology, Business Banking, etc.)
+  - [x] Hierarchical filtering allowing Division→Business Unit drill-down
+  - [x] Min similarity threshold controls for analysis precision
+  - [x] Maximum results limiting for focused analysis
+
+- [x] **Methodology Transparency & Strategic Context** ✅ **COMPLETED**
+  - [x] Info icon tooltips explaining calculation methodologies
+  - [x] Strategic language appropriate for Future Skills team
+  - [x] Professional NAB-styled interface with consistent branding
+  - [x] Clear data source indicators and methodology transparency
+  - [x] Export capabilities for further strategic analysis
+
+**Strategic Value Delivered**: 
+The implementation transforms the tool from a job catalogue to genuine strategic workforce intelligence, answering real business questions like "If we sunset this role, how many people are affected and where?" The aggregated position data shows actual organizational deployment patterns, enabling informed workforce planning decisions about capability concentration, redeployment opportunities, and impact assessment for organizational changes.
+
+**8.2.4 Career Pathway Explorer** ✅ **LARGELY COMPLETE** 
 **Branch: `8.2.4-feature/webapp-foundation/career-pathways`**
 
-- [ ] **Pathway Discovery Engine**
-  - [ ] Implement multi-hop pathway queries (depth 2-4)
-  - [ ] Create pathway ranking algorithm based on similarity scores
-  - [ ] Add career progression logic (junior → senior roles)
-  - [ ] Filter pathways by business unit and job family
-  - [ ] Cache frequently accessed pathway combinations
+> **User Story Focus**: *"As a Risk Analyst, I want to see visual career pathways showing how I can progress to different roles over time, with clear skills development requirements."*
 
-- [ ] **Interactive Pathway Interface**
-  - [ ] Build "Start from current role" pathway explorer
-  - [ ] Create "Find paths to target role" reverse search
-  - [ ] Implement pathway filtering by timeframe/difficulty
-  - [ ] Add geographic mobility filtering for pathways
-  - [ ] Show skill development requirements for each step
+**🚀 MAJOR BREAKTHROUGH**: Replaced on-the-fly computation with **pre-computed career pathways** (8,580 relationships), solving the 714→3→2→1 performance limitation and enabling deep pathway exploration with real-time responsiveness.
 
-- [ ] **Pathway Visualisation**
-  - [ ] Create pathway tree/flowchart visualisation
-  - [ ] Show similarity strength between pathway steps
-  - [ ] Highlight recommended vs alternative pathways
-  - [ ] Add interactive pathway exploration (click to drill down)
+**Architectural Achievement**: Complete pipeline from similarity matrix generation → career pathway pre-computation → SQLite database integration, ready for webapp consumption.
+
+**✅ COMPLETED ACHIEVEMENTS:**
+
+- [x] **Pre-Computed Career Pathway Engine** 
+  - [x] Fixed similarity calculation algorithm (eliminated all-zero similarity bug)
+  - [x] Integrated job-skill mapping data (40,170 relationships) for accurate similarities
+  - [x] Generated 8,580 pre-computed career pathway relationships (avg 12 per job)
+  - [x] Career move type classification: 74.4% progression, 25.6% lateral moves
+  - [x] Difficulty scoring and similarity ranking for all pathways
+  - **Performance Impact**: From on-the-fly limited computation → instant access to full relationship matrix
+
+- [x] **Complete Data Pipeline Infrastructure**
+  - [x] Chunked similarity matrix pre-computation with progress tracking
+  - [x] Career pathways generation with adaptive chunking and memory management
+  - [x] Parquet + CSV dual-format output for performance and compatibility
+  - [x] Date-based versioning system (models/2025-Q2/precompute_YYYYMMDD/)
+  - [x] SQLite database integration with 510,510 similarity pairs + 8,580 career pathways
+
+- [x] **Enhanced CLI User Experience**
+  - [x] Clean visual sections with emojis and progress indicators
+  - [x] Structured information display with thousands separators
+  - [x] Reduced log noise (WARNING level default) with meaningful user updates
+  - [x] Smart file path validation with automatic data/ prefix detection
+  - [x] Runtime estimation and memory usage monitoring
+
+**🎯 REMAINING WEBAPP INTEGRATION:**
+
+- [ ] **Interactive Career Tree Visualization** (`/career-pathways`) 
+  - [x] ~~Multi-hop pathway discovery~~ → **Pre-computed with 8,580 relationships**
+  - [x] ~~Pathway ranking algorithm~~ → **Completed: similarity_rank, difficulty_score**
+  - [ ] Enhance existing D3.js collapsible tree to consume pre-computed data
+  - [ ] Add colour-coded similarity strength using pre-computed scores
+  - [ ] Implement click-to-expand using career_pathways table
+  - **Database Ready**: `career_pathways` table with 8,580 relationships
+
+- [ ] **Webapp Query Integration** (Data Layer Complete)
+  - [x] ~~Create pathway ranking algorithm~~ → **Complete: ranking + move types**
+  - [x] ~~Career progression logic~~ → **Complete: lateral vs. progression classification**
+  - [ ] Connect webapp queries to pre-computed career_pathways table
+  - [ ] Implement geographic/division filtering using positions table
+  - [ ] Add real-time pathway exploration (data pre-computed, just need UI)
+
+- [ ] **Filter Panel UI Improvements**
+  - [ ] Restructure filter panel with 3-column layout for sliders
+  - [ ] Make filter panel collapsible for better screen real estate
+  - [ ] Remove Job Families dropdown (simplify interface)
+  - [ ] Arrange similarity, depth, and [third slider] side by side
+  - [ ] Add expand/collapse animation for smooth user experience
+
+- [ ] **Advanced Pathway Intelligence Features**
+  - [ ] Alternative vs. recommended pathway highlighting in tree visualization
+  - [ ] Geographic mobility filtering using positions table (Location, Division)
+  - [ ] Career progression detection (junior → senior role logic using job levels)
+  - [ ] Pathway categorization (direct, bridge roles, long-term progression)
+  - [ ] Click-to-expand pathway exploration with detailed transition info
+
+- [ ] **Skills Development Roadmaps** (`/career-pathways/roadmap`)
+  - [x] ~~Calculate skills gaps~~ → **Pre-computed: shared_skills_count per pathway**
+  - [x] ~~Skills importance analysis~~ → **Complete: 40,170 job-skill mappings integrated**
+  - [ ] Connect webapp to job_skills table for gap visualization  
+  - [ ] Create timeline view using pre-computed difficulty_score progression
+  - [ ] Add milestone markers based on similarity_rank thresholds
+  - [ ] Show skill adjacencies and prerequisites using skill category data
+  - [ ] Create learning pathway recommendations based on skill gaps
+  - [ ] Progress tracking interface for skill development journey
+  - [ ] Achievement badges for pathway progression milestones
+  - **Database Ready**: Job-skill mappings + career pathways + skills categories
+
+- [ ] **Enhanced Pathway Visualisation** (Foundation Complete)
+  - [x] ~~Pathway data preparation~~ → **Complete: 8,580 relationships with similarity scores**
+  - [x] ~~Similarity strength calculation~~ → **Complete: similarity_score + difficulty_score**
+  - [ ] Update D3.js visualization to consume pre-computed data
+  - [ ] Add pathway strength color-coding using existing similarity_score
+  - [ ] Implement collapsible tree nodes for better navigation
+  - [ ] Add hover tooltips showing transition details (similarity, skills overlap)
   - [ ] Export pathway diagrams for presentations
+  - [ ] Integration with job comparison tool from 8.2.3
 
-- [ ] **Skills Gap Analysis per Pathway**
-  - [ ] Calculate skill gaps for each pathway step
-  - [ ] Prioritise skills by importance and transferability
-  - [ ] Show estimated learning effort for skill development
-  - [ ] Recommend skill adjacencies and prerequisites
-  - [ ] Create personalised skill development roadmaps
+- [ ] **User Experience & Interface Polish**
+  - [ ] Add loading indicators for tree generation and data fetching
+  - [ ] Implement smooth animations for tree expansion/collapse
+  - [ ] Create breadcrumb navigation for deep pathway exploration
+  - [ ] Add pathway saving/bookmarking functionality for strategic analysis
+  - [ ] Mobile-responsive design for tablet access
+
+- [ ] **Context-Aware Selection Details Table**
+  - [ ] Create table component showing details of clicked nodes from tree diagram
+  - [ ] Display job information (title, family, division, position counts) for selected pathways
+  - [ ] Show transition details (similarity score, shared skills, difficulty score, move type)
+  - [ ] Use similar styling to existing 'Strategic Job Analysis Results' component
+  - [ ] Update table content dynamically based on tree diagram selections
+  - [ ] Include export functionality for selected pathway details
+
+**🎯 STRATEGIC IMPACT**: This breakthrough eliminates the fundamental scalability constraint that limited career pathway exploration to 3→2→1 relationships. The system now provides instant access to comprehensive career intelligence with 8,580 pre-computed relationships, enabling real strategic workforce planning conversations about redeployment, capability development, and organizational resilience.
+
+**Next Phase Focus**: With the data foundation complete, remaining work is primarily webapp integration and user experience enhancement. The heavy computational work is done - now it's about presenting the insights effectively.
+
+---
 
 **8.2.5 White Paper Generation System** 📋 **PLANNED**
 **Branch: `8.2.5-feature/webapp-foundation/white-papers`**
@@ -516,29 +611,38 @@ This phase builds a professional Flask webapp that queries the SQLite business c
   - [ ] Generate PowerPoint slides for presentations
   - [ ] Add email integration for automatic report distribution
 
-**8.2.6 Data Analytics & Insights Dashboard** 📋 **PLANNED**
-**Branch: `8.2.6-feature/webapp-foundation/analytics-dashboard`**
+**8.2.6 Documentation & Methodology Transparency** 📋 **PLANNED**
+**Branch: `8.2.6-feature/webapp-foundation/documentation`**
 
-- [ ] **Usage Analytics & Reporting**
-  - [ ] Track most frequently searched jobs and pathways
-  - [ ] Monitor white paper generation patterns
-  - [ ] Analyse user behaviour and feature adoption
-  - [ ] Create admin dashboard for system insights
-  - [ ] Generate usage reports for stakeholders
+> **Strategic Imperative**: *"As a Future Skills strategist, I need complete transparency of methodology and data sources behind every analysis to ensure informed strategic decision-making and accountability."*
 
-- [ ] **Data Quality Monitoring**
-  - [ ] Display current data version and last update timestamp
-  - [ ] Show data coverage statistics (jobs, skills, positions)
-  - [ ] Monitor query performance and response times
-  - [ ] Alert on data quality issues or missing relationships
-  - [ ] Provide data refresh status and validation reports
+- [ ] **Comprehensive Documentation Portal** (`/documentation`)
+  - [ ] Complete methodology documentation for all similarity calculations
+  - [ ] Data source descriptions and quality assessments  
+  - [ ] Algorithm explanations with confidence measures and limitations
+  - [ ] System capabilities and recommended usage guidelines
+  - [ ] Version history and change logs for full transparency
 
-- [ ] **Business Intelligence Features**
-  - [ ] Create summary statistics for skill demand trends
-  - [ ] Show most common career transitions and success patterns
-  - [ ] Analyse skill gaps across business units and job families
-  - [ ] Generate workforce planning insights and recommendations
-  - [ ] Export analytics data for external reporting
+- [ ] **Universal Info Icon & Tooltip System**
+  - [ ] Info icon tooltips on every chart, graph, and data visualization
+  - [ ] Hover tooltips explaining calculation methodologies in plain language
+  - [ ] Quick methodology summaries for complex strategic analyses
+  - [ ] Direct links to detailed documentation sections from tooltips
+  - [ ] Data quality and confidence indicators on all outputs
+
+- [ ] **Strategic Decision Support Documentation**
+  - [ ] Interpretation guidelines for similarity scores and strategic recommendations
+  - [ ] Recommended confidence thresholds for different workforce decisions
+  - [ ] Case studies and example strategic applications
+  - [ ] Risk assessment frameworks for workforce transitions
+  - [ ] Best practices for communicating insights to leadership
+
+- [ ] **Calculation Audit Trails & Transparency**
+  - [ ] Detailed logs of all calculation inputs and parameters
+  - [ ] Reproducibility documentation for all strategic analyses  
+  - [ ] Version tracking for data sources and algorithm changes
+  - [ ] Change impact assessments when methodologies evolve
+  - [ ] Export capabilities for external validation and review
 
 **8.2.7 Deployment & User Experience** 📋 **PLANNED**
 **Branch: `8.2.7-feature/webapp-foundation/deployment`**

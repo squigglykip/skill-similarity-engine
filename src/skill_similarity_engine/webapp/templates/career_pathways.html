@@ -1,0 +1,1972 @@
+{% extends "base.html" %}
+
+{% block title %}Career Pathway Explorer - NAB Skills Intelligence Platform{% endblock %}
+
+{% block content %}
+<div class="bg-white min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
+                Career Pathway Explorer
+            </h1>
+            <p class="text-lg font-source text-gray-600">
+                Interactive career progression analysis for strategic workforce planning
+            </p>
+        </div>
+
+        <!-- Step 1: Job Selection Panel -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 1: Select Starting Role</h2>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-blue-100 text-blue-800">
+                    Strategic Intelligence Tool
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Job Search -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        Search Job Profiles
+                    </label>
+                    <div class="relative">
+                        <input type="text" 
+                               id="pathway-job-search"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source"
+                               placeholder="e.g., Risk Analyst, Data Scientist..."
+                               autocomplete="off">
+                        
+                        <!-- Search Dropdown -->
+                        <div id="pathway-job-dropdown" 
+                             class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                            <!-- Results populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Job Family Filter -->
+                <div>
+                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        Job Family
+                    </label>
+                    <select id="pathway-family-filter" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source">
+                        <option value="">All Families</option>
+                        <!-- Options populated by JavaScript -->
+                    </select>
+                </div>
+                
+                <!-- Build Tree Action -->
+                <div class="flex items-end">
+                    <button id="build-pathway-tree" 
+                            class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200 w-full disabled:opacity-50"
+                            disabled>
+                        Build Career Tree
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Selected Jobs Display -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Selected Starting Role(s):</label>
+                    <button id="clear-pathway-jobs" class="text-xs text-red-600 hover:text-red-800 font-source font-medium">Clear All</button>
+                </div>
+                <div id="pathway-selected-jobs" class="min-h-[2rem] p-3 border border-gray-200 rounded-md bg-gray-50">
+                    <span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Career Pathway Visualization -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 2: Explore Career Pathways</h2>
+                <button id="refresh-pathway-tree" class="bg-blue-600 hover:bg-blue-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Refresh Tree
+                </button>
+            </div>
+            
+            <!-- Enhanced Tree Controls -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                <h4 class="text-sm font-epilogue font-medium text-gray-800 mb-3">Tree Parameters</h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Similarity Threshold Slider -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                Similarity Range:
+                            </label>
+                            <span id="pathway-similarity-value" class="text-sm font-source font-bold text-gray-900">20% - 99%</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            id="pathway-similarity-slider" 
+                            min="0" 
+                            max="95" 
+                            value="20" 
+                            step="5"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        >
+                        <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                            <span>0% - 99%</span>
+                            <span>95% - 99%</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Tree Depth Slider -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                Tree Depth:
+                            </label>
+                            <span id="pathway-depth-value" class="text-sm font-source font-bold text-gray-900">3 levels</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            id="pathway-depth-slider" 
+                            min="1" 
+                            max="7" 
+                            value="3" 
+                            step="1"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        >
+                        <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                            <span>1</span>
+                            <span>7</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Max Results per Level Slider -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                Max Results per Level:
+                            </label>
+                            <span id="pathway-max-results-value" class="text-sm font-source font-bold text-gray-900">3 jobs</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            id="pathway-max-results-slider" 
+                            min="1" 
+                            max="10" 
+                            value="3" 
+                            step="1"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        >
+                        <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                            <span>1</span>
+                            <span>10</span>
+                        </div>
+                    </div>
+
+                    <!-- Organizational Filters -->
+                    <div class="col-span-1 md:col-span-2 mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h4 class="text-xs font-source font-bold text-gray-700 uppercase tracking-wide mb-3">
+                            🏢 Organizational Filters
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <!-- Division Filter -->
+                            <div>
+                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                    Division:
+                                </label>
+                                <select id="pathway-division-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <option value="">All Divisions</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Business Unit Filter -->
+                            <div>
+                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                    Business Unit:
+                                </label>
+                                <select id="pathway-business-unit-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <option value="">All Business Units</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Location Filter -->
+                            <div>
+                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                    Location:
+                                </label>
+                                <select id="pathway-location-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <option value="">All Locations</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Region Filter -->
+                            <div>
+                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                    Region:
+                                </label>
+                                <select id="pathway-region-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <option value="">All Regions</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-xs text-gray-600 font-source">
+                    💡 <strong>Tip:</strong> Similarity range shows jobs between your threshold and 99%. Higher thresholds = closer matches. Deeper trees = more career progression options. Max results controls how many similar jobs appear under each parent (higher = more options but slower). Organizational filters limit results to specific divisions/locations.
+                </div>
+            </div>
+            
+            <!-- D3.js Tree Container -->
+            <div class="border border-gray-200 rounded-lg bg-gray-50 mb-4">
+                <!-- Tree Controls Bar -->
+                <div class="flex items-center justify-between p-3 bg-gray-100 border-b border-gray-200 rounded-t-lg">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Tree View:</span>
+                        <button id="fit-tree-btn" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            📐 Fit to View
+                        </button>
+                        <button id="reset-zoom-btn" class="text-xs bg-gray-600 hover:bg-gray-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            🔍 Reset Zoom
+                        </button>
+                        <button id="center-tree-btn" class="text-xs bg-green-600 hover:bg-green-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            🎯 Center Tree
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Tree State:</span>
+                        <button id="expand-all-btn" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            ⬇️ Expand All
+                        </button>
+                        <button id="collapse-all-btn" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            ⬆️ Collapse All
+                        </button>
+                    </div>
+                    <div class="text-xs font-source text-gray-600">
+                        💡 <strong>Tip:</strong> Pan with mouse drag, zoom with scroll wheel
+                    </div>
+                </div>
+                
+                <!-- Tree Canvas -->
+                <div id="career-pathway-tree" class="w-full bg-white relative" style="height: 600px; overflow: hidden;">
+                    <div class="flex items-center justify-center h-full text-gray-500">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                            </svg>
+                            <p class="text-lg font-source font-medium">Select a starting role above to explore career pathways</p>
+                            <p class="text-sm font-source text-gray-400 mt-1">Interactive tree will show similar roles and transition opportunities</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tree Legend -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-green-600 rounded-full"></div>
+                    <span class="font-source text-gray-700">Starting Role</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-red-600 rounded-full"></div>
+                    <span class="font-source text-gray-700">Career Options</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-4 h-1 bg-gray-400 rounded"></div>
+                    <span class="font-source text-gray-700">Similarity Connection</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-700 font-source">💡 Click connections to see skills gap analysis</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Skills Gap Analysis Panel -->
+        <div id="skills-analysis-panel" class="bg-white rounded-lg shadow-lg p-6 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 3: Skills Development Analysis</h2>
+                <button onclick="closeSkillsAnalysis()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Pathway Summary -->
+            <div id="pathway-summary" class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
+                <h3 class="text-md font-epilogue font-medium text-blue-900 mb-2">Career Transition Analysis</h3>
+                <div id="pathway-summary-content">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Skills Gap Table -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Skills Development Requirements</h3>
+                    <button onclick="showSkillsMethodology()" 
+                            class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
+                        How is this calculated? 
+                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Skills Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-green-600" id="skills-match-count">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills Match</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-orange-600" id="skills-develop-count">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills to Develop</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-blue-600" id="skills-transfer-count">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Transferable Skills</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-red-600" id="transition-viability">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Transition Viability</div>
+                    </div>
+                </div>
+                
+                <!-- Skills Breakdown Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                    Skill
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                    Category
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                    Development Priority
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="skills-breakdown-table" class="bg-white divide-y divide-gray-200">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Skills Methodology Modal -->
+<div id="skills-methodology-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Skills Analysis Methodology</h3>
+                <button onclick="closeSkillsMethodology()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-source font-medium text-gray-900 mb-2">Skills Analysis Calculation</h4>
+                        <p class="text-sm font-source text-gray-600">
+                            Skills gaps are calculated by comparing the required skills for the target role against the skills in the current role, using our comprehensive skills taxonomy from Lightcast.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="font-source font-medium text-gray-900 mb-2">Transition Viability</h4>
+                        <p class="text-sm font-source text-gray-600">
+                            Based on overall similarity score and skills overlap percentage. Higher scores indicate more viable transitions with existing skillsets.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="font-source font-medium text-gray-900 mb-2">Development Priority</h4>
+                        <p class="text-sm font-source text-gray-600">
+                            Skills are prioritized based on their importance to the target role and transferability from existing capabilities.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- D3.js for Interactive Visualizations -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+// Career Pathway Explorer JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Loading Career Pathway Explorer...');
+    
+    // Initialize components
+    initializeJobSearch();
+    initializeTreeControls();
+    initializeOrganizationalFilters();
+    
+    console.log('✅ Career Pathway Explorer loaded');
+});
+
+// Global Variables
+let selectedJobs = new Map(); // Use Map for better job management
+let treeData = null;
+let svg = null;
+let g = null;
+let tree = null;
+let root = null;
+let margin, width, height;
+let lastBuiltParameters = null;
+let lastBuiltTree = null;
+let i = 0;
+
+// Job Search Functionality
+function initializeJobSearch() {
+    const searchInput = document.getElementById('pathway-job-search');
+    const dropdown = document.getElementById('pathway-job-dropdown');
+    const selectedContainer = document.getElementById('pathway-selected-jobs');
+    const buildButton = document.getElementById('build-pathway-tree');
+    
+    let searchTimeout;
+    
+    // Search input handler
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length >= 2) {
+            searchTimeout = setTimeout(() => searchJobs(query), 300);
+        } else {
+            dropdown.classList.add('hidden');
+        }
+    });
+    
+    // Focus handler - show suggestions when focused
+    searchInput.addEventListener('focus', function() {
+        const query = this.value.trim();
+        if (query.length >= 2) {
+            searchJobs(query);
+        } else {
+            loadJobSuggestions();
+        }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+    
+    // Search jobs function
+    async function searchJobs(query) {
+        try {
+            const response = await fetch(`/api/search-all-jobs?q=${encodeURIComponent(query)}&limit=10`);
+            const jobs = await response.json();
+            displaySearchResults(jobs, 'Search Results');
+        } catch (error) {
+            console.error('Job search error:', error);
+            dropdown.classList.add('hidden');
+        }
+    }
+    
+    // Load job suggestions for focus
+    async function loadJobSuggestions() {
+        try {
+            const response = await fetch('/api/search-all-jobs?limit=8');
+            const jobs = await response.json();
+            displaySearchResults(jobs, 'Popular Jobs');
+        } catch (error) {
+            console.error('Failed to load job suggestions:', error);
+        }
+    }
+    
+    // Display search results
+    function displaySearchResults(jobs, headerText = 'Search Results') {
+        dropdown.innerHTML = '';
+        
+        if (jobs.length === 0) {
+            dropdown.innerHTML = `
+                <div class="p-3 text-center text-gray-500 text-sm font-source">
+                    No jobs found
+                </div>
+            `;
+        } else {
+            dropdown.innerHTML = `
+                <div class="p-2 border-b border-gray-200 bg-gray-50">
+                    <span class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">${headerText}</span>
+                </div>
+                ${jobs.map(job => `
+                    <div class="job-option p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedJobs.has(job.id) ? 'bg-blue-50 text-blue-800' : ''}" 
+                         data-job-id="${job.id}"
+                         onclick="selectJob(${JSON.stringify(job).replace(/"/g, '&quot;')})">
+                        <div class="font-source font-medium text-sm">${job.title}</div>
+                        <div class="font-source text-xs text-gray-600">${job.family}</div>
+                        ${selectedJobs.has(job.id) ? '<div class="text-xs text-blue-600 font-medium mt-1">✓ Selected</div>' : ''}
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        dropdown.classList.remove('hidden');
+    }
+    
+    // Select job function
+    function selectJob(job) {
+        if (!selectedJobs.has(job.id)) {
+            selectedJobs.set(job.id, job);
+            updateSelectedJobsDisplay();
+            updateBuildTreeButton();
+        }
+        
+        searchInput.value = '';
+        dropdown.classList.add('hidden');
+    }
+    
+    // Make selectJob available globally for onclick handlers
+    window.selectJob = selectJob;
+    
+    // Update selected jobs display
+    function updateSelectedJobsDisplay() {
+        if (selectedJobs.length === 0) {
+            selectedContainer.innerHTML = '<span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>';
+        } else {
+            selectedContainer.innerHTML = selectedJobs.map(job => `
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source bg-red-100 text-red-800">
+                    ${job.title}
+                    <button onclick="removeJob('${job.id}')" class="ml-2 text-red-600 hover:text-red-800">×</button>
+                </span>
+            `).join(' ');
+        }
+    }
+    
+    // Remove job function
+    window.removeJob = function(jobId) {
+        selectedJobs.delete(jobId);
+        updateSelectedJobsDisplay();
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+        
+        if (selectedJobs.size === 0) {
+            clearCareerTree();
+        }
+    };
+    
+    // Clear all jobs
+    document.getElementById('clear-pathway-jobs').addEventListener('click', function() {
+        selectedJobs.clear();
+        updateSelectedJobsDisplay();
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+        clearCareerTree();
+    });
+    
+    // Build tree button
+    buildButton.addEventListener('click', buildCareerPathwayTree);
+    
+    // Update selected jobs display
+    function updateSelectedJobsDisplay() {
+        if (selectedJobs.size === 0) {
+            selectedContainer.innerHTML = '<span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>';
+        } else {
+            selectedContainer.innerHTML = Array.from(selectedJobs.values()).map(job => `
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source bg-red-100 text-red-800 mr-2 mb-2">
+                    ${job.title}
+                    <button onclick="removeJob('${job.id}')" class="ml-2 text-red-600 hover:text-red-800">×</button>
+                </span>
+            `).join('');
+        }
+    }
+    
+    // Store selected jobs globally for tree building
+    window.getSelectedJobs = () => Array.from(selectedJobs.values());
+}
+
+// Update build tree button state (moved to global scope)
+function updateBuildTreeButton() {
+    const buildButton = document.getElementById('build-pathway-tree');
+    const hasJobs = selectedJobs.size > 0;
+    
+    if (!buildButton) return;
+    
+    buildButton.disabled = !hasJobs;
+    
+    if (!hasJobs) {
+        buildButton.textContent = 'Build Tree';
+        buildButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        buildButton.classList.add('bg-red-600', 'hover:bg-red-700');
+    } else {
+        buildButton.textContent = `Build Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})`;
+        buildButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        buildButton.classList.add('bg-red-600', 'hover:bg-red-700');
+    }
+}
+
+// Update refresh tree button state
+function updateRefreshTreeButton() {
+    const refreshButton = document.getElementById('refresh-pathway-tree');
+    const hasJobs = selectedJobs.size > 0;
+    const hasBuiltTree = lastBuiltTree !== null;
+    
+    if (!refreshButton) return;
+    
+    // Only enable if we have jobs AND a tree has been built
+    refreshButton.disabled = !hasJobs || !hasBuiltTree;
+    
+    if (!hasJobs || !hasBuiltTree) {
+        refreshButton.textContent = 'Refresh Tree';
+    } else {
+        // Check if parameters have changed since last build
+        const currentParams = getCurrentParameters();
+        const hasChanged = hasParametersChanged(currentParams);
+        
+        if (hasChanged) {
+            refreshButton.textContent = `Update Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})`;
+            refreshButton.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+            refreshButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            refreshButton.textContent = 'Tree Up to Date';
+            refreshButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            refreshButton.classList.add('bg-gray-400', 'hover:bg-gray-500');
+        }
+    }
+}
+
+    // Tree Controls
+function initializeTreeControls() {
+    const similaritySlider = document.getElementById('pathway-similarity-slider');
+    const similarityValue = document.getElementById('pathway-similarity-value');
+    const depthSlider = document.getElementById('pathway-depth-slider');
+    const depthValue = document.getElementById('pathway-depth-value');
+    const maxResultsSlider = document.getElementById('pathway-max-results-slider');
+    const maxResultsValue = document.getElementById('pathway-max-results-value');
+    const refreshButton = document.getElementById('refresh-pathway-tree');
+    
+    // Similarity slider handler
+    similaritySlider.addEventListener('input', function() {
+        const threshold = parseInt(this.value);
+        similarityValue.textContent = `${threshold}% - 99%`;
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+    });
+    
+    // Depth slider handler
+    depthSlider.addEventListener('input', function() {
+        const depth = parseInt(this.value);
+        depthValue.textContent = `${depth} level${depth !== 1 ? 's' : ''}`;
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+    });
+    
+    // Max Results slider handler
+    maxResultsSlider.addEventListener('input', function() {
+        const maxResults = parseInt(this.value);
+        maxResultsValue.textContent = `${maxResults} job${maxResults !== 1 ? 's' : ''}`;
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+    });
+    
+    // Refresh tree button handler
+    if (refreshButton) {
+        refreshButton.addEventListener('click', buildCareerPathwayTree);
+    }
+    
+    // Organizational filter handlers
+    const filters = ['pathway-division-filter', 'pathway-business-unit-filter', 'pathway-location-filter', 'pathway-region-filter'];
+    filters.forEach(filterId => {
+        const filterElement = document.getElementById(filterId);
+        if (filterElement) {
+            filterElement.addEventListener('change', function() {
+                updateBuildTreeButton();
+                updateRefreshTreeButton();
+            });
+        }
+    });
+    
+    // Also update when max_results slider changes
+    if (maxResultsSlider) {
+        maxResultsSlider.addEventListener('change', function() {
+            updateBuildTreeButton();
+            updateRefreshTreeButton();
+        });
+    }
+}
+
+// Get current parameters for comparison
+function getCurrentParameters() {
+    const similaritySlider = document.getElementById('pathway-similarity-slider');
+    const depthSlider = document.getElementById('pathway-depth-slider');
+    const maxResultsSlider = document.getElementById('pathway-max-results-slider');
+    const divisionFilter = document.getElementById('pathway-division-filter');
+    const businessUnitFilter = document.getElementById('pathway-business-unit-filter');
+    const locationFilter = document.getElementById('pathway-location-filter');
+    const regionFilter = document.getElementById('pathway-region-filter');
+    
+    return {
+        jobs: Array.from(selectedJobs.keys()).sort(),
+        similarity: similaritySlider ? parseFloat(similaritySlider.value) / 100 : 0.2,
+        depth: depthSlider ? parseInt(depthSlider.value) : 3,
+        max_results: maxResultsSlider ? parseInt(maxResultsSlider.value) : 3,
+        division: divisionFilter ? divisionFilter.value : '',
+        business_unit: businessUnitFilter ? businessUnitFilter.value : '',
+        location: locationFilter ? locationFilter.value : '',
+        region: regionFilter ? regionFilter.value : ''
+    };
+}
+
+// Check if parameters have changed
+function hasParametersChanged(currentParams) {
+    if (!lastBuiltParameters) return false;
+    return JSON.stringify(currentParams) !== JSON.stringify(lastBuiltParameters);
+}
+
+// Initialize organizational filters
+async function initializeOrganizationalFilters() {
+    try {
+        // Load organizational data to populate dropdowns
+        const response = await fetch('/api/organizational-data');
+        const data = await response.json();
+        
+        // Populate Division dropdown
+        const divisionSelect = document.getElementById('pathway-division-filter');
+        if (divisionSelect && data.divisions) {
+            data.divisions.forEach(division => {
+                const option = document.createElement('option');
+                option.value = division;
+                option.textContent = division;
+                divisionSelect.appendChild(option);
+            });
+        }
+        
+        // Populate Business Unit dropdown
+        const businessUnitSelect = document.getElementById('pathway-business-unit-filter');
+        if (businessUnitSelect && data.business_units) {
+            data.business_units.forEach(businessUnit => {
+                const option = document.createElement('option');
+                option.value = businessUnit;
+                option.textContent = businessUnit;
+                businessUnitSelect.appendChild(option);
+            });
+        }
+        
+        // Populate Location dropdown
+        const locationSelect = document.getElementById('pathway-location-filter');
+        if (locationSelect && data.locations) {
+            data.locations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                locationSelect.appendChild(option);
+            });
+        }
+        
+        // Populate Region dropdown
+        const regionSelect = document.getElementById('pathway-region-filter');
+        if (regionSelect && data.regions) {
+            data.regions.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region;
+                option.textContent = region;
+                regionSelect.appendChild(option);
+            });
+        }
+        
+        console.log('✅ Organizational filters initialized');
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize organizational filters:', error);
+    }
+}
+
+// Load job families
+async function loadJobFamilies() {
+    try {
+        const response = await fetch('/api/job-families');
+        const families = await response.json();
+        
+        const select = document.getElementById('pathway-family-filter');
+        families.forEach(family => {
+            const option = document.createElement('option');
+            option.value = family.name;
+            option.textContent = family.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading job families:', error);
+    }
+}
+
+// Build career pathway tree
+async function buildCareerPathwayTree() {
+    const currentParams = getCurrentParameters();
+    const jobIds = currentParams.jobs;
+    const similarity = currentParams.similarity;
+    const depth = currentParams.depth;
+    
+    console.log('🌳 Building career pathway tree for:', Array.from(selectedJobs.values()));
+    
+    // Check for potentially expensive queries and warn user
+    if (await isExpensiveQuery(currentParams)) {
+        const proceed = await showExpensiveQueryWarning(currentParams);
+        if (!proceed) {
+            return; // User cancelled
+        }
+    }
+    
+    const treeContainer = document.getElementById('career-pathway-tree');
+    
+    // Build organizational filter parameters
+    const filters = [];
+    if (currentParams.division) filters.push(`division=${encodeURIComponent(currentParams.division)}`);
+    if (currentParams.business_unit) filters.push(`business_unit=${encodeURIComponent(currentParams.business_unit)}`);
+    if (currentParams.location) filters.push(`location=${encodeURIComponent(currentParams.location)}`);
+    if (currentParams.region) filters.push(`region=${encodeURIComponent(currentParams.region)}`);
+    const filterString = filters.length > 0 ? '&' + filters.join('&') : '';
+    
+    // Show building indicator
+    const button = document.getElementById('build-pathway-tree');
+    const originalText = button.textContent;
+    button.textContent = 'Building Tree...';
+    button.disabled = true;
+    
+    // Clear existing tree
+    treeContainer.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-gray-500">Loading career pathways...</div></div>';
+    
+    try {
+        console.log(`🌳 Calling API with jobs: ${jobIds.join(',')}, similarity: ${similarity}, depth: ${depth}, max_results: ${currentParams.max_results}`);
+        if (filters.length > 0) {
+            console.log(`🔍 With organizational filters: ${filters.join(', ')}`);
+        }
+        
+        // Use the same working API as components.html
+        const response = await fetch(`/api/d3-tree-data?jobs=${jobIds.join(',')}&similarity=${similarity}&depth=${depth}&max_results=${currentParams.max_results}${filterString}`);
+        const data = await response.json();
+        
+        console.log('🌳 API response:', data);
+        
+        if (!data.success) {
+            console.error('❌ API Error:', data.error);
+            treeContainer.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-red-500">Error: ' + data.error + '</div></div>';
+            return;
+        }
+        
+        treeData = data.tree;
+        lastBuiltTree = data.tree;
+        lastBuiltParameters = currentParams;
+        
+        // Build D3.js tree visualization with real data
+        buildD3Tree(data, treeContainer);
+        
+        console.log(`✅ Career tree built: ${data.total_nodes} nodes across ${depth} levels`);
+        
+        // Show tree status
+        showTreeStatus(data);
+        
+        // Update button states
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+        
+    } catch (error) {
+        console.error('Error building career tree:', error);
+        treeContainer.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-red-500">Error loading career pathways</div></div>';
+    } finally {
+        // Re-enable button
+        button.disabled = selectedJobs.size === 0;
+    }
+}
+
+// Show tree status
+function showTreeStatus(data) {
+    const container = document.querySelector('#career-pathway-tree').parentElement;
+    let statusElement = container.querySelector('.tree-status');
+    
+    if (statusElement) {
+        statusElement.remove();
+    }
+    
+    statusElement = document.createElement('div');
+    statusElement.className = 'tree-status bg-green-50 border border-green-200 rounded-md p-3 mb-4';
+    statusElement.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+            </svg>
+            <span class="text-sm font-source text-green-800">
+                <strong>Tree Built:</strong> ${data.selected_jobs.length} starting job${data.selected_jobs.length !== 1 ? 's' : ''}, 
+                ${Math.round(data.similarity_threshold * 100)}% similarity threshold, 
+                ${data.max_depth} level${data.max_depth !== 1 ? 's' : ''} deep 
+                (${data.total_nodes} total nodes)
+            </span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-green-600 hover:text-green-800">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    container.insertBefore(statusElement, container.querySelector('.border.border-gray-200.rounded-lg'));
+}
+
+// D3.js Interactive Collapsible Tree
+let pathwayTreeData = null;
+let pathwaySvg = null;
+let pathwayG = null;
+let pathwayTree = null;
+let pathwayRoot = null;
+let pathwayMargin, pathwayWidth, pathwayHeight;
+let pathwayI = 0;
+
+// Calculate the total height of a node including text and match indicators
+function calculateNodeHeight(nodeData) {
+    // Base height for the circle and padding
+    let totalHeight = 40; // Base node circle area
+    
+    // Add height for job title (assume 2-3 lines on average for wrapped text)
+    const titleLength = nodeData.name ? nodeData.name.length : 20;
+    const estimatedLines = Math.max(1, Math.ceil(titleLength / 20)); // Rough estimate of wrapped lines
+    totalHeight += estimatedLines * 15; // 15px per line height
+    
+    // Add significant height for match indicators if present
+    if (nodeData.type === 'similar_job' && nodeData.similarity_score > 0) {
+        totalHeight += 25; // Height for match indicator text
+    }
+    
+    return totalHeight;
+}
+
+function buildD3Tree(data, container) {
+    console.log('🌳 Building D3.js interactive tree...');
+    
+    // Store the tree data
+    pathwayTreeData = data.tree;
+    
+    if (!pathwayTreeData) {
+        container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-gray-500">No tree data available</div></div>';
+        return;
+    }
+    
+    // Set up SVG dimensions
+    const containerNode = container;
+    const containerRect = containerNode.getBoundingClientRect();
+    
+    pathwayMargin = { top: 40, right: 120, bottom: 40, left: 120 };
+    const containerWidth = containerRect.width || 800;
+    const containerHeight = 600;
+    
+    // Create much larger virtual canvas for tree with generous spacing
+    const virtualWidth = Math.max(2000, containerWidth * 3); // Even wider for horizontal spacing
+    const virtualHeight = Math.max(2000, containerHeight * 4); // Much taller for vertical spacing
+    
+    pathwayWidth = virtualWidth - pathwayMargin.left - pathwayMargin.right;
+    pathwayHeight = virtualHeight - pathwayMargin.top - pathwayMargin.bottom;
+    
+    // Clear any existing content
+    container.innerHTML = '';
+    
+    // Create SVG with zoom and pan capabilities
+    pathwaySvg = d3.select(container)
+        .append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight)
+        .style("cursor", "grab");
+    
+    // Create zoom behavior
+    const zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on("zoom", function(event) {
+            pathwayG.attr("transform", event.transform);
+        });
+    
+    pathwaySvg.call(zoom);
+    
+    // Store zoom behavior for controls
+    pathwaySvg.zoom = zoom;
+    
+    // Create main group for tree content
+    pathwayG = pathwaySvg.append("g")
+        .attr("transform", `translate(${pathwayMargin.left},${pathwayMargin.top})`);
+    
+    // Create tree layout with content-aware vertical spacing
+    pathwayTree = d3.tree()
+        .size([pathwayHeight, pathwayWidth])
+        .separation((a, b) => {
+            // Calculate content-aware spacing
+            const aHeight = calculateNodeHeight(a.data);
+            const bHeight = calculateNodeHeight(b.data);
+            
+            // Base spacing multiplier
+            const baseMultiplier = a.parent == b.parent ? 0.4 : 0.5;
+            
+            // Calculate spacing based on actual content height
+            const contentBasedSpacing = (aHeight + bHeight) * baseMultiplier / 10; // Convert to D3 units
+            
+            // Minimum spacing to prevent any overlap
+            const minimumSpacing = 8;
+            
+            // Extra spacing for match indicators
+            const hasMatchIndicators = (node) => node.data.type === 'similar_job' && node.data.similarity_score > 0;
+            const matchIndicatorBonus = (hasMatchIndicators(a) || hasMatchIndicators(b)) ? 4 : 0;
+            
+            const finalSpacing = Math.max(minimumSpacing, contentBasedSpacing) + matchIndicatorBonus;
+            
+            return finalSpacing;
+        });
+    
+    // Initialize tree controls
+    initializeTreeViewControls();
+    
+    // Initialize and update the tree
+    updatePathwayTree();
+    
+    // Apply post-layout spacing adjustments
+    setTimeout(() => {
+        adjustNodeSpacing();
+    }, 100);
+    
+    // Auto-fit tree after initial render
+    setTimeout(() => {
+        fitTreeToView();
+    }, 100);
+}
+
+// Initialize tree view control buttons
+function initializeTreeViewControls() {
+    const fitBtn = document.getElementById('fit-tree-btn');
+    const resetBtn = document.getElementById('reset-zoom-btn');
+    const centerBtn = document.getElementById('center-tree-btn');
+    const expandAllBtn = document.getElementById('expand-all-btn');
+    const collapseAllBtn = document.getElementById('collapse-all-btn');
+    
+    if (fitBtn) {
+        fitBtn.addEventListener('click', fitTreeToView);
+    }
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetZoom);
+    }
+    
+    if (centerBtn) {
+        centerBtn.addEventListener('click', centerTree);
+    }
+    
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', expandAllNodes);
+    }
+    
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', collapseAllNodes);
+    }
+}
+
+// Fit tree to view
+function fitTreeToView() {
+    if (!pathwaySvg || !pathwayG) return;
+    
+    try {
+        // Get bounding box of all tree content
+        const bounds = pathwayG.node().getBBox();
+        const containerRect = pathwaySvg.node().getBoundingClientRect();
+        
+        // Calculate scale to fit content
+        const padding = 50;
+        const scaleX = (containerRect.width - padding * 2) / bounds.width;
+        const scaleY = (containerRect.height - padding * 2) / bounds.height;
+        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond 100%
+        
+        // Calculate center position
+        const centerX = containerRect.width / 2;
+        const centerY = containerRect.height / 2;
+        const x = centerX - (bounds.x + bounds.width / 2) * scale;
+        const y = centerY - (bounds.y + bounds.height / 2) * scale;
+        
+        // Apply transform with smooth transition
+        pathwaySvg.transition()
+            .duration(750)
+            .call(
+                pathwaySvg.zoom.transform,
+                d3.zoomIdentity.translate(x, y).scale(scale)
+            );
+    } catch (error) {
+        console.warn('Could not fit tree to view:', error);
+        resetZoom();
+    }
+}
+
+// Reset zoom to default
+function resetZoom() {
+    if (!pathwaySvg) return;
+    
+    pathwaySvg.transition()
+        .duration(500)
+        .call(
+            pathwaySvg.zoom.transform,
+            d3.zoomIdentity
+        );
+}
+
+// Center tree in view
+function centerTree() {
+    if (!pathwaySvg || !pathwayG) return;
+    
+    try {
+        const bounds = pathwayG.node().getBBox();
+        const containerRect = pathwaySvg.node().getBoundingClientRect();
+        
+        const centerX = containerRect.width / 2;
+        const centerY = containerRect.height / 2;
+        const x = centerX - (bounds.x + bounds.width / 2);
+        const y = centerY - (bounds.y + bounds.height / 2);
+        
+        pathwaySvg.transition()
+            .duration(500)
+            .call(
+                pathwaySvg.zoom.transform,
+                d3.zoomIdentity.translate(x, y)
+            );
+    } catch (error) {
+        console.warn('Could not center tree:', error);
+    }
+}
+
+// Expand all nodes in the tree
+function expandAllNodes() {
+    if (!pathwayRoot) {
+        console.warn('No tree root available for expansion');
+        return;
+    }
+    
+    console.log('⬇️ Expanding all tree nodes...');
+    
+    // Show loading indicator on button
+    const expandBtn = document.getElementById('expand-all-btn');
+    const originalText = expandBtn ? expandBtn.textContent : '';
+    if (expandBtn) {
+        expandBtn.textContent = '⏳ Expanding...';
+        expandBtn.disabled = true;
+    }
+    
+    // Recursively expand all nodes
+    function expandNode(node) {
+        if (node._children) {
+            node.children = node._children;
+            node._children = null;
+        }
+        if (node.children) {
+            node.children.forEach(expandNode);
+        }
+    }
+    
+    // Start expansion from root
+    expandNode(pathwayRoot);
+    
+    // Update the visualization
+    updatePathwayNodes(pathwayRoot);
+    
+    // Auto-fit the expanded tree after a brief delay
+    setTimeout(() => {
+        fitTreeToView();
+        
+        // Restore button state
+        if (expandBtn) {
+            expandBtn.textContent = originalText;
+            expandBtn.disabled = false;
+        }
+        
+        console.log('✅ All nodes expanded and tree fitted to view');
+    }, 1000);
+}
+
+// Collapse all nodes except the first level
+function collapseAllNodes() {
+    if (!pathwayRoot) {
+        console.warn('No tree root available for collapsing');
+        return;
+    }
+    
+    console.log('⬆️ Collapsing all tree nodes...');
+    
+    // Show loading indicator on button
+    const collapseBtn = document.getElementById('collapse-all-btn');
+    const originalText = collapseBtn ? collapseBtn.textContent : '';
+    if (collapseBtn) {
+        collapseBtn.textContent = '⏳ Collapsing...';
+        collapseBtn.disabled = true;
+    }
+    
+    // Collapse all nodes except root and first level
+    function collapseNodeRecursively(node) {
+        if (node.children) {
+            node._children = node.children;
+            node.children = null;
+            if (node._children) {
+                node._children.forEach(collapseNodeRecursively);
+            }
+        }
+    }
+    
+    // Keep root and first level expanded, collapse everything else
+    if (pathwayRoot.children) {
+        pathwayRoot.children.forEach(child => {
+            if (child.children) {
+                child.children.forEach(collapseNodeRecursively);
+            }
+        });
+    }
+    
+    // Update the visualization
+    updatePathwayNodes(pathwayRoot);
+    
+    // Auto-fit the collapsed tree after a brief delay
+    setTimeout(() => {
+        fitTreeToView();
+        
+        // Restore button state
+        if (collapseBtn) {
+            collapseBtn.textContent = originalText;
+            collapseBtn.disabled = false;
+        }
+        
+        console.log('✅ All nodes collapsed and tree fitted to view');
+    }, 750);
+}
+
+function updatePathwayTree() {
+    if (!pathwayTreeData) return;
+    
+    console.log('🎨 Updating pathway tree visualization...');
+    
+    // Clear existing tree
+    pathwayG.selectAll("*").remove();
+    
+    // Reset global counter
+    pathwayI = 0;
+    
+    // Create hierarchy
+    pathwayRoot = d3.hierarchy(pathwayTreeData, d => d.children);
+    pathwayRoot.x0 = pathwayHeight / 2;
+    pathwayRoot.y0 = 0;
+    
+    // Give each node a unique ID
+    pathwayRoot.descendants().forEach((d, index) => {
+        d.id = d.data.id || `pathway-node-${index}`;
+    });
+    
+    // Collapse all children initially except first level
+    if (pathwayRoot.children) {
+        pathwayRoot.children.forEach(collapsePathwayNode);
+    }
+    
+    updatePathwayNodes(pathwayRoot);
+}
+
+function updatePathwayNodes(source) {
+    const duration = 750;
+    
+    // Compute the tree layout
+    const treeData = pathwayTree(pathwayRoot);
+    const nodes = treeData.descendants();
+    const links = treeData.descendants().slice(1);
+    
+    // Normalize for dynamic depth spacing with extra room for wrapped text
+    const maxDepth = Math.max(...nodes.map(d => d.depth));
+    const baseSpacing = Math.max(280, pathwayWidth / (maxDepth + 1)); // Increased from 200 to 280
+    nodes.forEach(d => { 
+        d.y = d.depth * Math.min(baseSpacing, 350); // Increased cap from 250 to 350
+    });
+    
+    // ****************** Nodes section ***************************
+    
+    // Update the nodes
+    const node = pathwayG.selectAll('g.pathway-node')
+        .data(nodes, d => d.id);
+    
+    // Enter any new nodes at the parent's previous position
+    const nodeEnter = node.enter().append('g')
+        .attr('class', 'pathway-node')
+        .attr("transform", d => {
+            const x = source.x0 || pathwayHeight / 2;
+            const y = source.y0 || 0;
+            return `translate(${y},${x})`;
+        })
+        .on('click', clickPathwayNode)
+        .on('mouseover', showPathwayTooltip)
+        .on('mouseout', hidePathwayTooltip);
+    
+    // Add Circle for the nodes
+    nodeEnter.append('circle')
+        .attr('class', 'pathway-node-circle')
+        .attr('r', 1e-6)
+        .style("fill", d => d._children ? "#dc2626" : getPathwayNodeColor(d.data.type))
+        .style("stroke", "#333")
+        .style("stroke-width", "2px")
+        .style("cursor", "pointer");
+    
+    // Add labels for the nodes - include similarity % directly in node name
+    nodeEnter.append('text')
+        .attr("dy", "1.8em")
+        .attr("x", 0)
+        .attr("text-anchor", "middle")
+        .text(d => {
+            let displayName = d.data.name; // Don't truncate, let wrapping handle it
+            // Add similarity percentage directly to similar job names
+            if (d.data.type === 'similar_job' && d.data.similarity_score > 0) {
+                displayName += ` (${Math.round(d.data.similarity_score * 100)}%)`;
+            }
+            return displayName;
+        })
+        .style("font-family", "Source Sans Pro, sans-serif")
+        .style("font-size", "11px")
+        .style("fill", "#374151")
+        .style("cursor", "pointer")
+        .call(wrapText, 140); // Wider text wrapping area
+    
+    // Add similarity color indicators for similar jobs with much more spacing
+    nodeEnter.filter(d => d.data.type === 'similar_job' && d.data.similarity_score > 0)
+        .append('text')
+        .attr("dy", "6em") // Increased significantly to 6em to prevent overlap
+        .attr("x", 0)
+        .attr("text-anchor", "middle")
+        .text(d => {
+            const similarity = d.data.similarity_score;
+            if (similarity >= 0.8) return "🔴 High Match";
+            else if (similarity >= 0.7) return "🟠 Good Match";
+            else if (similarity >= 0.6) return "🟡 Fair Match";
+            else return "⚪ Low Match";
+        })
+        .style("font-family", "Source Sans Pro, sans-serif")
+        .style("font-size", "10px")
+        .style("font-weight", "bold")
+        .style("fill", d => getSimilarityColor(d.data.similarity_score));
+    
+    // UPDATE
+    const nodeUpdate = nodeEnter.merge(node);
+    
+    // Transition to the proper position for the node
+    nodeUpdate.transition()
+        .duration(duration)
+        .attr("transform", d => {
+            const x = d.x || 0;
+            const y = d.y || 0;
+            return `translate(${y},${x})`;
+        });
+    
+    // Update the node attributes and style
+    nodeUpdate.select('circle.pathway-node-circle')
+        .attr('r', d => getPathwayNodeSize(d.data))
+        .style("fill", d => d._children ? "#dc2626" : getPathwayNodeColor(d.data.type));
+    
+    // EXIT
+    const nodeExit = node.exit().transition()
+        .duration(duration)
+        .attr("transform", d => `translate(${source.y},${source.x})`)
+        .remove();
+    
+    nodeExit.select('circle')
+        .attr('r', 1e-6);
+    
+    nodeExit.select('text')
+        .style('fill-opacity', 1e-6);
+    
+    // ****************** Links section ***************************
+    
+    // Update the links
+    const link = pathwayG.selectAll('path.pathway-link')
+        .data(links, d => d.id);
+    
+    // Enter any new links at the parent's previous position
+    const linkEnter = link.enter().insert('path', "g")
+        .attr("class", "pathway-link")
+        .attr('d', d => {
+            const o = {x: source.x0, y: source.y0};
+            return diagonal(o, o);
+        })
+        .style("fill", "none")
+        .style("stroke", "#ccc")
+        .style("stroke-width", "2px");
+    
+    // UPDATE
+    const linkUpdate = linkEnter.merge(link);
+    
+    // Transition back to the parent element position
+    linkUpdate.transition()
+        .duration(duration)
+        .attr('d', d => diagonal(d, d.parent));
+    
+    // Remove any exiting links
+    const linkExit = link.exit().transition()
+        .duration(duration)
+        .attr('d', d => {
+            const o = {x: source.x, y: source.y};
+            return diagonal(o, o);
+        })
+        .remove();
+    
+    // Store the old positions for transition
+    nodes.forEach(d => {
+        d.x0 = d.x;
+        d.y0 = d.y;
+    });
+}
+
+// Creates a curved (diagonal) path from parent to the child nodes
+function diagonal(s, d) {
+    const path = `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+              ${(s.y + d.y) / 2} ${d.x},
+              ${d.y} ${d.x}`;
+    return path;
+}
+
+// Toggle children on click
+function clickPathwayNode(event, d) {
+    if (d.children) {
+        d._children = d.children;
+        d.children = null;
+    } else if (d._children) {
+        d.children = d._children;
+        d._children = null;
+    } else {
+        // No children to expand - show notification
+        console.log(`⚠️ Node has no children to expand`);
+        showNoMoreMatchesMessage(d);
+        
+        // Show skills analysis if it's a similar job
+        if (d.data.type === 'similar_job') {
+            showSkillsAnalysis(d.data);
+        }
+        return;
+    }
+    updatePathwayNodes(d);
+}
+
+// Check if query is potentially expensive
+async function isExpensiveQuery(params) {
+    // Define expensive query criteria
+    const hasNoOrgFilters = !params.division && !params.business_unit && !params.location && !params.region;
+    const isDeepTree = params.depth >= 5;
+    const isLowSimilarity = params.similarity <= 0.3;
+    const hasMultipleJobs = params.jobs.length > 1;
+    const hasHighMaxResults = params.max_results >= 6;
+    
+    // High risk: Deep tree + no filters + low similarity
+    if (isDeepTree && hasNoOrgFilters && isLowSimilarity) {
+        return true;
+    }
+    
+    // High risk: Deep tree + high max results + no filters
+    if (isDeepTree && hasHighMaxResults && hasNoOrgFilters) {
+        return true;
+    }
+    
+    // Medium-high risk: Very deep tree + no filters
+    if (params.depth >= 6 && hasNoOrgFilters) {
+        return true;
+    }
+    
+    // Medium-high risk: High max results + no filters + low similarity
+    if (hasHighMaxResults && hasNoOrgFilters && isLowSimilarity) {
+        return true;
+    }
+    
+    // Medium risk: Deep tree + multiple jobs + low similarity
+    if (isDeepTree && hasMultipleJobs && isLowSimilarity) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Show warning for expensive queries
+function showExpensiveQueryWarning(params) {
+    return new Promise((resolve) => {
+        // Calculate estimated complexity
+        const complexity = estimateQueryComplexity(params);
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-orange-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 14.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <h3 class="text-lg font-epilogue font-medium text-gray-900">Large Query Warning</h3>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4">
+                            <p class="text-sm font-source text-gray-700 mb-3">
+                                This query may take significantly longer to process due to:
+                            </p>
+                            <ul class="text-sm font-source text-gray-600 space-y-1 mb-4">
+                                ${params.depth >= 5 ? '<li>• <strong>Deep tree depth:</strong> ' + params.depth + ' levels (exponential growth)</li>' : ''}
+                                ${params.max_results >= 6 ? '<li>• <strong>High results per level:</strong> ' + params.max_results + ' jobs per parent (increases branching)</li>' : ''}
+                                ${params.similarity <= 0.3 ? '<li>• <strong>Low similarity threshold:</strong> ' + Math.round(params.similarity * 100) + '% (more matches)</li>' : ''}
+                                ${!params.division && !params.business_unit && !params.location && !params.region ? '<li>• <strong>No organizational filters:</strong> Searching across all divisions</li>' : ''}
+                                ${params.jobs.length > 1 ? '<li>• <strong>Multiple starting jobs:</strong> ' + params.jobs.length + ' jobs selected</li>' : ''}
+                            </ul>
+                            <div class="bg-orange-50 border border-orange-200 rounded-md p-3 mb-4">
+                                <p class="text-xs font-source text-orange-800">
+                                    <strong>Estimated complexity:</strong> ${complexity.level} 
+                                    (<span class="font-mono">${complexity.estimate}</span>)
+                                </p>
+                                <p class="text-xs font-source text-orange-700 mt-1">
+                                    Expected load time: ${complexity.timeEstimate}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-4">
+                            <p class="text-xs font-source text-blue-800">
+                                <strong>💡 Suggestions to improve performance:</strong>
+                            </p>
+                            <ul class="text-xs font-source text-blue-700 mt-1 space-y-1">
+                                ${params.depth >= 5 ? '<li>• Reduce tree depth to 3-4 levels</li>' : ''}
+                                ${params.max_results >= 6 ? '<li>• Reduce max results per level to 3-5</li>' : ''}
+                                ${params.similarity <= 0.3 ? '<li>• Increase similarity threshold to 40%+</li>' : ''}
+                                ${!params.division && !params.business_unit ? '<li>• Apply division or business unit filters</li>' : ''}
+                                ${params.jobs.length > 1 ? '<li>• Start with a single job, then explore others</li>' : ''}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-6 border-t border-gray-200">
+                        <button onclick="this.closest('.fixed').remove(); resolve(false);" 
+                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                            Cancel & Adjust Parameters
+                        </button>
+                        <button onclick="this.closest('.fixed').remove(); resolve(true);" 
+                                class="bg-orange-600 hover:bg-orange-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                            Proceed Anyway
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add event handlers with closure
+        const cancelBtn = modal.querySelector('button');
+        const proceedBtn = modal.querySelectorAll('button')[1];
+        
+        cancelBtn.onclick = () => {
+            modal.remove();
+            resolve(false);
+        };
+        
+        proceedBtn.onclick = () => {
+            modal.remove();
+            resolve(true);
+        };
+        
+        document.body.appendChild(modal);
+    });
+}
+
+// Estimate query complexity
+function estimateQueryComplexity(params) {
+    let score = 1;
+    
+    // Depth exponentially increases complexity (now with configurable max_results)
+    score *= Math.pow(params.max_results || 3, params.depth - 1);
+    
+    // Low similarity increases matches
+    if (params.similarity <= 0.2) score *= 4;
+    else if (params.similarity <= 0.3) score *= 2.5;
+    else if (params.similarity <= 0.4) score *= 1.5;
+    
+    // Multiple jobs multiply complexity
+    score *= params.jobs.length;
+    
+    // Higher max_results per level increases complexity
+    if (params.max_results >= 8) score *= 2;
+    else if (params.max_results >= 6) score *= 1.5;
+    
+    // No organizational filters increase scope
+    const hasOrgFilters = params.division || params.business_unit || params.location || params.region;
+    if (!hasOrgFilters) score *= 3;
+    
+    // Categorize complexity
+    if (score > 10000) {
+        return {
+            level: "🔴 Very High",
+            estimate: `~${Math.round(score / 1000)}K+ nodes`,
+            timeEstimate: "30+ seconds"
+        };
+    } else if (score > 5000) {
+        return {
+            level: "🟠 High", 
+            estimate: `~${Math.round(score / 1000)}K nodes`,
+            timeEstimate: "15-30 seconds"
+        };
+    } else if (score > 1000) {
+        return {
+            level: "🟡 Medium",
+            estimate: `~${Math.round(score)}+ nodes`,
+            timeEstimate: "5-15 seconds"
+        };
+    } else {
+        return {
+            level: "🟢 Low",
+            estimate: `~${Math.round(score)} nodes`,
+            timeEstimate: "2-5 seconds"
+        };
+    }
+}
+
+// Show notification when no more matches are available
+function showNoMoreMatchesMessage(node) {
+    // Get current similarity threshold
+    const similaritySlider = document.getElementById('pathway-similarity-slider');
+    const currentThreshold = similaritySlider ? parseInt(similaritySlider.value) : 20;
+    
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-md shadow-lg z-50 max-w-sm';
+    notification.innerHTML = `
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800">No More Career Paths</h3>
+                <p class="text-sm text-yellow-700 mt-1">
+                    No similar jobs found above ${currentThreshold}% similarity threshold.
+                    Try lowering the similarity range or increasing tree depth.
+                </p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-yellow-400 hover:text-yellow-600">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Collapse node and all children
+function collapsePathwayNode(d) {
+    if (d.children) {
+        d._children = d.children;
+        d._children.forEach(collapsePathwayNode);
+        d.children = null;
+    }
+}
+
+// Get node color based on type
+function getPathwayNodeColor(type) {
+    switch (type) {
+        case 'starting_job':
+        case 'root':
+            return '#16a34a'; // Green for starting jobs
+        case 'similar_job':
+            return '#dc2626'; // Red for similar jobs
+        case 'job':
+            return '#2563eb'; // Blue for regular jobs
+        default:
+            return '#6b7280'; // Gray for other types
+    }
+}
+
+// Get node size based on data
+function getPathwayNodeSize(data) {
+    if (data.type === 'starting_job' || data.type === 'root') {
+        return 8; // Larger for starting jobs
+    } else if (data.similarity_score && data.similarity_score > 0.8) {
+        return 7; // Larger for high similarity
+    } else {
+        return 6; // Standard size
+    }
+}
+
+// Get similarity color
+function getSimilarityColor(similarity) {
+    if (similarity >= 0.8) return '#dc2626'; // Red for high
+    else if (similarity >= 0.7) return '#ea580c'; // Orange for good
+    else if (similarity >= 0.6) return '#ca8a04'; // Yellow for fair
+    else return '#6b7280'; // Gray for low
+}
+
+// Truncate text for display
+function truncatePathwayText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + '...';
+}
+
+// Wrap text to fit within specified width with better spacing
+function wrapText(text, width) {
+    text.each(function() {
+        const textElement = d3.select(this);
+        const words = textElement.text().split(/\s+/).reverse();
+        let word;
+        let line = [];
+        let lineNumber = 0;
+        const lineHeight = 1.2; // Increased line height for better readability
+        const y = textElement.attr("y") || 0;
+        const dy = parseFloat(textElement.attr("dy")) || 0;
+        let tspan = textElement.text(null).append("tspan")
+            .attr("x", 0)
+            .attr("y", y)
+            .attr("dy", dy + "em");
+        
+        while (word = words.pop()) {
+            line.push(word);
+            tspan.text(line.join(" "));
+            if (tspan.node().getComputedTextLength() > width) {
+                line.pop();
+                tspan.text(line.join(" "));
+                line = [word];
+                tspan = textElement.append("tspan")
+                    .attr("x", 0)
+                    .attr("y", y)
+                    .attr("dy", ++lineNumber * lineHeight + dy + "em")
+                    .text(word);
+            }
+        }
+        
+        // Center multi-line text vertically by adjusting the first line
+        if (lineNumber > 0) {
+            const firstTspan = textElement.select("tspan");
+            const offset = -(lineNumber * lineHeight * 0.4); // Slightly reduced center adjustment to leave room for match indicators
+            firstTspan.attr("dy", (dy + offset) + "em");
+        }
+    });
+}
+
+// Tooltip functions
+function showPathwayTooltip(event, d) {
+    // TODO: Implement tooltip showing job details and similarity info
+}
+
+function hidePathwayTooltip() {
+    // TODO: Implement tooltip hiding
+}
+
+// Clear career tree
+function clearCareerTree() {
+    const treeContainer = document.getElementById('career-pathway-tree');
+    treeContainer.innerHTML = `
+        <div class="flex items-center justify-center h-full text-gray-500">
+            <div class="text-center">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <p class="text-lg font-source font-medium">Select a starting role above to explore career pathways</p>
+                <p class="text-sm font-source text-gray-400 mt-1">Interactive tree will show similar roles and transition opportunities</p>
+            </div>
+        </div>
+    `;
+    
+    // Remove any tree status
+    const statusElement = document.querySelector('.tree-status');
+    if (statusElement) {
+        statusElement.remove();
+    }
+}
+
+// Creates a curved (diagonal) path from parent to the child nodes
+function pathwayDiagonal(s, d) {
+    const path = `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+              ${(s.y + d.y) / 2} ${d.x},
+              ${d.y} ${d.x}`;
+    return path;
+}
+
+// Adjust node spacing to prevent overlap with content-aware spacing
+function adjustNodeSpacing() {
+    if (!pathwayRoot) return;
+    
+    console.log('🔧 Adjusting node spacing with content-aware calculations...');
+    
+    // Group nodes by depth level
+    const nodesByDepth = {};
+    pathwayRoot.descendants().forEach(node => {
+        if (!nodesByDepth[node.depth]) {
+            nodesByDepth[node.depth] = [];
+        }
+        nodesByDepth[node.depth].push(node);
+    });
+    
+    // Adjust spacing within each level
+    Object.keys(nodesByDepth).forEach(depth => {
+        const nodesAtDepth = nodesByDepth[depth];
+        if (nodesAtDepth.length <= 1) return;
+        
+        // Sort nodes by x position (vertical in D3 tree layout)
+        nodesAtDepth.sort((a, b) => a.x - b.x);
+        
+        // Adjust positions to prevent overlap
+        for (let i = 1; i < nodesAtDepth.length; i++) {
+            const currentNode = nodesAtDepth[i];
+            const previousNode = nodesAtDepth[i - 1];
+            
+            // Calculate required spacing based on content height
+            const currentHeight = calculateNodeHeight(currentNode.data);
+            const previousHeight = calculateNodeHeight(previousNode.data);
+            
+            // Minimum spacing = half of each node's height + buffer
+            const requiredSpacing = (currentHeight + previousHeight) / 2 + 30; // 30px buffer
+            
+            const currentSpacing = currentNode.x - previousNode.x;
+            if (currentSpacing < requiredSpacing) {
+                const adjustment = requiredSpacing - currentSpacing;
+                
+                console.log(`📏 Adjusting node spacing: required=${requiredSpacing.toFixed(1)}px, current=${currentSpacing.toFixed(1)}px, adjustment=${adjustment.toFixed(1)}px`);
+                
+                // Push all subsequent nodes down
+                for (let j = i; j < nodesAtDepth.length; j++) {
+                    nodesAtDepth[j].x += adjustment;
+                }
+            }
+        }
+    });
+    
+    // Re-render with adjusted positions
+    updatePathwayNodes(pathwayRoot);
+    
+    console.log('✅ Content-aware node spacing applied');
+}
+
+// Analyze skills gap
+window.analyzeSkillsGap = async function(sourceJob, targetJob) {
+    console.log('🔍 Analyzing skills gap:', sourceJob, '→', targetJob);
+    
+    const panel = document.getElementById('skills-analysis-panel');
+    panel.classList.remove('hidden');
+    
+    // Scroll to panel
+    panel.scrollIntoView({ behavior: 'smooth' });
+    
+    // Update pathway summary
+    const summaryContent = document.getElementById('pathway-summary-content');
+    summaryContent.innerHTML = `
+        <p class="text-blue-800 font-source">
+            <strong>From:</strong> ${sourceJob} 
+            <strong>To:</strong> ${targetJob}
+        </p>
+        <p class="text-blue-700 text-sm mt-1">
+            Analyzing skills requirements and development opportunities for this career transition.
+        </p>
+    `;
+    
+    // TODO: Fetch and display actual skills gap data
+    // For now, show placeholder data
+    updateSkillsAnalysis({
+        skills_match: 12,
+        skills_develop: 8,
+        skills_transfer: 15,
+        transition_viability: "75%",
+        skills_breakdown: [
+            { skill: "Python Programming", category: "Technical", status: "Match", priority: "Maintain" },
+            { skill: "Data Analysis", category: "Technical", status: "Develop", priority: "High" },
+            { skill: "Risk Assessment", category: "Domain", status: "Transfer", priority: "Medium" }
+        ]
+    });
+};
+
+// Update skills analysis display
+function updateSkillsAnalysis(data) {
+    document.getElementById('skills-match-count').textContent = data.skills_match;
+    document.getElementById('skills-develop-count').textContent = data.skills_develop;
+    document.getElementById('skills-transfer-count').textContent = data.skills_transfer;
+    document.getElementById('transition-viability').textContent = data.transition_viability;
+    
+    const tableBody = document.getElementById('skills-breakdown-table');
+    tableBody.innerHTML = data.skills_breakdown.map(skill => `
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">${skill.skill}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${skill.category}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium 
+                    ${skill.status === 'Match' ? 'bg-green-100 text-green-800' : 
+                      skill.status === 'Develop' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">
+                    ${skill.status}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${skill.priority}</td>
+        </tr>
+    `).join('');
+}
+
+// Helper functions
+function clearCareerTree() {
+    const container = document.getElementById('career-pathway-tree');
+    container.innerHTML = `
+        <div class="flex items-center justify-center h-full text-gray-500">
+            <div class="text-center">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <p class="text-lg font-source font-medium">Select a starting role above to explore career pathways</p>
+                <p class="text-sm font-source text-gray-400 mt-1">Interactive tree will show similar roles and transition opportunities</p>
+            </div>
+        </div>
+    `;
+}
+
+function closeSkillsAnalysis() {
+    document.getElementById('skills-analysis-panel').classList.add('hidden');
+}
+
+function showSkillsMethodology() {
+    document.getElementById('skills-methodology-modal').classList.remove('hidden');
+}
+
+function closeSkillsMethodology() {
+    document.getElementById('skills-methodology-modal').classList.add('hidden');
+}
+
+function showPathwayHelp() {
+    alert('Career Pathway Explorer Help:\n\n1. Select a starting role using the search\n2. Adjust similarity threshold to control pathway options\n3. Click on career connections to see skills gap analysis\n4. Use insights for strategic workforce planning');
+}
+</script>
+
+<style>
+/* Custom slider styling */
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #dc2626;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #dc2626;
+    cursor: pointer;
+    border: none;
+}
+</style>
+
+{% endblock %}

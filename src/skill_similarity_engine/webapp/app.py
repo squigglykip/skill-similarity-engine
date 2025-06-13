@@ -54,11 +54,11 @@ def create_app(config=None):
         from .sql import queries
         db = get_db()
         
-        # Use a simplified version for samples
+        # Use a simplified version for samples with correct column names
         cursor = db.execute("""
-            SELECT id, job_title, job_family, job_level 
+            SELECT JobProfileID as id, JobProfile as job_title, JobFamily as job_family, JobFamilyGroup as job_level 
             FROM jobs 
-            ORDER BY job_title 
+            ORDER BY JobProfile 
             LIMIT ?
         """, (limit,))
         return cursor.fetchall()
@@ -302,14 +302,15 @@ def create_app(config=None):
 
     @app.route('/api/d3-tree-data')
     def api_d3_tree_data():
-        """API endpoint for job-centric D3.js tree with configurable similarity and depth."""
+        """API endpoint for job-centric D3.js tree using optimized pre-computed career pathways."""
         from .sql import queries
         
         # Get parameters
         job_ids = request.args.get('jobs', '').split(',') if request.args.get('jobs') else []
         job_ids = [job.strip() for job in job_ids if job.strip()]
-        similarity_threshold = float(request.args.get('similarity', 0.7))
+        similarity_threshold = float(request.args.get('similarity', 0.2))  # Lower default since pre-computed
         max_depth = int(request.args.get('depth', 3))
+        max_results = int(request.args.get('max_results', 10))  # Higher default - no performance penalty
         
         # Organizational filters (optional)
         division_filter = request.args.get('division', '').strip()
@@ -378,18 +379,21 @@ def create_app(config=None):
             
             db = get_db()
             
-            # Build dynamic query with placeholders
+            # Use optimized pre-computed career pathways query
             job_placeholders = ','.join(['?' for _ in job_ids])
-            tree_query = queries.get('d3_visualization', 'get_recursive_job_tree')
+            tree_query = queries.get('career_pathways', 'get_career_tree_fast')
             
             if not tree_query:
-                raise ValueError("Recursive job tree query not found")
+                # Fallback to original recursive query if career pathways not available
+                tree_query = queries.get('d3_visualization', 'get_recursive_job_tree')
+                if not tree_query:
+                    raise ValueError("No tree query available")
             
             # Replace placeholder in query
             tree_query = tree_query.replace('{job_placeholders}', job_placeholders)
             
-            # Execute with job IDs, similarity threshold, max depth, and organizational filters
-            params = job_ids + [similarity_threshold, max_depth, 
+            # Execute with job IDs, similarity threshold, max depth, max results, and organizational filters
+            params = job_ids + [similarity_threshold, max_depth, max_results,
                                division_filter, division_filter,  # Division filter (twice for SQL OR logic)
                                business_unit_filter, business_unit_filter,  # Business Unit filter
                                location_filter, location_filter,  # Location filter
@@ -403,7 +407,7 @@ def create_app(config=None):
             if region_filter: filters.append(f"region={region_filter}")
             filter_desc = f", filters=[{', '.join(filters)}]" if filters else ""
             
-            print(f"🔍 SQL Parameters: jobs={job_ids}, similarity>={similarity_threshold}, max_depth<{max_depth}{filter_desc}")
+            print(f"🔍 SQL Parameters: jobs={job_ids}, similarity>={similarity_threshold}, max_depth<{max_depth}, max_results<={max_results}{filter_desc}")
             
             tree_data = db.execute(tree_query, params).fetchall()
             print(f"🗄️ SQL returned {len(tree_data)} rows")
@@ -450,6 +454,7 @@ def create_app(config=None):
                 'selected_jobs': job_ids,
                 'similarity_threshold': similarity_threshold,
                 'max_depth': max_depth,
+                'max_results': max_results,
                 'tree': tree_root,
                 'total_nodes': len(nodes)
             })
