@@ -2,7 +2,7 @@
 ## Business Context Database
 
 **Generated**: 2025-01-08  
-**Version**: 1.0  
+**Version**: 1.1 (Updated from actual schema analysis)  
 **Target**: Flask Webapp Data Layer
 
 ---
@@ -49,16 +49,29 @@ erDiagram
     
     POSITIONS {
         string Position_Number PK
+        string JobProfileID FK
         string Employee_Number
-        string Business_Unit
         string Division
+        string Business_Unit
+        string Team
+        string SubTeam
+        string Function
+        string SubFunction
+        string Org_Level_8
+        string Org_Level_9
+        string Org_Level_10
         string Location
-        string Salary_Grade
+        string Rg
+        string Cty
+        string Employee_Group
+        string Salary_Group
+        string Employee_Subgroup
     }
     
-    POSITION_JOB_MAPPING {
-        string Position_Number PK_FK
-        string JobProfileID FK
+    SCHEMA_METADATA {
+        string key PK
+        string value
+        string created_at
     }
     
     SKILLS {
@@ -79,8 +92,7 @@ erDiagram
     
     JOBS ||--o{ JOB_SIMILARITIES : "job_from"
     JOBS ||--o{ JOB_SIMILARITIES : "job_to"
-    JOBS ||--o{ POSITION_JOB_MAPPING : "JobProfileID"
-    POSITIONS ||--|| POSITION_JOB_MAPPING : "Position_Number"
+    JOBS ||--o{ POSITIONS : "JobProfileID"
     JOBS ||--o{ JOB_SKILLS : "JobProfileID"
     SKILLS ||--o{ JOB_SKILLS : "Skill_ID"
 ```
@@ -103,7 +115,7 @@ CREATE TABLE jobs (
 );
 ```
 
-**Key Insights**: 717 unique jobs, JobProfileID is our central linking key across all systems.
+**Key Insights**: 715 unique jobs, JobProfileID is our central linking key across all systems.
 
 ### 2. **job_similarities** - Pre-computed Job-to-Job Similarities
 *Source: `models/2025-Q2/precompute_*/job_similarity_matrix.parquet`*
@@ -131,48 +143,49 @@ CREATE TABLE job_similarities (
 
 ```sql
 CREATE TABLE positions (
-    Position_Number TEXT PRIMARY KEY,       -- Unique position identifier  
-    Employee_Number TEXT,                   -- Current employee (if filled)
+    "Position Number" TEXT PRIMARY KEY,     -- Unique position identifier  
+    JobProfileID TEXT,                      -- Direct link to jobs table
+    "Employee Number" TEXT,                 -- Current employee (if filled)
     
-    -- Organizational Hierarchy (10-level structure)
-    Division TEXT,                          -- ORG_UNIT_NAME_2: Divisions
-    Business_Unit TEXT,                     -- ORG_UNIT_NAME_3: Business Unit
-    Team TEXT,                              -- ORG_UNIT_NAME_4: Team
-    SubTeam TEXT,                           -- ORG_UNIT_NAME_5: SubTeam
-    Function TEXT,                          -- ORG_UNIT_NAME_6: Function
-    SubFunction TEXT,                       -- ORG_UNIT_NAME_7: SubFunction
-    Org_Level_8 TEXT,                       -- ORG_UNIT_NAME_8: Org Level 8
-    Org_Level_9 TEXT,                       -- ORG_UNIT_NAME_9: Org Level 9
-    Org_Level_10 TEXT,                      -- ORG_UNIT_NAME_10: Org Level 10
+    -- Organizational Hierarchy
+    Division TEXT,                          -- Business division
+    Business_Unit TEXT,                     -- Business unit
+    Team TEXT,                              -- Team level
+    SubTeam TEXT,                           -- Sub-team level
+    Function TEXT,                          -- Function level
+    SubFunction TEXT,                       -- Sub-function level
+    Org_Level_8 TEXT,                       -- Org level 8
+    Org_Level_9 TEXT,                       -- Org level 9
+    Org_Level_10 TEXT,                      -- Org level 10
     
-    -- Geographic Context  
-    Location TEXT,                          -- "Melbourne", "Sydney"
-    State TEXT,                             -- "VIC", "NSW"
-    Country TEXT,                           -- "Australia"
+    -- Geographic Context
+    Location TEXT,                          -- Location
+    Rg TEXT,                               -- Region
+    Cty TEXT,                              -- Country
     
     -- Employment Details
-    Employment_Type TEXT,                   -- "Permanent", "Contract"
-    Salary_Grade REAL,                      -- Numeric grade
-    Work_Pattern TEXT                       -- "Full Time", "Part Time"
-);
-```
-
-**Design Decision**: Maintain full 10-level organizational hierarchy for comprehensive business context analysis. Position table contains only workforce context - job linkage happens through separate mapping table.
-
-### 4. **position_job_mapping** - Position to Job Architecture Mapping
-*Source: `data/job_architecture_to_positions_mapping/position_job_mapping.csv`*
-
-```sql
-CREATE TABLE position_job_mapping (
-    Position_Number TEXT PRIMARY KEY,       -- Links to positions table
-    JobProfileID TEXT NOT NULL,             -- Links to jobs table
+    "Employee Group" TEXT,                  -- Employee group
+    "Salary Group" TEXT,                    -- Salary group
+    "Employee Subgroup" TEXT,               -- Employee subgroup
     
-    FOREIGN KEY (Position_Number) REFERENCES positions(Position_Number),
     FOREIGN KEY (JobProfileID) REFERENCES jobs(JobProfileID)
 );
 ```
 
-**Key Insights**: 5,001 position-to-job mappings providing the bridge between workforce context and job architecture.
+**Design Decision**: Direct JobProfileID foreign key eliminates need for separate mapping table. Maintains full organizational hierarchy for comprehensive business context analysis.
+
+### 4. **schema_metadata** - Database Versioning and Metadata
+*Auto-generated during database creation*
+
+```sql
+CREATE TABLE schema_metadata (
+    key TEXT PRIMARY KEY,                   -- Metadata key
+    value TEXT NOT NULL,                    -- Metadata value
+    created_at TEXT NOT NULL                -- Creation timestamp
+);
+```
+
+**Key Insights**: Contains schema version (1.0), creation date, and source document reference for tracking database provenance.
 
 ### 5. **skills** - Comprehensive Skills Library
 *Source: `data/skills_library/lightcast_skills_comprehensive.csv`*
@@ -181,18 +194,22 @@ CREATE TABLE position_job_mapping (
 CREATE TABLE skills (
     Skill_ID TEXT PRIMARY KEY,              -- Lightcast skill identifier
     Skill_Name TEXT NOT NULL,               -- "Python Programming"
-    Category TEXT,                          -- "Technology"
+    Category TEXT,                          -- "Information Technology"
     Subcategory TEXT,                       -- "Programming Languages"
-    SkillType TEXT,                         -- "Hard Skill", "Soft Skill"
+    SkillType TEXT,                         -- "Specialized Skill", etc.
     Latest_Version TEXT,                    -- Version tracking
-    
-    -- Additional metadata
-    Market_Demand TEXT,                     -- "High", "Medium", "Low"
+    Description TEXT,                       -- Skill description
+    Info_URL TEXT,                          -- Additional information URL
+    Is_Language BOOLEAN,                    -- Language skill flag
+    Category_ID INTEGER,                    -- Category identifier
+    Subcategory_ID INTEGER,                 -- Subcategory identifier
+    Type_ID TEXT,                          -- Type identifier
+    Market_Demand TEXT,                     -- Market demand indicator
     Rarity_Score REAL                       -- 0-1 scale for skill uniqueness
 );
 ```
 
-**Key Insights**: 38,395 skills from Lightcast API with rich taxonomy structure.
+**Key Insights**: 38,395 skills from Lightcast API with rich taxonomy structure. Note: Most skills (37,995) have empty category, with 168 in Information Technology being the largest categorized group.
 
 ### 6. **job_skills** - Job-to-Skills Mapping
 *Source: `data/input_data/job_skill_mapping.csv`*
@@ -401,13 +418,14 @@ models/2025-Q2/precompute_20250608/
 
 ## Performance Expectations
 
-### **Database Size Estimates**
-- **jobs**: ~100KB (717 records)
-- **job_similarities**: ~50MB (510K records) 
-- **positions**: ~5MB (5K records)
-- **skills**: ~5MB (38K records)
-- **job_skills**: ~5MB (40K records)
-- **Total**: ~65MB SQLite database
+### **Actual Database Size**
+- **jobs**: 715 records
+- **job_similarities**: 510,510 records 
+- **positions**: 5,000 records
+- **skills**: 38,395 records
+- **job_skills**: 40,170 records
+- **schema_metadata**: 4 records
+- **Total**: 79.5 MB SQLite database
 
 ### **Query Performance**
 - **Simple filters**: <100ms (job family, location)
@@ -437,7 +455,34 @@ The design directly implements your domain insights:
 - Skills library integration with job-skill relationships  
 - Simplified org hierarchy without unnecessary normalisation
 
-**Next Step**: Implement CLI business context generation modules to create this schema. 
+**Next Step**: ✅ **COMPLETED** - CLI business context generation modules created this schema successfully.
+
+---
+
+## Actual Implementation Analysis
+
+**Database Generated**: 2025-06-11  
+**Analysis Date**: 2025-01-08  
+**Source**: `python scripts/examine_sqlite_schema.py`
+
+### Key Findings
+
+✅ **Schema Implementation**: All major tables implemented successfully  
+✅ **Data Volume**: 79.5 MB database with 594,794 total records  
+✅ **Relationships**: Foreign key constraints properly implemented  
+✅ **D3.js Integration**: Successfully integrated with Flask API for real-time visualization  
+
+### Actual Business Context
+- **Top Job Families**: Banking Operations (101), Data & Analytics (99), Finance & Accounting (98)
+- **Similarity Coverage**: 510,510 job-to-job similarity pairs with 100% JobProfileID coverage
+- **Organizational Depth**: Full 10-level hierarchy maintained in positions table  
+- **Skills Taxonomy**: 38,395 skills with rich metadata (168 in Information Technology category)
+
+### Schema Variations from Design
+1. **No separate position_job_mapping**: JobProfileID directly in positions table
+2. **Enhanced skills metadata**: Additional columns for descriptions, URLs, and categorization
+3. **Schema versioning**: Added schema_metadata table for database provenance
+4. **Column naming**: Some columns use quoted names with spaces (e.g., "Position Number") 
 
 erDiagram
     JOBS {

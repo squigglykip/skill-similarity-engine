@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Skills Intelligence Platform - Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
+            Skills Intelligence Platform
+        </h1>
+        <p class="text-lg font-source text-gray-600">
+            Explore career pathways and generate transition reports based on skill similarity analysis
+        </p>
+    </div>
+
+    <!-- Primary Features -->
+    <section class="mb-12">
+        <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Core Features</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Career Pathway Explorer Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                <div class="mb-4">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-2">Career Pathway Explorer</h3>
+                    <p class="text-sm md:text-base font-source text-gray-700">
+                        Find similar roles and career progression opportunities based on skill overlap. 
+                        Perfect for employees looking to understand their mobility options within the organisation.
+                    </p>
+                </div>
+                <div class="mb-6">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-red-100 text-red-800 mr-2">
+                        Primary Feature
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-gray-100 text-gray-800">
+                        Skills-Based
+                    </span>
+                </div>
+                <a href="{{ url_for('job_search') }}" class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200">
+                    Start Exploring →
+                </a>
+            </div>
+
+            <!-- White Paper Generator Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                <div class="mb-4">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-2">White Paper Generator</h3>
+                    <p class="text-sm md:text-base font-source text-gray-700">
+                        Generate professional transition reports for role sunset scenarios. 
+                        Automated analysis with similar roles, transition pathways, and skill gaps.
+                    </p>
+                </div>
+                <div class="mb-6">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-red-100 text-red-800 mr-2">
+                        Primary Feature
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-gray-100 text-gray-800">
+                        Report Generation
+                    </span>
+                </div>
+                <button class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200">
+                    Generate Report →
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Metrics -->
+    <section class="mb-12">
+        <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Platform Overview</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Jobs Analyzed Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Jobs Analyzed</p>
+                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ sample_jobs|length * 47 if sample_jobs else '2,847' }}</p>
+                    </div>
+                    <div class="p-3 bg-red-100 rounded-full">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm font-source text-gray-600">Database ready for analysis</p>
+                </div>
+            </div>
+
+            <!-- Skills Mapped Card -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Top Job Families</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-source text-gray-900">Technology</span>
+                            <span class="text-xs font-source font-medium text-gray-500">245 roles</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-source text-gray-900">Risk & Compliance</span>
+                            <span class="text-xs font-source font-medium text-gray-500">198 roles</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-source text-gray-900">Customer Service</span>
+                            <span class="text-xs font-source font-medium text-gray-500">167 roles</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Version Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-4">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Data Version</h3>
+                    <p class="text-xs font-source text-gray-500 uppercase tracking-wide">Current Quarter</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl font-epilogue font-bold text-gray-900">2025-Q2</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">
+                            Current
+                        </span>
+                    </div>
+                    <p class="text-sm font-source text-gray-600">Updated quarterly</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sample Data Preview -->
+    <section class="mb-12">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900">Sample Job Profiles</h2>
+                <p class="text-sm font-source text-gray-600 mt-1">
+                    Current database contains job profiles with skill mappings for similarity analysis
+                </p>
+            </div>
+            <a href="{{ url_for('job_search') }}" class="text-red-600 hover:text-red-700 font-source font-medium transition-colors duration-200">
+                View All Jobs →
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for job in sample_jobs[:6] %}
+            <div class="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow duration-200">
+                <div class="mb-3">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-1">{{ job.JobProfile }}</h3>
+                    <p class="text-sm font-source text-gray-600">{{ job.JobFamily }}</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-source font-medium bg-gray-100 text-gray-700">
+                        {{ job.JobProfileID }}
+                    </span>
+                    <button class="text-red-600 hover:text-red-700 text-sm font-source font-medium transition-colors duration-200">
+                        View Details →
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Development Info -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-source text-blue-800">
+                    <strong>Development Environment</strong> - 
+                    <a href="{{ url_for('components') }}" class="text-blue-700 underline hover:text-blue-900 transition-colors">
+                        View Component Library
+                    </a> to see available UI components for prototyping.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Update last updated timestamp
+    document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-AU');
+    
+    // Add interactive hover effects
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('NAB Skills Intelligence Platform - Dashboard Loaded');
+        
+        // Add analytics tracking placeholder
+        const buttons = document.querySelectorAll('button, a[href]');
+        buttons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const action = this.textContent.trim();
+                console.log(`User action: ${action}`);
+            });
+        });
+    });
+</script>
+{% endblock %} 
