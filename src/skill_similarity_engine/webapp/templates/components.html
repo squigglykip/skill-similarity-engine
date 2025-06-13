@@ -1,0 +1,2826 @@
+{% extends "base.html" %}
+
+{% block title %}NAB Design System - Component Library{% endblock %}
+
+{% block content %}
+<div class="bg-white min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
+                NAB Skills Intelligence Platform
+            </h1>
+            <p class="text-lg font-source text-gray-600">
+                Design System & Component Library
+            </p>
+        </div>
+
+        <!-- Typography Section -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Typography System</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6 space-y-4">
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Page Titles</p>
+                    <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900">Skills Intelligence Platform</h1>
+                </div>
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Section Headers</p>
+                    <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900">Top Skills in Demand</h2>
+                </div>
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Card Titles</p>
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Job Profile Analysis</h3>
+                </div>
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Body Text</p>
+                    <p class="text-sm md:text-base font-source text-gray-900">This is body text using Source Sans Pro. It's highly readable and perfect for data-heavy interfaces.</p>
+                </div>
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Labels</p>
+                    <label class="text-xs font-source font-medium uppercase tracking-wide text-gray-700">Search Jobs</label>
+                </div>
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Captions</p>
+                    <p class="text-xs font-source text-gray-400">↑ 12% from last month</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Button Components -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Button Components</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6">
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Primary Buttons</p>
+                        <div class="flex flex-wrap gap-4">
+                            <button class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200">
+                                Analyze Skills
+                            </button>
+                            <button class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm">
+                                Generate Report
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Secondary Buttons</p>
+                        <div class="flex flex-wrap gap-4">
+                            <button class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200">
+                                View Details
+                            </button>
+                            <button class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm">
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Tertiary Buttons</p>
+                        <div class="flex flex-wrap gap-4">
+                            <button class="text-red-600 hover:text-red-700 font-source font-medium px-4 py-2 transition-colors duration-200">
+                                Learn More →
+                            </button>
+                            <button class="text-red-600 hover:text-red-700 font-source font-medium px-4 py-2 transition-colors duration-200">
+                                View All Results →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Cards -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Dashboard Cards</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Metric Card -->
+                <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-600">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Jobs Analyzed</p>
+                            <p class="text-2xl font-epilogue font-bold text-gray-900">2,847</p>
+                        </div>
+                        <div class="p-3 bg-red-100 rounded-full">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-sm font-source text-gray-600">↑ 12% from last month</p>
+                    </div>
+                </div>
+
+                <!-- Data Card -->
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-epilogue font-medium text-gray-900">Top Skills in Demand</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Python</span>
+                                <span class="text-xs font-source font-medium text-gray-500">245 jobs</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Data Analysis</span>
+                                <span class="text-xs font-source font-medium text-gray-500">198 jobs</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Risk Management</span>
+                                <span class="text-xs font-source font-medium text-gray-500">167 jobs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Similarity Score Card -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-epilogue font-medium text-gray-900">Similarity Score</h3>
+                        <p class="text-xs font-source text-gray-500 uppercase tracking-wide">Data Scientist vs Risk Analyst</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl font-epilogue font-bold text-gray-900">87%</span>
+                            <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                <div class="bg-red-600 h-3 rounded-full" style="width: 87%"></div>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-red-100 text-red-800">
+                            High Match
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Filters -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Search & Filter Components</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                            Search Jobs
+                        </label>
+                        <input type="text" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source"
+                               placeholder="e.g. Data Scientist">
+                    </div>
+                    
+                    <!-- Filter -->
+                    <div>
+                        <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                            Job Family
+                        </label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source">
+                            <option>All Families</option>
+                            <option>Technology</option>
+                            <option>Risk & Compliance</option>
+                            <option>Finance</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Action -->
+                    <div class="flex items-end">
+                        <button class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Table -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Data Table Component</h2>
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Job Title
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Similarity Score
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Skills Overlap
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                Job Family
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-source text-sm text-gray-900">Senior Data Scientist</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-source font-medium text-gray-900">94%</span>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-600 h-2 rounded-full" style="width: 94%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">18 skills</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">Technology</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-source text-sm text-gray-900">Business Analyst</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-source font-medium text-gray-900">78%</span>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-600 h-2 rounded-full" style="width: 78%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">12 skills</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">Finance</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap font-source text-sm text-gray-900">Compliance Officer</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-source font-medium text-gray-900">65%</span>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-600 h-2 rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">8 skills</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">Risk & Compliance</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Skills Display -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Skills Display Components</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6">
+                <div class="space-y-6">
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Required Skills</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">
+                                Python
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">
+                                Data Analysis
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">
+                                Statistical Modeling
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">
+                                Machine Learning
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">
+                                SQL
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Transferable Skills</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-green-100 text-green-800">
+                                ✓ Project Management
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-green-100 text-green-800">
+                                ✓ Communication
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-green-100 text-green-800">
+                                ✓ Problem Solving
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Skill Gaps</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-yellow-100 text-yellow-800">
+                                Deep Learning
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-yellow-100 text-yellow-800">
+                                Cloud Platforms
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Empty State -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Empty State Component</h2>
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="text-center py-12">
+                    <div class="text-gray-400 mb-4">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">No results found</h3>
+                    <p class="text-sm font-source text-gray-500 mt-2">
+                        Try adjusting your search criteria or explore different job families.
+                    </p>
+                    <button class="mt-4 bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Multi-Step Process Indicator -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Multi-Step Process Indicator</h2>
+            <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 mb-6">
+                <nav aria-label="Progress">
+                    <ol class="flex items-center">
+                        <li class="relative">
+                            <div class="flex items-center">
+                                <div class="relative w-8 h-8 flex items-center justify-center bg-red-600 rounded-full">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <span class="ml-3 text-sm font-medium text-white">Select Starting Role</span>
+                            </div>
+                        </li>
+                        <li class="relative ml-8">
+                            <div class="flex items-center">
+                                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div class="h-0.5 w-full bg-gray-700"></div>
+                                </div>
+                                <div class="relative w-8 h-8 flex items-center justify-center bg-red-600 rounded-full border-2 border-black">
+                                    <span class="h-2.5 w-2.5 bg-white rounded-full"></span>
+                                </div>
+                                <span class="ml-3 text-sm font-medium text-white">Filter Options</span>
+                            </div>
+                        </li>
+                        <li class="relative ml-8">
+                            <div class="flex items-center">
+                                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div class="h-0.5 w-full bg-gray-700"></div>
+                                </div>
+                                <div class="relative w-8 h-8 flex items-center justify-center bg-gray-700 rounded-full border-2 border-gray-700">
+                                    <span class="h-2.5 w-2.5 bg-gray-500 rounded-full"></span>
+                                </div>
+                                <span class="ml-3 text-sm font-medium text-gray-400">View Results</span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+            </div>
+            <p class="text-sm font-source text-gray-600 mb-4">
+                <strong>Usage:</strong> Perfect for the career pathway explorer flow (Select Role → Filter → Results) and white paper generation (Select Type → Configure → Generate).
+            </p>
+        </section>
+
+        <!-- Career Pathway Analysis Tools -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Career Pathway Analysis Tools</h2>
+            <div class="mb-6 bg-blue-50 border-l-4 border-blue-600 p-4">
+                <p class="text-sm font-source text-blue-800">
+                    <strong>Internal Use:</strong> Advanced analytics for understanding career transition pathways, 
+                    skills development requirements, and workforce capability planning.
+                </p>
+            </div>
+            
+            <!-- Option 1: Multi-Pathway Flowchart -->
+            <div class="mb-8">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Option 1: Multi-Pathway Analysis</h3>
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-md font-epilogue font-medium text-gray-900">Career Transition Pathways: Risk Analyst → Data Scientist</h4>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">3 Pathway Options</span>
+                            <span class="text-xs font-source font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded">127 Current Roles</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Mermaid Flowchart -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <div class="mermaid" id="pathway-flowchart">
+                            flowchart LR
+                                A["Risk Analyst<br/>127 roles"] --> B["Business Analyst<br/>78% similarity"]
+                                A --> C["Technical Analyst<br/>71% similarity"] 
+                                A --> D["Skills Development<br/>6 month program"]
+                                
+                                B --> E["Data Analyst<br/>85% similarity"]
+                                C --> F["Data Scientist<br/>Direct path"]
+                                D --> G["Junior Data Analyst<br/>12 month program"]
+                                
+                                E --> F
+                                G --> F
+                                
+                                classDef startNode fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+                                classDef targetNode fill:#fecaca,stroke:#dc2626,stroke-width:2px
+                                classDef intermediateNode fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+                                classDef skillsNode fill:#f3e8ff,stroke:#8b5cf6,stroke-width:2px
+                                
+                                class A startNode
+                                class F targetNode
+                                class B,C,E intermediateNode
+                                class D,G skillsNode
+                        </div>
+                    </div>
+
+                    <!-- Pathway Comparison Data -->
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 rounded-md p-3 border-l-2 border-blue-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-xs font-source font-medium text-blue-800 uppercase tracking-wide">Path 1: Traditional Route</p>
+                                <span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Most Common</span>
+                            </div>
+                            <p class="text-xs font-source text-gray-700 mb-2">Business Analyst → Data Analyst → Data Scientist</p>
+                            <div class="space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Development Timeline:</span>
+                                    <span class="text-xs font-source text-blue-700">18-24 months</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Transition Rate:</span>
+                                    <span class="text-xs font-source text-blue-700">78%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Investment Level:</span>
+                                    <span class="text-xs font-source text-blue-700">Medium</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-green-50 rounded-md p-3 border-l-2 border-green-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-xs font-source font-medium text-green-800 uppercase tracking-wide">Path 2: Direct Technical</p>
+                                <span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Accelerated</span>
+                            </div>
+                            <p class="text-xs font-source text-gray-700 mb-2">Technical Analyst → Data Scientist</p>
+                            <div class="space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Development Timeline:</span>
+                                    <span class="text-xs font-source text-green-700">12-15 months</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Transition Rate:</span>
+                                    <span class="text-xs font-source text-green-700">65%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Investment Level:</span>
+                                    <span class="text-xs font-source text-green-700">High</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-purple-50 rounded-md p-3 border-l-2 border-purple-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-xs font-source font-medium text-purple-800 uppercase tracking-wide">Path 3: Development Program</p>
+                                <span class="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded">Comprehensive</span>
+                            </div>
+                            <p class="text-xs font-source text-gray-700 mb-2">6mo Development → Junior Data → Data Scientist</p>
+                            <div class="space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Development Timeline:</span>
+                                    <span class="text-xs font-source text-purple-700">20-26 months</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Transition Rate:</span>
+                                    <span class="text-xs font-source text-purple-700">85%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-source text-gray-600">Investment Level:</span>
+                                    <span class="text-xs font-source text-purple-700">Lower</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option 2: Skills Intelligence Analysis -->
+            <div class="mb-8">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Option 2: Skills Intelligence Analysis</h3>
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="mb-4">
+                        <h4 class="text-md font-epilogue font-medium text-gray-900 mb-2">Skills Profile Analysis: Risk Analyst to Data Scientist Transition</h4>
+                        <p class="text-sm font-source text-gray-600">Data-driven insights into capability gaps and development requirements</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Column 1: Current Capability Profile -->
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h5 class="text-sm font-epilogue font-medium text-blue-900">Current Capability Profile</h5>
+                                <span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">127 FTE</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-blue-200 rounded p-2">
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-xs font-source font-medium text-blue-900">Risk Analysis</p>
+                                        <span class="text-xs text-blue-700">98% coverage</span>
+                                    </div>
+                                    <div class="w-full bg-blue-300 rounded-full h-1 mt-1">
+                                        <div class="bg-blue-600 h-1 rounded-full" style="width: 98%"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-blue-200 rounded p-2">
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-xs font-source font-medium text-blue-900">Statistical Analysis</p>
+                                        <span class="text-xs text-blue-700">87% coverage</span>
+                                    </div>
+                                    <div class="w-full bg-blue-300 rounded-full h-1 mt-1">
+                                        <div class="bg-blue-600 h-1 rounded-full" style="width: 87%"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-blue-200 rounded p-2">
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-xs font-source font-medium text-blue-900">Excel/Advanced Analytics</p>
+                                        <span class="text-xs text-blue-700">92% coverage</span>
+                                    </div>
+                                    <div class="w-full bg-blue-300 rounded-full h-1 mt-1">
+                                        <div class="bg-blue-600 h-1 rounded-full" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs font-source text-blue-800">
+                                <strong>Transferability Score:</strong> High (85%)
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Critical Skills Gaps -->
+                        <div class="bg-yellow-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h5 class="text-sm font-epilogue font-medium text-yellow-900">Critical Skills Gaps</h5>
+                                <span class="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">Investment Required</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-yellow-200 rounded p-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs font-source font-medium text-yellow-900">Python Programming</p>
+                                        <span class="text-xs font-source text-yellow-700">£2.3k/FTE</span>
+                                    </div>
+                                    <div class="w-full bg-yellow-300 rounded-full h-1">
+                                        <div class="bg-yellow-600 h-1 rounded-full" style="width: 15%"></div>
+                                    </div>
+                                    <span class="text-xs text-yellow-700">15% current coverage</span>
+                                </div>
+                                <div class="bg-yellow-200 rounded p-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs font-source font-medium text-yellow-900">SQL & Database Skills</p>
+                                        <span class="text-xs font-source text-yellow-700">£1.8k/FTE</span>
+                                    </div>
+                                    <div class="w-full bg-yellow-300 rounded-full h-1">
+                                        <div class="bg-yellow-600 h-1 rounded-full" style="width: 8%"></div>
+                                    </div>
+                                    <span class="text-xs text-yellow-700">8% current coverage</span>
+                                </div>
+                                <div class="bg-yellow-200 rounded p-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs font-source font-medium text-yellow-900">Data Visualization</p>
+                                        <span class="text-xs font-source text-yellow-700">£1.2k/FTE</span>
+                                    </div>
+                                    <div class="w-full bg-yellow-300 rounded-full h-1">
+                                        <div class="bg-yellow-600 h-1 rounded-full" style="width: 25%"></div>
+                                    </div>
+                                    <span class="text-xs text-yellow-700">25% current coverage</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs font-source text-yellow-800">
+                                <strong>Total Investment:</strong> £5.3k per FTE
+                            </div>
+                        </div>
+
+                        <!-- Column 3: Future-State Requirements -->
+                        <div class="bg-red-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h5 class="text-sm font-epilogue font-medium text-red-900">Future-State Requirements</h5>
+                                <span class="text-xs bg-red-200 text-red-800 px-2 py-1 rounded">Data Scientist Target</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-red-200 rounded p-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs font-source font-medium text-red-900">Machine Learning</p>
+                                        <span class="text-xs font-source text-red-700">High Priority</span>
+                                    </div>
+                                    <div class="w-full bg-red-300 rounded-full h-1">
+                                        <div class="bg-red-600 h-1 rounded-full" style="width: 3%"></div>
+                                    </div>
+                                    <span class="text-xs text-red-700">3% current coverage</span>
+                                </div>
+                                <div class="bg-red-200 rounded p-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs font-source font-medium text-red-900">Cloud Platforms (AWS/Azure)</p>
+                                        <span class="text-xs font-source text-red-700">Medium Priority</span>
+                                    </div>
+                                    <div class="w-full bg-red-300 rounded-full h-1">
+                                        <div class="bg-red-600 h-1 rounded-full" style="width: 5%"></div>
+                                    </div>
+                                    <span class="text-xs text-red-700">5% current coverage</span>
+                                </div>
+                                <div class="bg-red-200 rounded p-2">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <p class="text-xs font-source font-medium text-red-900">Deep Learning/AI</p>
+                                        <span class="text-xs font-source text-red-700">Future Need</span>
+                                    </div>
+                                    <div class="w-full bg-red-300 rounded-full h-1">
+                                        <div class="bg-red-600 h-1 rounded-full" style="width: 1%"></div>
+                                    </div>
+                                    <span class="text-xs text-red-700">1% current coverage</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs font-source text-red-800">
+                                <strong>Skills Gap:</strong> 24-30 months to target state
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Development Pathway Summary -->
+                    <div class="mt-6 bg-gray-900 rounded-lg p-4 text-white">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-epilogue font-medium text-white mb-2">Development Pathway Analysis</p>
+                                <div class="space-y-1 text-xs font-source">
+                                    <p><strong>Traditional Path:</strong> 85 roles (67%) - Estimated £450k development investment</p>
+                                    <p><strong>Accelerated Path:</strong> 25 roles (20%) - Estimated £180k development investment</p>
+                                    <p><strong>Extended Development:</strong> 17 roles (13%) - Requires additional capability building</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs bg-green-600 px-2 py-1 rounded">Projected ROI: 340%</span>
+                                <p class="text-xs mt-1">over 3 years</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option 3: Hybrid Career Explorer -->
+            <div class="mb-8">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Option 3: Hybrid Career Explorer</h3>
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                        <!-- Left Panel: Career Transition Options -->
+                        <div class="border-r border-gray-200">
+                            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                                <h4 class="text-md font-epilogue font-medium text-gray-900">Career Transition Options</h4>
+                                <p class="text-xs font-source text-gray-600">Risk Analyst career development pathways</p>
+                            </div>
+                            <div class="p-4 space-y-3 max-h-80 overflow-y-auto">
+                                <div class="p-3 border border-gray-200 rounded-md hover:border-red-500 hover:bg-red-50 cursor-pointer transition-colors">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-sm font-epilogue font-medium text-gray-900">Business Analyst</p>
+                                            <p class="text-xs font-source text-gray-600">Customer Service & Sales • 47 available roles</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-source font-medium text-green-700 bg-green-100 px-2 py-1 rounded">78%</span>
+                                            <p class="text-xs text-gray-500 mt-1">£2.8k/FTE</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-3 border border-red-500 rounded-md bg-red-50">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-sm font-epilogue font-medium text-gray-900">Data Scientist</p>
+                                            <p class="text-xs font-source text-gray-600">Technology • 23 target roles</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-source font-medium text-red-700 bg-red-100 px-2 py-1 rounded">94%</span>
+                                            <p class="text-xs text-gray-500 mt-1">£7.2k/FTE</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-3 border border-gray-200 rounded-md hover:border-red-500 hover:bg-red-50 cursor-pointer transition-colors">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-sm font-epilogue font-medium text-gray-900">Compliance Officer</p>
+                                            <p class="text-xs font-source text-gray-600">Risk & Compliance • 31 available roles</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-source font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded">65%</span>
+                                            <p class="text-xs text-gray-500 mt-1">£1.5k/FTE</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Transition Analysis -->
+                        <div>
+                            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                                <h4 class="text-md font-epilogue font-medium text-gray-900">Transition Analysis: Data Scientist</h4>
+                                <p class="text-xs font-source text-gray-600">Risk Analyst → Data Scientist development pathway</p>
+                            </div>
+                            <div class="p-4">
+                                <!-- Mini pathway view -->
+                                <div class="flex items-center space-x-2 mb-4">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <span class="text-xs text-white font-bold">RA</span>
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                    </svg>
+                                    <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                                        <span class="text-xs text-white font-bold">DA</span>
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                    </svg>
+                                    <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                                        <span class="text-xs text-white font-bold">DS</span>
+                                    </div>
+                                </div>
+
+                                <!-- Strategic metrics -->
+                                <div class="space-y-3">
+                                    <div class="bg-blue-50 p-3 rounded">
+                                        <p class="text-xs font-source font-medium text-blue-800 uppercase tracking-wide mb-1">Cohort Impact</p>
+                                        <div class="grid grid-cols-2 gap-2 text-xs">
+                                            <div>
+                                                <span class="text-blue-600">Transition Candidates:</span>
+                                                <span class="font-medium text-blue-900">85 FTE</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-blue-600">Success Probability:</span>
+                                                <span class="font-medium text-blue-900">78%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-yellow-50 p-3 rounded">
+                                        <p class="text-xs font-source font-medium text-yellow-800 uppercase tracking-wide mb-1">Investment Analysis</p>
+                                        <div class="grid grid-cols-2 gap-2 text-xs">
+                                            <div>
+                                                <span class="text-yellow-600">Training Cost:</span>
+                                                <span class="font-medium text-yellow-900">£7.2k/FTE</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-yellow-600">Total Investment:</span>
+                                                <span class="font-medium text-yellow-900">£612k</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-green-50 p-3 rounded">
+                                        <p class="text-xs font-source font-medium text-green-800 uppercase tracking-wide mb-1">Business Value</p>
+                                        <div class="grid grid-cols-2 gap-2 text-xs">
+                                            <div>
+                                                <span class="text-green-600">3-Year ROI:</span>
+                                                <span class="font-medium text-green-900">340%</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-green-600">Timeline:</span>
+                                                <span class="font-medium text-green-900">18-24 months</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-orange-50 p-3 rounded">
+                                        <p class="text-xs font-source font-medium text-orange-800 uppercase tracking-wide mb-1">Development Considerations</p>
+                                        <div class="text-xs">
+                                            <p class="text-orange-700 mb-1"><strong>Capability Gaps:</strong> Python, ML, Cloud platforms</p>
+                                            <p class="text-orange-700"><strong>Extended Timeline:</strong> 17 roles may require additional development support</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- D3.js Interactive Career Pathway Tree -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">D3.js Interactive Career Pathway Tree</h2>
+            <div class="mb-4 bg-blue-50 border-l-4 border-blue-600 p-4">
+                <p class="text-sm font-source text-blue-800">
+                    <strong>Real-time Visualization:</strong> Interactive collapsible tree showing career pathways based on job similarity data from our SQLite database.
+                    <br><strong>Structure:</strong> Job Family → Individual Jobs → Similar Career Options (with similarity scores)
+                </p>
+            </div>
+            
+            <!-- Controls -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-epilogue font-medium text-gray-900">Career Pathway Tree Controls</h3>
+                        <button id="build-tree" class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-1 rounded-md transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Build Tree
+                        </button>
+                    </div>
+                    
+                    <!-- Job Selection with Search -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                        <div class="mb-3">
+                            <h4 class="text-sm font-epilogue font-medium text-gray-800 mb-2">Select Starting Job(s)</h4>
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    id="job-search" 
+                                    placeholder="Search for jobs (e.g., 'Data Scientist', 'Manager')..." 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source text-sm"
+                                >
+                                <div id="job-search-dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 hidden max-h-48 overflow-y-auto">
+                                    <!-- Search results populated here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Jobs Display -->
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Selected Jobs:</label>
+                                <button id="clear-all-jobs" class="text-xs text-red-600 hover:text-red-800 font-source font-medium">Clear All</button>
+                            </div>
+                            <div id="selected-jobs-container" class="min-h-[2rem] p-2 border border-gray-200 rounded-md bg-white">
+                                <span class="text-gray-500 text-sm font-source">No jobs selected</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tree Parameters -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 class="text-sm font-epilogue font-medium text-gray-800 mb-3">Tree Parameters</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Similarity Threshold Slider -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                        Similarity Range:
+                                    </label>
+                                    <span id="similarity-value" class="text-sm font-source font-bold text-gray-900">20% - 99%</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    id="similarity-slider" 
+                                    min="0" 
+                                    max="95" 
+                                    value="20" 
+                                    step="5"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                                    <span>0% - 99%</span>
+                                    <span>95% - 99%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Tree Depth Slider -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                        Tree Depth:
+                                    </label>
+                                    <span id="depth-value" class="text-sm font-source font-bold text-gray-900">6 levels</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    id="depth-slider" 
+                                    min="1" 
+                                    max="7" 
+                                    value="6" 
+                                    step="1"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                                    <span>1</span>
+                                    <span>7</span>
+                                </div>
+                            </div>
+
+                            <!-- Organizational Filters -->
+                            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <h4 class="text-xs font-source font-bold text-gray-700 uppercase tracking-wide mb-3">
+                                    🏢 Organizational Filters
+                                </h4>
+                                
+                                <!-- Division Filter -->
+                                <div class="mb-3">
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Division:
+                                    </label>
+                                    <select id="division-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Divisions</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Business Unit Filter -->
+                                <div class="mb-3">
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Business Unit:
+                                    </label>
+                                    <select id="business-unit-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Business Units</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Location Filter -->
+                                <div class="mb-3">
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Location:
+                                    </label>
+                                    <select id="location-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Locations</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Region Filter -->
+                                <div>
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Region:
+                                    </label>
+                                    <select id="region-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Regions</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-xs text-gray-600 font-source">
+                            💡 <strong>Tip:</strong> Similarity range shows jobs between your threshold and 99%. Higher thresholds = closer matches. Deeper trees = more career progression options. Organizational filters limit results to specific divisions/locations.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tree Container -->
+                <div class="border border-gray-200 rounded-lg bg-gray-50">
+                    <div id="career-tree" class="w-full" style="height: 600px; overflow: auto;"></div>
+                </div>
+                
+                <!-- Tree Legend -->
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-green-600 rounded-full"></div>
+                        <span class="font-source text-gray-700">Starting Jobs</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-red-600 rounded-full"></div>
+                        <span class="font-source text-gray-700">Similar Jobs</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-1 bg-gray-400 rounded"></div>
+                        <span class="font-source text-gray-700">Career Connections (% shown)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Job Details Panel -->
+            <div id="job-details-panel" class="bg-white rounded-lg shadow-lg p-6 hidden">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900 mb-4">Job Details</h3>
+                <div id="job-details-content">
+                    <!-- Dynamic content populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Breadcrumb Navigation -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Breadcrumb Navigation</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6 space-y-6">
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Standard Breadcrumb</p>
+                    <nav class="flex" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="#" class="inline-flex items-center text-sm font-source font-medium text-gray-700 hover:text-red-600">
+                                    <svg class="w-3 h-3 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
+                                    </svg>
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                                    </svg>
+                                    <a href="#" class="ml-1 text-sm font-source font-medium text-gray-700 hover:text-red-600 md:ml-2">Career Pathways</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                                    </svg>
+                                    <span class="ml-1 text-sm font-source font-medium text-gray-500 md:ml-2">Data Scientist</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+                
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Career Path Breadcrumb</p>
+                    <nav class="flex" aria-label="Career Path">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <span class="inline-flex items-center text-sm font-source font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
+                                    <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Risk Analyst
+                                </span>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                    </svg>
+                                    <span class="ml-1 text-sm font-source font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded md:ml-2">Business Analyst</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                    </svg>
+                                    <span class="ml-1 text-sm font-source font-medium text-red-700 bg-red-100 px-2 py-1 rounded md:ml-2">Data Scientist</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+                
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Skills Context Breadcrumb</p>
+                    <nav class="flex flex-wrap" aria-label="Skills Context">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-2">
+                            <li class="inline-flex items-center">
+                                <a href="#" class="inline-flex items-center text-sm font-source font-medium text-gray-700 hover:text-red-600">
+                                    Job Families
+                                </a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <span class="text-gray-400 mx-1">/</span>
+                                    <a href="#" class="text-sm font-source font-medium text-gray-700 hover:text-red-600">Technology</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <span class="text-gray-400 mx-1">/</span>
+                                    <a href="#" class="text-sm font-source font-medium text-gray-700 hover:text-red-600">Data & Analytics</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <span class="text-gray-400 mx-1">/</span>
+                                    <span class="text-sm font-source font-medium text-gray-500">Senior Data Scientist</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modal Dialogs -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Modal Dialog Components</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6 space-y-6">
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">Modal Trigger Buttons</p>
+                    <div class="flex flex-wrap gap-4">
+                        <button onclick="openModal('job-details-modal')" class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                            View Job Details
+                        </button>
+                        <button onclick="openModal('skills-comparison-modal')" class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                            Compare Skills
+                        </button>
+                        <button onclick="openModal('career-pathway-modal')" class="bg-gray-800 hover:bg-gray-900 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                            Career Pathway Analysis
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <p class="text-xs font-source text-gray-600">
+                        <strong>Usage:</strong> Click the buttons above to test the modal dialogs. 
+                        Modals include job detail views, skills comparison tools, and career pathway analysis.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Color Palette Reference -->
+        <section class="mb-12">
+            <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Color Palette</h2>
+            <div class="bg-gray-50 rounded-lg shadow-lg p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="w-full h-16 bg-black rounded-md mb-2"></div>
+                        <p class="text-xs font-source font-medium text-gray-700">NAB Black<br>#000000</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-full h-16 bg-red-600 rounded-md mb-2"></div>
+                        <p class="text-xs font-source font-medium text-gray-700">NAB Red<br>#dc2626</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-full h-16 bg-red-700 rounded-md mb-2"></div>
+                        <p class="text-xs font-source font-medium text-gray-700">NAB Red Dark<br>#b91c1c</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-full h-16 bg-white border border-gray-300 rounded-md mb-2"></div>
+                        <p class="text-xs font-source font-medium text-gray-700">White<br>#ffffff</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<!-- Modal Overlays - Hidden by default -->
+<!-- Job Details Modal -->
+<div id="job-details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Job Profile Details</h3>
+                <button onclick="closeModal('job-details-modal')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="py-4 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Job Title</p>
+                        <p class="text-lg font-epilogue font-medium text-gray-900">Senior Data Scientist</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Job Family</p>
+                        <p class="text-sm font-source text-gray-900">Technology - Data & Analytics</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Job Profile ID</p>
+                        <p class="text-sm font-mono text-gray-600">R0041.5</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Business Unit</p>
+                        <p class="text-sm font-source text-gray-900">Group Technology</p>
+                    </div>
+                </div>
+                
+                <!-- Required Skills -->
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Required Skills</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">Python</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">Machine Learning</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">Statistical Analysis</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">SQL</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-source font-medium bg-gray-100 text-gray-800">Data Visualization</span>
+                    </div>
+                </div>
+                
+                <!-- Similar Jobs Preview -->
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">Top Similar Roles</p>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span class="text-sm font-source text-gray-900">Data Analyst</span>
+                            <span class="text-xs font-source font-medium text-green-700 bg-green-100 px-2 py-1 rounded">87%</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span class="text-sm font-source text-gray-900">Business Analyst</span>
+                            <span class="text-xs font-source font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded">74%</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span class="text-sm font-source text-gray-900">Risk Analyst</span>
+                            <span class="text-xs font-source font-medium text-orange-700 bg-orange-100 px-2 py-1 rounded">68%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end pt-4 border-t border-gray-200 space-x-3">
+                <button onclick="closeModal('job-details-modal')" class="text-gray-600 hover:text-gray-800 font-source font-medium px-4 py-2 transition-colors duration-200">
+                    Close
+                </button>
+                <button class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                    Explore Career Pathways
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Skills Comparison Modal -->
+<div id="skills-comparison-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Skills Comparison Analysis</h3>
+                <button onclick="closeModal('skills-comparison-modal')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="py-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Current Role Skills -->
+                    <div>
+                        <div class="mb-4">
+                            <h4 class="text-md font-epilogue font-medium text-gray-900">Current Role: Risk Analyst</h4>
+                            <p class="text-xs font-source text-gray-600">Your existing skill profile</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Risk Assessment</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: 95%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-green-700">95%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Statistical Analysis</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: 85%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-green-700">85%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Excel/Advanced Analytics</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-yellow-700">75%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Python Programming</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-500 h-2 rounded-full" style="width: 15%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-red-700">15%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Machine Learning</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-500 h-2 rounded-full" style="width: 5%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-red-700">5%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Target Role Skills -->
+                    <div>
+                        <div class="mb-4">
+                            <h4 class="text-md font-epilogue font-medium text-gray-900">Target Role: Data Scientist</h4>
+                            <p class="text-xs font-source text-gray-600">Required skill profile</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Statistical Analysis</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: 95%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-green-700">✓ Match</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Python Programming</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-500 h-2 rounded-full" style="width: 90%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-red-700">Gap: 75%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Machine Learning</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-500 h-2 rounded-full" style="width: 85%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-red-700">Gap: 80%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">Data Visualization</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 80%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-yellow-700">Gap: 50%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-source text-gray-900">SQL Databases</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                    <span class="text-xs font-source font-medium text-yellow-700">Gap: 60%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Skills Gap Summary -->
+                <div class="mt-6 p-4 bg-gray-900 text-white rounded-lg">
+                    <h5 class="text-sm font-epilogue font-medium text-white mb-2">Development Priority Summary</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div>
+                            <span class="text-red-400">High Priority:</span>
+                            <span class="text-white">Python, Machine Learning</span>
+                        </div>
+                        <div>
+                            <span class="text-yellow-400">Medium Priority:</span>
+                            <span class="text-white">SQL, Data Visualization</span>
+                        </div>
+                        <div>
+                            <span class="text-green-400">Transferable:</span>
+                            <span class="text-white">Statistical Analysis, Problem Solving</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end pt-4 border-t border-gray-200 space-x-3">
+                <button onclick="closeModal('skills-comparison-modal')" class="text-gray-600 hover:text-gray-800 font-source font-medium px-4 py-2 transition-colors duration-200">
+                    Close
+                </button>
+                <button class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                    Generate Development Plan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Career Pathway Analysis Modal -->
+<div id="career-pathway-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-5 mx-auto p-5 border w-full max-w-5xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                <h3 class="text-lg font-epilogue font-medium text-gray-900">Career Pathway Analysis</h3>
+                <button onclick="closeModal('career-pathway-modal')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="py-4">
+                <!-- Pathway Overview -->
+                <div class="mb-6">
+                    <h4 class="text-md font-epilogue font-medium text-gray-900 mb-2">Recommended Career Transitions</h4>
+                    <p class="text-sm font-source text-gray-600">Based on skills similarity and market demand analysis</p>
+                </div>
+                
+                <!-- Pathway Options -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                    <!-- Path 1 -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-sm font-epilogue font-medium text-blue-900">Traditional Path</h5>
+                            <span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Most Common</span>
+                        </div>
+                        <div class="space-y-2 mb-3">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Risk Analyst</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Business Analyst</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Data Scientist</span>
+                            </div>
+                        </div>
+                        <div class="text-xs font-source space-y-1">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Timeline:</span>
+                                <span class="text-blue-700">18-24 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Success Rate:</span>
+                                <span class="text-blue-700">78%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Path 2 -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-sm font-epilogue font-medium text-green-900">Accelerated Path</h5>
+                            <span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Fast Track</span>
+                        </div>
+                        <div class="space-y-2 mb-3">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Risk Analyst</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">6mo Development Program</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Data Scientist</span>
+                            </div>
+                        </div>
+                        <div class="text-xs font-source space-y-1">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Timeline:</span>
+                                <span class="text-green-700">12-15 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Success Rate:</span>
+                                <span class="text-green-700">85%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Path 3 -->
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-sm font-epilogue font-medium text-purple-900">Technical Path</h5>
+                            <span class="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded">High Impact</span>
+                        </div>
+                        <div class="space-y-2 mb-3">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Risk Analyst</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Technical Analyst</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span class="text-xs font-source text-gray-700">Data Scientist</span>
+                            </div>
+                        </div>
+                        <div class="text-xs font-source space-y-1">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Timeline:</span>
+                                <span class="text-purple-700">15-20 months</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Success Rate:</span>
+                                <span class="text-purple-700">65%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Investment Analysis -->
+                <div class="bg-gray-900 text-white rounded-lg p-4">
+                    <h5 class="text-sm font-epilogue font-medium text-white mb-3">Investment Analysis</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                        <div>
+                            <span class="text-yellow-400">Development Cost:</span>
+                            <span class="text-white block">£5.3k per FTE</span>
+                        </div>
+                        <div>
+                            <span class="text-green-400">Cohort Size:</span>
+                            <span class="text-white block">127 current Risk Analysts</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-400">3-Year ROI:</span>
+                            <span class="text-white block">340%</span>
+                        </div>
+                        <div>
+                            <span class="text-purple-400">Business Impact:</span>
+                            <span class="text-white block">High strategic value</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end pt-4 border-t border-gray-200 space-x-3">
+                <button onclick="closeModal('career-pathway-modal')" class="text-gray-600 hover:text-gray-800 font-source font-medium px-4 py-2 transition-colors duration-200">
+                    Close
+                </button>
+                <button class="border border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                    Export Analysis
+                </button>
+                <button class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                    Generate White Paper
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- D3.js for Interactive Visualizations -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<!-- Mermaid.js for Flowcharts -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+    // Initialize Mermaid
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+            primaryColor: '#dbeafe',
+            primaryTextColor: '#1f2937',
+            primaryBorderColor: '#3b82f6',
+            lineColor: '#6b7280',
+            secondaryColor: '#f3f4f6',
+            tertiaryColor: '#ffffff'
+        }
+    });
+
+    // NAB Design System Components with Interactive Demos
+    console.log('NAB Design System Components Loaded');
+
+    // Career Pathway Visualization Demos
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Demo: Load real pathway data
+        async function loadPathwayData() {
+            try {
+                const response = await fetch('/api/pathway-visualization-data');
+                const data = await response.json();
+                console.log('Real pathway data loaded:', data);
+                
+                // Here we could populate the visualizations with real data
+                updateVisualizationWithRealData(data);
+                
+            } catch (error) {
+                console.log('Using mock data - database not connected:', error.message);
+            }
+        }
+
+        function updateVisualizationWithRealData(data) {
+            // Example: Update the hybrid explorer with real job similarity data
+            console.log('Would update visualizations with:', data);
+            
+            // Add "Using Real Data" indicators
+            addRealDataIndicators();
+        }
+
+        function addRealDataIndicators() {
+            const visualizations = document.querySelectorAll('.bg-white.rounded-lg.shadow-lg');
+            visualizations.forEach((viz, index) => {
+                if (index >= 4) return; // Only first 4 career pathway sections
+                
+                const indicator = document.createElement('div');
+                indicator.className = 'absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full';
+                indicator.textContent = 'Live Data';
+                indicator.style.position = 'absolute';
+                
+                const parent = viz.parentElement;
+                if (parent && !parent.querySelector('.absolute')) {
+                    parent.style.position = 'relative';
+                    parent.appendChild(indicator);
+                }
+            });
+        }
+
+        // Interactive demonstrations
+        function addInteractivity() {
+            
+            // Network Graph Mock Interactions
+            const networkNodes = document.querySelectorAll('.absolute [class*="bg-"][class*="rounded-full"]');
+            networkNodes.forEach(node => {
+                node.addEventListener('click', function() {
+                    console.log('Network node clicked:', this.textContent.trim());
+                    // Could trigger pathway analysis here
+                });
+            });
+
+            // Hybrid Explorer Mock Interactions
+            const jobListItems = document.querySelectorAll('.cursor-pointer');
+            jobListItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    console.log('Job selected:', this.querySelector('p').textContent);
+                    // Could update the right panel with real pathway data
+                    this.style.borderColor = '#dc2626';
+                    this.style.backgroundColor = '#fef2f2';
+                });
+            });
+
+            // Skills Development Progress Bars (simulated progress)
+            const progressBars = document.querySelectorAll('.bg-yellow-600, .bg-red-600, .bg-blue-600');
+            progressBars.forEach(bar => {
+                bar.addEventListener('click', function() {
+                    // Simulate skill development progress
+                    const currentWidth = parseInt(this.style.width) || 20;
+                    const newWidth = Math.min(currentWidth + 10, 100);
+                    this.style.width = newWidth + '%';
+                    console.log('Skill progress updated:', newWidth + '%');
+                });
+            });
+        }
+
+        // Initialize demonstrations
+        loadPathwayData();
+        addInteractivity();
+
+        // Add test buttons for demonstrating API integration
+        addTestControls();
+        
+        // Initialize D3.js Career Tree
+        initializeCareerTree();
+    });
+
+    function addTestControls() {
+        // Add a test section for API integration
+        const testSection = document.createElement('div');
+        testSection.className = 'fixed bottom-4 right-4 bg-black text-white p-4 rounded-lg shadow-lg max-w-sm';
+        testSection.innerHTML = `
+            <h4 class="font-epilogue font-medium mb-2">API Test Controls</h4>
+            <div class="space-y-2">
+                <button onclick="testJobSimilarities()" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded transition-colors">
+                    Test Job Similarities API
+                </button>
+                <button onclick="testCareerPathway()" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded transition-colors">
+                    Test Career Pathway API
+                </button>
+                <button onclick="closeTestControls()" class="w-full bg-gray-600 hover:bg-gray-700 text-white text-xs px-3 py-1 rounded transition-colors">
+                    Close
+                </button>
+            </div>
+        `;
+        document.body.appendChild(testSection);
+    }
+
+    // API Testing Functions
+    async function testJobSimilarities() {
+        try {
+            // Use a sample JobProfileID from your database
+            const response = await fetch('/api/search-jobs?q=analyst');
+            const jobs = await response.json();
+            if (jobs.length > 0) {
+                const firstJob = jobs[0];
+                const similaritiesResponse = await fetch(`/api/job-similarities/${firstJob.id}`);
+                const similarities = await similaritiesResponse.json();
+                console.log('Job similarities for', firstJob.name, ':', similarities);
+                alert(`Found ${similarities.length} similar jobs to ${firstJob.name}`);
+            }
+        } catch (error) {
+            console.error('API test failed:', error);
+            alert('API test failed - check console for details');
+        }
+    }
+
+    async function testCareerPathway() {
+        try {
+            // Test the career pathway endpoint with sample data
+            const response = await fetch('/api/pathway-visualization-data');
+            const data = await response.json();
+            console.log('Pathway visualization data:', data);
+            alert('Pathway data loaded successfully - check console for details');
+        } catch (error) {
+            console.error('Pathway API test failed:', error);
+            alert('Pathway API test failed - check console for details');
+        }
+    }
+
+    function closeTestControls() {
+        const testSection = document.querySelector('.fixed.bottom-4.right-4');
+        if (testSection) {
+            testSection.remove();
+        }
+    }
+
+    // ==============================================
+    // D3.js Interactive Collapsible Tree
+    // ==============================================
+    
+    let treeData = null;
+    let svg = null;
+    let g = null;
+    let tree = null;
+    let root = null;
+    let margin, width, height; // Global dimensions for tree
+    
+    function initializeCareerTree() {
+        console.log('🌳 Initializing D3.js Career Pathway Tree...');
+        
+        // Set up the SVG canvas
+        const container = d3.select("#career-tree");
+        const containerNode = container.node();
+        const containerRect = containerNode.getBoundingClientRect();
+        
+        margin = { top: 20, right: 90, bottom: 30, left: 90 };
+        width = Math.max(800, containerRect.width) - margin.left - margin.right;
+        height = 550 - margin.top - margin.bottom;
+        
+        // Clear any existing SVG
+        container.selectAll("*").remove();
+        
+        svg = container
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+        
+        g = svg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        // Create tree layout
+        tree = d3.tree().size([height, width]);
+        
+        // Clear any default loading - user will select jobs manually
+        
+        // Set up event handlers for new job-centric approach
+        setupJobSearch();
+        setupSliders();
+        setupTreeControls();
+        
+        // Load initial job suggestions
+        loadJobSuggestions();
+    }
+    
+    async function loadJobFamilies() {
+        try {
+            const response = await fetch('/api/job-families');
+            const families = await response.json();
+            
+            const selector = document.getElementById('family-selector');
+            selector.innerHTML = '';
+            
+            families.forEach(family => {
+                const option = document.createElement('option');
+                option.value = family.name;
+                option.textContent = `${family.name} (${family.job_count} jobs)`;
+                selector.appendChild(option);
+            });
+            
+            console.log('📋 Loaded job families:', families.length);
+            
+        } catch (error) {
+            console.error('❌ Failed to load job families:', error);
+        }
+    }
+    
+    async function loadTreeData(family) {
+        try {
+            console.log(`🔄 Loading tree data for family: ${family}`);
+            
+            const response = await fetch(`/api/d3-tree-data?family=${encodeURIComponent(family)}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('❌ API Error:', data.error);
+                showErrorMessage(`Failed to load data: ${data.error}`);
+                return;
+            }
+            
+            treeData = data;
+            updateTree();
+            
+            console.log('✅ Tree data loaded successfully:', data);
+            
+        } catch (error) {
+            console.error('❌ Failed to load tree data:', error);
+            showErrorMessage('Failed to connect to database. Using mock data for demonstration.');
+            
+            // Fallback to mock data for demonstration
+            treeData = createMockTreeData(family);
+            updateTree();
+        }
+    }
+    
+    function createMockTreeData(family) {
+        return {
+            name: family,
+            type: 'family',
+            children: [
+                {
+                    name: 'Senior Data Analyst',
+                    type: 'job',
+                    id: 'mock-1',
+                    family: family,
+                    children: [
+                        { name: 'Business Analyst', type: 'similar_job', id: 'mock-2', family: 'Finance', similarity: 0.85, size: 85 },
+                        { name: 'Data Scientist', type: 'similar_job', id: 'mock-3', family: 'Technology', similarity: 0.78, size: 78 }
+                    ]
+                },
+                {
+                    name: 'Data Scientist Manager',
+                    type: 'job',
+                    id: 'mock-4',
+                    family: family,
+                    children: [
+                        { name: 'Analytics Manager', type: 'similar_job', id: 'mock-5', family: 'Technology', similarity: 0.92, size: 92 },
+                        { name: 'Risk Manager', type: 'similar_job', id: 'mock-6', family: 'Risk', similarity: 0.67, size: 67 }
+                    ]
+                }
+            ]
+        };
+    }
+    
+    function updateTree() {
+        if (!treeData) return;
+        
+        console.log('🎨 Updating tree visualization...');
+        
+        // Clear existing tree COMPLETELY to avoid DOM conflicts
+        g.selectAll("*").remove();
+        
+        // Reset global counter
+        i = 0;
+        
+        // Create hierarchy
+        root = d3.hierarchy(treeData, d => d.children);
+        root.x0 = height / 2;
+        root.y0 = 0;
+        
+        // Give each node a unique ID for proper data binding
+        root.descendants().forEach((d, index) => {
+            d.id = d.data.id || `node-${index}`;
+        });
+        
+        // Collapse all children initially except first level
+        if (root.children) {
+            root.children.forEach(collapse);
+        }
+        
+        update(root);
+    }
+    
+    function update(source) {
+        const duration = 750;
+        
+        // Compute the tree layout
+        const treeData = tree(root);
+        const nodes = treeData.descendants();
+        const links = treeData.descendants().slice(1);
+        
+        // Normalize for fixed-depth
+        nodes.forEach(d => { d.y = d.depth * 180; });
+        
+        // ****************** Nodes section ***************************
+        
+        // Update the nodes with proper key function
+        const node = g.selectAll('g.node')
+            .data(nodes, d => d.id);
+        
+        // Enter any new nodes at the parent's previous position
+        const nodeEnter = node.enter().append('g')
+            .attr('class', 'node')
+            .attr("transform", d => {
+                const x = source.x0 || height / 2;
+                const y = source.y0 || 0;
+                return `translate(${y},${x})`;
+            })
+            .on('click', click)
+            .on('mouseover', showTooltip)
+            .on('mouseout', hideTooltip);
+        
+        // Add Circle for the nodes
+        nodeEnter.append('circle')
+            .attr('class', 'node')
+            .attr('r', 1e-6)
+            .style("fill", d => d._children ? "#dc2626" : getNodeColor(d.data.type))
+            .style("stroke", "#333")
+            .style("stroke-width", "2px")
+            .style("cursor", "pointer");
+        
+        // Add labels for the nodes - include similarity % directly in node name
+        nodeEnter.append('text')
+            .attr("dy", "1.8em")  // Move labels below nodes
+            .attr("x", 0)  // Center labels under nodes
+            .attr("text-anchor", "middle")  // Center text alignment
+            .text(d => {
+                let displayName = truncateText(d.data.name, 20);
+                // Add similarity percentage directly to similar job names
+                if (d.data.type === 'similar_job' && d.data.similarity_score > 0) {
+                    displayName += ` (${Math.round(d.data.similarity_score * 100)}%)`;
+                }
+                return displayName;
+            })
+            .style("font-family", "Source Sans Pro, sans-serif")
+            .style("font-size", "12px")
+            .style("fill", "#374151")
+            .style("cursor", "pointer");
+        
+        // Add similarity color indicators for similar jobs - make them more prominent
+        nodeEnter.filter(d => d.data.type === 'similar_job' && d.data.similarity_score > 0)
+            .append('text')
+            .attr("dy", "3.2em")  // Position below the main label
+            .attr("x", 0)  // Center under nodes
+            .attr("text-anchor", "middle")  // Center text alignment
+            .text(d => {
+                const similarity = d.data.similarity_score;
+                if (similarity >= 0.8) return "🔴 High Match";
+                else if (similarity >= 0.7) return "🟠 Good Match";
+                else if (similarity >= 0.6) return "🟡 Fair Match";
+                else return "⚪ Low Match";
+            })
+            .style("font-family", "Source Sans Pro, sans-serif")
+            .style("font-size", "10px")
+            .style("font-weight", "bold")
+            .style("fill", d => getSimilarityColor(d.data.similarity_score));
+        
+        // UPDATE
+        const nodeUpdate = nodeEnter.merge(node);
+        
+        // Transition to the proper position for the node
+        nodeUpdate.transition()
+            .duration(duration)
+            .attr("transform", d => {
+                const x = d.x || 0;
+                const y = d.y || 0;
+                return `translate(${y},${x})`;
+            });
+        
+        // Update the node attributes and style
+        nodeUpdate.select('circle.node')
+            .attr('r', d => getNodeSize(d.data))
+            .style("fill", d => d._children ? "#dc2626" : getNodeColor(d.data.type));
+        
+        // Remove any exiting nodes
+        const nodeExit = node.exit().transition()
+            .duration(duration)
+            .attr("transform", d => {
+                const x = source.x || height / 2;
+                const y = source.y || 0;
+                return `translate(${y},${x})`;
+            })
+            .remove();
+        
+        // On exit reduce the node circles size to 0
+        nodeExit.select('circle')
+            .attr('r', 1e-6);
+        
+        // On exit reduce the opacity of text labels
+        nodeExit.select('text')
+            .style('fill-opacity', 1e-6);
+        
+        // ****************** links section ***************************
+        
+        // Update the links
+        const link = g.selectAll('path.link')
+            .data(links, d => d.id);
+        
+        // Enter any new links at the parent's previous position
+        const linkEnter = link.enter().insert('path', "g")
+            .attr("class", "link")
+            .attr('d', d => {
+                const o = {x: source.x0 || height / 2, y: source.y0 || 0};
+                return diagonal(o, o);
+            })
+            .style("fill", "none")
+            .style("stroke", "#94a3b8")
+            .style("stroke-width", "2px");
+        
+        // UPDATE
+        const linkUpdate = linkEnter.merge(link);
+        
+        // Transition back to the parent element position
+        linkUpdate.transition()
+            .duration(duration)
+            .attr('d', d => diagonal(d, d.parent));
+        
+        // Removed floating link labels - similarity now shown directly in node names
+        
+        // Remove any exiting links
+        link.exit().transition()
+            .duration(duration)
+            .attr('d', d => {
+                const o = {x: source.x || height / 2, y: source.y || 0};
+                return diagonal(o, o);
+            })
+            .remove();
+        
+        // Store the old positions for transition
+        nodes.forEach(d => {
+            d.x0 = d.x;
+            d.y0 = d.y;
+        });
+    }
+    
+    // Helper functions
+    let i = 0;
+    
+    function click(event, d) {
+        console.log(`🖱️ Clicked node: ${d.data.name}, Level: ${d.data.level || d.depth}, Type: ${d.data.type}`);
+        console.log(`Node has children: ${!!d.children}, Has _children: ${!!d._children}`);
+        
+        if (d.children) {
+            console.log(`🔽 Collapsing ${d.children.length} children`);
+            d._children = d.children;
+            d.children = null;
+        } else if (d._children) {
+            console.log(`🔼 Expanding ${d._children.length} children`);
+            d.children = d._children;
+            d._children = null;
+        } else {
+            console.log(`⚠️ Node has no children to expand`);
+            showNoMoreMatchesMessage(d);
+        }
+        
+        update(d);
+        
+        // Show job details if available
+        if (d.data.type !== 'family') {
+            showJobDetails(d.data);
+        }
+    }
+    
+    function showNoMoreMatchesMessage(node) {
+        // Get current similarity threshold
+        const similaritySlider = document.getElementById('similarity-slider');
+        const currentThreshold = similaritySlider ? parseInt(similaritySlider.value) : 70;
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-md shadow-lg z-50 max-w-sm';
+        notification.innerHTML = `
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">No More Career Paths</h3>
+                    <p class="text-sm text-yellow-700 mt-1">
+                        No similar jobs found above ${currentThreshold}% similarity threshold.
+                        Try lowering the similarity range or increasing tree depth.
+                    </p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-yellow-400 hover:text-yellow-600">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    function collapse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+        }
+    }
+    
+    function diagonal(s, d) {
+        const sx = s.x || 0;
+        const sy = s.y || 0;
+        const dx = d.x || 0;
+        const dy = d.y || 0;
+        
+        const path = `M ${sy} ${sx}
+                     C ${(sy + dy) / 2} ${sx},
+                       ${(sy + dy) / 2} ${dx},
+                       ${dy} ${dx}`;
+        return path;
+    }
+    
+    function getNodeColor(type) {
+        switch (type) {
+            case 'root': return '#7c3aed';        // Purple for virtual root
+            case 'family': return '#3b82f6';      // Blue
+            case 'job': return '#059669';         // Green  
+            case 'similar_job': return '#dc2626'; // Red
+            default: return '#6b7280';            // Gray
+        }
+    }
+    
+    function getSimilarityColor(similarity) {
+        // Color gradient from orange (low) to red (high)
+        if (similarity >= 0.8) return '#dc2626';      // Red (high similarity)
+        else if (similarity >= 0.7) return '#ea580c';  // Orange-red
+        else if (similarity >= 0.6) return '#f59e0b';  // Orange
+        else return '#94a3b8';                          // Gray (low similarity)
+    }
+    
+    function getNodeSize(data) {
+        switch (data.type) {
+            case 'family': return 12;
+            case 'job': return 8;
+            case 'similar_job': return Math.max(4, (data.similarity_score || 0.5) * 10);
+            default: return 6;
+        }
+    }
+    
+    function truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+    }
+    
+    function showTooltip(event, d) {
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "d3-tooltip")
+            .style("position", "absolute")
+            .style("padding", "8px")
+            .style("background", "rgba(0, 0, 0, 0.8)")
+            .style("color", "white")
+            .style("border-radius", "4px")
+            .style("font-size", "12px")
+            .style("font-family", "Source Sans Pro, sans-serif")
+            .style("pointer-events", "none")
+            .style("z-index", "1000");
+        
+        let tooltipText = d.data.name;
+        if (d.data.similarity) {
+            tooltipText += `<br>Similarity: ${Math.round(d.data.similarity * 100)}%`;
+        }
+        if (d.data.family && d.data.type !== 'family') {
+            tooltipText += `<br>Family: ${d.data.family}`;
+        }
+        
+        tooltip.html(tooltipText)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 10) + "px")
+            .style("opacity", 1);
+    }
+    
+    function hideTooltip() {
+        d3.selectAll(".d3-tooltip").remove();
+    }
+    
+    function showJobDetails(jobData) {
+        const panel = document.getElementById('job-details-panel');
+        const content = document.getElementById('job-details-content');
+        
+        let html = `
+            <div class="space-y-3">
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Job Title</p>
+                    <p class="text-sm font-source text-gray-900">${jobData.name}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Job Family</p>
+                    <p class="text-sm font-source text-gray-900">${jobData.family || 'Unknown'}</p>
+                </div>`;
+        
+        if (jobData.similarity_score) {
+            html += `
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Similarity Score</p>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-lg font-epilogue font-bold text-gray-900">${Math.round(jobData.similarity_score * 100)}%</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                            <div class="bg-red-600 h-2 rounded-full" style="width: ${jobData.similarity_score * 100}%"></div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        
+        if (jobData.id) {
+            html += `
+                <div>
+                    <p class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Job Profile ID</p>
+                    <p class="text-sm font-mono text-gray-600">${jobData.id}</p>
+                </div>`;
+        }
+        
+        html += `
+                <div class="pt-2">
+                    <button onclick="hideJobDetails()" class="bg-gray-600 hover:bg-gray-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+        panel.classList.remove('hidden');
+    }
+    
+    function hideJobDetails() {
+        const panel = document.getElementById('job-details-panel');
+        panel.classList.add('hidden');
+    }
+    
+    function showErrorMessage(message) {
+        const container = document.getElementById('career-tree');
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full">
+                <div class="text-center">
+                    <div class="text-red-500 mb-4">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Unable to Load Data</h3>
+                    <p class="text-sm font-source text-gray-500 mt-2">${message}</p>
+                    <button onclick="location.reload()" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200">
+                        Retry
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ========== NEW JOB-CENTRIC FUNCTIONALITY ==========
+    
+    let selectedJobs = new Map(); // Map of job ID -> job object
+    let searchTimeout = null;
+    
+    function setupJobSearch() {
+        const searchInput = document.getElementById('job-search');
+        const dropdown = document.getElementById('job-search-dropdown');
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (this.value.trim().length >= 2) {
+                    searchJobs(this.value.trim());
+                } else {
+                    hideDropdown();
+                }
+            }, 300);
+        });
+        
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2) {
+                searchJobs(this.value.trim());
+            } else {
+                loadJobSuggestions();
+            }
+        });
+        
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+        
+        // Clear all jobs button
+        document.getElementById('clear-all-jobs').addEventListener('click', function() {
+            selectedJobs.clear();
+            updateSelectedJobsDisplay();
+            updateBuildTreeButton();
+        });
+    }
+    
+    function setupSliders() {
+        const similaritySlider = document.getElementById('similarity-slider');
+        const depthSlider = document.getElementById('depth-slider');
+        const similarityValue = document.getElementById('similarity-value');
+        const depthValue = document.getElementById('depth-value');
+        
+        if (!similaritySlider || !depthSlider || !similarityValue || !depthValue) {
+            console.error('❌ Slider elements not found');
+            return;
+        }
+        
+        similaritySlider.addEventListener('input', function() {
+            if (similarityValue) {
+                similarityValue.textContent = this.value + '% - 99%';
+            }
+            updateBuildTreeButtonText();
+        });
+        
+        depthSlider.addEventListener('input', function() {
+            if (depthValue) {
+                depthValue.textContent = this.value + ' level' + (this.value !== '1' ? 's' : '');
+            }
+            updateBuildTreeButtonText();
+        });
+    }
+    
+    function setupTreeControls() {
+        document.getElementById('build-tree').addEventListener('click', function() {
+            if (selectedJobs.size > 0) {
+                buildCareerTree();
+            }
+        });
+    }
+    
+    async function searchJobs(query) {
+        try {
+            const response = await fetch(`/api/search-all-jobs?q=${encodeURIComponent(query)}&limit=20`);
+            const jobs = await response.json();
+            
+            displayJobSearchResults(jobs);
+            
+        } catch (error) {
+            console.error('❌ Failed to search jobs:', error);
+            hideDropdown();
+        }
+    }
+    
+    async function loadJobSuggestions() {
+        try {
+            const response = await fetch('/api/search-all-jobs?limit=15');
+            const jobs = await response.json();
+            
+            displayJobSearchResults(jobs, 'Popular Jobs');
+            
+        } catch (error) {
+            console.error('❌ Failed to load job suggestions:', error);
+        }
+    }
+    
+    function displayJobSearchResults(jobs, headerText = 'Search Results') {
+        const dropdown = document.getElementById('job-search-dropdown');
+        
+        if (jobs.length === 0) {
+            dropdown.innerHTML = `
+                <div class="p-3 text-center text-gray-500 text-sm font-source">
+                    No jobs found
+                </div>
+            `;
+        } else {
+            dropdown.innerHTML = `
+                <div class="p-2 border-b border-gray-200 bg-gray-50">
+                    <span class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">${headerText}</span>
+                </div>
+                ${jobs.map(job => `
+                    <div class="job-option p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedJobs.has(job.id) ? 'bg-blue-50 text-blue-800' : ''}" 
+                         data-job-id="${job.id}"
+                         onclick="selectJob('${job.id}', '${job.title.replace(/'/g, "\\'")}', '${job.family}')">
+                        <div class="font-source font-medium text-sm">${job.title}</div>
+                        <div class="font-source text-xs text-gray-600">${job.family}</div>
+                        ${selectedJobs.has(job.id) ? '<div class="text-xs text-blue-600 font-medium mt-1">✓ Selected</div>' : ''}
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        dropdown.classList.remove('hidden');
+    }
+    
+    function selectJob(jobId, jobTitle, jobFamily) {
+        if (!selectedJobs.has(jobId)) {
+            selectedJobs.set(jobId, {
+                id: jobId,
+                title: jobTitle,
+                family: jobFamily
+            });
+            
+            updateSelectedJobsDisplay();
+            updateBuildTreeButton();
+        }
+        
+        hideDropdown();
+        document.getElementById('job-search').value = '';
+    }
+    
+    function removeJob(jobId) {
+        selectedJobs.delete(jobId);
+        updateSelectedJobsDisplay();
+        updateBuildTreeButton();
+    }
+    
+    function updateSelectedJobsDisplay() {
+        const container = document.getElementById('selected-jobs-container');
+        
+        if (selectedJobs.size === 0) {
+            container.innerHTML = '<span class="text-gray-500 text-sm font-source">No jobs selected</span>';
+            return;
+        }
+        
+        container.innerHTML = Array.from(selectedJobs.values()).map(job => `
+            <div class="inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-source mr-2 mb-2">
+                <span class="mr-2">${job.title}</span>
+                <button onclick="removeJob('${job.id}')" class="text-blue-600 hover:text-blue-800 font-bold">×</button>
+            </div>
+        `).join('');
+    }
+    
+    function updateBuildTreeButton() {
+        updateBuildTreeButtonText();
+    }
+    
+    function updateBuildTreeButtonText() {
+        const button = document.getElementById('build-tree');
+        const hasJobs = selectedJobs.size > 0;
+        
+        button.disabled = !hasJobs;
+        
+        if (!hasJobs) {
+            button.textContent = 'Build Tree';
+        } else {
+            // Check if parameters have changed since last build
+            const currentParams = getCurrentParameters();
+            const hasChanged = hasParametersChanged(currentParams);
+            
+            if (hasChanged && lastBuiltTree) {
+                button.textContent = `Refresh Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})`;
+                button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                button.textContent = `Build Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})`;
+                button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                button.classList.add('bg-red-600', 'hover:bg-red-700');
+            }
+        }
+    }
+    
+    let lastBuiltParameters = null;
+    let lastBuiltTree = null;
+    
+    function getCurrentParameters() {
+        const similaritySlider = document.getElementById('similarity-slider');
+        const depthSlider = document.getElementById('depth-slider');
+        const divisionFilter = document.getElementById('division-filter');
+        const businessUnitFilter = document.getElementById('business-unit-filter');
+        const locationFilter = document.getElementById('location-filter');
+        const regionFilter = document.getElementById('region-filter');
+        
+        return {
+            jobs: Array.from(selectedJobs.keys()).sort(),
+            similarity: similaritySlider ? parseFloat(similaritySlider.value) / 100 : 0.7,
+            depth: depthSlider ? parseInt(depthSlider.value) : 3,
+            division: divisionFilter ? divisionFilter.value : '',
+            business_unit: businessUnitFilter ? businessUnitFilter.value : '',
+            location: locationFilter ? locationFilter.value : '',
+            region: regionFilter ? regionFilter.value : ''
+        };
+    }
+    
+    function hasParametersChanged(currentParams) {
+        if (!lastBuiltParameters) return false;
+        
+        return JSON.stringify(currentParams) !== JSON.stringify(lastBuiltParameters);
+    }
+    
+    function hideDropdown() {
+        document.getElementById('job-search-dropdown').classList.add('hidden');
+    }
+    
+    async function buildCareerTree() {
+        const currentParams = getCurrentParameters();
+        const jobIds = currentParams.jobs;
+        const similarity = currentParams.similarity;
+        const depth = currentParams.depth;
+        
+        // Build organizational filter parameters
+        const filters = [];
+        if (currentParams.division) filters.push(`division=${encodeURIComponent(currentParams.division)}`);
+        if (currentParams.business_unit) filters.push(`business_unit=${encodeURIComponent(currentParams.business_unit)}`);
+        if (currentParams.location) filters.push(`location=${encodeURIComponent(currentParams.location)}`);
+        if (currentParams.region) filters.push(`region=${encodeURIComponent(currentParams.region)}`);
+        const filterString = filters.length > 0 ? '&' + filters.join('&') : '';
+        
+        try {
+            console.log(`🌳 Building career tree for ${jobIds.length} jobs, similarity: ${similarity}, depth: ${depth}`);
+            if (filters.length > 0) {
+                console.log(`🔍 With organizational filters: ${filters.join(', ')}`);
+            }
+            
+            // Show building indicator
+            const button = document.getElementById('build-tree');
+            const originalText = button.textContent;
+            button.textContent = 'Building Tree...';
+            button.disabled = true;
+            
+            const response = await fetch(`/api/d3-tree-data?jobs=${jobIds.join(',')}&similarity=${similarity}&depth=${depth}${filterString}`);
+            const data = await response.json();
+            
+            console.log('Raw API response:', data);
+            
+            if (!data.success) {
+                console.error('❌ API Error:', data.error);
+                showErrorMessage(`Failed to build tree: ${data.error}`);
+                return;
+            }
+            
+            treeData = data.tree;
+            lastBuiltTree = data.tree;
+            lastBuiltParameters = currentParams;
+            
+            updateTree();
+            
+            console.log(`✅ Career tree built: ${data.total_nodes} nodes across ${depth} levels`);
+            console.log('Tree structure:', data.tree);
+            
+            // Debug: Show node levels
+            if (data.tree && data.tree.children) {
+                console.log('Root children:', data.tree.children.length);
+                data.tree.children.forEach((child, i) => {
+                    console.log(`Child ${i}:`, child.name, 'Level:', child.level, 'Children:', child.children ? child.children.length : 0);
+                    if (child.children) {
+                        child.children.forEach((grandchild, j) => {
+                            console.log(`  Grandchild ${j}:`, grandchild.name, 'Level:', grandchild.level, 'Similarity:', grandchild.similarity_score, 'Children:', grandchild.children ? grandchild.children.length : 0);
+                            
+                            // Check for great-grandchildren (level 2+)
+                            if (grandchild.children) {
+                                grandchild.children.forEach((greatGrandchild, k) => {
+                                    console.log(`    Great-grandchild ${k}:`, greatGrandchild.name, 'Level:', greatGrandchild.level, 'Similarity:', greatGrandchild.similarity_score);
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Count nodes by level
+            const levelCounts = {};
+            function countLevels(node) {
+                const level = node.level || 0;
+                levelCounts[level] = (levelCounts[level] || 0) + 1;
+                if (node.children) {
+                    node.children.forEach(countLevels);
+                }
+            }
+            if (data.tree) countLevels(data.tree);
+            console.log('📊 Nodes by level:', levelCounts);
+            
+            showTreeStatus(data);
+            
+            // Update button state
+            updateBuildTreeButtonText();
+            
+        } catch (error) {
+            console.error('❌ Failed to build career tree:', error);
+            showErrorMessage('Failed to build career tree. Please try again.');
+        } finally {
+            // Re-enable button
+            const button = document.getElementById('build-tree');
+            button.disabled = selectedJobs.size === 0;
+        }
+    }
+    
+    function showTreeStatus(data) {
+        const container = document.querySelector('#career-tree').parentElement;
+        let statusElement = container.querySelector('.tree-status');
+        
+        if (statusElement) {
+            statusElement.remove();
+        }
+        
+        statusElement = document.createElement('div');
+        statusElement.className = 'tree-status bg-green-50 border border-green-200 rounded-md p-3 mb-4';
+        statusElement.innerHTML = `
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                <span class="text-sm font-source text-green-800">
+                    <strong>Tree Built:</strong> ${data.selected_jobs.length} starting job${data.selected_jobs.length !== 1 ? 's' : ''}, 
+                    ${Math.round(data.similarity_threshold * 100)}% similarity threshold, 
+                    ${data.max_depth} level${data.max_depth !== 1 ? 's' : ''} deep 
+                    (${data.total_nodes} total nodes)
+                </span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-green-600 hover:text-green-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        
+        container.insertBefore(statusElement, container.querySelector('.border.border-gray-200.rounded-lg'));
+    }
+
+    // Add test button for the tree
+    function addTreeTestControl() {
+        const testSection = document.querySelector('.fixed.bottom-4.right-4');
+        if (testSection) {
+            const treeButton = document.createElement('button');
+            treeButton.onclick = testD3Tree;
+            treeButton.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded transition-colors mb-2';
+            treeButton.textContent = 'Test D3.js Tree API';
+            testSection.insertBefore(treeButton, testSection.children[0]);
+        }
+    }
+    
+    async function testD3Tree() {
+        try {
+            const response = await fetch('/api/d3-tree-data?family=Data%20%26%20Analytics');
+            const data = await response.json();
+            console.log('D3 Tree data:', data);
+            alert(`D3.js tree loaded successfully! Found ${data.children ? data.children.length : 0} jobs in ${data.name}`);
+        } catch (error) {
+            console.error('D3 Tree test failed:', error);
+            alert('D3.js tree test failed - check console for details');
+        }
+    }
+    
+    // Add the test control after a delay to ensure testSection exists
+    setTimeout(addTreeTestControl, 1000);
+
+    // Initialize organizational filters
+    async function initializeOrganizationalFilters() {
+        try {
+            // Load organizational data to populate dropdowns
+            const response = await fetch('/api/organizational-data');
+            const data = await response.json();
+            
+            // Populate Division dropdown
+            const divisionSelect = document.getElementById('division-filter');
+            if (divisionSelect && data.divisions) {
+                data.divisions.forEach(division => {
+                    const option = document.createElement('option');
+                    option.value = division;
+                    option.textContent = division;
+                    divisionSelect.appendChild(option);
+                });
+            }
+            
+            // Populate Business Unit dropdown
+            const businessUnitSelect = document.getElementById('business-unit-filter');
+            if (businessUnitSelect && data.business_units) {
+                data.business_units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit;
+                    option.textContent = unit;
+                    businessUnitSelect.appendChild(option);
+                });
+            }
+            
+            // Populate Location dropdown
+            const locationSelect = document.getElementById('location-filter');
+            if (locationSelect && data.locations) {
+                data.locations.forEach(location => {
+                    const option = document.createElement('option');
+                    option.value = location;
+                    option.textContent = location;
+                    locationSelect.appendChild(option);
+                });
+            }
+            
+            // Populate Region dropdown
+            const regionSelect = document.getElementById('region-filter');
+            if (regionSelect && data.regions) {
+                data.regions.forEach(region => {
+                    const option = document.createElement('option');
+                    option.value = region;
+                    option.textContent = region;
+                    regionSelect.appendChild(option);
+                });
+            }
+            
+            // Add event listeners to trigger tree refresh when filters change
+            [divisionSelect, businessUnitSelect, locationSelect, regionSelect].forEach(select => {
+                if (select) {
+                    select.addEventListener('change', updateBuildTreeButtonText);
+                }
+            });
+            
+            console.log('✅ Organizational filters initialized');
+            
+        } catch (error) {
+            console.log('⚠️ Could not load organizational data:', error.message);
+            // Gracefully handle missing endpoint
+        }
+    }
+
+    // Initialize filters when page loads
+    initializeOrganizationalFilters();
+
+    // ==============================================
+    // Modal Management Functions
+    // ==============================================
+    
+    // Global modal functions
+    window.openModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent body scroll
+            
+            // Focus on the modal for accessibility
+            modal.focus();
+            
+            // Add click outside to close
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal(modalId);
+                }
+            });
+            
+            // Add escape key to close
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal(modalId);
+                }
+            });
+            
+            console.log(`🔓 Opened modal: ${modalId}`);
+        }
+    };
+    
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Restore body scroll
+            
+            console.log(`🔒 Closed modal: ${modalId}`);
+        }
+    };
+    
+    // Enhanced modal functions for dynamic content
+    window.openJobDetailsModal = function(jobData) {
+        // Populate modal with real job data
+        const modal = document.getElementById('job-details-modal');
+        if (modal && jobData) {
+            // Update modal content with real data
+            const titleElement = modal.querySelector('.text-lg.font-epilogue.font-medium');
+            if (titleElement) titleElement.textContent = jobData.title || 'Job Details';
+            
+            // Update job family
+            const familyElements = modal.querySelectorAll('.text-sm.font-source.text-gray-900');
+            if (familyElements[0]) familyElements[0].textContent = jobData.family || 'Unknown Family';
+            
+            // Update Job Profile ID
+            const idElement = modal.querySelector('.font-mono.text-gray-600');
+            if (idElement) idElement.textContent = jobData.id || 'Unknown ID';
+            
+            console.log('📋 Opening job details modal for:', jobData.title);
+        }
+        
+        openModal('job-details-modal');
+    };
+    
+    window.openSkillsComparisonModal = function(currentJob, targetJob) {
+        // Populate modal with comparison data
+        const modal = document.getElementById('skills-comparison-modal');
+        if (modal && currentJob && targetJob) {
+            // Update current job title
+            const currentJobTitle = modal.querySelector('h4:contains("Current Role:")');
+            if (currentJobTitle) {
+                currentJobTitle.textContent = `Current Role: ${currentJob.title}`;
+            }
+            
+            // Update target job title
+            const targetJobTitle = modal.querySelector('h4:contains("Target Role:")');
+            if (targetJobTitle) {
+                targetJobTitle.textContent = `Target Role: ${targetJob.title}`;
+            }
+            
+            console.log('🔍 Opening skills comparison modal:', currentJob.title, '→', targetJob.title);
+        }
+        
+        openModal('skills-comparison-modal');
+    };
+    
+    window.openCareerPathwayModal = function(pathwayData) {
+        // Populate modal with pathway analysis data
+        const modal = document.getElementById('career-pathway-modal');
+        if (modal && pathwayData) {
+            console.log('🛣️ Opening career pathway modal for:', pathwayData);
+        }
+        
+        openModal('career-pathway-modal');
+    };
+    
+    // Demo functions for component showcase
+    window.demoJobDetails = function() {
+        openJobDetailsModal({
+            title: 'Senior Data Scientist',
+            family: 'Technology - Data & Analytics',
+            id: 'R0041.5',
+            business_unit: 'Group Technology'
+        });
+    };
+    
+    window.demoSkillsComparison = function() {
+        openSkillsComparisonModal(
+            { title: 'Risk Analyst', family: 'Risk & Compliance' },
+            { title: 'Data Scientist', family: 'Technology' }
+        );
+    };
+    
+    window.demoCareerPathway = function() {
+        openCareerPathwayModal({
+            from: 'Risk Analyst',
+            to: 'Data Scientist',
+            pathways: 3
+        });
+    };
+    
+    // Initialize modal demo functionality
+    console.log('✅ Modal management system initialized');
+    console.log('🎭 Available modals: job-details, skills-comparison, career-pathway');
+</script>
+{% endblock %} 
