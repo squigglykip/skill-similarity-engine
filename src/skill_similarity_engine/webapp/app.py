@@ -325,18 +325,15 @@ def create_app(config=None):
             node_dict = {node['id']: dict(node, children=[]) for node in nodes}
             roots = []
             
-            print(f"🌳 Building tree with {len(nodes)} nodes")
-            
+            # Build tree structure
             for node in node_dict.values():
                 parent_id = node.get('parent')
                 if parent_id and parent_id in node_dict:
                     node_dict[parent_id]['children'].append(node)
-                    print(f"   Added {node['id']} as child of {parent_id}")
                 else:
                     roots.append(node)  # Root level nodes
-                    print(f"   Added {node['id']} as root (parent: {parent_id})")
             
-            # Debug: Count children per level
+            # Count children per level for summary
             def count_tree_levels(node, level=0):
                 counts = {level: 1}
                 for child in node.get('children', []):
@@ -345,9 +342,7 @@ def create_app(config=None):
                         counts[l] = counts.get(l, 0) + c
                 return counts
             
-            print(f"🌳 Found {len(roots)} root nodes")
-            
-            # If multiple roots, create a virtual root
+            # Create appropriate root structure
             if len(roots) > 1:
                 virtual_root = {
                     'id': 'root',
@@ -360,14 +355,14 @@ def create_app(config=None):
                     'children': roots
                 }
                 tree_counts = count_tree_levels(virtual_root)
-                print(f"🌳 Virtual root tree levels: {tree_counts}")
+                print(f"🌳 Tree built: {len(nodes)} total nodes, levels: {tree_counts}")
                 return virtual_root
             elif len(roots) == 1:
                 tree_counts = count_tree_levels(roots[0])
-                print(f"🌳 Single root tree levels: {tree_counts}")
+                print(f"🌳 Tree built: {len(nodes)} total nodes, levels: {tree_counts}")
                 return roots[0]
             else:
-                print("🌳 No valid root nodes found!")
+                print("❌ No valid root nodes found!")
                 return None
         
         try:
@@ -395,11 +390,12 @@ def create_app(config=None):
             tree_query = tree_query.replace('{job_placeholders}', job_placeholders)
             
             # Execute with job IDs, similarity threshold, max depth, max results, and organizational filters
+            # Updated parameter order for new SQL logic (filters applied at Level 1 only)
             params = job_ids + [similarity_threshold, max_depth, max_results,
-                               division_filter, division_filter,  # Division filter (twice for SQL OR logic)
-                               business_unit_filter, business_unit_filter,  # Business Unit filter
-                               location_filter, location_filter,  # Location filter
-                               region_filter, region_filter]  # Region filter
+                               division_filter, division_filter,  # Division filter (check + value)
+                               business_unit_filter, business_unit_filter,  # Business Unit filter (check + value)
+                               location_filter, location_filter,  # Location filter (check + value)  
+                               region_filter, region_filter]  # Region filter (check + value)
             
             # Build filter description for logging
             filters = []
@@ -409,17 +405,58 @@ def create_app(config=None):
             if region_filter: filters.append(f"region={region_filter}")
             filter_desc = f", filters=[{', '.join(filters)}]" if filters else ""
             
-            print(f"🔍 SQL Parameters: jobs={job_ids}, similarity>={similarity_threshold}, max_depth<{max_depth}, max_results<={max_results}{filter_desc}")
+            print(f"🔍 Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}{filter_desc}")
             
             tree_data = db.execute(tree_query, params).fetchall()
-            print(f"🗄️ SQL returned {len(tree_data)} rows")
             
-            # Debug: Group by level to see distribution
-            level_counts = {}
-            for row in tree_data:
-                level = row['level']
-                level_counts[level] = level_counts.get(level, 0) + 1
-            print(f"📊 SQL result levels: {level_counts}")
+            # 🎯 ORGANIZATIONAL FILTER DEBUGGING
+            if filters:
+                # Count results by level to detect additive behavior
+                level_counts = {}
+                root_jobs = set(job_ids)
+                unexpected_roots = []
+                
+                for row in tree_data:
+                    level = row['level']
+                    level_counts[level] = level_counts.get(level, 0) + 1
+                    
+                    # Check for unexpected root-level jobs (level 0 but not in our selected jobs)
+                    if level == 0 and str(row['id']) not in root_jobs:
+                        unexpected_roots.append(f"{row['id']}:{row['name'][:30]}")
+                
+                print(f"📊 Results by level: {level_counts}")
+                
+                if unexpected_roots:
+                    print(f"⚠️  FILTER BUG DETECTED: Found {len(unexpected_roots)} unexpected root jobs:")
+                    for job in unexpected_roots[:5]:  # Show first 5
+                        print(f"   - {job}")
+                    if len(unexpected_roots) > 5:
+                        print(f"   ... and {len(unexpected_roots) - 5} more")
+                    print("   🔧 This suggests organizational filters are being additive instead of restrictive")
+                else:
+                    print("✅ Organizational filters working correctly - no unexpected root jobs")
+                
+                # Additional validation: Check if Level 1 jobs match the organizational filter
+                if division_filter:
+                    level_1_jobs = [row for row in tree_data if row['level'] == 1]
+                    print(f"🔍 Checking Level 1 jobs against Division filter '{division_filter}':")
+                    for job in level_1_jobs[:5]:  # Show first 5
+                        job_id = str(job['id'])
+                        # Check if this job exists in the specified division
+                        division_check = db.execute("SELECT Division FROM positions WHERE JobProfileID = ?", (job_id,)).fetchall()
+                        divisions = [d['Division'] for d in division_check] if division_check else ['No positions found']
+                        matches_filter = division_filter in divisions
+                        status = "✅" if matches_filter else "❌"
+                        print(f"   {status} {job_id}: {job['name'][:40]} -> Divisions: {divisions}")
+                    if len(level_1_jobs) > 5:
+                        print(f"   ... and {len(level_1_jobs) - 5} more Level 1 jobs")
+            else:
+                # Simple count when no filters
+                level_counts = {}
+                for row in tree_data:
+                    level = row['level']
+                    level_counts[level] = level_counts.get(level, 0) + 1
+                print(f"📊 Results by level: {level_counts}")
             
             # Convert to D3.js hierarchical format - use row index for unique IDs
             nodes = []
@@ -448,20 +485,27 @@ def create_app(config=None):
                             node['parent'] = potential_parent['id']
                             break
             
-            # Debug: Show ALL nodes and their parent relationships
-            print(f"🔍 ALL nodes from SQL:")
-            for i, node in enumerate(nodes):
-                print(f"   Node {i+1}: ID={node['id']}, Name={node['name'][:30]}..., Parent={node['parent']}, Level={node['level']}")
-            
-            # Debug: Check for orphaned nodes (parents that don't exist)
+            # Quick validation: Check for orphaned nodes (parents that don't exist)
             all_ids = {node['id'] for node in nodes}
             orphaned = [node for node in nodes if node['parent'] and node['parent'] not in all_ids]
+            
+            # Simple validation: Remove any orphaned nodes (those without valid parents)
+            # With the new SQL logic, this should be rare since filtering happens at SQL level
+            nodes_without_parents = [node for node in nodes if node['level'] > 0 and not node['parent']]
+            
             if orphaned:
-                print(f"⚠️  Found {len(orphaned)} orphaned nodes (parent doesn't exist):")
-                for node in orphaned:
-                    print(f"   Orphan: ID={node['id']}, Parent={node['parent']}, Name={node['name']}")
-            else:
-                print("✅ No orphaned nodes found")
+                print(f"⚠️  Found {len(orphaned)} orphaned nodes - tree structure may be broken")
+            
+            if nodes_without_parents:
+                # Clean approach: Simply remove orphaned nodes instead of trying to reconnect them
+                # This ensures organizational filters work as intended (restrictive, not additive)
+                orphaned_job_ids = {node['job_id'] for node in nodes_without_parents}
+                nodes_before = len(nodes)
+                nodes = [node for node in nodes if node['job_id'] not in orphaned_job_ids]
+                nodes_after = len(nodes)
+                
+                print(f"🧹 Cleaned up: Removed {nodes_before - nodes_after} orphaned nodes")
+                print(f"   Final result: {nodes_after} nodes (organizational filters applied cleanly)")
             
             tree_root = build_tree(nodes)
             

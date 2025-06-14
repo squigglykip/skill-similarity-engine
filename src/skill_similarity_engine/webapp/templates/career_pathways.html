@@ -163,10 +163,10 @@
                         </div>
                     </div>
 
-                    <!-- Organizational Filters -->
+                    <!-- Organisational filters -->
                     <div class="col-span-1 md:col-span-2 mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <h4 class="text-xs font-source font-bold text-gray-700 uppercase tracking-wide mb-3">
-                            🏢 Organizational Filters
+                            🏢 Organisational filters
                         </h4>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -214,7 +214,7 @@
                 </div>
                 
                 <div class="mt-4 text-xs text-gray-600 font-source">
-                    💡 <strong>Tip:</strong> Similarity range shows jobs between your threshold and 99%. Higher thresholds = closer matches. Deeper trees = more career progression options. Max results controls how many similar jobs appear under each parent (higher = more options but slower). Organizational filters limit results to specific divisions/locations.
+                    💡 <strong>Tip:</strong> Similarity range shows jobs between your threshold and 99%. Higher thresholds = closer matches. Deeper trees = more career progression options. Max results controls how many similar jobs appear under each parent (higher = more options but slower). Organisational filters limit results to specific divisions/locations.
                 </div>
             </div>
             
@@ -769,7 +769,7 @@ function hasParametersChanged(currentParams) {
     return JSON.stringify(currentParams) !== JSON.stringify(lastBuiltParameters);
 }
 
-// Initialize organizational filters
+// Initialize Organisational filters
 async function initializeOrganizationalFilters() {
     try {
         // Load organizational data to populate dropdowns
@@ -820,10 +820,10 @@ async function initializeOrganizationalFilters() {
             });
         }
         
-        console.log('✅ Organizational filters initialized');
+        console.log('✅ Organisational filters initialized');
         
     } catch (error) {
-        console.error('❌ Failed to initialize organizational filters:', error);
+        console.error('❌ Failed to initialize Organisational filters:', error);
     }
 }
 
@@ -882,10 +882,7 @@ async function buildCareerPathwayTree() {
     treeContainer.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-gray-500">Loading career pathways...</div></div>';
     
     try {
-        console.log(`🌳 Calling API with jobs: ${jobIds.join(',')}, similarity: ${similarity}, depth: ${depth}, max_results: ${currentParams.max_results}`);
-        if (filters.length > 0) {
-            console.log(`🔍 With organizational filters: ${filters.join(', ')}`);
-        }
+        console.log(`🌳 Building tree: ${jobIds.length} job${jobIds.length !== 1 ? 's' : ''}, depth=${depth}, max_results=${currentParams.max_results}${filters.length > 0 ? `, filters=${filters.length}` : ''}`);
         
         // Use the same working API as components.html
         const response = await fetch(`/api/d3-tree-data?jobs=${jobIds.join(',')}&similarity=${similarity}&depth=${depth}&max_results=${currentParams.max_results}${filterString}`);
@@ -1020,7 +1017,6 @@ function getAdaptiveNodeSpacing(a, b) {
     // Use cached tree state for any additional spacing preferences
     if (!treeStateCache) {
         treeStateCache = getTreeStateForSpacing();
-        console.log('🔧 Tree state cache created:', treeStateCache);
     }
     
     // Apply tree state multiplier on top of the absolute minimum
@@ -1031,22 +1027,7 @@ function getAdaptiveNodeSpacing(a, b) {
     const stateBasedSpacing = minimumAbsoluteSpacing * baseMultiplier;
     const finalSpacing = Math.max(minimumAbsoluteSpacing, stateBasedSpacing);
     
-    // Debug logging for every 20th calculation to avoid spam
-    if (Math.random() < 0.05) {
-        const relationship = a.parent == b.parent ? 'SIBLINGS' : 'COUSINS';
-        const aDepth = a.depth || 'unknown';
-        const bDepth = b.depth || 'unknown';
-        console.log(`📏 SPACING DEBUG: ${relationship} at depths ${aDepth}/${bDepth}`);
-        console.log(`   - Required space: ${totalRequiredSpace}px`);
-        console.log(`   - Tree height: ${treeHeight} D3 units (${pathwayHeight ? 'actual' : 'default'})`);
-        console.log(`   - Target percentage: ${(targetPercentage * 100).toFixed(1)}%`);
-        console.log(`   - D3 scale factor: ${d3ScaleFactor.toFixed(1)} D3 units`);
-        console.log(`   - Absolute minimum: ${minimumAbsoluteSpacing.toFixed(1)} D3 units`);
-        console.log(`   - Multiplier: ${baseMultiplier}x`);
-        console.log(`   - State-based: ${stateBasedSpacing.toFixed(4)} D3 units`);
-        console.log(`   - FINAL SPACING: ${finalSpacing.toFixed(4)} D3 units`);
-        console.log(`   - Node A: "${a.data.name}" | Node B: "${b.data.name}"`);
-    }
+    // Spacing debug disabled for performance
     
     // Always use whichever is larger: absolute minimum or state-based spacing
     return finalSpacing;
@@ -1109,13 +1090,7 @@ function getTreeStateForSpacing() {
         treeState = 'MEDIUM';
     }
     
-    console.log(`🌳 TREE STATE ANALYSIS:`);
-    console.log(`   - State: ${treeState}`);
-    console.log(`   - Total nodes: ${totalNodes}`);
-    console.log(`   - Visible nodes: ${visibleNodeCount}`);
-    console.log(`   - Max visible depth: ${maxVisibleDepth}`);
-    console.log(`   - Sibling multiplier: ${siblingMultiplier}x`);
-    console.log(`   - Cousin multiplier: ${cousinMultiplier}x`);
+    // Tree state analysis complete (logging disabled for performance)
     
     return { siblingMultiplier, cousinMultiplier, minimumSpacing };
 }
@@ -1136,16 +1111,12 @@ function applyLevelSpacing() {
     const treeHeight = pathwayHeight || 2500;
     const d3LevelSpacing = (levelSpacing / treeHeight) * treeHeight * 0.1; // Scale appropriately
     
-    console.log(`🔧 Applying level spacing: ${d3LevelSpacing.toFixed(1)} D3 units per level`);
-    
     // Apply spacing to all nodes based on their depth
     pathwayRoot.descendants().forEach(node => {
         // Add extra vertical spacing based on depth
         // This ensures proper separation between tree levels
         node.y += node.depth * d3LevelSpacing;
     });
-    
-    console.log('✅ Level spacing applied to all nodes');
 }
 
 // Removed expensive analyzeTreeState function - now using lightweight getTreeStateForSpacing()
@@ -1164,23 +1135,8 @@ function buildD3Tree(data, container) {
         return;
     }
     
-    // Debug: Detailed tree structure
-    console.log('🔍 Tree has children:', pathwayTreeData.children ? pathwayTreeData.children.length : 'no children property');
-    
-    // Debug: Show the actual tree structure
-    function logTreeStructure(node, depth = 0) {
-        const indent = '  '.repeat(depth);
-        console.log(`${indent}${depth === 0 ? '🌳' : '├─'} ${node.name} (ID: ${node.id}, Level: ${node.level})`);
-        if (node.children && node.children.length > 0) {
-            console.log(`${indent}   └─ ${node.children.length} children:`);
-            node.children.forEach(child => logTreeStructure(child, depth + 1));
-        } else {
-            console.log(`${indent}   └─ No children`);
-        }
-    }
-    
-    console.log('🔍 Complete tree structure:');
-    logTreeStructure(pathwayTreeData);
+    // Quick tree validation
+    console.log('🌳 Tree loaded:', pathwayTreeData.children ? `${pathwayTreeData.children.length} children` : 'no children');
     
     // Set up SVG dimensions
     const containerNode = container;
@@ -1484,9 +1440,8 @@ function updatePathwayTree() {
     pathwayRoot.x0 = 0;
     pathwayRoot.y0 = 0;
     
-    // Debug: Essential info only
-    console.log('🔍 D3 hierarchy descendants count:', pathwayRoot.descendants().length);
-    console.log('🔍 D3 hierarchy children count:', pathwayRoot.children ? pathwayRoot.children.length : 'no children');
+    // Quick hierarchy validation
+    console.log('🌳 D3 hierarchy ready:', pathwayRoot.descendants().length, 'total nodes');
     
     // Give each node a unique ID
     pathwayRoot.descendants().forEach((d, index) => {
@@ -1762,7 +1717,7 @@ function showExpensiveQueryWarning(params) {
                                 ${params.depth >= 5 ? '<li>• <strong>Deep tree depth:</strong> ' + params.depth + ' levels (exponential growth)</li>' : ''}
                                 ${params.max_results >= 6 ? '<li>• <strong>High results per level:</strong> ' + params.max_results + ' jobs per parent (increases branching)</li>' : ''}
                                 ${params.similarity <= 0.3 ? '<li>• <strong>Low similarity threshold:</strong> ' + Math.round(params.similarity * 100) + '% (more matches)</li>' : ''}
-                                ${!params.division && !params.business_unit && !params.location && !params.region ? '<li>• <strong>No organizational filters:</strong> Searching across all divisions</li>' : ''}
+                                ${!params.division && !params.business_unit && !params.location && !params.region ? '<li>• <strong>No Organisational filters:</strong> Searching across all divisions</li>' : ''}
                                 ${params.jobs.length > 1 ? '<li>• <strong>Multiple starting jobs:</strong> ' + params.jobs.length + ' jobs selected</li>' : ''}
                             </ul>
                             <div class="bg-orange-50 border border-orange-200 rounded-md p-3 mb-4">
@@ -1839,7 +1794,7 @@ function estimateQueryComplexity(params) {
     if (params.max_results >= 8) score *= 2;
     else if (params.max_results >= 6) score *= 1.5;
     
-    // No organizational filters increase scope
+    // No Organisational filters increase scope
     const hasOrgFilters = params.division || params.business_unit || params.location || params.region;
     if (!hasOrgFilters) score *= 3;
     
@@ -2067,7 +2022,7 @@ function pathwayDiagonal(s, d) {
 
 // Analyze skills gap
 window.analyzeSkillsGap = async function(sourceJob, targetJob) {
-    console.log('🔍 Analyzing skills gap:', sourceJob, '→', targetJob);
+    // Skills gap analysis (logging disabled for performance)
     
     const panel = document.getElementById('skills-analysis-panel');
     panel.classList.remove('hidden');
