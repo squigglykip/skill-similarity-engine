@@ -1930,10 +1930,8 @@
             .attr("text-anchor", "middle")  // Center text alignment
             .text(d => {
                 const similarity = d.data.similarity_score;
-                if (similarity >= 0.8) return "🔴 High Match";
-                else if (similarity >= 0.7) return "🟠 Good Match";
-                else if (similarity >= 0.6) return "🟡 Fair Match";
-                else return "⚪ Low Match";
+                                        // Similarity indicators removed - now using node colors with legend
+            return "";
             })
             .style("font-family", "Source Sans Pro, sans-serif")
             .style("font-size", "10px")
@@ -2121,9 +2119,10 @@
     
     function getSimilarityColor(similarity) {
         // Color gradient from orange (low) to red (high)
-        if (similarity >= 0.8) return '#dc2626';      // Red (high similarity)
-        else if (similarity >= 0.7) return '#ea580c';  // Orange-red
-        else if (similarity >= 0.6) return '#f59e0b';  // Orange
+        if (similarity >= 0.8) return '#16a34a';      // Green (high similarity)
+        else if (similarity >= 0.6) return '#ca8a04';  // Yellow
+        else if (similarity >= 0.4) return '#ea580c';  // Orange
+        else if (similarity >= 0.2) return '#dc2626';  // Red
         else return '#94a3b8';                          // Gray (low similarity)
     }
     
