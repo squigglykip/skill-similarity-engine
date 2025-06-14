@@ -331,8 +331,10 @@ def create_app(config=None):
                 parent_id = node.get('parent')
                 if parent_id and parent_id in node_dict:
                     node_dict[parent_id]['children'].append(node)
+                    print(f"   Added {node['id']} as child of {parent_id}")
                 else:
                     roots.append(node)  # Root level nodes
+                    print(f"   Added {node['id']} as root (parent: {parent_id})")
             
             # Debug: Count children per level
             def count_tree_levels(node, level=0):
@@ -419,13 +421,14 @@ def create_app(config=None):
                 level_counts[level] = level_counts.get(level, 0) + 1
             print(f"📊 SQL result levels: {level_counts}")
             
-            # Convert to D3.js hierarchical format
+            # Convert to D3.js hierarchical format - use row index for unique IDs
             nodes = []
-            for row in tree_data:
+            for i, row in enumerate(tree_data):
                 node = {
-                    'id': str(row['id']),  # Ensure IDs are strings for consistency
+                    'id': f"node_{i}",  # Simple unique identifier using row index
+                    'job_id': str(row['id']),  # Original job ID for display
                     'name': row['name'],
-                    'parent': str(row['parent_id']) if row['parent_id'] else None,  # Ensure parent IDs are strings
+                    'parent': None,  # Will be set below based on parent relationships
                     'type': row['node_type'],
                     'level': row['level'],
                     'children_count': row['children_count'],
@@ -434,18 +437,31 @@ def create_app(config=None):
                 }
                 nodes.append(node)
             
-            # Debug: Show a few sample nodes and their parent relationships
-            print(f"🔍 Sample nodes (first 10):")
-            for i, node in enumerate(nodes[:10]):
-                print(f"   Node {i}: ID={node['id']}, Name={node['name'][:20]}..., Parent={node['parent']}, Level={node['level']}")
+            # Now set parent relationships based on the actual data structure
+            for i, node in enumerate(nodes):
+                row = tree_data[i]
+                if row['parent_id'] and row['level'] > 0:
+                    # Find the parent node - look for a node at level-1 with matching job_id
+                    for j, potential_parent in enumerate(nodes):
+                        if (potential_parent['job_id'] == str(row['parent_id']) and 
+                            potential_parent['level'] == row['level'] - 1):
+                            node['parent'] = potential_parent['id']
+                            break
+            
+            # Debug: Show ALL nodes and their parent relationships
+            print(f"🔍 ALL nodes from SQL:")
+            for i, node in enumerate(nodes):
+                print(f"   Node {i+1}: ID={node['id']}, Name={node['name'][:30]}..., Parent={node['parent']}, Level={node['level']}")
             
             # Debug: Check for orphaned nodes (parents that don't exist)
             all_ids = {node['id'] for node in nodes}
             orphaned = [node for node in nodes if node['parent'] and node['parent'] not in all_ids]
             if orphaned:
                 print(f"⚠️  Found {len(orphaned)} orphaned nodes (parent doesn't exist):")
-                for node in orphaned[:5]:  # Show first 5
+                for node in orphaned:
                     print(f"   Orphan: ID={node['id']}, Parent={node['parent']}, Name={node['name']}")
+            else:
+                print("✅ No orphaned nodes found")
             
             tree_root = build_tree(nodes)
             
