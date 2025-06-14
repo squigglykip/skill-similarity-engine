@@ -6,9 +6,9 @@
 
 -- query_name: get_career_tree_fast
 -- Generate D3.js tree data using optimized recursive approach for pre-computed career pathways
--- Matches Flask app.py parameter expectations exactly
+-- FIXED: Organizational filters are now properly restrictive, not additive
 WITH RECURSIVE tree_builder AS (
-    -- Level 0: Root nodes (selected starting jobs)
+    -- Level 0: Root nodes (selected starting jobs) - ALWAYS included regardless of org filters
     SELECT 
         'root' as node_type,
         j.JobProfileID as id,
@@ -28,6 +28,7 @@ WITH RECURSIVE tree_builder AS (
     UNION ALL
     
     -- Recursive expansion: Get direct pathways from each node
+    -- APPLY ORGANIZATIONAL FILTERS HERE to restrict which jobs can appear in the tree
     SELECT 
         'similar_job' as node_type,
         cp.target_job_id as id,
@@ -49,6 +50,23 @@ WITH RECURSIVE tree_builder AS (
       AND cp.similarity_rank <= ?   -- max_results (param 4)
       AND cp.target_job_id != tb.root_job_id  -- Don't go back to root
       AND cp.target_job_id != tb.id  -- Don't self-reference
+      -- 🎯 ORGANIZATIONAL FILTERS: Applied at Level 1+ to restrict tree expansion
+      AND (
+          -- Level 1: Strict filtering - these jobs MUST match org filters if specified
+          -- FIXED: Use single query to ensure all filters apply to the SAME position record
+          (tb.level = 0 AND (
+              cp.target_job_id IN (
+                  SELECT JobProfileID FROM positions 
+                  WHERE (? = '' OR Division = ?)
+                    AND (? = '' OR "Business_Unit" = ?)
+                    AND (? = '' OR Location = ?)
+                    AND (? = '' OR Rg = ?)
+              )
+          ))
+          OR
+          -- Level 2+: Allow any job (they're reachable through filtered Level 1 jobs)
+          (tb.level > 0)
+      )
 )
 SELECT DISTINCT
     node_type,
@@ -62,15 +80,7 @@ SELECT DISTINCT
     difficulty_score,
     shared_skills_count,
     children_count
-FROM tree_builder tb
-WHERE tb.level = 0  -- Always include root nodes
-   OR (
-       -- Optimized organizational filters - only check if filters are actually set
-       (? = '' OR tb.id IN (SELECT JobProfileID FROM positions WHERE Division = ?))
-       AND (? = '' OR tb.id IN (SELECT JobProfileID FROM positions WHERE "Business_Unit" = ?))
-       AND (? = '' OR tb.id IN (SELECT JobProfileID FROM positions WHERE Location = ?))
-       AND (? = '' OR tb.id IN (SELECT JobProfileID FROM positions WHERE Rg = ?))
-   )
+FROM tree_builder
 ORDER BY level, similarity_score DESC, name;
 
 -- query_name: get_career_tree_fast_simple
@@ -195,14 +205,17 @@ SELECT DISTINCT
     shared_skills_count,
     children_count
 FROM base_tree
-WHERE base_tree.level = 0  -- Always include root nodes
-   OR (
-       -- Optimized organizational filters - only check if filters are actually set
-       (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE Division = ?))
-       AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE "Business_Unit" = ?))
-       AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE Location = ?))
-       AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE Rg = ?))
-   )
+WHERE (
+    -- Always include root nodes (starting jobs)
+    (base_tree.level = 0)
+) OR (
+    -- For career pathway results (levels 1+), apply organizational filters as RESTRICTIONS
+    (base_tree.level > 0) 
+    AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE Division = ?))
+    AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE "Business_Unit" = ?))
+    AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE Location = ?))
+    AND (? = '' OR base_tree.id IN (SELECT JobProfileID FROM positions WHERE Rg = ?))
+)
 ORDER BY level, similarity_score DESC, name;
 
 -- query_name: get_direct_career_options
