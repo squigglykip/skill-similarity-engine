@@ -26,6 +26,7 @@ from ..utils.chunking import AdaptiveChunker, ChunkingStrategy
 from ..utils.parallel import ParallelProcessor
 from ..utils.matrix_chunking import SimilarityMatrixChunker, MatrixChunk
 from ..utils.performance import get_memory_usage, trigger_garbage_collection
+from ..utils.progress import ProgressTracker, progress_context
 from ..error_handling.core import EngineError
 from .asymmetric import AsymmetricCoverageCalculator
 
@@ -171,8 +172,8 @@ class SimilarityMatrixPrecomputer:
     def _setup_output_directory(self, run_name: Optional[str] = None) -> Path:
         """Setup output directory for this precomputation run"""
         if run_name is None:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            run_name = f"precompute_{timestamp}"
+            datestamp = datetime.now().strftime('%Y%m%d')  # Date only, no time
+            run_name = f"precompute_{datestamp}"
         
         output_path = Path(self.config.output_dir) / run_name
         output_path.mkdir(parents=True, exist_ok=True)
@@ -268,52 +269,64 @@ class SimilarityMatrixPrecomputer:
         
         # Track overall progress and memory
         chunk_results = []
-        chunk_count = 0
         total_chunks = self.matrix_chunker.estimate_num_chunks()
         
         try:
-            # Process chunks
-            for chunk in self.matrix_chunker.matrix_chunks():
-                chunk_count += 1
+            # Use the full ProgressTracker with beautiful tqdm progress bars
+            with ProgressTracker(
+                total=total_chunks,
+                desc="Processing similarity chunks",
+                memory_tracking=True,
+                show_tqdm=True
+            ) as progress:
                 
-                logger.info(f"Processing chunk {chunk_count}/{total_chunks}: {chunk}")
+                chunk_count = 0
                 
-                # Record progress
-                if self.progress_tracker:
-                    self.progress_tracker.record_progress(
-                        items_processed=chunk_count,
-                        total_items=total_chunks,
-                        current_item=f"Chunk {chunk_count}",
-                        memory_usage_mb=get_memory_usage().current_process_usage_mb
-                    )
-                
-                # Process the chunk
-                start_time = time.time()
-                chunk_df = self._process_chunk(chunk)
-                chunk_duration = time.time() - start_time
-                
-                logger.debug(f"Chunk {chunk_count} processed in {chunk_duration:.2f}s, "
-                           f"generated {len(chunk_df)} comparisons")
-                
-                chunk_results.append(chunk_df)
-                
-                # Checkpoint periodically
-                if (self.config.enable_checkpointing and 
-                    self.checkpoint_manager and 
-                    chunk_count % self.config.checkpoint_interval == 0):
+                # Process chunks
+                for chunk in self.matrix_chunker.matrix_chunks():
+                    chunk_count += 1
                     
-                    checkpoint_data = {
-                        'chunk_count': chunk_count,
-                        'total_chunks': total_chunks,
-                        'chunks_completed': chunk_count,
-                        'output_path': str(output_path)
-                    }
-                    self.checkpoint_manager.save_checkpoint(checkpoint_data)
-                    logger.info(f"Checkpoint saved at chunk {chunk_count}")
-                
-                # Trigger garbage collection to manage memory
-                if chunk_count % 5 == 0:  # Every 5 chunks
-                    trigger_garbage_collection(full=True)
+                    logger.debug(f"Processing chunk {chunk_count}/{total_chunks}: {chunk}")
+                    
+                    # Process the chunk
+                    start_time = time.time()
+                    chunk_df = self._process_chunk(chunk)
+                    chunk_duration = time.time() - start_time
+                    
+                    logger.debug(f"Chunk {chunk_count} processed in {chunk_duration:.2f}s, "
+                               f"generated {len(chunk_df)} comparisons")
+                    
+                    chunk_results.append(chunk_df)
+                    
+                    # Update progress bar (with memory tracking)
+                    progress.update(1)
+                    
+                    # Checkpoint periodically (also record legacy progress for file-based tracking)
+                    if (self.config.enable_checkpointing and 
+                        self.checkpoint_manager and 
+                        chunk_count % self.config.checkpoint_interval == 0):
+                        
+                        checkpoint_data = {
+                            'chunk_count': chunk_count,
+                            'total_chunks': total_chunks,
+                            'chunks_completed': chunk_count,
+                            'output_path': str(output_path)
+                        }
+                        self.checkpoint_manager.save_checkpoint(checkpoint_data)
+                        logger.info(f"Checkpoint saved at chunk {chunk_count}")
+                        
+                        # Also record progress for file-based tracking
+                        if self.progress_tracker:
+                            self.progress_tracker.record_progress(
+                                items_processed=chunk_count,
+                                total_items=total_chunks,
+                                current_item=f"Chunk {chunk_count}",
+                                memory_usage_mb=get_memory_usage().current_process_usage_mb
+                            )
+                    
+                    # Trigger garbage collection to manage memory
+                    if chunk_count % 5 == 0:  # Every 5 chunks
+                        trigger_garbage_collection(full=True)
             
             # Save final results
             self._save_chunk_results(chunk_results, output_path)
@@ -332,6 +345,202 @@ class SimilarityMatrixPrecomputer:
                 logger.info("Saving partial results...")
                 self._save_chunk_results(chunk_results, output_path)
             raise EngineError(f"Precomputation failed: {e}") from e
+    
+    def precompute_career_pathways(self, similarity_df: pd.DataFrame, output_path: Path) -> Path:
+        """
+        Precompute career pathways from similarity matrix using chunked processing.
+        
+        Args:
+            similarity_df: DataFrame with job similarities (job_from, job_to, similarity)
+            output_path: Output directory for saving results
+            
+        Returns:
+            Path to the career pathways parquet file
+        """
+        logger.info("🚀 Starting career pathways precomputation...")
+        
+        # Configuration
+        TOP_N_PATHWAYS = 12  # Top N most similar jobs per source job
+        MIN_SIMILARITY_THRESHOLD = 0.01  # Minimum similarity to include (lowered from 0.15)
+        
+        # Get all unique job IDs and their families
+        job_families = {job_id: getattr(job, 'job_family', 'Unknown') for job_id, job in self.job_architecture.jobs.items()}
+        all_job_ids = list(job_families.keys())
+        
+        logger.info(f"📊 Generating pathways for {len(all_job_ids)} jobs (top {TOP_N_PATHWAYS} per job)")
+        
+        try:
+            # Use chunking to process jobs in batches for memory efficiency
+            from ..utils.chunking import AdaptiveChunker
+            
+            job_chunker = AdaptiveChunker(
+                data=all_job_ids,
+                strategy=self.chunking_strategy
+            )
+            
+            pathway_records = []
+            total_processed = 0
+            
+            # Process jobs in chunks
+            with ProgressTracker(
+                total=len(all_job_ids),
+                desc="Generating career pathways",
+                memory_tracking=True,
+                show_tqdm=True
+            ) as progress:
+                
+                for job_chunk in job_chunker.chunks():
+                    chunk_pathways = []
+                    
+                    for source_job_id in job_chunk:
+                        # Get similarities for this source job
+                        job_similarities = similarity_df[
+                            (similarity_df['job_from'] == source_job_id) &
+                            (similarity_df['job_to'] != source_job_id) &
+                            (similarity_df['similarity'] >= MIN_SIMILARITY_THRESHOLD)
+                        ].copy()
+                        
+                        # Sort by similarity score and take top N
+                        job_similarities = job_similarities.sort_values('similarity', ascending=False).head(TOP_N_PATHWAYS)
+                        
+                        # Generate pathway records with ranking and metadata
+                        for rank, (_, row) in enumerate(job_similarities.iterrows(), 1):
+                            target_job_id = row['job_to']
+                            similarity_score = row['similarity']
+                            
+                            # Get job families
+                            source_family = job_families.get(source_job_id, 'Unknown')
+                            target_family = job_families.get(target_job_id, 'Unknown')
+                            
+                            # Determine career move type
+                            if source_family == target_family:
+                                if similarity_score >= 0.8:
+                                    move_type = 'lateral'  # Very similar role in same family
+                                else:
+                                    move_type = 'progression'  # Different seniority/specialization
+                            else:
+                                move_type = 'cross_family'  # Career change to different family
+                            
+                            # Calculate difficulty score (inverse of similarity + cross-family penalty)
+                            difficulty = 1.0 - similarity_score
+                            if move_type == 'cross_family':
+                                difficulty *= 1.2  # 20% penalty for cross-family moves
+                            difficulty = min(1.0, difficulty)  # Cap at 1.0
+                            
+                            # Estimate shared skills count (simplified calculation)
+                            shared_skills_count = int(similarity_score * 20)  # Approximate based on similarity
+                            
+                            pathway_record = {
+                                'source_job_id': source_job_id,
+                                'target_job_id': target_job_id,
+                                'similarity_rank': rank,
+                                'similarity_score': similarity_score,
+                                'skill_overlap_score': similarity_score,  # Use same as similarity for now
+                                'shared_skills_count': shared_skills_count,
+                                'career_move_type': move_type,
+                                'difficulty_score': difficulty
+                            }
+                            
+                            chunk_pathways.append(pathway_record)
+                        
+                        total_processed += 1
+                        progress.update(1)
+                    
+                    # Add chunk pathways to main list
+                    pathway_records.extend(chunk_pathways)
+                    
+                    # Trigger garbage collection every few chunks
+                    if len(pathway_records) % (self.config.initial_chunk_size * 5) == 0:
+                        trigger_garbage_collection(full=True)
+            
+            # Convert to DataFrame with proper column structure
+            if pathway_records:
+                pathways_df = pd.DataFrame(pathway_records)
+            else:
+                # Create empty DataFrame with proper schema
+                pathways_df = pd.DataFrame(columns=[
+                    'source_job_id', 'target_job_id', 'similarity_rank', 'similarity_score',
+                    'skill_overlap_score', 'shared_skills_count', 'career_move_type', 'difficulty_score'
+                ])
+            
+            # Save as parquet file
+            pathways_file = output_path / "career_pathways.parquet"
+            pathways_df.to_parquet(pathways_file, compression='snappy', index=False)
+            
+            logger.info(f"✅ Career pathways saved to {pathways_file}")
+            logger.info(f"📊 Generated {len(pathways_df):,} career pathway relationships")
+            logger.info(f"📊 Average pathways per job: {len(pathways_df) / len(all_job_ids):.1f}")
+            
+            # Also save as CSV for compatibility
+            csv_file = output_path / "career_pathways.csv"
+            pathways_df.to_csv(csv_file, index=False)
+            logger.info(f"✅ Career pathways CSV saved to {csv_file}")
+            
+            return pathways_file
+            
+        except Exception as e:
+            logger.error(f"Error during career pathways precomputation: {e}")
+            raise EngineError(f"Career pathways precomputation failed: {e}") from e
+    
+    def precompute_all(self, run_name: Optional[str] = None) -> Path:
+        """
+        Precompute both similarity matrix and career pathways.
+        
+        Args:
+            run_name: Optional name for this precomputation run
+            
+        Returns:
+            Path to the output directory containing both results
+        """
+        logger.info("🚀 Starting complete precomputation pipeline...")
+        
+        # Step 1: Precompute similarity matrix
+        logger.info("📊 Step 1: Computing job-to-job similarity matrix...")
+        output_path = self.precompute_similarity_matrix(run_name)
+        
+        # Step 2: Load similarity matrix and compute career pathways
+        logger.info("🔗 Step 2: Computing career pathways from similarity matrix...")
+        
+        # Read the similarity matrix we just created
+        similarity_file = output_path / "job_similarity_matrix.csv"
+        if not similarity_file.exists():
+            raise EngineError(f"Similarity matrix file not found: {similarity_file}")
+        
+        logger.info(f"📖 Loading similarity matrix from {similarity_file}")
+        similarity_df = pd.read_csv(similarity_file)
+        logger.info(f"📊 Loaded {len(similarity_df):,} similarity relationships")
+        
+        # Generate career pathways
+        pathways_file = self.precompute_career_pathways(similarity_df, output_path)
+        
+        # Create metadata file with both outputs
+        metadata = {
+            'run_name': run_name or output_path.name,
+            'timestamp': datetime.now().isoformat(),
+            'total_jobs': self.num_jobs,
+            'total_similarities': len(similarity_df),
+            'outputs': {
+                'similarity_matrix_csv': str(similarity_file),
+                'career_pathways_parquet': str(pathways_file),
+                'career_pathways_csv': str(output_path / "career_pathways.csv")
+            },
+            'configuration': {
+                'chunk_size': self.config.initial_chunk_size,
+                'memory_threshold': self.config.memory_threshold_percent,
+                'checkpointing_enabled': self.config.enable_checkpointing
+            }
+        }
+        
+        metadata_file = output_path / "metadata.json"
+        with open(str(metadata_file), 'w') as f:
+            json.dump(metadata, f)
+        
+        logger.info("🎯 Complete precomputation pipeline finished successfully!")
+        logger.info(f"📁 Output directory: {output_path}")
+        logger.info(f"📊 Similarity matrix: {similarity_file}")
+        logger.info(f"🔗 Career pathways: {pathways_file}")
+        
+        return output_path
     
     def estimate_runtime(self) -> Dict[str, Any]:
         """

@@ -9,6 +9,7 @@ More functionality will be added step by step.
 
 import sys
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -89,32 +90,68 @@ def main_menu():
     return input("Enter your choice: ").strip()
 
 def precompute_menu():
-    print("\nPrecompute Skill Similarities\n")
+    print("\nPrecompute Engine - Generate Parquet Files\n")
     print("Select a task:")
     print("1. Load and validate data")
-    print("2. Generate job-to-job similarity matrix")
+    print("2. Generate similarity matrix + career pathways (both as parquet)")
     print("3. Export results (coming soon)")
     print("0. Back to main menu")
     return input("Enter your choice: ").strip()
 
+def prompt_file_path(prompt, default_path):
+    """Prompt for file path with a default option"""
+    user_input = input(f"{prompt} [default: {default_path}]: ").strip()
+    return user_input if user_input else default_path
+
 def load_and_validate_data(logger):
     global loaded_taxonomy, loaded_architecture
     
-    print("\n=== Data Loading & Validation ===")
-    skills_file = input("Enter path to skills CSV file: ").strip()
-    jobs_file = input("Enter path to jobs CSV file: ").strip()
-    job_skills_file = input("Enter path to job-skill mapping CSV file (or leave blank if not used): ").strip()
+    print("\n" + "="*60)
+    print("🔧 DATA LOADING & VALIDATION")
+    print("="*60)
+    print("Default data files will be used if you press Enter without typing a path.")
+    
+    # Default file paths
+    default_skills_file = "input_data/skill_data.csv"
+    default_jobs_file = "input_data/job_data.csv" 
+    default_job_skills_file = "input_data/job_skill_mapping.csv"
+    
+    skills_file = prompt_file_path("Enter path to skills CSV file", default_skills_file)
+    jobs_file = prompt_file_path("Enter path to jobs CSV file", default_jobs_file)
+    job_skills_file = prompt_file_path("Enter path to job-skill mapping CSV file", default_job_skills_file)
+    
+    # Validate that all required files exist (check with data/ prefix if needed)
+    from pathlib import Path
+    for file_path, file_type in [(skills_file, "skills"), (jobs_file, "jobs"), (job_skills_file, "job-skill mapping")]:
+        # First check the path as-is
+        if Path(file_path).exists():
+            continue
+        # If that fails, check with data/ prefix (for default paths)
+        elif Path(f"data/{file_path}").exists():
+            continue
+        else:
+            print(f"❌ ERROR: {file_type} file not found at either:")
+            print(f"   • {file_path}")
+            print(f"   • data/{file_path}")
+            return False
+    
     chunked = prompt_bool("Enable chunked/streaming loading?", default=True)
     chunksize = prompt_int("Chunk size for streaming", default=10000)
     validate = prompt_bool("Enable schema validation?", default=True)
     verbose = prompt_bool("Enable verbose logging?", default=False)
 
-    logger.setLevel('DEBUG' if verbose else 'INFO')
+    # Set logging level (reduce noise during normal operation)
+    logger.setLevel('DEBUG' if verbose else 'WARNING')
     error_registry = ErrorRegistry()
 
+    print(f"\n⏳ Processing data files...")
+    print(f"   📊 Skills: {Path(skills_file).name}")
+    print(f"   💼 Jobs: {Path(jobs_file).name}")
+    print(f"   🔗 Job-skill mapping: {Path(job_skills_file).name}")
+    
     # Step 1: Load Skill Taxonomy
+    print(f"\n📊 Step 1: Loading skill taxonomy...")
     try:
-        logger.info("Loading skill taxonomy...")
         taxonomy_loader = SkillTaxonomyLoader()
         taxonomy = taxonomy_loader.load_from_csv(
             skills_file=skills_file,
@@ -123,49 +160,59 @@ def load_and_validate_data(logger):
             validate=validate
         )
         loaded_taxonomy = taxonomy
-        logger.info(f"Loaded {len(taxonomy.skills)} skills.")
+        print(f"✅ Loaded {len(taxonomy.skills):,} skills successfully")
     except Exception as e:
         logger.error(f"Failed to load skill taxonomy: {e}")
         error_registry.register(e)
-        print("[ERROR] Failed to load skill taxonomy. See logs for details.")
+        print(f"❌ ERROR: Failed to load skill taxonomy - {e}")
         return False
 
     # Step 2: Load Job Architecture
+    print(f"\n💼 Step 2: Loading job architecture...")
     try:
-        logger.info("Loading job architecture...")
         job_loader = JobArchitectureLoader(taxonomy)
         architecture = job_loader.load_from_csv(
             jobs_file=jobs_file,
-            job_skills_file=job_skills_file if job_skills_file else None,
+            job_skills_file=job_skills_file,
             chunked=chunked,
             chunksize=chunksize,
             validate=validate
         )
         loaded_architecture = architecture
-        logger.info(f"Loaded {len(architecture.jobs)} jobs.")
+        print(f"✅ Loaded {len(architecture.jobs):,} jobs successfully")
     except Exception as e:
         logger.error(f"Failed to load job architecture: {e}")
         error_registry.register(e)
-        print("[ERROR] Failed to load job architecture. See logs for details.")
+        print(f"❌ ERROR: Failed to load job architecture - {e}")
         return False
 
-    # Print summary
-    print("\n=== Data Loading Summary ===")
-    print(f"Skills loaded: {len(taxonomy.skills)}")
-    print(f"Jobs loaded: {len(architecture.jobs)}")
-    if job_skills_file:
-        print(f"Job-skill mapping file: {job_skills_file}")
-    print(f"Chunked loading: {'Enabled' if chunked else 'Disabled'} (chunksize={chunksize})")
-    print(f"Validation: {'Enabled' if validate else 'Disabled'}")
-    print(f"Verbose logging: {'Enabled' if verbose else 'Disabled'}")
-    print("===========================\n")
-    print("[INFO] Data loading complete. Ready to bolt on more functionality!")
+    # Print summary with clear visual separation
+    print(f"\n" + "="*60)
+    print(f"📋 DATA LOADING SUMMARY")
+    print("="*60)
+    print(f"✅ Skills loaded: {len(taxonomy.skills):,}")
+    print(f"✅ Jobs loaded: {len(architecture.jobs):,}")
+    print(f"\n📁 Data sources:")
+    print(f"   • Skills: {skills_file}")
+    print(f"   • Jobs: {jobs_file}")
+    print(f"   • Job-skill mapping: {job_skills_file}")
+    print(f"\n⚙️  Configuration:")
+    print(f"   • Chunked loading: {'✅ Enabled' if chunked else '❌ Disabled'} (size: {chunksize:,})")
+    print(f"   • Schema validation: {'✅ Enabled' if validate else '❌ Disabled'}")
+    print(f"   • Verbose logging: {'✅ Enabled' if verbose else '❌ Disabled'}")
+    print("="*60)
+    print("🚀 Ready for similarity matrix generation!")
+    print("="*60)
 
     # Print any registered errors
     if len(error_registry.get_all()) > 0:
-        print("\n[WARNING] Some errors were registered during execution:")
+        print(f"\n⚠️  Some warnings occurred during processing:")
         for err in error_registry.get_all():
-            print(f"- {err.get('message', err)}")
+            print(f"   • {err.get('message', err)}")
+        print()
+    
+    # Brief pause to let user read the summary
+    time.sleep(1.5)
     
     return True
 
@@ -173,19 +220,21 @@ def generate_similarity_matrix(logger):
     global loaded_architecture
     
     if loaded_architecture is None:
-        print("[ERROR] No job architecture loaded. Please load data first (option 1).")
+        print("❌ ERROR: No job architecture loaded. Please load data first (option 1).")
         return
     
-    print("\n=== Generate Job-to-Job Similarity Matrix ===")
-    print(f"Jobs to process: {len(loaded_architecture.jobs)}")
+    print(f"\n" + "="*60)
+    print(f"🔄 SIMILARITY MATRIX GENERATION")
+    print("="*60)
+    print(f"📊 Jobs to process: {len(loaded_architecture.jobs):,}")
     
     # Model versioning and output location
-    print(f"\n=== Model Output Configuration ===")
+    print(f"\n📁 Setting up output directory...")
     quarter_dir = setup_model_output_directory()
-    print(f"Output directory created: {quarter_dir}")
+    print(f"✅ Output directory ready: {quarter_dir}")
     
     # Output format selection
-    print(f"\n=== Output Format Selection ===")
+    print(f"\n📝 Output format configuration...")
     output_parquet = prompt_bool("Generate Parquet file (recommended for primary storage)?", default=True)
     output_csv = prompt_bool("Generate CSV file (required for Power BI cloud ingestion)?", default=True)
     
@@ -219,37 +268,38 @@ def generate_similarity_matrix(logger):
         
         # Show runtime estimate if requested
         if estimate_runtime:
-            print("\n=== Runtime Estimation ===")
-            logger.info("Calculating runtime estimate...")
+            print(f"\n📊 Calculating runtime estimates...")
             estimates = precomputer.estimate_runtime()
             
-            print(f"Total jobs: {estimates['total_jobs']:,}")
-            print(f"Total comparisons: {estimates['total_comparisons']:,}")
-            print(f"Estimated chunks: {estimates['estimated_chunks']:,}")
-            print(f"Parallel workers: {estimates['parallel_workers']} (auto-detected)")
-            print(f"Estimated serial time: {estimates['estimated_serial_time_hours']:.2f} hours")
-            print(f"Estimated parallel time: {estimates['estimated_parallel_time_hours']:.2f} hours")
-            print(f"Memory per chunk: {estimates['estimated_memory_per_chunk_mb']:.2f} MB")
+            print(f"\n" + "-"*50)
+            print(f"⏱️  PROCESSING ESTIMATES")
+            print("-"*50)
+            print(f"📊 Total jobs: {estimates['total_jobs']:,}")
+            print(f"🔄 Total comparisons: {estimates['total_comparisons']:,}")
+            print(f"📦 Estimated chunks: {estimates['estimated_chunks']:,}")
+            print(f"⚡ Parallel workers: {estimates['parallel_workers']} (auto-detected)")
+            print(f"⏳ Estimated time: {estimates['estimated_parallel_time_hours']:.2f} hours")
+            print(f"💾 Memory per chunk: {estimates['estimated_memory_per_chunk_mb']:.2f} MB")
             
             # Show expected output file sizes
             estimated_csv_size = estimates['total_comparisons'] * 0.000040  # ~40 bytes per comparison in CSV
-            print(f"Expected CSV file size: ~{estimated_csv_size:.1f} GB")
+            print(f"📁 Expected CSV size: ~{estimated_csv_size:.1f} GB")
             if output_parquet:
                 estimated_parquet_size = estimated_csv_size * 0.1  # Parquet typically 10x smaller than CSV
-                print(f"Expected Parquet file size: ~{estimated_parquet_size:.1f} GB (after conversion)")
-            if not output_csv and output_parquet:
-                print("Note: CSV will be created first, then converted to Parquet and deleted")
+                print(f"📁 Expected Parquet size: ~{estimated_parquet_size:.1f} GB")
+            print("-"*50)
             
-            proceed = prompt_bool("Proceed with similarity matrix generation?", default=True)
+            proceed = prompt_bool("🚀 Proceed with similarity matrix generation?", default=True)
             if not proceed:
-                print("Operation cancelled.")
+                print("❌ Operation cancelled.")
                 return
         
-        # Generate similarity matrix
-        print("\n=== Starting Similarity Matrix Generation ===")
-        logger.info("Starting similarity matrix precomputation...")
+        # Generate similarity matrix and career pathways
+        print(f"\n" + "="*60)
+        print(f"🚀 STARTING PRECOMPUTATION PIPELINE")
+        print("="*60)
         
-        output_path = precomputer.precompute_similarity_matrix()
+        output_path = precomputer.precompute_all()
         
         # Post-process output formats if needed
         csv_file = output_path / "job_similarity_matrix.csv"
@@ -278,20 +328,22 @@ def generate_similarity_matrix(logger):
                 csv_file.unlink()
                 print("✓ CSV file removed (Parquet created successfully)")
         
-        print(f"\n=== Similarity Matrix Generation Complete ===")
-        print(f"Output directory: {output_path}")
+        print(f"\n" + "="*60)
+        print(f"✅ GENERATION COMPLETE!")
+        print("="*60)
+        print(f"📁 Output directory: {output_path}")
+        
         if output_parquet and (output_path / "job_similarity_matrix.parquet").exists():
-            print(f"Parquet file: {output_path / 'job_similarity_matrix.parquet'}")
+            print(f"📦 Parquet file: job_similarity_matrix.parquet")
         if output_csv and (output_path / "job_similarity_matrix.csv").exists():
-            print(f"CSV file: {output_path / 'job_similarity_matrix.csv'}")
-        print(f"Metadata: {output_path / 'metadata.json'}")
-        print(f"Progress file: {output_path / 'progress.json'}")
+            print(f"📄 CSV file: job_similarity_matrix.csv")
+        print(f"📋 Metadata: metadata.json")
         if enable_checkpoints:
-            print(f"Checkpoint file: {output_path / 'checkpoint.json'}")
+            print(f"💾 Checkpoint file: checkpoint.json")
         
-        print("===============================================\n")
-        
-        logger.info("Similarity matrix generation completed successfully!")
+        print("="*60)
+        print("🎉 Similarity matrix and career pathways ready!")
+        print("="*60)
         
     except Exception as e:
         logger.error(f"Error during similarity matrix generation: {e}")

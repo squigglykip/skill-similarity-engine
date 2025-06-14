@@ -149,6 +149,15 @@ class DataLoader:
                 logger.warning(f"Data file not found: {file_path}")
                 success = False
         
+        # Load career pathways from pre-computed parquet file (if available)
+        if success:
+            try:
+                self._load_career_pathways_from_parquet()
+            except Exception as e:
+                logger.warning(f"Failed to load pre-computed career pathways: {e}")
+                logger.info("Career pathways can be generated using the precompute pipeline (main.py option 1)")
+                # Don't fail the entire process if career pathways loading fails
+        
         if success:
             logger.info("All data loaded successfully")
             self._print_load_summary()
@@ -634,4 +643,106 @@ class DataLoader:
             
         except Exception as e:
             logger.error(f"Foreign key verification failed: {e}")
-            return {} 
+            return {}
+    
+    def _load_career_pathways_from_parquet(self) -> None:
+        """Load pre-computed career pathways from parquet file."""
+        logger.info("📦 Loading pre-computed career pathways from parquet...")
+        
+        # Look for career pathways parquet file in the models directory
+        from pathlib import Path
+        import pandas as pd
+        
+        # Look for the most recent career pathways file
+        models_dir = Path("models")
+        parquet_files = []
+        
+        if models_dir.exists():
+            # Search in quarterly model directories
+            for quarter_dir in models_dir.glob("*"):
+                if quarter_dir.is_dir():
+                    # Look for precompute directories
+                    for precompute_dir in quarter_dir.glob("precompute_*"):
+                        pathways_file = precompute_dir / "career_pathways.parquet"
+                        if pathways_file.exists():
+                            parquet_files.append(pathways_file)
+        
+        # Also check data/precomputed directory
+        data_dir = Path("data/precomputed")
+        if data_dir.exists():
+            for precompute_dir in data_dir.glob("precompute_*"):
+                pathways_file = precompute_dir / "career_pathways.parquet"
+                if pathways_file.exists():
+                    parquet_files.append(pathways_file)
+        
+        if not parquet_files:
+            raise FileNotFoundError(
+                "No pre-computed career pathways parquet file found. "
+                "Please run the precompute pipeline first (main.py option 1 → 2)"
+            )
+        
+        # Use the most recent file
+        latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
+        logger.info(f"📁 Loading career pathways from: {latest_file}")
+        
+        try:
+            # Load parquet file
+            pathways_df = pd.read_parquet(latest_file)
+            logger.info(f"📊 Loaded {len(pathways_df):,} career pathway relationships from parquet")
+            
+            # Create database connection
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            try:
+                # Clear existing career pathways data
+                cursor.execute("DELETE FROM career_pathways")
+                
+                # Check if DataFrame is empty
+                if len(pathways_df) == 0:
+                    logger.warning("📊 No career pathway relationships found in parquet file")
+                    conn.commit()
+                    return
+                
+                # Convert DataFrame to list of tuples for insertion
+                pathway_records = [
+                    (
+                        row['source_job_id'],
+                        row['target_job_id'],
+                        row['similarity_rank'],
+                        row['similarity_score'],
+                        row['skill_overlap_score'],
+                        row['shared_skills_count'],
+                        row['career_move_type'],
+                        row['difficulty_score']
+                    )
+                    for _, row in pathways_df.iterrows()
+                ]
+                
+                # Bulk insert career pathway records
+                insert_query = """
+                    INSERT INTO career_pathways (
+                        source_job_id, target_job_id, similarity_rank, similarity_score,
+                        skill_overlap_score, shared_skills_count, career_move_type, difficulty_score
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """
+                
+                cursor.executemany(insert_query, pathway_records)
+                conn.commit()
+                
+                logger.info(f"✅ Successfully loaded {len(pathway_records):,} career pathway relationships into database")
+                
+                # Log distribution by move type (only if we have data)
+                if len(pathways_df) > 0:
+                    move_type_counts = pathways_df['career_move_type'].value_counts().to_dict()
+                    logger.info("📊 Career move type distribution:")
+                    for move_type, count in sorted(move_type_counts.items()):
+                        percentage = (count / len(pathways_df)) * 100
+                        logger.info(f"   - {move_type}: {count:,} ({percentage:.1f}%)")
+                
+            finally:
+                conn.close()
+                
+        except Exception as e:
+            logger.error(f"Failed to load career pathways from parquet: {e}")
+            raise 
