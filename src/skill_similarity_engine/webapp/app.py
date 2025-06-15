@@ -84,6 +84,15 @@ def create_app(config=None):
         cursor = db.execute(similarities_query, (job_id, 0.5, limit))
         return cursor.fetchall()
 
+    def get_job_similarities_with_threshold(job_id, min_similarity, limit):
+        """Get similar jobs using organised SQL with a specified similarity threshold."""
+        from .sql import queries
+        db = get_db()
+        
+        similarities_query = queries.get('similarities', 'get_similar_jobs_with_threshold')
+        cursor = db.execute(similarities_query, (job_id, min_similarity, limit))
+        return cursor.fetchall()
+
     # Routes
     @app.route('/')
     def index():
@@ -106,12 +115,60 @@ def create_app(config=None):
             top_families_query = queries.get('metadata', 'get_top_job_families')
             top_families = db.execute(top_families_query).fetchall()
             
+            # Get career pathway insights
+            career_insights_query = queries.get('metadata', 'get_career_insights_summary')
+            career_insights_raw = db.execute(career_insights_query).fetchall()
+            
+            # Convert career insights to dictionary
+            career_insights = {}
+            for row in career_insights_raw:
+                career_insights[row['metric']] = row['value']
+            
+            # Get mobility hubs
+            mobility_hubs_query = queries.get('metadata', 'get_mobility_hubs')
+            mobility_hubs = db.execute(mobility_hubs_query).fetchall()
+            
+            # Get similarity distribution for mobility readiness analysis
+            similarity_dist_query = queries.get('metadata', 'get_similarity_distribution')
+            similarity_distribution = db.execute(similarity_dist_query).fetchall()
+            
+            # Get similarity statistics
+            similarity_stats_query = queries.get('metadata', 'get_similarity_statistics')
+            similarity_stats_raw = db.execute(similarity_stats_query).fetchall()
+            
+            # Convert similarity stats to dictionary
+            similarity_stats = {}
+            for row in similarity_stats_raw:
+                similarity_stats[row['metric']] = row['value']
+            
+            # Get strategic recommendations for executive dashboard (lightweight queries)
+            try:
+                strategic_recs_query = queries.get('metadata', 'get_strategic_recommendations')
+                strategic_recommendations = db.execute(strategic_recs_query).fetchall()
+                
+                cross_family_query = queries.get('metadata', 'get_cross_family_mobility_opportunities')
+                cross_family_opportunities = db.execute(cross_family_query).fetchall()
+                
+                skills_concentration = []  # Not needed for executive summary
+            except Exception as e:
+                print(f"Warning: Strategic recommendations query failed: {e}")
+                strategic_recommendations = []
+                skills_concentration = []
+                cross_family_opportunities = []
+            
             sample_jobs = get_sample_jobs(6)  # Reduced for cleaner display
             
             return render_template('index.html', 
                                  sample_jobs=sample_jobs,
                                  platform_metrics=platform_metrics,
-                                 top_families=top_families[:5])  # Top 5 families
+                                 top_families=top_families[:5],
+                                 career_insights=career_insights,
+                                 mobility_hubs=mobility_hubs[:5],
+                                 similarity_distribution=similarity_distribution,
+                                 similarity_stats=similarity_stats,
+                                 strategic_recommendations=strategic_recommendations,
+                                 skills_concentration=skills_concentration[:10],
+                                 cross_family_opportunities=cross_family_opportunities[:8])  # Top recommendations and insights
         except Exception as e:
             print(f"Error loading homepage: {e}")
             sample_jobs = get_sample_jobs(6)
@@ -127,7 +184,14 @@ def create_app(config=None):
             return render_template('index.html', 
                                  sample_jobs=sample_jobs,
                                  platform_metrics=platform_metrics,
-                                 top_families=[])
+                                 top_families=[],
+                                 career_insights={},
+                                 mobility_hubs=[],
+                                 similarity_distribution=[],
+                                 similarity_stats={},
+                                 strategic_recommendations=[],
+                                 skills_concentration=[],
+                                 cross_family_opportunities=[])
 
     @app.route('/components')
     def components():
@@ -149,13 +213,13 @@ def create_app(config=None):
             # Get sample jobs for initial display
             sample_jobs = get_sample_jobs(20)
             
-            return render_template('job_search.html', 
+            return render_template('job_explorer.html', 
                                  job_families=families,
                                  jobs=sample_jobs)
         except Exception as e:
             print(f"Error loading job search: {e}")
             sample_jobs = get_sample_jobs(20)
-            return render_template('job_search.html', 
+            return render_template('job_explorer.html', 
                                  job_families=[], 
                                  jobs=sample_jobs)
 
@@ -230,10 +294,133 @@ def create_app(config=None):
             'level': job['job_level']
         } for job in jobs])
 
+    @app.route('/api/job-details/<job_id>')
+    def api_job_details(job_id):
+        """API endpoint for getting detailed job information including skills."""
+        try:
+            db = get_db()
+            
+            # Get basic job information
+            job_query = """
+            SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup, JobID, Job
+            FROM jobs 
+            WHERE JobProfileID = ?
+            """
+            job = db.execute(job_query, (job_id,)).fetchone()
+            
+            if not job:
+                return jsonify({'error': 'Job not found'}), 404
+            
+            # Get skills for this job
+            skills_query = """
+            SELECT s.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
+            FROM job_skills js
+            JOIN skills s ON js.Skill_ID = s.Skill_ID
+            WHERE js.JobProfileID = ?
+            ORDER BY s.Category, s.Skill_Name
+            """
+            skills = db.execute(skills_query, (job_id,)).fetchall()
+            
+            # Get position count for this job
+            positions_query = """
+            SELECT COUNT(*) as position_count
+            FROM positions p
+            WHERE p.JobProfileID = ?
+            """
+            position_count = db.execute(positions_query, (job_id,)).fetchone()
+            
+            # Get similarity count (career pathways)
+            pathways_query = """
+            SELECT COUNT(*) as pathway_count
+            FROM career_pathways cp
+            WHERE cp.source_job_id = ?
+            """
+            pathway_count = db.execute(pathways_query, (job_id,)).fetchone()
+            
+            return jsonify({
+                'job': {
+                    'id': job['JobProfileID'],
+                    'title': job['JobProfile'],
+                    'family': job['JobFamily'],
+                    'group': job['JobFamilyGroup'],
+                    'job_id': job['JobID'],
+                    'job_name': job['Job']
+                },
+                'skills': [{
+                    'id': skill['Skill_ID'],
+                    'name': skill['Skill_Name'],
+                    'category': skill['Category'],
+                    'subcategory': skill['Subcategory'],
+                    'type': skill['SkillType']
+                } for skill in skills],
+                'stats': {
+                    'skills_count': len(skills),
+                    'positions_count': position_count['position_count'] if position_count else 0,
+                    'pathways_count': pathway_count['pathway_count'] if pathway_count else 0
+                }
+            })
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/job-workforce/<job_id>')
+    def api_job_workforce(job_id):
+        """API endpoint for getting workforce context for a specific job."""
+        try:
+            db = get_db()
+            
+            # Get workforce distribution by division, business unit, and location
+            workforce_query = """
+            SELECT 
+                p.Division,
+                p.Business_Unit,
+                p.Location,
+                COUNT(*) as position_count
+            FROM positions p
+            WHERE p.JobProfileID = ?
+            GROUP BY p.Division, p.Business_Unit, p.Location
+            ORDER BY position_count DESC
+            """
+            workforce_data = db.execute(workforce_query, (job_id,)).fetchall()
+            
+            # Aggregate by division
+            by_division = {}
+            by_business_unit = {}
+            by_location = {}
+            total_positions = 0
+            
+            for row in workforce_data:
+                total_positions += row['position_count']
+                
+                # By division
+                div = row['Division'] or 'Other'
+                by_division[div] = by_division.get(div, 0) + row['position_count']
+                
+                # By business unit
+                bu = row['Business_Unit'] or 'Other'
+                by_business_unit[bu] = by_business_unit.get(bu, 0) + row['position_count']
+                
+                # By location
+                loc = row['Location'] or 'Other'
+                by_location[loc] = by_location.get(loc, 0) + row['position_count']
+            
+            return jsonify({
+                'total_positions': total_positions,
+                'by_division': [{'division': k, 'count': v} for k, v in sorted(by_division.items(), key=lambda x: x[1], reverse=True)],
+                'by_business_unit': [{'business_unit': k, 'count': v} for k, v in sorted(by_business_unit.items(), key=lambda x: x[1], reverse=True)],
+                'by_location': [{'location': k, 'count': v} for k, v in sorted(by_location.items(), key=lambda x: x[1], reverse=True)]
+            })
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/api/job-similarities/<job_id>')
     def api_job_similarities(job_id):
         """API endpoint for getting job similarities."""
-        similarities = get_job_similarities(job_id, 15)
+        min_similarity = float(request.args.get('min_similarity', 0.5))  # Default threshold
+        limit = int(request.args.get('limit', 15))  # Default limit
+        
+        similarities = get_job_similarities_with_threshold(job_id, min_similarity, limit)
         return jsonify([{
             'job_id': sim['id'],
             'job_title': sim['job_title'],
@@ -242,6 +429,32 @@ def create_app(config=None):
             'similarity_score': round(sim['similarity_score'], 3),
             'similarity_category': sim['similarity_category']
         } for sim in similarities])
+
+    @app.route('/api/career-pathways-distribution/<job_id>')
+    def api_career_pathways_distribution(job_id):
+        """API endpoint for getting the distribution of career pathway similarities from career_pathways table."""
+        try:
+            db = get_db()
+            
+            # Get all 12 career pathways for this job from the career_pathways table
+            pathways_query = """
+            SELECT cp.similarity_score, j.JobProfile as job_title, j.JobFamily as job_family
+            FROM career_pathways cp
+            JOIN jobs j ON cp.target_job_id = j.JobProfileID
+            WHERE cp.source_job_id = ?
+            ORDER BY cp.similarity_rank
+            """
+            pathways = db.execute(pathways_query, (job_id,)).fetchall()
+            
+            # Return the raw data - exactly 12 pathways for distribution analysis
+            return jsonify([{
+                'similarity_score': round(pathway['similarity_score'], 3),
+                'job_title': pathway['job_title'],
+                'job_family': pathway['job_family']
+            } for pathway in pathways])
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/api/career-pathway/<int:start_job_id>')
     def api_career_pathway(start_job_id):
@@ -555,19 +768,23 @@ def create_app(config=None):
             db = get_db()
             
             if query:
-                # Search jobs by title or family
+                # Search jobs by JobProfileID, title, or family
                 search_query = """
                 SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup
                 FROM jobs 
-                WHERE JobProfile LIKE ? OR JobFamily LIKE ?
+                WHERE JobProfileID LIKE ? OR JobProfile LIKE ? OR JobFamily LIKE ?
                 ORDER BY 
-                    CASE WHEN JobProfile LIKE ? THEN 1 ELSE 2 END,
+                    CASE 
+                        WHEN JobProfileID LIKE ? THEN 1 
+                        WHEN JobProfile LIKE ? THEN 2 
+                        ELSE 3 
+                    END,
                     JobProfile
                 LIMIT ?
                 """
                 search_pattern = f'%{query}%'
                 exact_pattern = f'{query}%'
-                jobs = db.execute(search_query, (search_pattern, search_pattern, exact_pattern, limit)).fetchall()
+                jobs = db.execute(search_query, (search_pattern, search_pattern, search_pattern, exact_pattern, exact_pattern, limit)).fetchall()
             else:
                 # Return popular/sample jobs when no query
                 sample_query = """
@@ -586,7 +803,7 @@ def create_app(config=None):
                 'title': job['JobProfile'],
                 'family': job['JobFamily'],
                 'group': job['JobFamilyGroup'],
-                'label': f"{job['JobProfile']} ({job['JobFamily']})"
+                'label': f"{job['JobProfile']} ({job['JobProfileID']})"
             } for job in jobs])
             
         except Exception as e:

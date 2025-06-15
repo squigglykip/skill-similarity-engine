@@ -1,0 +1,808 @@
+{% extends "base.html" %}
+
+{% block title %}Job Profile Explorer - NAB Skills Intelligence Platform{% endblock %}
+
+{% block head %}
+<style>
+/* Custom slider styling */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #e5e7eb 0%, #3b82f6 50%, #1d4ed8 100%);
+    outline: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Basic chart container styling only */
+.similarity-chart-container {
+    margin-top: 12px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.chart-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 12px;
+    text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
+                Job Profile Explorer
+            </h1>
+            <p class="text-lg font-source text-gray-600">
+                Browse detailed job profiles with skills analysis, workforce context, and career opportunities
+            </p>
+        </div>
+
+        <!-- Main Layout - Sidebar + Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Left Sidebar - Search & Job Details -->
+            <div class="lg:col-span-1">
+                
+                <!-- Search Panel -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-lg font-epilogue font-semibold text-gray-900 mb-4">Find Job Profile</h2>
+                    
+                    <!-- Search Input -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                            Search by Job Title or ID
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="job-explorer-search"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source"
+                                   placeholder="e.g., Risk Analyst, R0001.5, Data Scientist..."
+                                   autocomplete="off">
+                            
+                            <!-- Search Dropdown -->
+                            <div id="job-explorer-dropdown" 
+                                 class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                                <!-- Results populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Getting Started -->
+                <div id="getting-started-panel" class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border-l-4 border-blue-500">
+                    <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-2">Getting Started</h3>
+                    <p class="text-sm font-source text-gray-700 mb-3">
+                        Use the search above to find and explore detailed job profiles. Each profile includes:
+                    </p>
+                    <ul class="text-xs font-source text-gray-600 space-y-1">
+                        <li>• Complete skills requirements</li>
+                        <li>• Current workforce deployment</li>
+                        <li>• Similar job opportunities</li>
+                        <li>• Career progression pathways</li>
+                    </ul>
+                </div>
+                
+                <!-- Job Architecture Info -->
+                <div id="job-architecture-panel" class="bg-white rounded-lg border border-gray-200 p-4 hidden">
+                    <h3 class="text-sm font-epilogue font-semibold text-gray-900 mb-3">Job Architecture Info</h3>
+                    <div class="space-y-3">
+                        <!-- Key Metrics -->
+                        <div class="pb-3 border-b border-gray-100">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-source text-gray-600">Required Skills</span>
+                                <span id="sidebar-skills-count" class="text-sm font-epilogue font-semibold text-blue-600">0</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-source text-gray-600">Active Positions</span>
+                                <span id="sidebar-positions-count" class="text-sm font-epilogue font-semibold text-green-600">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-source text-gray-600">Career Pathways</span>
+                                <span id="sidebar-pathways-count" class="text-sm font-epilogue font-semibold text-purple-600">0</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Job Architecture Details -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Profile ID</span>
+                                <span id="sidebar-job-profile-id" class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Profile</span>
+                                <span id="sidebar-job-profile" class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job ID</span>
+                                <span id="sidebar-job-id" class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Name</span>
+                                <span id="sidebar-job-name" class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Family</span>
+                                <span id="sidebar-job-family" class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Family Group</span>
+                                <span id="sidebar-job-family-group" class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="lg:col-span-3">
+                
+                <!-- Welcome State -->
+                <div id="welcome-state" class="text-center py-20">
+                    <div class="max-w-md mx-auto">
+                        <div class="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-6">
+                            <svg class="w-12 h-12 text-blue-600 mx-auto mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-2">Search for a Job Profile</h3>
+                        <p class="text-sm font-source text-gray-600">
+                            Start by searching for a job profile in the sidebar to view detailed information, skills analysis, and career pathways.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Job Profile Content -->
+                <div id="job-profile-content" class="hidden space-y-6">
+                    
+                    <!-- Job Header -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <h2 id="job-title-header" class="text-2xl font-epilogue font-bold text-gray-900 mb-2">Job Title</h2>
+                                <div class="flex items-center space-x-3">
+                                    <span id="job-family-badge" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-blue-100 text-blue-800">
+                                        Job Family
+                                    </span>
+                                    <span id="job-level-badge" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-gray-100 text-gray-700">
+                                        Level
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-source text-gray-600">Job Profile ID</p>
+                                <p id="job-profile-id" class="text-lg font-epilogue font-semibold text-gray-900">R0001.5</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Skills Analysis -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skills Requirements</h3>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">
+                                Live Data
+                            </span>
+                        </div>
+                        
+                        <!-- Skills by Category -->
+                        <div id="skills-by-category" class="space-y-4">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Skills List -->
+                        <div class="mt-6">
+                            <h4 class="text-sm font-source font-semibold text-gray-700 mb-3">All Required Skills</h4>
+                            <div id="skills-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Workforce Context -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Workforce Context</h3>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-orange-100 text-orange-800">
+                                Strategic Intelligence
+                            </span>
+                        </div>
+                        
+                        <!-- Position Distribution -->
+                        <div id="position-distribution" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Geographic Distribution -->
+                        <div class="mt-6">
+                            <h4 class="text-sm font-source font-semibold text-gray-700 mb-3">Geographic Distribution</h4>
+                            <div id="geographic-distribution" class="space-y-2">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Similar Jobs & Career Pathways -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Similar Jobs & Career Pathways</h3>
+                            <button id="view-all-pathways" class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
+                                View All Pathways →
+                            </button>
+                        </div>
+                        
+                        <!-- Similarity Filter -->
+                        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-source font-medium text-gray-700">Minimum Similarity</label>
+                                <span id="similarity-percentage" class="text-sm font-source font-semibold text-blue-600">90%</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs font-source text-gray-500">0%</span>
+                                <input type="range" 
+                                       id="similarity-slider" 
+                                       min="0" 
+                                       max="100" 
+                                       value="90" 
+                                       step="5"
+                                       class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                                <span class="text-xs font-source text-gray-500">100%</span>
+                            </div>
+                            <p class="text-xs font-source text-gray-600 mt-2">
+                                Show jobs with similarity up to this threshold - lower values show broader opportunities
+                            </p>
+                            
+                            <!-- Similarity Distribution Chart -->
+                            <div id="similarity-distribution-chart" class="similarity-chart-container">
+                                <div class="chart-title">Similarity Score Distribution</div>
+                                <div class="bg-white border border-gray-200 rounded p-2">
+                                    <svg id="distribution-svg" width="100%" height="60" viewBox="0 0 400 60" preserveAspectRatio="none">
+                                        <!-- Distribution area -->
+                                        <path id="distribution-area" d="M 0,50 Q 100,50 200,10 Q 300,50 400,30 L 400,60 L 0,60 Z" 
+                                              fill="url(#areaGradient)" 
+                                              opacity="0.8"/>
+                                        <!-- Distribution curve outline -->
+                                        <path id="distribution-curve" d="M 0,50 Q 100,50 200,10 Q 300,50 400,30" 
+                                              fill="none" 
+                                              stroke="#3b82f6" 
+                                              stroke-width="2" 
+                                              opacity="0.9"/>
+                                        <!-- Gradient definition -->
+                                        <defs>
+                                            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3"/>
+                                                <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.05"/>
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Top Similar Jobs -->
+                        <div id="similar-jobs-list" class="space-y-3">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Job Explorer -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('job-explorer-search');
+    const searchDropdown = document.getElementById('job-explorer-dropdown');
+    const welcomeState = document.getElementById('welcome-state');
+    const jobProfileContent = document.getElementById('job-profile-content');
+    // const jobDetailsPanel = document.getElementById('job-details-panel'); // Removed panel
+    const gettingStartedPanel = document.getElementById('getting-started-panel');
+    
+    let searchTimeout;
+    let selectedJob = null;
+    let currentSimilarityThreshold = 0.9; // Default to 90% maximum
+    let careerPathways = []; // Store all 12 career pathways from career_pathways table
+    
+    // Similarity slider functionality
+    const similaritySlider = document.getElementById('similarity-slider');
+    const similarityPercentage = document.getElementById('similarity-percentage');
+    
+    if (similaritySlider && similarityPercentage) {
+        similaritySlider.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            currentSimilarityThreshold = value / 100;
+            similarityPercentage.textContent = value + '%';
+            
+            console.log(`🎛️ Similarity slider changed to ${value}% (${currentSimilarityThreshold})`);
+            
+            // Update the job displays with new threshold if job is selected
+            if (selectedJob && careerPathways.length > 0) {
+                console.log(`🔄 Filtering career pathways for ${selectedJob.id} with threshold ${currentSimilarityThreshold}`);
+                displayFilteredCareerPathways();
+            }
+        });
+    }
+    
+    // Note: Distribution chart is now purely informational and not affected by slider
+    
+    // Update distribution chart with career pathways data
+    function updateDistributionChart(pathways) {
+        console.log(`📊 Updating area chart with ${pathways ? pathways.length : 0} pathways`);
+        
+        const curve = document.getElementById('distribution-curve');
+        const area = document.getElementById('distribution-area');
+        if (!curve || !area) return;
+        
+        if (!pathways || pathways.length === 0) {
+            // Reset chart to flat line and area
+            const flatLine = 'M 0,50 L 400,50';
+            const flatArea = 'M 0,50 L 400,50 L 400,60 L 0,60 Z';
+            curve.setAttribute('d', flatLine);
+            area.setAttribute('d', flatArea);
+            return;
+        }
+        
+        // Calculate quintiles (20% ranges)
+        const quintiles = [0, 0, 0, 0, 0]; // [0-20%, 20-40%, 40-60%, 60-80%, 80-100%]
+        
+        pathways.forEach(pathway => {
+            const score = pathway.similarity_score * 100;
+            if (score < 20) quintiles[0]++;
+            else if (score < 40) quintiles[1]++;
+            else if (score < 60) quintiles[2]++;
+            else if (score < 80) quintiles[3]++;
+            else quintiles[4]++;
+        });
+        
+        console.log(`📊 Quintile distribution:`, quintiles);
+        
+        // Find max count for scaling (SVG y coordinates are inverted)
+        const maxCount = Math.max(...quintiles, 1);
+        const minY = 10; // Top of chart
+        const maxY = 50; // Bottom of chart
+        
+        // Calculate y positions (higher counts = lower y values) - spread across full width
+        const positions = quintiles.map((count, i) => ({
+            x: i * 100, // 0, 100, 200, 300, 400
+            y: maxY - (count / maxCount) * (maxY - minY)
+        }));
+        
+        // Create smooth curve through all points
+        let curveData = `M ${positions[0].x},${positions[0].y}`;
+        
+        for (let i = 1; i < positions.length; i++) {
+            const prev = positions[i - 1];
+            const curr = positions[i];
+            const next = positions[i + 1] || curr;
+            
+            // Calculate control points for smooth curves
+            const cp1x = prev.x + (curr.x - prev.x) * 0.5;
+            const cp1y = prev.y;
+            const cp2x = curr.x - (next.x - curr.x) * 0.3;
+            const cp2y = curr.y;
+            
+            curveData += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${curr.x},${curr.y}`;
+        }
+        
+        // Create area path by extending curve to bottom
+        const areaData = curveData + ` L 400,60 L 0,60 Z`;
+        
+        // Update both curve and area
+        curve.setAttribute('d', curveData);
+        area.setAttribute('d', areaData);
+        
+        console.log(`📊 Area chart updated with smooth curve and fill`);
+    }
+    
+
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            searchDropdown.classList.add('hidden');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            searchJobs(query);
+        }, 300);
+    });
+    
+    // Search jobs function
+    function searchJobs(query) {
+        // Use real API endpoint instead of mock data
+        fetch(`/api/search-all-jobs?q=${encodeURIComponent(query)}&limit=20`)
+            .then(response => response.json())
+            .then(jobs => {
+                displaySearchResults(jobs);
+            })
+            .catch(error => {
+                console.error('Error searching jobs:', error);
+                searchDropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error loading jobs</div>';
+                searchDropdown.classList.remove('hidden');
+            });
+    }
+    
+    // Display search results
+    function displaySearchResults(jobs) {
+        if (jobs.length === 0) {
+            searchDropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No jobs found</div>';
+        } else {
+            searchDropdown.innerHTML = jobs.map(job => `
+                <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                     data-job='${JSON.stringify(job)}' onclick="selectJob(this)">
+                    <div class="font-medium text-sm text-gray-900">${job.title}</div>
+                    <div class="text-xs text-gray-500">${job.id} • ${job.family} • ${job.group || 'N/A'}</div>
+                </div>
+            `).join('');
+        }
+        searchDropdown.classList.remove('hidden');
+    }
+    
+    // Select job function (global)
+    window.selectJob = function(element) {
+        const jobData = JSON.parse(element.dataset.job);
+        selectedJob = jobData;
+        
+        // Update search input
+        searchInput.value = jobData.title;
+        searchDropdown.classList.add('hidden');
+        
+        // Load job details
+        loadJobDetails(jobData.id);
+        
+        // Show content, hide welcome, show sidebar stats
+        welcomeState.classList.add('hidden');
+        jobProfileContent.classList.remove('hidden');
+        gettingStartedPanel.classList.add('hidden');
+        document.getElementById('job-architecture-panel').classList.remove('hidden');
+    };
+    
+    // Load job details
+    function loadJobDetails(jobId) {
+        // Update job header
+        document.getElementById('job-title-header').textContent = selectedJob.title;
+        document.getElementById('job-family-badge').textContent = selectedJob.family;
+        document.getElementById('job-level-badge').textContent = selectedJob.group || 'N/A';
+        document.getElementById('job-profile-id').textContent = selectedJob.id;
+        
+        // Update sidebar quick stats
+        document.getElementById('sidebar-job-profile-id').textContent = selectedJob.id;
+        document.getElementById('sidebar-job-profile').textContent = selectedJob.title;
+        document.getElementById('sidebar-job-id').textContent = selectedJob.id;
+        document.getElementById('sidebar-job-name').textContent = selectedJob.title;
+        document.getElementById('sidebar-job-family').textContent = selectedJob.family;
+        document.getElementById('sidebar-job-family-group').textContent = selectedJob.group || 'N/A';
+        
+        // Load detailed data
+        loadJobSkills(jobId);
+        loadWorkforceContext(jobId);
+        loadCareerPathways(jobId); // Load all 12 career pathways
+    }
+    
+    // Debug function to test chart with known data
+    function debugChartWithTestData() {
+        console.log('📊 === DEBUGGING CHART WITH TEST DATA ===');
+        
+        // Use exact test data from debug script
+        const testPathways = [
+            {"job_family": "Human Resources", "job_title": "Employee Relations Specialist - Manager", "similarity_score": 1.0},
+            {"job_family": "Executive Leadership", "job_title": "Associate Business Unit Leader", "similarity_score": 1.0},
+            {"job_family": "Banking Operations", "job_title": "Settlement Officer - Executive Director", "similarity_score": 1.0},
+            {"job_family": "Banking Operations", "job_title": "Associate Operations Manager", "similarity_score": 1.0},
+            {"job_family": "Human Resources", "job_title": "HR Analyst - Director", "similarity_score": 0.5},
+            {"job_family": "Data & Analytics", "job_title": "Graduate - Business Intelligence Analyst", "similarity_score": 0.5},
+            {"job_family": "Executive Leadership", "job_title": "Senior Associate Regional Head", "similarity_score": 0.5},
+            {"job_family": "Banking Operations", "job_title": "Analyst - Operations Analyst", "similarity_score": 0.486},
+            {"job_family": "Executive Leadership", "job_title": "Analyst - Regional Head", "similarity_score": 0.486},
+            {"job_family": "Finance & Accounting", "job_title": "Budget Analyst - Executive Director", "similarity_score": 0.486},
+            {"job_family": "Risk & Compliance", "job_title": "Regulatory Specialist - Director", "similarity_score": 0.486},
+            {"job_family": "Human Resources", "job_title": "Employee Relations Specialist - Manager", "similarity_score": 0.486}
+        ];
+        
+        console.log('📊 Test data loaded:', testPathways);
+        updateDistributionChart(testPathways);
+        
+        // Additional visual debugging
+        setTimeout(() => {
+            console.log('📊 === POST-UPDATE VISUAL CHECK ===');
+            const bars = document.querySelectorAll('.chart-bar');
+            bars.forEach((bar, index) => {
+                const computedStyle = window.getComputedStyle(bar);
+                console.log(`📊 Bar ${index + 1} (${bar.dataset.quintile}):`, {
+                    height: computedStyle.height,
+                    width: computedStyle.width,
+                    backgroundColor: computedStyle.backgroundColor,
+                    display: computedStyle.display,
+                    position: computedStyle.position
+                });
+            });
+        }, 100);
+    }
+    
+    // Make debug function globally available
+    window.debugChartWithTestData = debugChartWithTestData;
+    
+    // Load all 12 career pathways from career_pathways table
+    function loadCareerPathways(jobId) {
+        console.log(`📊 Loading career pathways for ${jobId}`);
+        
+        // First, check if chart elements exist
+        const chartElement = document.querySelector('#similarity-distribution-chart');
+        const chartBars = document.querySelectorAll('.chart-bar');
+        const chartContainers = document.querySelectorAll('.chart-bar-container');
+        
+        console.log(`📊 Chart element found: ${!!chartElement}`);
+        console.log(`📊 Chart bars found: ${chartBars.length}`);
+        console.log(`📊 Chart containers found: ${chartContainers.length}`);
+        
+        // Log each bar's data-quintile attribute
+        chartBars.forEach((bar, index) => {
+            console.log(`📊 Bar ${index}: data-quintile="${bar.dataset.quintile}", element:`, bar);
+        });
+        
+        fetch(`/api/career-pathways-distribution/${jobId}`)
+            .then(response => response.json())
+            .then(data => {
+                careerPathways = data;
+                console.log(`📊 Loaded ${careerPathways.length} career pathways (expected: 12):`, careerPathways);
+                
+                // Update both the distribution chart and the job lists
+                updateDistributionChart(careerPathways);
+                displayFilteredCareerPathways();
+            })
+            .catch(error => {
+                console.error('Error loading career pathways:', error);
+                careerPathways = [];
+                updateDistributionChart([]);
+                displayFilteredCareerPathways();
+            });
+    }
+    
+    // Display filtered career pathways based on current similarity threshold
+    function displayFilteredCareerPathways() {
+        if (!careerPathways || careerPathways.length === 0) {
+            document.getElementById('similar-jobs-list').innerHTML = `
+                <div class="text-center p-6 text-gray-500">
+                    <p class="text-sm font-source">No career pathways available</p>
+                </div>
+            `;
+
+            return;
+        }
+        
+        // Filter pathways by current similarity threshold (show jobs UP TO the threshold)
+        const filteredPathways = careerPathways.filter(pathway => 
+            pathway.similarity_score <= currentSimilarityThreshold
+        );
+        
+        const thresholdPercent = Math.round(currentSimilarityThreshold * 100);
+        
+        console.log(`🎯 Filtered pathways: ${filteredPathways.length}/${careerPathways.length} pathways up to ${thresholdPercent}% threshold`);
+        
+        // Similar jobs list (top 5)
+        if (filteredPathways.length === 0) {
+            document.getElementById('similar-jobs-list').innerHTML = `
+                <div class="text-center p-6 text-gray-500">
+                    <p class="text-sm font-source">No pathways found with ≤${thresholdPercent}% similarity</p>
+                    <p class="text-xs font-source mt-1">Try raising the similarity threshold</p>
+                </div>
+            `;
+        } else {
+            document.getElementById('similar-jobs-list').innerHTML = filteredPathways.slice(0, 5)
+                .map(pathway => `
+                    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer">
+                        <div>
+                            <p class="text-sm font-source font-medium text-gray-900">${pathway.job_title}</p>
+                            <p class="text-xs font-source text-gray-500">${pathway.job_family}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-source font-bold text-blue-600">${(pathway.similarity_score * 100).toFixed(1)}%</p>
+                            <p class="text-xs font-source text-gray-500">similarity</p>
+                        </div>
+                    </div>
+                `).join('');
+        }
+        
+
+    }
+    
+    // Load job skills
+    function loadJobSkills(jobId) {
+        // Use real API endpoint
+        fetch(`/api/job-details/${jobId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error loading job details:', data.error);
+                    return;
+                }
+                
+                // Update sidebar stats
+                document.getElementById('sidebar-skills-count').textContent = data.stats.skills_count;
+                document.getElementById('sidebar-positions-count').textContent = data.stats.positions_count;
+                document.getElementById('sidebar-pathways-count').textContent = data.stats.pathways_count;
+                
+                // Update sidebar job architecture info with complete details from API
+                document.getElementById('sidebar-job-profile-id').textContent = data.job.id;
+                document.getElementById('sidebar-job-profile').textContent = data.job.title;
+                document.getElementById('sidebar-job-id').textContent = data.job.job_id || '-';
+                document.getElementById('sidebar-job-name').textContent = data.job.job_name || '-';
+                document.getElementById('sidebar-job-family').textContent = data.job.family;
+                document.getElementById('sidebar-job-family-group').textContent = data.job.group || '-';
+                
+                // Group skills by category
+                const skillsByCategory = {};
+                data.skills.forEach(skill => {
+                    const category = skill.category || 'Other';
+                    if (!skillsByCategory[category]) {
+                        skillsByCategory[category] = [];
+                    }
+                    skillsByCategory[category].push(skill);
+                });
+                
+                // Display skills by category
+                const categoryColors = {
+                    'Technical': 'bg-blue-100 text-blue-800',
+                    'Leadership': 'bg-purple-100 text-purple-800',
+                    'Communication': 'bg-green-100 text-green-800',
+                    'Analytical': 'bg-yellow-100 text-yellow-800',
+                    'Other': 'bg-gray-100 text-gray-800'
+                };
+                
+                document.getElementById('skills-by-category').innerHTML = Object.entries(skillsByCategory)
+                    .map(([category, skills]) => `
+                        <div class="p-4 border border-gray-200 rounded-lg">
+                            <h5 class="text-sm font-source font-semibold text-gray-700 mb-2">${category} (${skills.length})</h5>
+                            <div class="flex flex-wrap gap-2">
+                                ${skills.slice(0, 5).map(skill => `
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-source font-medium ${categoryColors[category] || categoryColors['Other']}">
+                                        ${skill.name}
+                                    </span>
+                                `).join('')}
+                                ${skills.length > 5 ? `<span class="text-xs text-gray-500">+${skills.length - 5} more</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                
+                // Display all skills list
+                document.getElementById('skills-list').innerHTML = data.skills
+                    .map(skill => `
+                        <div class="text-sm font-source text-gray-700 py-1">
+                            <span class="inline-flex items-center">
+                                <svg class="w-3 h-3 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                ${skill.name}
+                            </span>
+                        </div>
+                    `).join('');
+            })
+            .catch(error => {
+                console.error('Error loading job skills:', error);
+            });
+    }
+    
+    // Load workforce context
+    function loadWorkforceContext(jobId) {
+        // Use real API endpoint
+        fetch(`/api/job-workforce/${jobId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error loading workforce context:', data.error);
+                    return;
+                }
+                
+                // Position distribution
+                document.getElementById('position-distribution').innerHTML = `
+                    <div>
+                        <h5 class="text-sm font-source font-semibold text-gray-700 mb-2">By Division</h5>
+                        <div class="space-y-2">
+                            ${data.by_division.slice(0, 5).map(div => `
+                                <div class="flex justify-between text-sm">
+                                    <span class="font-source text-gray-700">${div.division}</span>
+                                    <span class="font-source font-medium text-gray-900">${div.count}</span>
+                                </div>
+                            `).join('')}
+                            ${data.by_division.length > 5 ? `<div class="text-xs text-gray-500">+${data.by_division.length - 5} more divisions</div>` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="text-sm font-source font-semibold text-gray-700 mb-2">By Business Unit</h5>
+                        <div class="space-y-2">
+                            ${data.by_business_unit.slice(0, 5).map(bu => `
+                                <div class="flex justify-between text-sm">
+                                    <span class="font-source text-gray-700">${bu.business_unit}</span>
+                                    <span class="font-source font-medium text-gray-900">${bu.count}</span>
+                                </div>
+                            `).join('')}
+                            ${data.by_business_unit.length > 5 ? `<div class="text-xs text-gray-500">+${data.by_business_unit.length - 5} more units</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                // Geographic distribution
+                document.getElementById('geographic-distribution').innerHTML = data.by_location
+                    .map(loc => `
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                            <span class="text-sm font-source text-gray-700">${loc.location}</span>
+                            <span class="text-sm font-source font-medium text-gray-900">${loc.count} positions</span>
+                        </div>
+                    `).join('');
+            })
+            .catch(error => {
+                console.error('Error loading workforce context:', error);
+            });
+    }
+    
+
+    
+    // Clear selection
+    function clearSelection() {
+        selectedJob = null;
+        searchInput.value = '';
+        welcomeState.classList.remove('hidden');
+        jobProfileContent.classList.add('hidden');
+        gettingStartedPanel.classList.remove('hidden');
+    }
+    
+    // Click outside to close dropdown
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+            searchDropdown.classList.add('hidden');
+        }
+    });
+    
+    // View all pathways button
+    document.getElementById('view-all-pathways').addEventListener('click', function() {
+        if (selectedJob) {
+            window.location.href = `/career-pathways?start=${selectedJob.id}`;
+        }
+    });
+});
+</script>
+
+{% endblock %} 

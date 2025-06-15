@@ -9,7 +9,27 @@ SELECT
     j.JobProfileID as id,
     j.JobProfile as job_title,
     j.JobFamily as job_family,
-    j.JobFamilyGroup as job_family_group,
+    j.JobFamilyGroup as job_level,
+    js.similarity_score,
+    CASE 
+        WHEN js.similarity_score >= 0.8 THEN 'High'
+        WHEN js.similarity_score >= 0.6 THEN 'Medium'
+        ELSE 'Low'
+    END as similarity_category
+FROM job_similarities js
+JOIN jobs j ON js.job_to = j.JobProfileID
+WHERE js.job_from = ?
+    AND js.similarity_score >= ?
+ORDER BY js.similarity_score DESC
+LIMIT ?;
+
+-- query_name: get_similar_jobs_with_threshold
+-- Get similar jobs for a specific job with a custom similarity threshold
+SELECT 
+    j.JobProfileID as id,
+    j.JobProfile as job_title,
+    j.JobFamily as job_family,
+    j.JobFamilyGroup as job_level,
     js.similarity_score,
     CASE 
         WHEN js.similarity_score >= 0.8 THEN 'High'
