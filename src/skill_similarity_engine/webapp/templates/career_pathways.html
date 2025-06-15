@@ -25,7 +25,7 @@
                 </span>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Job Search -->
                 <div class="md:col-span-2">
                     <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
@@ -46,24 +46,18 @@
                     </div>
                 </div>
                 
-                <!-- Job Family Filter -->
-                <div>
-                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-                        Job Family
-                    </label>
-                    <select id="pathway-family-filter" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source">
-                        <option value="">All Families</option>
-                        <!-- Options populated by JavaScript -->
-                    </select>
-                </div>
-                
                 <!-- Build Tree Action -->
                 <div class="flex items-end">
                     <button id="build-pathway-tree" 
                             class="bg-red-600 hover:bg-red-700 text-white font-source font-medium px-6 py-2 rounded-md transition-colors duration-200 w-full disabled:opacity-50"
                             disabled>
-                        Build Career Tree
+                        <span class="button-text">Build Career Tree</span>
+                        <span class="loading-spinner hidden ml-2">
+                            <svg class="animate-spin h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -72,7 +66,12 @@
             <div class="mt-4">
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Selected Starting Role(s):</label>
-                    <button id="clear-pathway-jobs" class="text-xs text-red-600 hover:text-red-800 font-source font-medium">Clear All</button>
+                    <button id="clear-pathway-jobs" class="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 border border-red-300 hover:border-red-400">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Reset All
+                    </button>
                 </div>
                 <div id="pathway-selected-jobs" class="min-h-[2rem] p-3 border border-gray-200 rounded-md bg-gray-50">
                     <span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>
@@ -81,140 +80,174 @@
         </div>
 
         <!-- Step 2: Career Pathway Visualization -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div id="step-2-panel" class="bg-white rounded-lg shadow-lg p-6 mb-6 hidden">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 2: Explore Career Pathways</h2>
-                <button id="refresh-pathway-tree" class="bg-blue-600 hover:bg-blue-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Refresh Tree
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="exportCareerTree()" 
+                            class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
+                            id="export-tree-btn" disabled>
+                        Export CSV
+                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </button>
+                    <button id="refresh-pathway-tree" class="bg-blue-600 hover:bg-blue-700 text-white font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Refresh Tree
+                    </button>
+                </div>
             </div>
             
-            <!-- Enhanced Tree Controls -->
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                <h4 class="text-sm font-epilogue font-medium text-gray-800 mb-3">Tree Parameters</h4>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Similarity Threshold Slider -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
-                                Similarity Range:
-                            </label>
-                            <span id="pathway-similarity-value" class="text-sm font-source font-bold text-gray-900">20% - 99%</span>
-                        </div>
-                        <input 
-                            type="range" 
-                            id="pathway-similarity-slider" 
-                            min="0" 
-                            max="95" 
-                            value="20" 
-                            step="5"
-                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                        >
-                        <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
-                            <span>0% - 99%</span>
-                            <span>95% - 99%</span>
-                        </div>
+            <!-- Enhanced Tree Controls - Collapsible Filter Panel -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg mb-4">
+                <!-- Collapsible Header -->
+                <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-100 transition-colors duration-200 rounded-t-lg" 
+                     onclick="toggleFilterPanel()" id="filter-panel-header">
+                    <div class="flex items-center space-x-3">
+                        <h4 class="text-sm font-epilogue font-medium text-gray-800">Tree Parameters & Filters</h4>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-source font-medium bg-blue-100 text-blue-800">
+                            Customise Analysis
+                        </span>
                     </div>
-                    
-                    <!-- Tree Depth Slider -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
-                                Tree Depth:
-                            </label>
-                            <span id="pathway-depth-value" class="text-sm font-source font-bold text-gray-900">3 levels</span>
-                        </div>
-                        <input 
-                            type="range" 
-                            id="pathway-depth-slider" 
-                            min="1" 
-                            max="7" 
-                            value="3" 
-                            step="1"
-                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                        >
-                        <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
-                            <span>1</span>
-                            <span>7</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Max Results per Level Slider -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
-                                Max Results per Level:
-                            </label>
-                            <span id="pathway-max-results-value" class="text-sm font-source font-bold text-gray-900">3 jobs</span>
-                        </div>
-                        <input 
-                            type="range" 
-                            id="pathway-max-results-slider" 
-                            min="1" 
-                            max="12" 
-                            value="6" 
-                            step="1"
-                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                        >
-                        <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
-                            <span>1</span>
-                            <span>12</span>
-                        </div>
-                    </div>
-
-                    <!-- Organisational filters -->
-                    <div class="col-span-1 md:col-span-2 mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <h4 class="text-xs font-source font-bold text-gray-700 uppercase tracking-wide mb-3">
-                            🏢 Organisational filters
-                        </h4>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                            <!-- Division Filter -->
-                            <div>
-                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
-                                    Division:
-                                </label>
-                                <select id="pathway-division-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                                    <option value="">All Divisions</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Business Unit Filter -->
-                            <div>
-                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
-                                    Business Unit:
-                                </label>
-                                <select id="pathway-business-unit-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                                    <option value="">All Business Units</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Location Filter -->
-                            <div>
-                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
-                                    Location:
-                                </label>
-                                <select id="pathway-location-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                                    <option value="">All Locations</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Region Filter -->
-                            <div>
-                                <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
-                                    Region:
-                                </label>
-                                <select id="pathway-region-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                                    <option value="">All Regions</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-source text-gray-600" id="filter-panel-status">Click to expand filters</span>
+                        <svg class="w-5 h-5 text-gray-600 transform transition-transform duration-300" id="filter-panel-chevron" style="transform: rotate(-90deg);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
                     </div>
                 </div>
                 
-                <div class="mt-4 text-xs text-gray-600 font-source">
-                    💡 <strong>Tip:</strong> Similarity range shows jobs between your threshold and 99%. Higher thresholds = closer matches. Deeper trees = more career progression options. Max results controls how many similar jobs appear under each parent (higher = more options but slower). Organisational filters limit results to specific divisions/locations.
+                <!-- Collapsible Content -->
+                <div class="filter-panel-content overflow-hidden transition-all duration-300 ease-in-out" id="filter-panel-content">
+                    <div class="p-4 pt-0">
+                        <!-- 3-Column Slider Layout -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <!-- Similarity Threshold Slider -->
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                        Similarity Range:
+                                    </label>
+                                    <span id="pathway-similarity-value" class="text-sm font-source font-bold text-red-600">20% - 99%</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    id="pathway-similarity-slider" 
+                                    min="0" 
+                                    max="95" 
+                                    value="20" 
+                                    step="5"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                                    <span>0% - 99%</span>
+                                    <span>95% - 99%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Tree Depth Slider -->
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                        Tree Depth:
+                                    </label>
+                                    <span id="pathway-depth-value" class="text-sm font-source font-bold text-blue-600">3 levels</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    id="pathway-depth-slider" 
+                                    min="1" 
+                                    max="7" 
+                                    value="3" 
+                                    step="1"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                                    <span>1</span>
+                                    <span>7</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Max Results per Level Slider -->
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">
+                                        Max Results per Level:
+                                    </label>
+                                    <span id="pathway-max-results-value" class="text-sm font-source font-bold text-green-600">6 jobs</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    id="pathway-max-results-slider" 
+                                    min="1" 
+                                    max="12" 
+                                    value="6" 
+                                    step="1"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 font-source mt-1">
+                                    <span>1</span>
+                                    <span>12</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Organisational Filters -->
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <h4 class="text-xs font-source font-bold text-gray-700 uppercase tracking-wide mb-3">
+                                🏢 Organisational Filters
+                            </h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <!-- Division Filter -->
+                                <div>
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Division:
+                                    </label>
+                                    <select id="pathway-division-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Divisions</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Business Unit Filter -->
+                                <div>
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Business Unit:
+                                    </label>
+                                    <select id="pathway-business-unit-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Business Units</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Location Filter -->
+                                <div>
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Location:
+                                    </label>
+                                    <select id="pathway-location-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">All Locations</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Region Filter -->
+                                <div>
+                                    <label class="text-xs font-source font-medium text-gray-600 uppercase tracking-wide mb-1 block">
+                                        Region:
+                                </label>
+                                <select id="pathway-region-filter" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                    <option value="">All Regions</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tip Section -->
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="text-xs text-blue-800 font-source">
+                                💡 <strong>Quick Guide:</strong> Similarity range shows jobs between your threshold and 99%. Higher thresholds = closer matches. Deeper trees = more career progression options. Max results controls how many similar jobs appear under each parent (higher = more options but slower). Organisational filters limit results to specific divisions/locations.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -309,135 +342,243 @@
                             <span class="font-source text-gray-700">Career Connection</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-gray-700 font-source">🖱️ Click nodes to expand</span>
+                            <div class="w-3 h-3 bg-gray-400 rounded-full border-2 border-yellow-400"></div>
+                            <span class="font-source text-gray-700">Last Selected Node</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-gray-700 font-source">💡 Click for skills analysis</span>
+                            <span class="text-gray-700 font-source">🖱️ Click nodes to expand/view details</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-gray-700 font-source">💡 Hover for quick info</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Step 3: Skills Gap Analysis Panel -->
-        <div id="skills-analysis-panel" class="bg-white rounded-lg shadow-lg p-6 hidden">
+        <!-- Step 3: Pathway Selection Details -->
+        <div id="pathway-details-panel" class="bg-white rounded-lg shadow-lg p-6 hidden">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 3: Skills Development Analysis</h2>
-                <button onclick="closeSkillsAnalysis()" class="text-gray-400 hover:text-gray-600">
+                <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 3: Career Pathway Analysis</h2>
+                <button onclick="closePathwayDetails()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
             
-            <!-- Pathway Summary -->
-            <div id="pathway-summary" class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-                <h3 class="text-md font-epilogue font-medium text-blue-900 mb-2">Career Transition Analysis</h3>
-                <div id="pathway-summary-content">
-                    <!-- Populated by JavaScript -->
-                </div>
-            </div>
-            
-            <!-- Skills Gap Table -->
-            <div class="bg-gray-50 rounded-lg p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Skills Development Requirements</h3>
-                    <button onclick="showSkillsMethodology()" 
-                            class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
-                        How is this calculated? 
-                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Career Journey Pathway -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"></path>
+                        </svg>
+                        <h3 class="text-lg font-epilogue font-medium text-blue-900">Career Progression Journey</h3>
+                    </div>
+                    <button onclick="showCareerJourneyInfo()" 
+                            class="text-blue-600 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100 transition-colors"
+                            title="How does the career journey work?">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </button>
                 </div>
                 
-                <!-- Skills Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-epilogue font-bold text-green-600" id="skills-match-count">-</div>
-                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills Match</div>
+                                <!-- Pathway Breadcrumb Trail -->
+                <div id="career-progression-journey" class="mb-4">
+                    <!-- Populated by JavaScript - shows full path from root to selected node -->
+                </div>
+            </div>
+        
+        <!-- Skills Transition Analysis -->
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 mb-6">
+                            <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        <h3 class="text-lg font-epilogue font-medium text-green-900">Skills Transition Analysis</h3>
                     </div>
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-epilogue font-bold text-orange-600" id="skills-develop-count">-</div>
-                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills to Develop</div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-epilogue font-bold text-blue-600" id="skills-transfer-count">-</div>
-                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Transferable Skills</div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-epilogue font-bold text-red-600" id="transition-viability">-</div>
-                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Transition Viability</div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportSkillsAnalysis()" 
+                                class="text-green-600 hover:text-green-700 text-sm font-source font-medium">
+                            Export CSV
+                            <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="showSkillsAnalysisInfo()" 
+                                class="text-green-600 hover:text-green-700 p-1 rounded-full hover:bg-green-100 transition-colors"
+                                title="How is this analysis calculated?">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                
-                <!-- Skills Breakdown Table -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
-                                    Skill
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
-                                    Category
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
-                                    Development Priority
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="skills-breakdown-table" class="bg-white divide-y divide-gray-200">
-                            <!-- Populated by JavaScript -->
-                        </tbody>
-                    </table>
+            
+            <!-- Transition Analysis Header -->
+            <div id="skills-comparison-header" class="mb-6 p-4 bg-gradient-to-r from-green-100 to-emerald-100 border-l-4 border-green-600 rounded-md shadow-sm">
+                <div class="text-lg font-epilogue font-semibold text-green-900">
+                    <!-- Will be populated by JavaScript -->
                 </div>
+            </div>
+
+            
+            <!-- Skills Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-lg p-4 border border-green-200">
+                    <div class="text-2xl font-epilogue font-bold text-green-600" id="skills-matched-count">-</div>
+                    <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills Matched</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 border border-green-200">
+                    <div class="text-2xl font-epilogue font-bold text-orange-600" id="skills-develop-count">-</div>
+                    <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills to Develop</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 border border-green-200">
+                    <div class="text-2xl font-epilogue font-bold text-purple-600" id="transition-difficulty">-</div>
+                    <div class="text-xs font-source font-medium text-gray-500 uppercase">Transition Difficulty</div>
+                </div>
+            </div>
+            
+            <!-- Skills Breakdown -->
+            <div class="bg-white rounded-lg p-4 border border-green-200">
+                <h4 class="text-sm font-epilogue font-medium text-gray-800 mb-3">Skills Development Requirements</h4>
+                <div id="skills-breakdown-content" class="space-y-3">
+                    <!-- Populated by JavaScript with skills analysis -->
+                </div>
+
             </div>
         </div>
-
     </div>
-</div>
 
-<!-- Skills Methodology Modal -->
-<div id="skills-methodology-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 class="text-lg font-epilogue font-medium text-gray-900">Skills Analysis Methodology</h3>
-                <button onclick="closeSkillsMethodology()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+    <!-- Step 4: Workforce Intelligence -->
+    <div id="workforce-intelligence-panel" class="bg-white rounded-lg shadow-lg p-6 mb-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 4: Workforce Intelligence</h2>
+        </div>
+        
+        <!-- Workforce Intelligence -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div>
+                        <h3 class="text-lg font-epilogue font-medium text-gray-900">Workforce Intelligence</h3>
+                        <p class="text-xs font-source text-gray-500 uppercase tracking-wide">Organisational Context & Position Analysis</p>
+                    </div>
+                    <button onclick="showWorkforceIntelligenceInfo()" 
+                            class="text-gray-400 hover:text-gray-600 transition-colors duration-200 ml-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+                    <button onclick="exportWorkforceData()" 
+                            class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
+                        Export CSV
+                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
+            
             <div class="p-6">
-                <div class="space-y-4">
-                    <div>
-                        <h4 class="font-source font-medium text-gray-900 mb-2">Skills Analysis Calculation</h4>
-                        <p class="text-sm font-source text-gray-600">
-                            Skills gaps are calculated by comparing the required skills for the target role against the skills in the current role, using our comprehensive skills taxonomy from Lightcast.
-                        </p>
+            
+                <!-- Workforce Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-blue-600" id="total-positions">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Total Positions</div>
                     </div>
-                    <div>
-                        <h4 class="font-source font-medium text-gray-900 mb-2">Transition Viability</h4>
-                        <p class="text-sm font-source text-gray-600">
-                            Based on overall similarity score and skills overlap percentage. Higher scores indicate more viable transitions with existing skillsets.
-                        </p>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-green-600" id="divisions-represented">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Divisions</div>
                     </div>
-                    <div>
-                        <h4 class="font-source font-medium text-gray-900 mb-2">Development Priority</h4>
-                        <p class="text-sm font-source text-gray-600">
-                            Skills are prioritized based on their importance to the target role and transferability from existing capabilities.
-                        </p>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-purple-600" id="locations-spread">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Locations</div>
+                    </div>
+                </div>
+            
+                <!-- Workforce Table -->
+                <div class="border-t border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-md font-epilogue font-medium text-gray-900">Position Distribution</h4>
+                            <span id="workforce-pathway-count" class="text-sm font-source text-gray-600">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-hidden">
+                        <table class="w-full divide-y divide-gray-200 table-fixed">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="w-1/6 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        JobProfile
+                                    </th>
+                                    <th class="w-1/6 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Position Name
+                                    </th>
+                                    <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Division
+                                    </th>
+                                    <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Business Unit
+                                    </th>
+                                    <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Team Names
+                                    </th>
+                                    <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Salary Groups
+                                    </th>
+                                    <th class="w-1/12 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Position Count
+                                    </th>
+                                    <th class="w-1/12 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Headcount
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="workforce-pathway-table" class="bg-white divide-y divide-gray-200">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+        <!-- Information Modals -->
+        <div id="info-modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 id="info-modal-title" class="text-lg font-epilogue font-medium text-gray-900"></h3>
+                            <button onclick="closeInfoModal()" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="info-modal-content" class="text-sm font-source text-gray-700 space-y-4">
+                            <!-- Content populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
 </div>
+
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -452,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize components
     initializeJobSearch();
     initializeTreeControls();
-    initializeOrganizationalFilters();
+    initializeOrganisationalFilters();
     
     console.log('✅ Career Pathway Explorer loaded');
 });
@@ -467,6 +608,8 @@ let root = null;
 let margin, width, height;
 let lastBuiltParameters = null;
 let lastBuiltTree = null;
+let lastClickedNode = null; // Track last clicked node for highlighting
+let selectedBreadcrumbIndex = null; // Track which breadcrumb is selected
 let i = 0;
 
 // Job Search Functionality
@@ -601,13 +744,10 @@ function initializeJobSearch() {
         }
     };
     
-    // Clear all jobs
+    // Reset page to initial state
     document.getElementById('clear-pathway-jobs').addEventListener('click', function() {
-        selectedJobs.clear();
-        updateSelectedJobsDisplay();
-        updateBuildTreeButton();
-        updateRefreshTreeButton();
-        clearCareerTree();
+        // Simple page refresh to reset everything back to initial load
+        window.location.reload();
     });
     
     // Build tree button
@@ -638,22 +778,32 @@ function updateBuildTreeButton() {
     
     if (!buildButton) return;
     
+    // Get the button text span (new structure)
+    const buttonText = buildButton.querySelector('.button-text');
+    const loadingSpinner = buildButton.querySelector('.loading-spinner');
+    
     buildButton.disabled = !hasJobs;
     
     if (!hasJobs) {
-        buildButton.textContent = 'Build Tree';
+        if (buttonText) buttonText.textContent = 'Build Career Tree';
         buildButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
         buildButton.classList.add('bg-red-600', 'hover:bg-red-700');
     } else {
-        buildButton.textContent = `Build Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})`;
+        if (buttonText) buttonText.textContent = `Build Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})`;
         buildButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
         buildButton.classList.add('bg-red-600', 'hover:bg-red-700');
+    }
+    
+    // Ensure loading spinner is hidden when updating button state
+    if (loadingSpinner) {
+        loadingSpinner.classList.add('hidden');
     }
 }
 
 // Update refresh tree button state
 function updateRefreshTreeButton() {
     const refreshButton = document.getElementById('refresh-pathway-tree');
+    const exportButton = document.getElementById('export-tree-btn');
     const hasJobs = selectedJobs.size > 0;
     const hasBuiltTree = lastBuiltTree !== null;
     
@@ -661,6 +811,11 @@ function updateRefreshTreeButton() {
     
     // Only enable if we have jobs AND a tree has been built
     refreshButton.disabled = !hasJobs || !hasBuiltTree;
+    
+    // Enable/disable export button based on same criteria
+    if (exportButton) {
+        exportButton.disabled = !hasJobs || !hasBuiltTree;
+    }
     
     if (!hasJobs || !hasBuiltTree) {
         refreshButton.textContent = 'Refresh Tree';
@@ -720,7 +875,7 @@ function initializeTreeControls() {
         refreshButton.addEventListener('click', buildCareerPathwayTree);
     }
     
-    // Organizational filter handlers
+    // Organisational filter handlers
     const filters = ['pathway-division-filter', 'pathway-business-unit-filter', 'pathway-location-filter', 'pathway-region-filter'];
     filters.forEach(filterId => {
         const filterElement = document.getElementById(filterId);
@@ -770,9 +925,9 @@ function hasParametersChanged(currentParams) {
 }
 
 // Initialize Organisational filters
-async function initializeOrganizationalFilters() {
+async function initializeOrganisationalFilters() {
     try {
-        // Load organizational data to populate dropdowns
+        // Load organisational data to populate dropdowns
         const response = await fetch('/api/organizational-data');
         const data = await response.json();
         
@@ -864,7 +1019,7 @@ async function buildCareerPathwayTree() {
     
     const treeContainer = document.getElementById('career-pathway-tree');
     
-    // Build organizational filter parameters
+    // Build organisational filter parameters
     const filters = [];
     if (currentParams.division) filters.push(`division=${encodeURIComponent(currentParams.division)}`);
     if (currentParams.business_unit) filters.push(`business_unit=${encodeURIComponent(currentParams.business_unit)}`);
@@ -874,8 +1029,11 @@ async function buildCareerPathwayTree() {
     
     // Show building indicator
     const button = document.getElementById('build-pathway-tree');
-    const originalText = button.textContent;
-    button.textContent = 'Building Tree...';
+    const buttonText = button.querySelector('.button-text');
+    const loadingSpinner = button.querySelector('.loading-spinner');
+    
+    buttonText.textContent = 'Building Tree...';
+    loadingSpinner.classList.remove('hidden');
     button.disabled = true;
     
     // Clear existing tree
@@ -905,6 +1063,9 @@ async function buildCareerPathwayTree() {
         
         console.log(`✅ Career tree built: ${data.total_nodes} nodes across ${depth} levels`);
         
+        // Show Step 2 panel now that tree is built
+        document.getElementById('step-2-panel').classList.remove('hidden');
+        
         // Show tree status
         showTreeStatus(data);
         
@@ -916,7 +1077,12 @@ async function buildCareerPathwayTree() {
         console.error('Error building career tree:', error);
         treeContainer.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-red-500">Error loading career pathways</div></div>';
     } finally {
-        // Re-enable button
+        // Re-enable button and hide loading spinner
+        const buttonText = button.querySelector('.button-text');
+        const loadingSpinner = button.querySelector('.loading-spinner');
+        
+        buttonText.textContent = selectedJobs.size > 0 ? `Build Tree (${selectedJobs.size} job${selectedJobs.size !== 1 ? 's' : ''})` : 'Build Career Tree';
+        loadingSpinner.classList.add('hidden');
         button.disabled = selectedJobs.size === 0;
     }
 }
@@ -980,7 +1146,7 @@ function calculateNodeHeight(nodeData) {
     const estimatedLines = Math.max(1, Math.ceil(titleLength / 20)); // Rough estimate of wrapped lines
     totalHeight += estimatedLines * 15; // 15px per line height
     
-    // No additional height needed for match indicators (now using node colors)
+            // No additional height needed for match indicators (now using node colours)
     
     // Cache the result
     nodeHeightCache.set(cacheKey, totalHeight);
@@ -1119,7 +1285,7 @@ function applyLevelSpacing() {
     });
 }
 
-// Removed expensive analyzeTreeState function - now using lightweight getTreeStateForSpacing()
+// Removed expensive analyseTreeState function - now using lightweight getTreeStateForSpacing()
 
 function buildD3Tree(data, container) {
     console.log('🌳 Building D3.js interactive tree...');
@@ -1138,30 +1304,24 @@ function buildD3Tree(data, container) {
     // Quick tree validation
     console.log('🌳 Tree loaded:', pathwayTreeData.children ? `${pathwayTreeData.children.length} children` : 'no children');
     
-    // Set up SVG dimensions
-    const containerNode = container;
-    const containerRect = containerNode.getBoundingClientRect();
-    
-    pathwayMargin = { top: 40, right: 120, bottom: 40, left: 120 };
-    const containerWidth = containerRect.width || 800;
-    const containerHeight = 600;
-    
-    // Create much larger virtual canvas for tree with generous spacing
-    const virtualWidth = Math.max(2000, containerWidth * 3); // Even wider for horizontal spacing
-    const virtualHeight = Math.max(2000, containerHeight * 4); // Much taller for vertical spacing
-    
-    pathwayWidth = virtualWidth - pathwayMargin.left - pathwayMargin.right;
-    pathwayHeight = virtualHeight - pathwayMargin.top - pathwayMargin.bottom;
+    // Set up SVG dimensions - use responsive approach
+    pathwayMargin = { top: 20, right: 60, bottom: 20, left: 60 };
     
     // Clear any existing content
     container.innerHTML = '';
     
-    // Create SVG with zoom and pan capabilities
+    // Create responsive SVG that fills its container
     pathwaySvg = d3.select(container)
         .append("svg")
-        .attr("width", containerWidth)
-        .attr("height", containerHeight)
-        .style("cursor", "grab");
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .style("cursor", "grab")
+        .style("display", "block");
+    
+    // Get actual rendered dimensions after SVG is created
+    const svgRect = pathwaySvg.node().getBoundingClientRect();
+    pathwayWidth = svgRect.width - pathwayMargin.left - pathwayMargin.right;
+    pathwayHeight = svgRect.height - pathwayMargin.top - pathwayMargin.bottom;
     
     // Create zoom behavior
     const zoom = d3.zoom()
@@ -1283,7 +1443,7 @@ function resetZoom() {
         );
 }
 
-// Center tree in view
+// Centre tree in view
 function centerTree() {
     if (!pathwaySvg || !pathwayG) return;
     
@@ -1506,9 +1666,10 @@ function updatePathwayNodes(source) {
     nodeEnter.append('circle')
         .attr('class', 'pathway-node-circle')
         .attr('r', 1e-6)
-        .style("fill", d => d._children ? "#dc2626" : getPathwayNodeColor(d.data))
-        .style("stroke", "#333")
-        .style("stroke-width", "2px")
+        .style("fill", d => d._children ? "#dc2626" : getPathwayNodeColour(d.data))
+        .style("stroke", d => isLastClickedNode(d) ? "#fbbf24" : "#333") // Highlight last clicked
+        .style("stroke-width", d => isLastClickedNode(d) ? "4px" : "2px") // Thicker stroke for highlight
+        .style("filter", d => isLastClickedNode(d) ? "drop-shadow(0 0 8px #fbbf24)" : "none") // Glow effect for selected
         .style("cursor", "pointer");
 
     // Add expand/collapse indicator for nodes with hidden children
@@ -1547,7 +1708,7 @@ function updatePathwayNodes(source) {
         .style("cursor", "pointer")
         .call(wrapText, 180); // Wider text area for better readability (we have lateral space)
     
-    // Similarity indicators removed - now using node colors with legend
+            // Similarity indicators removed - now using node colours with legend
     
     // UPDATE
     const nodeUpdate = nodeEnter.merge(node);
@@ -1564,7 +1725,10 @@ function updatePathwayNodes(source) {
     // Update the node attributes and style
     nodeUpdate.select('circle.pathway-node-circle')
         .attr('r', d => getPathwayNodeSize(d.data))
-        .style("fill", d => getPathwayNodeColor(d.data));
+        .style("fill", d => getPathwayNodeColour(d.data))
+        .style("stroke", d => isLastClickedNode(d) ? "#fbbf24" : "#333") // Update highlight
+        .style("stroke-width", d => isLastClickedNode(d) ? "4px" : "2px") // Update stroke width
+        .style("filter", d => isLastClickedNode(d) ? "drop-shadow(0 0 8px #fbbf24)" : "none"); // Update glow effect
 
     // Update the expand/collapse indicator
     nodeUpdate.select('text.pathway-node-indicator')
@@ -1639,26 +1803,32 @@ function diagonal(s, d) {
     return path;
 }
 
-// Toggle children on click
+// Enhanced click behavior: expand/collapse + show pathway details + highlighting
 function clickPathwayNode(event, d) {
+    // Track the clicked node for highlighting
+    lastClickedNode = d;
+    
+    // ALWAYS show pathway details for any clicked node
+    showPathwayDetails(d.data);
+    
+    // Handle expand/collapse behavior for nodes with children
     if (d.children) {
+        // Node is expanded - collapse it
         d._children = d.children;
         d.children = null;
+        updatePathwayNodes(d);
     } else if (d._children) {
+        // Node is collapsed - expand it
         d.children = d._children;
         d._children = null;
+        updatePathwayNodes(d);
     } else {
-        // No children to expand - show notification
-        console.log(`⚠️ Node has no children to expand`);
+        // Leaf node - show notification about no more matches
         showNoMoreMatchesMessage(d);
-        
-        // Show skills analysis if it's a similar job
-        if (d.data.type === 'similar_job') {
-            showSkillsAnalysis(d.data);
-        }
-        return;
     }
-    updatePathwayNodes(d);
+    
+    // Force immediate highlighting refresh
+    refreshNodeHighlighting();
 }
 
 // Check if query is potentially expensive (based on actual performance testing)
@@ -1878,14 +2048,43 @@ function collapsePathwayNode(d) {
     }
 }
 
-// Get node color based on type and similarity score (optimized with caching)
-function getPathwayNodeColor(data) {
-    // Root/starting jobs always get a distinct color
-    if (data.type === 'starting_job' || data.type === 'root') {
-        return '#1e40af'; // Blue for starting jobs (distinct from similarity colors)
+// Dedicated function to refresh highlighting on all nodes
+function refreshNodeHighlighting() {
+    if (!pathwayG) {
+        return;
     }
     
-    // For similar jobs, use similarity-based coloring with inline calculation for performance
+    // Select all node circles and update their styling
+    pathwayG.selectAll('circle.pathway-node-circle')
+        .style("stroke", d => isLastClickedNode(d) ? "#fbbf24" : "#333")
+        .style("stroke-width", d => isLastClickedNode(d) ? "4px" : "2px")
+        .style("filter", d => isLastClickedNode(d) ? "drop-shadow(0 0 8px #fbbf24)" : "none");
+}
+
+
+
+// Check if node is the last clicked node for highlighting
+function isLastClickedNode(d) {
+    if (!lastClickedNode) {
+        return false;
+    }
+    
+    // Simple ID comparison first
+    if (lastClickedNode.id === d.id) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Get node colour based on type and similarity score (optimised with caching)
+function getPathwayNodeColour(data) {
+    // Root/starting jobs always get a distinct colour
+    if (data.type === 'starting_job' || data.type === 'root') {
+        return '#1e40af'; // Blue for starting jobs (distinct from similarity colours)
+    }
+    
+    // For similar jobs, use similarity-based colouring with inline calculation for performance
     if (data.type === 'similar_job' && data.similarity_score !== undefined) {
         const similarity = data.similarity_score;
         if (similarity >= 0.8) return '#16a34a'; // Green for high (80%+)
@@ -1910,8 +2109,8 @@ function getPathwayNodeSize(data) {
     }
 }
 
-// Get similarity color
-function getSimilarityColor(similarity) {
+// Get similarity colour
+function getSimilarityColour(similarity) {
     if (similarity >= 0.8) return '#16a34a'; // Green for high (80%+)
     else if (similarity >= 0.6) return '#ca8a04'; // Yellow for good (60%+)
     else if (similarity >= 0.4) return '#ea580c'; // Orange for fair (40%+)
@@ -1980,11 +2179,81 @@ function wrapText(text, width) {
 
 // Tooltip functions
 function showPathwayTooltip(event, d) {
-    // TODO: Implement tooltip showing job details and similarity info
+    // Create tooltip if it doesn't exist
+    let tooltip = document.getElementById('pathway-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'pathway-tooltip';
+        tooltip.className = 'fixed z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none max-w-xs';
+        document.body.appendChild(tooltip);
+    }
+    
+    // Build tooltip content
+    let content = `<div class="font-semibold">${d.data.name}</div>`;
+    
+    if (d.data.type === 'similar_job' && d.data.similarity_score) {
+        content += `<div class="mt-1">Similarity: ${Math.round(d.data.similarity_score * 100)}%</div>`;
+        
+        if (d.data.shared_skills_count) {
+            content += `<div>Shared Skills: ${d.data.shared_skills_count}</div>`;
+        }
+        
+        if (d.data.move_type) {
+            content += `<div>Move Type: ${d.data.move_type}</div>`;
+        }
+        
+        if (d.data.difficulty_score) {
+            content += `<div>Difficulty: ${Math.round(d.data.difficulty_score * 100)}%</div>`;
+        }
+    } else if (d.data.type === 'starting_job') {
+        content += `<div class="mt-1 text-blue-300">Starting Role</div>`;
+    }
+    
+    // Enhanced tooltip text mentioning Section 3
+    if (d.children) {
+        content += `<div class="mt-1 text-gray-300 text-xs">Click to show details in Section 3 & collapse</div>`;
+    } else if (d._children) {
+        content += `<div class="mt-1 text-gray-300 text-xs">Click to show details in Section 3 & expand</div>`;
+    } else {
+        content += `<div class="mt-1 text-gray-300 text-xs">Click to show details in Section 3</div>`;
+    }
+    
+    tooltip.innerHTML = content;
+    
+    // Use mouse coordinates directly for better positioning
+    const mouseX = event.clientX || event.pageX;
+    const mouseY = event.clientY || event.pageY;
+    
+    // Position tooltip near mouse cursor
+    tooltip.style.left = (mouseX + 15) + 'px'; // Offset to the right of cursor
+    tooltip.style.top = (mouseY - 10) + 'px';  // Slightly above cursor
+    tooltip.style.display = 'block';
+    
+    // Adjust position if tooltip goes off screen
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // Adjust horizontal position
+    if (tooltipRect.right > window.innerWidth) {
+        tooltip.style.left = (mouseX - tooltipRect.width - 15) + 'px'; // Move to left of cursor
+    }
+    if (tooltipRect.left < 0) {
+        tooltip.style.left = '10px';
+    }
+    
+    // Adjust vertical position
+    if (tooltipRect.bottom > window.innerHeight) {
+        tooltip.style.top = (mouseY - tooltipRect.height - 15) + 'px'; // Move above cursor
+    }
+    if (tooltipRect.top < 0) {
+        tooltip.style.top = '10px';
+    }
 }
 
 function hidePathwayTooltip() {
-    // TODO: Implement tooltip hiding
+    const tooltip = document.getElementById('pathway-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
 }
 
 // Clear career tree
@@ -2020,68 +2289,9 @@ function pathwayDiagonal(s, d) {
 
 // Legacy spacing function removed - now using adaptive spacing in tree.separation()
 
-// Analyze skills gap
-window.analyzeSkillsGap = async function(sourceJob, targetJob) {
-    // Skills gap analysis (logging disabled for performance)
-    
-    const panel = document.getElementById('skills-analysis-panel');
-    panel.classList.remove('hidden');
-    
-    // Scroll to panel
-    panel.scrollIntoView({ behavior: 'smooth' });
-    
-    // Update pathway summary
-    const summaryContent = document.getElementById('pathway-summary-content');
-    summaryContent.innerHTML = `
-        <p class="text-blue-800 font-source">
-            <strong>From:</strong> ${sourceJob} 
-            <strong>To:</strong> ${targetJob}
-        </p>
-        <p class="text-blue-700 text-sm mt-1">
-            Analyzing skills requirements and development opportunities for this career transition.
-        </p>
-    `;
-    
-    // TODO: Fetch and display actual skills gap data
-    // For now, show placeholder data
-    updateSkillsAnalysis({
-        skills_match: 12,
-        skills_develop: 8,
-        skills_transfer: 15,
-        transition_viability: "75%",
-        skills_breakdown: [
-            { skill: "Python Programming", category: "Technical", status: "Match", priority: "Maintain" },
-            { skill: "Data Analysis", category: "Technical", status: "Develop", priority: "High" },
-            { skill: "Risk Assessment", category: "Domain", status: "Transfer", priority: "Medium" }
-        ]
-    });
-};
 
-// Update skills analysis display
-function updateSkillsAnalysis(data) {
-    document.getElementById('skills-match-count').textContent = data.skills_match;
-    document.getElementById('skills-develop-count').textContent = data.skills_develop;
-    document.getElementById('skills-transfer-count').textContent = data.skills_transfer;
-    document.getElementById('transition-viability').textContent = data.transition_viability;
-    
-    const tableBody = document.getElementById('skills-breakdown-table');
-    tableBody.innerHTML = data.skills_breakdown.map(skill => `
-        <tr>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">${skill.skill}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${skill.category}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium 
-                    ${skill.status === 'Match' ? 'bg-green-100 text-green-800' : 
-                      skill.status === 'Develop' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">
-                    ${skill.status}
-                </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${skill.priority}</td>
-        </tr>
-    `).join('');
-}
 
-// Helper functions
+// Helper functions 
 function clearCareerTree() {
     const container = document.getElementById('career-pathway-tree');
     container.innerHTML = `
@@ -2095,23 +2305,1784 @@ function clearCareerTree() {
             </div>
         </div>
     `;
+    
+    // Also hide the analysis panels
+    document.getElementById('step-2-panel').classList.add('hidden');
+    document.getElementById('pathway-details-panel').classList.add('hidden');
+    document.getElementById('workforce-intelligence-panel').classList.add('hidden');
 }
 
-function closeSkillsAnalysis() {
-    document.getElementById('skills-analysis-panel').classList.add('hidden');
-}
 
-function showSkillsMethodology() {
-    document.getElementById('skills-methodology-modal').classList.remove('hidden');
-}
 
-function closeSkillsMethodology() {
-    document.getElementById('skills-methodology-modal').classList.add('hidden');
-}
+
 
 function showPathwayHelp() {
-    alert('Career Pathway Explorer Help:\n\n1. Select a starting role using the search\n2. Adjust similarity threshold to control pathway options\n3. Click on career connections to see skills gap analysis\n4. Use insights for strategic workforce planning');
+    alert('Career Pathway Explorer Help:\n\n1. Select a starting role using the search\n2. Adjust similarity threshold to control pathway options\n3. Click on career connections to see pathway details\n4. Use insights for strategic workforce planning');
 }
+
+// Enhanced Pathway Details Panel Functions
+function showPathwayDetails(d) {
+    
+    // Handle both D3 hierarchy structure (d.data) and direct node structure
+    const nodeData = d.data || d;
+    const panel = document.getElementById('pathway-details-panel');
+    if (panel) {
+        panel.classList.remove('hidden');
+    }
+    
+    // Build the career pathway trail from root to selected node
+    buildCareerPathwayTrail(d);
+    
+    // Build transition analysis showing parent → child relationship
+    buildTransitionAnalysis(d);
+    
+    // Enhanced pathway summary with more context
+    const summaryContent = document.getElementById('selected-pathway-content');
+    
+    // Get node properties with fallbacks for different structures
+    const nodeType = nodeData.type || (d.depth === 0 ? 'starting_job' : 'similar_job');
+    const nodeName = nodeData.name || nodeData.job_title || 'Unknown Role';
+    const similarityScore = nodeData.similarity_score || 0;
+    
+    // Only update summary if element exists
+    if (summaryContent) {
+        let summaryText = '';
+        let contextText = '';
+        
+        if (nodeType === 'starting_job' || d.depth === 0) {
+            summaryText = `<strong>Starting Role:</strong> ${nodeName}`;
+            contextText = 'This is your selected starting role. All career pathways branch from this position.';
+        } else if (nodeType === 'similar_job' || d.depth > 0) {
+            const similarityPercent = Math.round(similarityScore * 100);
+            const depth = d.depth;
+            summaryText = `<strong>Career Option (Level ${depth}):</strong> ${nodeName}`;
+            contextText = `This role is ${depth} step${depth !== 1 ? 's' : ''} from your starting position. ${
+                similarityPercent >= 80 ? 'Excellent match with high skill transferability.' :
+                similarityPercent >= 60 ? 'Good match requiring moderate skill development.' :
+                similarityPercent >= 40 ? 'Fair match requiring significant upskilling.' :
+                'Challenging transition requiring extensive development.'
+            }`;
+        } else {
+            summaryText = `<strong>Selected Role:</strong> ${nodeName}`;
+            contextText = 'Career pathway node selected for detailed analysis.';
+        }
+        
+        summaryContent.innerHTML = `
+            <p class="text-green-800 font-source">${summaryText}</p>
+            <p class="text-green-700 text-sm mt-1">${contextText}</p>
+        `;
+    }
+    
+    // Update pathway metrics with enhanced formatting (with null checks)
+    const similarityScoreEl = document.getElementById('pathway-similarity-score');
+    if (similarityScoreEl) {
+        similarityScoreEl.textContent = similarityScore ? `${Math.round(similarityScore * 100)}%` : 'N/A';
+    }
+    
+    const sharedSkillsEl = document.getElementById('pathway-shared-skills');
+    if (sharedSkillsEl) {
+        sharedSkillsEl.textContent = nodeData.shared_skills_count || nodeData.shared_skills || 'N/A';
+    }
+    
+    const difficultyScoreEl = document.getElementById('pathway-difficulty-score');
+    if (difficultyScoreEl) {
+        difficultyScoreEl.textContent = nodeData.difficulty_score ? `${Math.round(nodeData.difficulty_score * 100)}%` : 'N/A';
+    }
+    
+    const moveTypeEl = document.getElementById('pathway-move-type');
+    if (moveTypeEl) {
+        moveTypeEl.textContent = nodeData.move_type || (nodeType === 'starting_job' ? 'Starting Point' : 'N/A');
+    }
+    
+    // Enhanced job information table with better data handling
+    const tableBody = document.getElementById('pathway-details-table');
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">
+                    <div class="font-medium">${nodeName}</div>
+                    <div class="text-xs text-gray-500 mt-1">${nodeType === 'starting_job' ? 'Starting Role' : nodeType === 'similar_job' ? `Career Option (Level ${d.depth})` : 'Role'}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${nodeData.job_family || nodeData.category || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${nodeData.division || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        nodeData.position_count || nodeData.children_count ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }">
+                        ${nodeData.position_count || nodeData.children_count || 'N/A'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-500">${nodeData.locations || 'N/A'}</td>
+            </tr>
+        `;
+    }
+    
+    console.log('📊 Pathway details displayed for:', nodeName, `(Level ${d.depth})`);
+}
+
+// Build career pathway trail showing full journey from root to selected node
+function buildCareerPathwayTrail(selectedNode) {
+    const trailContainer = document.getElementById('career-progression-journey');
+    
+    if (!trailContainer) {
+        return;
+    }
+    
+    // Check if this is a D3 hierarchy node or raw API node
+    const isD3Node = selectedNode.depth !== undefined && selectedNode.parent && typeof selectedNode.parent === 'object';
+    const isApiNode = selectedNode.level !== undefined;
+    
+    if (!isD3Node) {
+        // Try to find the corresponding D3 node in the tree
+        if (pathwayRoot) {
+            const allD3Nodes = pathwayRoot.descendants();
+            
+            // First try exact ID match
+            let matchingD3Node = allD3Nodes.find(d3Node => {
+                const d3Data = d3Node.data || d3Node;
+                return d3Data.id === selectedNode.id;
+            });
+            
+            // If no exact ID match, try to find by job_id and level/parent context
+            if (!matchingD3Node) {
+                console.log('🔍 No exact ID match, trying job_id + context matching...');
+                
+                // Find all nodes with matching job_id
+                const candidateNodes = allD3Nodes.filter(d3Node => {
+                    const d3Data = d3Node.data || d3Node;
+                    return d3Data.job_id === selectedNode.job_id;
+                });
+                
+                console.log('🔍 Found', candidateNodes.length, 'candidate nodes with matching job_id');
+                
+                if (candidateNodes.length === 1) {
+                    matchingD3Node = candidateNodes[0];
+                } else if (candidateNodes.length > 1) {
+                    // Multiple matches - try to find the right one by level or parent
+                    console.log('🔍 Multiple candidates, trying to match by level/parent...');
+                    
+                    // Try to match by level (API level vs D3 depth)
+                    const levelMatch = candidateNodes.find(d3Node => 
+                        d3Node.depth === selectedNode.level
+                    );
+                    
+                    if (levelMatch) {
+                        matchingD3Node = levelMatch;
+                        console.log('🔍 Matched by level:', levelMatch.depth);
+                    } else {
+                        // If no level match, try to find by parent relationship
+                        // This is more complex but could help in some cases
+                        console.log('🔍 No level match, using first candidate');
+                        matchingD3Node = candidateNodes[0];
+                    }
+                }
+            }
+            
+            if (matchingD3Node) {
+                console.log('✅ Found matching D3 node:', {
+                    id: matchingD3Node.data?.id || matchingD3Node.id,
+                    depth: matchingD3Node.depth,
+                    name: (matchingD3Node.data || matchingD3Node).name,
+                    hasParent: !!matchingD3Node.parent
+                });
+                buildCareerPathwayTrail(matchingD3Node); // Recursive call with D3 node
+                return;
+            } else {
+                console.error('❌ Could not find matching D3 node for API node');
+                console.log('🔍 Available D3 nodes:', allD3Nodes.map(node => ({
+                    id: (node.data || node).id,
+                    job_id: (node.data || node).job_id,
+                    depth: node.depth,
+                    name: (node.data || node).name
+                })));
+                
+                trailContainer.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <div class="text-sm text-red-800">
+                            <strong>Error:</strong> Unable to build career journey. Node structure mismatch.
+                        </div>
+                        <div class="text-xs text-red-600 mt-1">
+                            Could not find D3 node for: ${selectedNode.name} (${selectedNode.id})
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+        } else {
+            console.error('❌ No pathwayRoot available to find D3 node');
+            return;
+        }
+    }
+    
+    // Build path from root to selected node
+    const pathNodes = [];
+    let currentNode = selectedNode;
+    
+    // Traverse up to root
+    while (currentNode) {
+        pathNodes.unshift(currentNode); // Add to beginning of array
+        currentNode = currentNode.parent;
+    }
+    
+    if (pathNodes.length < 2) {
+        trailContainer.innerHTML = `
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div class="text-sm text-yellow-800">
+                    <strong>No Career Journey:</strong> This appears to be a starting role with no transitions to display.
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Define totalNodes at the top
+    const totalNodes = pathNodes.length;
+    
+    // Calculate responsive sizing to ensure single row layout
+    let boxSpan, arrowSpan, totalCols;
+    
+    if (totalNodes <= 3) {
+        // Few nodes: larger boxes
+        boxSpan = 5;
+        arrowSpan = 1;
+        totalCols = (totalNodes * boxSpan) + ((totalNodes - 1) * arrowSpan);
+    } else if (totalNodes <= 5) {
+        // Medium nodes: medium boxes
+        boxSpan = 3;
+        arrowSpan = 1;
+        totalCols = (totalNodes * boxSpan) + ((totalNodes - 1) * arrowSpan);
+    } else if (totalNodes <= 7) {
+        // Many nodes: smaller boxes
+        boxSpan = 2;
+        arrowSpan = 1;
+        totalCols = (totalNodes * boxSpan) + ((totalNodes - 1) * arrowSpan);
+    } else {
+        // Very many nodes: slightly larger than minimal for better readability
+        boxSpan = 2;
+        arrowSpan = 1;
+        totalCols = (totalNodes * boxSpan) + ((totalNodes - 1) * arrowSpan);
+    }
+    
+    console.log(`🔍 Grid sizing: ${totalNodes} nodes, ${boxSpan} span per box, ${totalCols} total columns`);
+    
+    // Create CSS Grid layout with calculated columns
+    let trailHTML = `<div class="grid items-center mb-4 w-full gap-0" style="grid-template-columns: repeat(${totalCols}, 1fr);">`;
+    
+    // Create a box for each node in the path
+    pathNodes.forEach((node, index) => {
+        const nodeData = node.data || node;
+        const nodeName = nodeData.name || nodeData.job_title || 'Unknown Role';
+        const similarityScore = nodeData.similarity_score || (index === 0 ? 1 : 0); // Starting role = 100%
+        const similarityPercent = Math.round(similarityScore * 100);
+        const isStarting = index === 0;
+        const isSelected = index === pathNodes.length - 1;
+        const nodeLevel = node.depth !== undefined ? node.depth : index;
+        
+        console.log(`🔍 Box ${index + 1}:`, {
+            name: nodeName,
+            similarity: similarityPercent + '%',
+            level: nodeLevel,
+            isStarting,
+            isSelected
+        });
+        
+        // Get similarity-based colours matching the tree legend
+function getSimilarityColourClasses(similarity, isStarting = false, isSelected = false) {
+            if (isStarting) {
+                // Starting role - blue (matches tree legend)
+                return {
+                    bg: 'bg-blue-100',
+                    border: 'border-blue-500',
+                    hover: 'hover:bg-blue-200',
+                    text: 'text-blue-900',
+                    similarity: 'text-blue-700'
+                };
+            }
+            
+            // Colour based on similarity score (matching tree legend exactly)
+            let colourClasses;
+            if (similarity >= 0.8) {
+                // High (80%+) - Green
+                colourClasses = {
+                    bg: 'bg-green-100',
+                    border: 'border-green-500',
+                    hover: 'hover:bg-green-200',
+                    text: 'text-green-900',
+                    similarity: 'text-green-700'
+                };
+            } else if (similarity >= 0.6) {
+                // Good (60%+) - Yellow
+                colourClasses = {
+                    bg: 'bg-yellow-100',
+                    border: 'border-yellow-500',
+                    hover: 'hover:bg-yellow-200',
+                    text: 'text-yellow-900',
+                    similarity: 'text-yellow-700'
+                };
+            } else if (similarity >= 0.4) {
+                // Fair (40%+) - Orange
+                colourClasses = {
+                    bg: 'bg-orange-100',
+                    border: 'border-orange-500',
+                    hover: 'hover:bg-orange-200',
+                    text: 'text-orange-900',
+                    similarity: 'text-orange-700'
+                };
+            } else if (similarity >= 0.2) {
+                // Low (20%+) - Red
+                colourClasses = {
+                    bg: 'bg-red-100',
+                    border: 'border-red-500',
+                    hover: 'hover:bg-red-200',
+                    text: 'text-red-900',
+                    similarity: 'text-red-700'
+                };
+            } else {
+                // Very Low (<20%) - Gray
+                colourClasses = {
+                    bg: 'bg-gray-100',
+                    border: 'border-gray-500',
+                    hover: 'hover:bg-gray-200',
+                    text: 'text-gray-900',
+                    similarity: 'text-gray-700'
+                };
+            }
+            
+            // Add selection highlight if this is the selected node
+            if (isSelected) {
+                colourClasses.border = colourClasses.border.replace('border-', 'border-4 border-');
+            }
+            
+            return colourClasses;
+        }
+        
+        // Get colours for this node
+        const colours = getSimilarityColourClasses(similarityScore, isStarting, isSelected);
+        
+        // Grid-based uniform styling - boxes take exactly 3 grid columns each
+        let boxClass = `rounded-lg p-2 cursor-pointer transition-all duration-200 border-2 text-center h-18 flex flex-col justify-between ${colours.bg} ${colours.border} ${colours.hover}`;
+        let textClass = `font-medium ${colours.text}`;
+        let similarityClass = `text-xs ${colours.similarity}`;
+        
+        // Smart text wrapping - allow wrapping for readability but keep it compact
+        const displayName = nodeName;
+        
+        trailHTML += `
+            <div class="${boxClass}" 
+                 onclick="showJourneyStep(${index})" 
+                                         title="${nodeName} - Click to analyse"
+                 style="grid-column: span ${boxSpan}; min-width: 0; overflow: hidden;">
+                <div class="text-xs font-medium text-gray-500 uppercase mb-1 truncate">
+                    ${isStarting ? 'Start' : `Job Profile ${nodeLevel}`}
+                </div>
+                <div class="${textClass} text-xs leading-tight px-1 flex-1 flex items-center justify-center text-center" style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                    ${displayName}
+                </div>
+                <div class="${similarityClass} truncate">
+                    ${isStarting ? 'Starting Role' : `${similarityPercent}% Match`}
+                </div>
+            </div>
+        `;
+        
+        // Add arrow between boxes (except after last) - uses calculated arrow span
+        if (index < pathNodes.length - 1) {
+            trailHTML += `
+                <div class="flex items-center justify-center" style="grid-column: span ${arrowSpan};">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+            `;
+        }
+    });
+    
+    trailHTML += '</div>';
+    
+    // Add pathway summary
+    const totalSteps = pathNodes.length - 1;
+    const summaryHTML = `
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="text-sm font-source text-blue-800">
+                <strong>Career Journey:</strong> ${pathNodes.length} role${pathNodes.length !== 1 ? 's' : ''} spanning ${totalSteps} transition${totalSteps !== 1 ? 's' : ''}
+            </div>
+            <div class="text-xs font-source text-blue-600 mt-1">
+                Click any role box above to see detailed analysis and transition context
+            </div>
+        </div>
+    `;
+    
+    console.log('🔍 Setting trail container HTML...');
+    trailContainer.innerHTML = trailHTML + summaryHTML;
+    
+    // Store the path nodes globally for the transition step function
+    window.currentPathNodes = pathNodes;
+    
+    // Set default breadcrumb selection to the last step (selected node)
+    selectedBreadcrumbIndex = pathNodes.length - 1;
+    
+    // Update breadcrumb highlighting for default selection
+    setTimeout(() => {
+        updateBreadcrumbHighlighting();
+    }, 100); // Small delay to ensure DOM is updated
+    
+    // Populate the skills and workforce sections with default selection (full pathway)
+    populateSkillsTransitionAnalysisForStep(pathNodes, selectedBreadcrumbIndex);
+    populateWorkforceIntelligenceForStep(pathNodes, selectedBreadcrumbIndex);
+    
+    console.log('✅ Career pathway trail built successfully!', {
+        totalSteps: pathNodes.length - 1,
+        pathNodes: pathNodes.length,
+        containerFound: !!trailContainer
+    });
+}
+
+// Build transition analysis showing exactly what is being compared
+function buildTransitionAnalysis(selectedNode) {
+    const analysisContainer = document.getElementById('transition-analysis-content');
+    
+    // Check if the container exists before proceeding
+    if (!analysisContainer) {
+        console.warn('⚠️ transition-analysis-content element not found, skipping analysis');
+        return;
+    }
+    
+    if (!selectedNode.parent) {
+        // Root/starting node - no transition to analyse
+        analysisContainer.innerHTML = `
+            <div class="flex items-center text-blue-700">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span><strong>Starting Role:</strong> This is your selected baseline position for career exploration.</span>
+            </div>
+        `;
+        return;
+    }
+    
+    // Get parent and child for comparison context
+    const parentNode = selectedNode.parent;
+    const childNode = selectedNode;
+    const parentData = parentNode.data || parentNode;
+    const childData = childNode.data || childNode;
+    const parentName = parentData.name || parentData.job_title || 'Unknown Role';
+    const childName = childData.name || childData.job_title || 'Unknown Role';
+    const similarityScore = childData.similarity_score;
+    const similarityPercent = similarityScore ? Math.round(similarityScore * 100) : 0;
+    
+    // Determine transition context
+    const parentLevel = parentNode.depth;
+    const childLevel = childNode.depth;
+    const isDirectTransition = childLevel === 1; // Direct from starting role
+    
+    let transitionContext = '';
+    if (isDirectTransition) {
+        transitionContext = 'This is a <strong>direct transition</strong> from your starting role.';
+    } else {
+        transitionContext = `This is a <strong>multi-step transition</strong> (${childLevel} steps from start).`;
+    }
+    
+    // Build comparison explanation
+    analysisContainer.innerHTML = `
+        <div class="space-y-3">
+            <div class="flex items-start">
+                <div class="flex items-center mr-4">
+                    <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="text-xs font-medium text-gray-600 uppercase">FROM</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${parentName}</div>
+                    <div class="text-xs text-gray-500">Level ${parentLevel} ${parentLevel === 0 ? '(Starting Role)' : ''}</div>
+                </div>
+            </div>
+            
+            <div class="flex items-center ml-6">
+                <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+                <span class="text-sm font-medium ${
+                    similarityPercent >= 70 ? 'text-green-600' :
+                    similarityPercent >= 50 ? 'text-yellow-600' :
+                    'text-red-600'
+                }">${similarityPercent}% Similarity Match</span>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex items-center mr-4">
+                    <div class="w-3 h-3 bg-indigo-500 rounded-full mr-2"></div>
+                    <span class="text-xs font-medium text-gray-600 uppercase">TO</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${childName}</div>
+                    <div class="text-xs text-gray-500">Level ${childLevel} (Selected Role)</div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-md p-3 mt-3">
+                <div class="text-xs font-source text-gray-700">
+                    <strong>What this means:</strong> ${transitionContext} The ${similarityPercent}% similarity score represents the match between <em>"${parentName}"</em> and <em>"${childName}"</em> based on shared skills, responsibilities, and requirements.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Update breadcrumb visual highlighting
+function updateBreadcrumbHighlighting() {
+    // Find all breadcrumb boxes
+    const breadcrumbBoxes = document.querySelectorAll('[onclick^="showJourneyStep"]');
+    
+    breadcrumbBoxes.forEach((box, index) => {
+        if (index === selectedBreadcrumbIndex) {
+            // Highlight selected breadcrumb with a pulsing border
+            box.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-50');
+            box.style.transform = 'scale(1.05)';
+            box.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+        } else {
+            // Remove highlighting from other breadcrumbs
+            box.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-50');
+            box.style.transform = 'scale(1)';
+            box.style.boxShadow = '';
+        }
+    });
+}
+
+// Function to show analysis for a specific role in the journey
+function showJourneyStep(nodeIndex) {
+    if (!window.currentPathNodes || nodeIndex >= window.currentPathNodes.length) {
+        console.warn('Invalid node index or no path nodes available');
+        return;
+    }
+    
+    // Update selected breadcrumb tracking
+    selectedBreadcrumbIndex = nodeIndex;
+    
+    const selectedNode = window.currentPathNodes[nodeIndex];
+    const nodeData = selectedNode.data || selectedNode;
+    const nodeName = nodeData.name || nodeData.job_title || 'Unknown Role';
+    
+    console.log('🔍 Showing journey step analysis for:', nodeName, 'at index', nodeIndex);
+    
+    // Update breadcrumb visual highlighting
+    updateBreadcrumbHighlighting();
+    
+    // DISABLED: Old embedded analysis functions that cause DOM errors
+    // Instead, use the real API-based analysis functions
+    
+    // Update Skills and Workforce sections with real data
+    const transitionNodes = window.currentPathNodes.slice(0, nodeIndex + 1); // Path up to selected step
+    populateSkillsTransitionAnalysisForStep(transitionNodes, nodeIndex);
+    populateWorkforceIntelligenceForStep(transitionNodes, nodeIndex);
+}
+
+// Populate Skills Transition Analysis section
+function populateSkillsTransitionAnalysis(pathNodes) {
+    if (!pathNodes || pathNodes.length < 2) {
+        console.log('🔍 Not enough nodes for skills analysis');
+        return;
+    }
+    
+    // Get the final transition (to the selected node)
+    const startNode = pathNodes[0];
+    const endNode = pathNodes[pathNodes.length - 1];
+    const startData = startNode.data || startNode;
+    const endData = endNode.data || endNode;
+    
+    // Calculate skills metrics (mock data for now - replace with real API calls)
+    const totalTransitions = pathNodes.length - 1;
+    const avgSimilarity = pathNodes.slice(1).reduce((sum, node) => {
+        const nodeData = node.data || node;
+        return sum + (nodeData.similarity_score || 0);
+    }, 0) / totalTransitions;
+    
+    // Mock skills analysis data
+    const skillsMatched = Math.round(avgSimilarity * 45); // Approximate matched skills
+    const skillsToDevelop = Math.round((1 - avgSimilarity) * 25); // Skills to develop
+
+    const difficultyScore = avgSimilarity >= 0.8 ? 'Low' : avgSimilarity >= 0.6 ? 'Medium' : 'High';
+    
+    // Update the cards
+    document.getElementById('skills-matched-count').textContent = skillsMatched;
+    document.getElementById('skills-develop-count').textContent = skillsToDevelop;
+    document.getElementById('transition-difficulty').textContent = difficultyScore;
+    
+    // Build skills breakdown
+    const skillsBreakdown = document.getElementById('skills-breakdown-content');
+    const startRole = startData.name || startData.job_title || 'Starting Role';
+    const endRole = endData.name || endData.job_title || 'Target Role';
+    
+            // Generate mock skills with Skill Type metadata for demonstration
+    const mockMatchedSkills = [
+        { name: 'Data Analysis & Interpretation', category: 'Analysis', skillType: 'Specialized Skill' },
+        { name: 'Risk Assessment', category: 'Business', skillType: 'Specialized Skill' },
+        { name: 'Financial Modeling', category: 'Analysis', skillType: 'Specialized Skill' },
+        { name: 'Communication', category: 'Customer and Client Support', skillType: 'Common Skill' }
+    ];
+    
+    const mockSkillsToDevelop = [
+        { name: 'Advanced Leadership', category: 'Business', skillType: 'Specialized Skill' },
+        { name: 'Strategic Planning', category: 'Business', skillType: 'Specialized Skill' },
+        { name: 'Team Management', category: 'Business', skillType: 'Common Skill' },
+        { name: 'PMP Certification', category: 'Business', skillType: 'Certification' }
+    ];
+
+    skillsBreakdown.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                <h5 class="text-sm font-epilogue font-medium text-green-800 mb-2">✓ Skills Shared Between Job Profiles</h5>
+                <div class="space-y-2 text-xs font-source text-green-700">
+                    ${mockMatchedSkills.map(skill => `
+                        <div class="flex items-center justify-between">
+                            <div>• ${skill.name}</div>
+                            <div class="flex space-x-1">
+                                <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skillType)}">${skill.skillType}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                    <div class="text-green-600 font-medium">+${skillsMatched - 4} more skills</div>
+                </div>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <h5 class="text-sm font-epilogue font-medium text-orange-800 mb-2">⚡ Skills to Develop</h5>
+                <div class="space-y-2 text-xs font-source text-orange-700">
+                    ${mockSkillsToDevelop.map(skill => `
+                        <div class="flex items-center justify-between">
+                            <div>• ${skill.name}</div>
+                            <div class="flex space-x-1">
+                                <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skillType)}">${skill.skillType}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                    <div class="text-orange-600 font-medium">+${skillsToDevelop - 4} more skills</div>
+                </div>
+            </div>
+        </div>
+        
+                        <!-- Skill Type Summary -->
+        <div class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <h5 class="text-sm font-epilogue font-medium text-indigo-800 mb-2">Skill Type Distribution</h5>
+            <div class="grid grid-cols-3 gap-3 text-xs">
+                <div class="text-center">
+                    <div class="text-lg font-bold text-blue-600">${Math.round(skillsMatched * 0.7)}</div>
+                    <div class="text-blue-600">Specialized Skills</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-bold text-green-600">${Math.round(skillsMatched * 0.25)}</div>
+                    <div class="text-green-600">Common Skills</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-bold text-purple-600">${Math.round(skillsMatched * 0.05)}</div>
+                    <div class="text-purple-600">Certifications</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="text-sm font-source text-blue-800">
+                <strong>Transition Summary:</strong> Moving from <em>${startRole}</em> to <em>${endRole}</em> 
+                requires developing ${skillsToDevelop} new skills while leveraging ${skillsMatched} existing skills.
+                Overall difficulty: <strong>${difficultyScore}</strong>
+            </div>
+        </div>
+    `;
+    
+    console.log('✅ Skills transition analysis populated');
+}
+
+// Helper function to get CSS classes for skill types
+function getSkillTypeClass(skillType) {
+    switch (skillType) {
+        case 'Specialized Skill':
+            return 'bg-blue-100 text-blue-700 border border-blue-200';
+        case 'Common Skill':
+            return 'bg-green-100 text-green-700 border border-green-200';
+        case 'Certification':
+            return 'bg-purple-100 text-purple-700 border border-purple-200';
+        default:
+            return 'bg-gray-100 text-gray-700 border border-gray-200';
+    }
+}
+
+// Function to toggle skills expansion
+function toggleSkillsExpansion(skillType) {
+    const hiddenElement = document.getElementById(`${skillType}-skills-hidden`);
+    const toggleButton = document.getElementById(`${skillType}-skills-toggle`);
+    
+    if (hiddenElement && toggleButton) {
+        const isHidden = hiddenElement.classList.contains('hidden');
+        
+        if (isHidden) {
+            // Show hidden skills
+            hiddenElement.classList.remove('hidden');
+            toggleButton.textContent = 'Show fewer skills';
+        } else {
+            // Hide skills
+            hiddenElement.classList.add('hidden');
+            const skillCount = toggleButton.textContent.match(/\d+/);
+            toggleButton.textContent = `+${skillCount ? skillCount[0] : 'more'} more skills`;
+        }
+    }
+}
+
+// Step-specific Skills Transition Analysis for breadcrumb selection
+function populateSkillsTransitionAnalysisForStep(pathNodes, selectedStepIndex) {
+    if (!pathNodes || pathNodes.length === 0) {
+        console.log('🔍 No nodes for step-specific skills analysis');
+        return;
+    }
+    
+    let startNode, endNode, contextText;
+    
+    if (selectedStepIndex === 0) {
+        // Starting role selected - show overview of full pathway
+        startNode = pathNodes[0];
+        endNode = pathNodes[pathNodes.length - 1];
+        contextText = 'Full Career Journey';
+    } else {
+        // Specific transition step selected
+        startNode = pathNodes[selectedStepIndex - 1];
+        endNode = pathNodes[selectedStepIndex];
+        contextText = `Step ${selectedStepIndex} Transition`;
+    }
+    
+    const startData = startNode.data || startNode;
+    const endData = endNode.data || endNode;
+    
+    // Update simple comparison header
+    const headerStartRole = startData.name || startData.job_title || 'Starting Role';
+    const headerEndRole = endData.name || endData.job_title || 'Target Role';
+    const headerElement = document.getElementById('skills-comparison-header');
+    if (headerElement) {
+        const headerText = selectedStepIndex === 0 ? 
+                    `<strong>Analysing:</strong> Full Career Journey from <em>${headerStartRole}</em> to <em>${headerEndRole}</em>` :
+        `<strong>Analysing:</strong> <em>${headerStartRole}</em> → <em>${headerEndRole}</em>`;
+        headerElement.querySelector('div').innerHTML = headerText;
+    }
+    
+    // Get job IDs for API call - prioritize real JobProfileID over D3 node ID
+    const startJobId = startData.job_id || startData.JobProfileID || startData.id;
+    const endJobId = endData.job_id || endData.JobProfileID || endData.id;
+    
+    // Call real skills analysis API
+    fetchSkillsAnalysis(startJobId, endJobId, selectedStepIndex, contextText);
+}
+
+// Real API function for skills analysis
+async function fetchSkillsAnalysis(startJobId, endJobId, selectedStepIndex, contextText) {
+    console.log(`🔍 Fetching skills analysis: ${startJobId} → ${endJobId}`);
+    
+    // Show loading indicator
+    document.getElementById('skills-matched-count').textContent = '...';
+    document.getElementById('skills-develop-count').textContent = '...';
+    document.getElementById('transition-difficulty').textContent = '...';
+    
+    try {
+        const response = await fetch(`/api/skills-analysis/${startJobId}/${endJobId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Unknown error');
+        }
+        
+        // Update the cards with real data
+        document.getElementById('skills-matched-count').textContent = data.skills_matched;
+        document.getElementById('skills-develop-count').textContent = data.skills_to_develop;
+        document.getElementById('transition-difficulty').textContent = data.transition_difficulty;
+        
+        // Build detailed skills breakdown with real data
+        const skillsBreakdown = document.getElementById('skills-breakdown-content');
+        
+        // Get role names from breadcrumb or fallback to job IDs
+        const breadcrumbs = document.querySelectorAll('.job-breadcrumb');
+        let startRole = 'Starting Role';
+        let endRole = 'Target Role';
+        
+        if (breadcrumbs.length > 0) {
+            startRole = breadcrumbs[0].querySelector('.job-title')?.textContent || startJobId;
+            if (selectedStepIndex === 0 && breadcrumbs.length > 1) {
+                // Full journey - use last breadcrumb
+                endRole = breadcrumbs[breadcrumbs.length - 1].querySelector('.job-title')?.textContent || endJobId;
+            } else if (selectedStepIndex > 0 && breadcrumbs[selectedStepIndex]) {
+                // Specific step - use selected step
+                endRole = breadcrumbs[selectedStepIndex].querySelector('.job-title')?.textContent || endJobId;
+                if (selectedStepIndex > 1) {
+                    startRole = breadcrumbs[selectedStepIndex - 1].querySelector('.job-title')?.textContent || startJobId;
+                }
+            }
+        }
+        
+        // Add context indicator for which transition we're showing
+        const contextIndicator = selectedStepIndex === 0 ? 
+            `<div class="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                <div class="text-xs font-source text-blue-800">
+                    <strong>Analysis Context:</strong> ${contextText} - Overview from start to final destination
+                </div>
+            </div>` :
+            `<div class="mb-3 p-2 bg-purple-50 border border-purple-200 rounded-md">
+                <div class="text-xs font-source text-purple-800">
+                    <strong>Analysis Context:</strong> ${contextText} - Transition analysis
+                </div>
+            </div>`;
+        
+        // Group skills by status
+        const allMatchedSkills = data.detailed_skills.filter(skill => skill.status === 'matched');
+        const allDevelopSkills = data.detailed_skills.filter(skill => skill.status === 'develop');
+        const matchedSkills = allMatchedSkills.slice(0, 8);
+        const developSkills = allDevelopSkills.slice(0, 8);
+        
+        skillsBreakdown.innerHTML = contextIndicator + `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <h5 class="text-sm font-epilogue font-medium text-green-800 mb-2">✓ Skills Shared Between Job Profiles (${data.skills_matched})</h5>
+                    <div class="space-y-2 text-xs font-source text-green-700">
+                        <div id="matched-skills-visible">
+                            ${matchedSkills.map(skill => `
+                                <div class="flex items-center justify-between">
+                                    <div>• ${skill.name}</div>
+                                    <div class="flex space-x-1">
+                                        <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div id="matched-skills-hidden" class="hidden">
+                            ${allMatchedSkills.slice(8).map(skill => `
+                                <div class="flex items-center justify-between">
+                                    <div>• ${skill.name}</div>
+                                    <div class="flex space-x-1">
+                                        <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${data.skills_matched > 8 ? `
+                            <button onclick="toggleSkillsExpansion('matched')" 
+                                    class="text-green-600 font-medium hover:text-green-700 cursor-pointer underline" 
+                                    id="matched-skills-toggle">
+                                +${data.skills_matched - 8} more skills
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    <h5 class="text-sm font-epilogue font-medium text-orange-800 mb-2">⚡ Skills to Develop (${data.skills_to_develop})</h5>
+                    <div class="space-y-2 text-xs font-source text-orange-700">
+                        <div id="develop-skills-visible">
+                            ${developSkills.map(skill => `
+                                <div class="flex items-center justify-between">
+                                    <div>• ${skill.name}</div>
+                                    <div class="flex space-x-1">
+                                        <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div id="develop-skills-hidden" class="hidden">
+                            ${allDevelopSkills.slice(8).map(skill => `
+                                <div class="flex items-center justify-between">
+                                    <div>• ${skill.name}</div>
+                                    <div class="flex space-x-1">
+                                        <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${data.skills_to_develop > 8 ? `
+                            <button onclick="toggleSkillsExpansion('develop')" 
+                                    class="text-orange-600 font-medium hover:text-orange-700 cursor-pointer underline" 
+                                    id="develop-skills-toggle">
+                                +${data.skills_to_develop - 8} more skills
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Skill Type Development Analysis -->
+            <div class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div class="flex items-center mb-2">
+                    <h5 class="text-sm font-epilogue font-medium text-indigo-800">Skill Type Development Requirements</h5>
+                    <div class="relative ml-2 group">
+                        <svg class="w-4 h-4 text-indigo-600 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                            <div class="font-medium mb-1">Gap % vs Job Similarity %</div>
+                            <div class="text-gray-300">• Gap %: Skills to develop ÷ Total skills needed in this Skill Type</div>
+                            <div class="text-gray-300">• Job Similarity %: Overall job-to-job compatibility score</div>
+                            <div class="text-gray-300">These measure different aspects and don't add up to 100%</div>
+                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs font-source text-indigo-700 mb-3">
+                    Skills to develop by type for transition from <strong>${startRole}</strong> to <strong>${endRole}</strong>
+                </div>
+                
+                ${Object.keys(data.skilltype_to_develop || {}).length > 0 ? `
+                    <div class="space-y-2">
+                        ${Object.entries(data.skilltype_to_develop).map(([skillType, count]) => {
+                            const matchedCount = data.skilltype_matched[skillType] || 0;
+                            const totalNeeded = count + matchedCount;
+                            const percentage = totalNeeded > 0 ? Math.round((count / totalNeeded) * 100) : 0;
+                            
+                            return `
+                                <div class="flex items-center justify-between p-2 bg-white rounded border">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 rounded text-xs font-medium ${getSkillTypeClass(skillType)}">${skillType}</span>
+                                        <span class="text-sm font-source text-gray-700">${count} to develop</span>
+                                        ${matchedCount > 0 ? `<span class="text-xs text-green-600">(${matchedCount} matched)</span>` : ''}
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div class="h-full bg-orange-500" style="width: ${percentage}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium text-gray-600">${percentage}% gap</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : `
+                    <div class="text-center py-4 text-green-700">
+                        <div class="text-sm font-medium">✓ No skill development required</div>
+                        <div class="text-xs">All required Skill Types are already present</div>
+                    </div>
+                `}
+                
+                <div class="mt-3 pt-2 border-t border-indigo-200">
+                    <div class="text-xs font-source text-indigo-600">
+                        <strong>Total Skills:</strong> ${data.skills_matched} matched, ${data.skills_to_develop} to develop
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        console.log(`✅ Real skills analysis populated for step ${selectedStepIndex}`);
+        
+    } catch (error) {
+        console.error('❌ Error fetching skills analysis:', error);
+        
+        // Show error state
+        document.getElementById('skills-matched-count').textContent = '—';
+        document.getElementById('skills-develop-count').textContent = '—';
+        document.getElementById('transition-difficulty').textContent = 'Error';
+        
+        const skillsBreakdown = document.getElementById('skills-breakdown-content');
+        skillsBreakdown.innerHTML = `
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="text-sm text-red-800">
+                    <strong>Unable to load skills analysis</strong><br>
+                    Error: ${error.message || 'Unknown error occurred'}
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Real API function for workforce analysis
+async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
+    console.log(`🔍 Fetching workforce analysis for jobs: ${jobIds.join(', ')}`);
+    
+    // Show Step 4: Workforce Intelligence panel
+    document.getElementById('workforce-intelligence-panel').classList.remove('hidden');
+    
+    // Show loading indicators
+    document.getElementById('total-positions').textContent = '...';
+    document.getElementById('divisions-represented').textContent = '...';
+    document.getElementById('locations-spread').textContent = '...';
+    document.getElementById('workforce-pathway-count').textContent = '...';
+    
+    try {
+        const response = await fetch(`/api/workforce-analysis/${jobIds.join(',')}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Unknown error');
+        }
+        
+        // Update summary cards with real data
+        document.getElementById('total-positions').textContent = data.total_positions.toLocaleString();
+        document.getElementById('divisions-represented').textContent = data.divisions_represented;
+        document.getElementById('locations-spread').textContent = data.locations_spread;
+        
+        // Update pathway count with context
+        const stepContext = selectedStepIndex === 0 ? 
+            `${jobIds.length} roles in full pathway` :
+            `${jobIds.length} roles up to step ${selectedStepIndex}`;
+        document.getElementById('workforce-pathway-count').textContent = stepContext;
+        
+        // Build workforce table with real data
+        const workforceTable = document.getElementById('workforce-pathway-table');
+        
+        // Add context header to the table
+        const contextHeader = selectedStepIndex === 0 ?
+            `<tr class="bg-blue-50">
+                <td colspan="8" class="px-3 py-3 text-sm font-source text-blue-800">
+                    <strong>Context:</strong> ${contextText} - All roles from start to final destination
+                </td>
+            </tr>` :
+            `<tr class="bg-purple-50">
+                <td colspan="8" class="px-3 py-3 text-sm font-source text-purple-800">
+                    <strong>Context:</strong> ${contextText} - Roles involved in this specific transition
+                </td>
+            </tr>`;
+        
+        // Group detailed workforce by job and aggregate
+        const jobGrouped = {};
+        data.detailed_workforce.forEach(item => {
+            const jobId = item.job_id;
+            if (!jobGrouped[jobId]) {
+                jobGrouped[jobId] = {
+                    job_title: item.job_title,
+                    job_family: item.job_family,
+                    total_positions: 0,
+                    divisions: new Set(),
+                    business_units: new Set(),
+                    locations: new Set(),
+                    regions: new Set()
+                };
+            }
+            
+            const job = jobGrouped[jobId];
+            job.total_positions += item.position_count;
+            if (item.division) job.divisions.add(item.division);
+            if (item.business_unit) job.business_units.add(item.business_unit);
+            if (item.location) job.locations.add(item.location);
+            if (item.region) job.regions.add(item.region);
+        });
+        
+        // Focus on the selected child role (last job in the analysis)
+        const targetJobId = jobIds[jobIds.length - 1];
+        
+        // Update the header to show which role we're analysing
+        const targetJob = data.jobs_analysis[targetJobId];
+        if (targetJob) {
+            document.getElementById('workforce-pathway-count').textContent = `${targetJob.job_title} - Position Breakdown`;
+        }
+        
+        // Filter detailed workforce data for the target job only
+        const targetJobPositions = data.detailed_workforce.filter(position => position.job_id === targetJobId);
+        
+        if (targetJobPositions.length === 0) {
+            const tableRows = `
+                <tr>
+                    <td colspan="8" class="px-3 py-4 text-center text-sm font-source text-gray-500">
+                        No workforce data available for ${targetJobId}
+                    </td>
+                </tr>
+            `;
+            workforceTable.innerHTML = tableRows;
+            return;
+        }
+        
+        // Group by Division/Business Unit combination
+        const divisionBusinessUnitMap = new Map();
+        
+        targetJobPositions.forEach(position => {
+            const key = `${position.division || 'Unknown Division'}_${position.business_unit || 'Unknown Business Unit'}_${position.job_profile || 'Unknown JobProfile'}_${position.position_name || 'Unknown Position Name'}`;
+            
+            if (!divisionBusinessUnitMap.has(key)) {
+                divisionBusinessUnitMap.set(key, {
+                    job_profile: position.job_profile || 'Unknown JobProfile',
+                    position_name: position.position_name || 'Unknown Position Name',
+                    division: position.division || 'Unknown Division',
+                    business_unit: position.business_unit || 'Unknown Business Unit',
+                    teams: new Set(),
+                    salary_groups: new Set(),
+                    employee_groups: new Set(),
+                    position_count: 0,
+                    headcount: 0
+                });
+            }
+            
+            const entry = divisionBusinessUnitMap.get(key);
+            entry.position_count += position.position_count;
+            entry.headcount += position.headcount || 0;
+            
+            if (position.team) entry.teams.add(position.team);
+            if (position.salary_group) entry.salary_groups.add(position.salary_group);
+            if (position.employee_group) entry.employee_groups.add(position.employee_group);
+        });
+        
+        // Generate table rows for each Division/Business Unit combination
+        const tableRows = Array.from(divisionBusinessUnitMap.values()).map(entry => {
+            const teamList = Array.from(entry.teams).slice(0, 2).join(', ');
+            const teamDisplay = entry.teams.size > 2 
+                ? `${teamList} (+${entry.teams.size - 2} more)`
+                : teamList || 'N/A';
+                
+            const salaryList = Array.from(entry.salary_groups).slice(0, 3).join(', ');
+            const salaryDisplay = entry.salary_groups.size > 3
+                ? `${salaryList} (+${entry.salary_groups.size - 3} more)`
+                : salaryList || 'N/A';
+            
+            return `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${entry.job_profile || 'N/A'}
+                    </td>
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${entry.position_name || 'N/A'}
+                    </td>
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${entry.division}
+                    </td>
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${entry.business_unit}
+                    </td>
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${teamDisplay}
+                    </td>
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${salaryDisplay}
+                    </td>
+                    <td class="px-3 py-4 text-center">
+                        <span class="text-sm font-source font-medium text-gray-900">${entry.position_count}</span>
+                        <div class="text-xs font-source text-gray-500">positions</div>
+                    </td>
+                    <td class="px-3 py-4 text-center">
+                        <span class="text-sm font-source font-medium text-gray-900">${entry.headcount}</span>
+                        <div class="text-xs font-source text-gray-500">employees</div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        workforceTable.innerHTML = tableRows;
+        
+        console.log(`✅ Real workforce analysis populated for step ${selectedStepIndex}`);
+        
+    } catch (error) {
+        console.error('❌ Error fetching workforce analysis:', error);
+        
+        // Show error state
+        document.getElementById('total-positions').textContent = '—';
+        document.getElementById('divisions-represented').textContent = '—';
+        document.getElementById('locations-spread').textContent = '—';
+        document.getElementById('workforce-pathway-count').textContent = 'Error';
+        
+        const workforceTable = document.getElementById('workforce-pathway-table');
+        workforceTable.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-3 py-4">
+                    <div class="text-center p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="text-sm text-red-800">
+                            <strong>Unable to load workforce analysis</strong><br>
+                            Error: ${error.message || 'Unknown error occurred'}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Information modal functions
+function showSkillsAnalysisInfo() {
+    const title = "Skills Transition Analysis - How It Works";
+    const content = `
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Data Sources</h4>
+                <p>This analysis is based on real job-skill mappings from NAB's comprehensive skills database, containing over 40,000 job-skill relationships across the organisation.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Calculation Method</h4>
+                <ul class="list-disc list-inside space-y-1 text-gray-600">
+                    <li><strong>Skills Matched:</strong> Count of skills that exist in both source and target job profiles</li>
+                    <li><strong>Skills to Develop:</strong> Count of skills required in target job but not present in source job</li>
+
+                    <li><strong>Transition Difficulty:</strong> Calculated based on skill overlap percentage and complexity</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Skill Types Considered</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="bg-blue-50 border border-blue-200 rounded p-3">
+                        <div class="font-medium text-blue-800">Specialized Skills</div>
+                        <div class="text-xs text-blue-600">Technical, domain-specific capabilities</div>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded p-3">
+                        <div class="font-medium text-green-800">Common Skills</div>
+                        <div class="text-xs text-green-600">Foundational skills applicable across roles</div>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded p-3">
+                        <div class="font-medium text-purple-800">Certifications</div>
+                        <div class="text-xs text-purple-600">Formal qualifications and credentials</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">SQL Query Pattern</h4>
+                <div class="bg-gray-100 rounded p-3 font-mono text-xs">
+                    <div class="text-gray-600">-- Skills matched between two jobs</div>
+                    <div>SELECT s.skill_name, s.skill_category, s.SkillType</div>
+                    <div>FROM job_skills js1</div>
+                    <div>JOIN job_skills js2 ON js1.skills_skill_id = js2.skills_skill_id</div>
+                    <div>JOIN skills s ON js1.skills_skill_id = s.id</div>
+                    <div>WHERE js1.job_id = ? AND js2.job_id = ?</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showInfoModal(title, content);
+}
+
+function showWorkforceIntelligenceInfo() {
+    const title = "Workforce Intelligence - Data Sources";
+    const content = `
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Data Sources</h4>
+                <p>Workforce Intelligence draws from NAB's live position data, including current headcount, organisational structure, and geographic distribution across all divisions.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Metrics Calculated</h4>
+                <ul class="list-disc list-inside space-y-1 text-gray-600">
+                    <li><strong>Total Positions:</strong> Current active positions matching the job profile</li>
+                    <li><strong>Divisions:</strong> Number of NAB divisions where this role exists</li>
+                    <li><strong>Locations:</strong> Geographic spread across Australian cities</li>
+                    <li><strong>Business Units:</strong> Specific teams and departments utilising this role</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Geographic Distribution</h4>
+                <p>Position counts are aggregated across NAB's major locations including Melbourne, Sydney, Brisbane, Perth, and Adelaide, providing insight into where career opportunities exist.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">SQL Query Pattern</h4>
+                <div class="bg-gray-100 rounded p-3 font-mono text-xs">
+                    <div class="text-gray-600">-- Position distribution for jobs</div>
+                    <div>SELECT j.job_title, p.Division, p.BusinessUnit,</div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p.Location, COUNT(*) as position_count</div>
+                    <div>FROM jobs j</div>
+                    <div>LEFT JOIN positions p ON j.id = p.JobProfileID</div>
+                    <div>WHERE j.id IN (?, ?, ?)</div>
+                    <div>GROUP BY j.id, p.Division, p.BusinessUnit, p.Location</div>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+                <div class="text-yellow-800 text-sm">
+                    <strong>Note:</strong> Some job profiles may not have current active positions. This is normal for emerging roles or roles in transition.
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showInfoModal(title, content);
+}
+
+function showInfoModal(title, content) {
+    document.getElementById('info-modal-title').textContent = title;
+    document.getElementById('info-modal-content').innerHTML = content;
+    document.getElementById('info-modal-overlay').classList.remove('hidden');
+    
+    // Prevent body scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+}
+
+function showCareerJourneyInfo() {
+    const title = "Career Progression Journey - Interactive Navigation";
+    const content = `
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">How It Works</h4>
+                <p>The Career Progression Journey shows the complete pathway from your starting role to your selected target role, based on NAB's career pathway data and similarity analysis.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Interactive Features</h4>
+                <ul class="list-disc list-inside space-y-1 text-gray-600">
+                    <li><strong>Breadcrumb Navigation:</strong> Click any step in the journey to focus analysis on that specific transition</li>
+                    <li><strong>Dynamic Analysis:</strong> Skills and Workforce sections update based on your selected step</li>
+                    <li><strong>Similarity Scores:</strong> Each transition shows the calculated similarity between roles</li>
+                    <li><strong>Visual Indicators:</strong> Selected steps are highlighted with blue rings</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Data Sources</h4>
+                <p>Career pathways are generated from NAB's comprehensive career progression database, containing over 8,500 validated career transitions with similarity scores calculated from job-skill overlaps.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Understanding the Journey</h4>
+                <div class="bg-blue-50 border border-blue-200 rounded p-3">
+                    <div class="text-sm text-blue-800">
+                        <strong>Starting Role:</strong> Your current or baseline position<br/>
+                        <strong>Intermediate Steps:</strong> Logical progression roles that bridge skill gaps<br/>
+                        <strong>Target Role:</strong> Your selected destination role from the tree
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="font-epilogue font-medium text-gray-900 mb-2">Similarity Calculation</h4>
+                <div class="bg-gray-100 rounded p-3 font-mono text-xs">
+                    <div class="text-gray-600">-- Career pathway similarity</div>
+                    <div>SELECT similarity_score, shared_skills_count</div>
+                    <div>FROM career_pathways</div>
+                    <div>WHERE source_job_id = ? AND target_job_id = ?</div>
+                    <div>ORDER BY similarity_score DESC</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showInfoModal(title, content);
+}
+
+function closeInfoModal() {
+    document.getElementById('info-modal-overlay').classList.add('hidden');
+    
+    // Restore body scrolling
+    document.body.style.overflow = '';
+}
+
+// CSV Export Functions
+function exportCareerTree() {
+    if (!lastBuiltTree || !lastBuiltParameters) {
+        alert('Please build a career tree first before exporting.');
+        return;
+    }
+    
+    try {
+        // Get the selected job IDs from the selectedJobs Map
+        const selectedJobIds = Array.from(selectedJobs.keys());
+        if (selectedJobIds.length === 0) {
+            alert('No jobs selected for export.');
+            return;
+        }
+        
+        // Build export URL with current parameters
+        const params = new URLSearchParams({
+            similarity: lastBuiltParameters.similarity_threshold || 0.2,
+            depth: lastBuiltParameters.max_depth || 3,
+            max_results: lastBuiltParameters.max_results || 6
+        });
+        
+        const exportUrl = `/api/export/career-tree/${selectedJobIds.join(',')}?${params}`;
+        
+        // Trigger download
+        window.open(exportUrl, '_blank');
+        
+    } catch (error) {
+        console.error('Error exporting career tree:', error);
+        alert('Error exporting career tree data. Please try again.');
+    }
+}
+
+function exportSkillsAnalysis() {
+    // Check if we have pathway data available
+    if (!window.currentPathNodes || window.currentPathNodes.length < 2) {
+        alert('Please select a career pathway first to export skills analysis.');
+        return;
+    }
+    
+    try {
+        // Determine which jobs to analyse based on current context
+        let fromJobId, toJobId;
+        
+        // Check if we have a specific step selected
+        const selectedStepIndex = window.currentSelectedStepIndex || selectedBreadcrumbIndex || 0;
+        
+        if (selectedStepIndex === 0 || window.currentPathNodes.length === 2) {
+            // Full journey or simple two-step journey - from first to last
+            const fromNode = window.currentPathNodes[0];
+            const toNode = window.currentPathNodes[window.currentPathNodes.length - 1];
+            fromJobId = (fromNode.data || fromNode).job_id || (fromNode.data || fromNode).id;
+            toJobId = (toNode.data || toNode).job_id || (toNode.data || toNode).id;
+        } else {
+            // Specific step - from previous to current
+            const fromNode = window.currentPathNodes[selectedStepIndex - 1];
+            const toNode = window.currentPathNodes[selectedStepIndex];
+            fromJobId = (fromNode.data || fromNode).job_id || (fromNode.data || fromNode).id;
+            toJobId = (toNode.data || toNode).job_id || (toNode.data || toNode).id;
+        }
+        
+        if (!fromJobId || !toJobId) {
+            alert('Unable to determine job IDs for skills analysis export.');
+            return;
+        }
+        
+        const exportUrl = `/api/export/skills-analysis/${fromJobId}/${toJobId}`;
+        
+        // Trigger download
+        window.open(exportUrl, '_blank');
+        
+    } catch (error) {
+        console.error('Error exporting skills analysis:', error);
+        alert('Error exporting skills analysis data. Please try again.');
+    }
+}
+
+function exportWorkforceData() {
+    // Check if we have pathway data available
+    if (!window.currentPathNodes || window.currentPathNodes.length === 0) {
+        alert('Please select a career pathway first to export workforce data.');
+        return;
+    }
+    
+    try {
+        // Determine which jobs to analyse based on current context
+        const selectedStepIndex = window.currentSelectedStepIndex || selectedBreadcrumbIndex || 0;
+        let jobIds;
+        
+        if (selectedStepIndex === 0) {
+            // Full journey - all jobs in pathway
+            jobIds = window.currentPathNodes.map(node => {
+                const nodeData = node.data || node;
+                return nodeData.job_id || nodeData.id;
+            }).filter(id => id);
+        } else {
+            // Specific step - jobs up to selected step
+            jobIds = window.currentPathNodes.slice(0, selectedStepIndex + 1).map(node => {
+                const nodeData = node.data || node;
+                return nodeData.job_id || nodeData.id;
+            }).filter(id => id);
+        }
+        
+        if (jobIds.length === 0) {
+            alert('Unable to determine job IDs for workforce analysis export.');
+            return;
+        }
+        
+        const exportUrl = `/api/export/workforce-analysis/${jobIds.join(',')}`;
+        
+        // Trigger download
+        window.open(exportUrl, '_blank');
+        
+    } catch (error) {
+        console.error('Error exporting workforce data:', error);
+        alert('Error exporting workforce data. Please try again.');
+    }
+}
+
+// Populate Workforce Intelligence section
+function populateWorkforceIntelligence(pathNodes) {
+    if (!pathNodes || pathNodes.length === 0) {
+        console.log('🔍 No nodes for workforce analysis');
+        return;
+    }
+    
+    // Mock workforce data based on pathway
+    const totalPositions = pathNodes.length * Math.floor(Math.random() * 50) + 100;
+    const divisionsCount = Math.min(pathNodes.length + 1, 5);
+    const locationsCount = Math.min(pathNodes.length + 2, 8);
+    
+    // Update summary cards
+    document.getElementById('total-positions').textContent = totalPositions.toLocaleString();
+    document.getElementById('divisions-represented').textContent = divisionsCount;
+    document.getElementById('locations-spread').textContent = locationsCount;
+    
+    // Update pathway count
+    document.getElementById('workforce-pathway-count').textContent = `${pathNodes.length} roles in pathway`;
+    
+    // Build workforce table
+    const workforceTable = document.getElementById('workforce-pathway-table');
+    const divisions = ['Business & Private Banking', 'Corporate & Institutional Banking', 'Personal Banking', 'Group Functions', 'Group Technology'];
+    const businessUnits = ['Group Technology', 'Business Banking', 'Corporate Banking', 'Risk Management', 'Finance'];
+    const locations = ['Melbourne', 'Sydney', 'Brisbane', 'Perth', 'Adelaide'];
+    
+    const tableRows = pathNodes.map((node, index) => {
+        const nodeData = node.data || node;
+        const jobTitle = nodeData.name || nodeData.job_title || 'Unknown Role';
+        const isStarting = index === 0;
+        const pathwayRole = isStarting ? 'Starting Role' : `Role ${index}`;
+        
+        // Mock realistic data
+        const positionCount = Math.floor(Math.random() * 30) + 5;
+        const division = divisions[Math.floor(Math.random() * divisions.length)];
+        const businessUnit = businessUnits[Math.floor(Math.random() * businessUnits.length)];
+        const locationSpread = Math.floor(Math.random() * 3) + 2;
+        const locationList = locations.slice(0, locationSpread).join(', ');
+        
+        // Color coding for pathway role
+        let roleClass = 'bg-gray-100 text-gray-800';
+        if (isStarting) {
+            roleClass = 'bg-blue-100 text-blue-800';
+        } else if (index === pathNodes.length - 1) {
+            roleClass = 'bg-indigo-100 text-indigo-800';
+        }
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-3 py-4 break-words">
+                    <div class="text-sm font-source font-medium text-gray-900">${jobTitle}</div>
+                    <div class="text-xs font-source text-gray-500">${nodeData.id || `R${Math.floor(Math.random() * 9999)}.${Math.floor(Math.random() * 9)}`}</div>
+                </td>
+                <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">${division}</td>
+                <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">${businessUnit}</td>
+                <td class="px-3 py-4 text-center">
+                    <span class="text-sm font-source font-medium text-gray-900">${positionCount}</span>
+                    <div class="text-xs font-source text-gray-500">positions</div>
+                </td>
+                <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">${locationList}</td>
+                <td class="px-3 py-4 text-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium ${roleClass}">
+                        ${pathwayRole}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    workforceTable.innerHTML = tableRows;
+    
+    console.log('✅ Workforce intelligence populated');
+}
+
+// Step-specific Workforce Intelligence for breadcrumb selection
+function populateWorkforceIntelligenceForStep(pathNodes, selectedStepIndex) {
+    if (!pathNodes || pathNodes.length === 0) {
+        console.log('🔍 No nodes for step-specific workforce analysis');
+        return;
+    }
+    
+    // Determine which nodes to analyse based on selected step
+    let analysisNodes, contextText;
+    
+    if (selectedStepIndex === 0) {
+        // Starting role selected - show full pathway context
+        analysisNodes = pathNodes;
+        contextText = 'Full Career Journey Context';
+    } else {
+        // Specific transition step selected - focus on this transition
+        analysisNodes = pathNodes.slice(0, selectedStepIndex + 1);
+        contextText = `Step ${selectedStepIndex} Transition Context`;
+    }
+    
+    // Get job IDs for API call - prioritize real JobProfileID over D3 node ID
+    const jobIds = analysisNodes.map(node => {
+        const nodeData = node.data || node;
+        return nodeData.job_id || nodeData.JobProfileID || nodeData.id;
+    }).filter(id => id);
+    
+    // Call real workforce analysis API
+    fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText);
+}
+
+// DISABLED: Build analysis for starting role - causes DOM errors
+function buildStartingRoleAnalysis(startingNode) {
+    console.log('🔍 Starting role analysis disabled - using real API data instead');
+    // This function has been disabled to prevent DOM errors
+    // Real analysis is handled by populateSkillsTransitionAnalysisForStep
+    return;
+    
+    const analysisContainer = document.getElementById('transition-analysis-content');
+    const nodeData = startingNode.data || startingNode;
+    const nodeName = nodeData.name || nodeData.job_title || 'Unknown Role';
+    
+    analysisContainer.innerHTML = `
+        <div class="space-y-3">
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+                <div class="text-sm font-medium text-blue-800">
+                    Starting Role Analysis
+                </div>
+                <div class="text-xs text-blue-600 mt-1">
+                    This is your baseline position for career exploration
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex items-center mr-4">
+                    <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="text-xs font-medium text-gray-600 uppercase">Starting Role</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${nodeName}</div>
+                    <div class="text-xs text-gray-500">Level 0 (Baseline Position)</div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-md p-3 mt-3">
+                <div class="text-xs font-source text-gray-700">
+                    <strong>Role Context:</strong> This is your selected starting position. All career pathways and similarity scores are calculated relative to this baseline role. Use this as your reference point for exploring potential career transitions.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// DISABLED: Build transition analysis for a specific step in the journey - causes DOM errors
+function buildTransitionAnalysisForStep(fromNode, toNode, stepNumber, totalSteps) {
+    console.log('🔍 Transition analysis disabled - using real API data instead');
+    // This function has been disabled to prevent DOM errors
+    // Real analysis is handled by populateSkillsTransitionAnalysisForStep
+    return;
+    
+    const analysisContainer = document.getElementById('transition-analysis-content');
+    
+    const fromData = fromNode.data || fromNode;
+    const toData = toNode.data || toNode;
+    const fromName = fromData.name || fromData.job_title || 'Unknown Role';
+    const toName = toData.name || toData.job_title || 'Unknown Role';
+    const similarityScore = toData.similarity_score || 0;
+    const similarityPercent = Math.round(similarityScore * 100);
+    
+    const fromLevel = fromNode.depth !== undefined ? fromNode.depth : stepNumber - 1;
+    const toLevel = toNode.depth !== undefined ? toNode.depth : stepNumber;
+    
+    // Determine transition context with journey position
+    let transitionContext = '';
+    let journeyPosition = '';
+    
+    if (stepNumber === 1) {
+        transitionContext = 'This is the <strong>first transition</strong> from your starting role.';
+        journeyPosition = 'Direct transition from baseline';
+    } else if (stepNumber === totalSteps) {
+        transitionContext = `This is the <strong>final transition</strong> to your selected target role.`;
+        journeyPosition = `Step ${stepNumber} of ${totalSteps - 1} (Final)`;
+    } else {
+        transitionContext = `This is <strong>step ${stepNumber}</strong> in your career progression journey.`;
+        journeyPosition = `Step ${stepNumber} of ${totalSteps - 1} (Intermediate)`;
+    }
+    
+    // Build step-specific analysis
+    analysisContainer.innerHTML = `
+        <div class="space-y-3">
+            <div class="bg-indigo-50 border border-indigo-200 rounded-md p-3 mb-3">
+                <div class="text-sm font-medium text-indigo-800">
+                    Transition Analysis: ${toName}
+                </div>
+                <div class="text-xs text-indigo-600 mt-1">
+                    ${transitionContext} • ${journeyPosition}
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex items-center mr-4">
+                    <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="text-xs font-medium text-gray-600 uppercase">FROM</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${fromName}</div>
+                    <div class="text-xs text-gray-500">Level ${fromLevel} ${fromLevel === 0 ? '(Starting Role)' : ''}</div>
+                </div>
+            </div>
+            
+            <div class="flex items-center ml-6">
+                <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+                <span class="text-sm font-medium ${
+                    similarityPercent >= 70 ? 'text-green-600' :
+                    similarityPercent >= 50 ? 'text-yellow-600' :
+                    'text-red-600'
+                }">${similarityPercent}% Similarity Match</span>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="flex items-center mr-4">
+                    <div class="w-3 h-3 bg-indigo-500 rounded-full mr-2"></div>
+                    <span class="text-xs font-medium text-gray-600 uppercase">TO</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${toName}</div>
+                    <div class="text-xs text-gray-500">Level ${toLevel}</div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-md p-3 mt-3">
+                <div class="text-xs font-source text-gray-700">
+                    <strong>Step ${stepNumber} Analysis:</strong> ${transitionContext} The ${similarityPercent}% similarity score represents the direct match between <em>"${fromName}"</em> and <em>"${toName}"</em> based on shared skills, responsibilities, and requirements.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to focus on a node in the tree (for breadcrumb clicks)
+function focusOnNode(nodeId) {
+    // Find the node in the current tree
+    if (!pathwayRoot) return;
+    
+    const allNodes = pathwayRoot.descendants();
+    const targetNode = allNodes.find(n => n.id === nodeId);
+    
+    if (targetNode) {
+        // Show pathway details for the clicked breadcrumb node
+        showPathwayDetails(targetNode);
+        
+        // Update the tree highlighting
+        lastClickedNode = targetNode;
+        updatePathwayNodes(pathwayRoot);
+        
+        console.log('🎯 Focused on breadcrumb node:', targetNode.data?.name || targetNode.name);
+    }
+}
+
+function closePathwayDetails() {
+    document.getElementById('pathway-details-panel').classList.add('hidden');
+    document.getElementById('workforce-intelligence-panel').classList.add('hidden');
+}
+
+function exportPathwayDetails() {
+    // Get current pathway data
+    const similarityScore = document.getElementById('pathway-similarity-score').textContent;
+    const sharedSkills = document.getElementById('pathway-shared-skills').textContent;
+    const difficultyScore = document.getElementById('pathway-difficulty-score').textContent;
+    const moveType = document.getElementById('pathway-move-type').textContent;
+    
+    // Create CSV content
+    const csvContent = [
+        ['Metric', 'Value'],
+        ['Similarity Score', similarityScore],
+        ['Shared Skills', sharedSkills],
+        ['Difficulty Score', difficultyScore],
+        ['Move Type', moveType]
+    ].map(row => row.join(',')).join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pathway-details.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Filter Panel Toggle Function
+function toggleFilterPanel() {
+    const content = document.getElementById('filter-panel-content');
+    const chevron = document.getElementById('filter-panel-chevron');
+    const status = document.getElementById('filter-panel-status');
+    
+    const isExpanded = !content.classList.contains('collapsed');
+    
+    if (isExpanded) {
+        // Collapse the panel
+        content.classList.add('collapsed');
+        content.style.maxHeight = '0px';
+        chevron.style.transform = 'rotate(-90deg)';
+        status.textContent = 'Click to expand filters';
+    } else {
+        // Expand the panel
+        content.classList.remove('collapsed');
+        content.style.maxHeight = content.scrollHeight + 'px';
+        chevron.style.transform = 'rotate(0deg)';
+        status.textContent = 'Click to collapse filters';
+    }
+}
+
+// Initialize filter panel state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const content = document.getElementById('filter-panel-content');
+    // Set initial collapsed state
+    content.classList.add('collapsed');
+    content.style.maxHeight = '0px';
+});
 </script>
 
 <style>
@@ -2132,6 +4103,44 @@ function showPathwayHelp() {
     background: #dc2626;
     cursor: pointer;
     border: none;
+}
+
+/* Enhanced tree node highlighting */
+.pathway-node-circle {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Breadcrumb selection transitions */
+[onclick^="showJourneyStep"] {
+    transition: all 0.3s ease-in-out;
+}
+
+[onclick^="showJourneyStep"]:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Pulse animation for selected breadcrumb */
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* Apply pulse to selected breadcrumb */
+.ring-4.ring-blue-500 {
+    animation: pulse-ring 2s infinite;
+}
+
+/* Skills and Workforce context indicators */
+.context-transition {
+    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
 }
 </style>
 

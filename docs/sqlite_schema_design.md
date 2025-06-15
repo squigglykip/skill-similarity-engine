@@ -1,10 +1,10 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Business Context Database
 
-**Generated**: 2025-06-14 10:45:50
+**Generated**: 2025-06-15 17:02:44
 **Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
-**Database Size**: 80.89 MB
-**Last Modified**: 2025-06-13T18:36:22.382150
+**Database Size**: 81.0 MB
+**Last Modified**: 2025-06-15T16:47:01.827018
 
 ---
 
@@ -45,7 +45,7 @@ to support career pathway analysis and workforce planning.
 - **Total Tables**: 7
 - **Total Records**: 603,374
 - **Total Indexes**: 18
-- **Database Size**: 80.89 MB
+- **Database Size**: 81.0 MB
 
 ## Entity Relationship Diagram
 
@@ -89,6 +89,7 @@ erDiagram
 
     POSITIONS {
         text Position Number PK
+        text Position Name
         text JobProfileID FK
         text Employee Number
         text Division
@@ -164,27 +165,59 @@ CREATE TABLE career_pathways (
 - `target_job_id` → `jobs.JobProfileID`
 - `source_job_id` → `jobs.JobProfileID`
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **source_job_id**: 715 unique values, avg length 7.0
-- **target_job_id**: 699 unique values, avg length 7.0
-- **similarity_rank**: 12 unique values, range 1 - 12
-- **similarity_score**: Range 0.1389 - 1.0000, avg 0.6641
-- **skill_overlap_score**: Range 0.1389 - 1.0000, avg 0.6641
-- **shared_skills_count**: 17 unique values, range 2 - 20
-- **career_move_type**: 2 unique values, avg length 9.98
-- **difficulty_score**: Range 0.0000 - 0.8611, avg 0.3359
+- **source_job_id**: 715 unique values (8,580 non-null), avg length 7.0
+- **target_job_id**: 699 unique values (8,580 non-null), avg length 7.0
+- **similarity_rank**: 12 unique values (8,580 non-null), range 1 - 12
+- **similarity_score**: 325 unique values (8,580 non-null), range 0.1389 - 1.0000, avg 0.6641
+- **skill_overlap_score**: 325 unique values (8,580 non-null), range 0.1389 - 1.0000, avg 0.6641
+- **shared_skills_count**: 17 unique values (8,580 non-null), range 2 - 20
+- **career_move_type**: 2 unique values (8,580 non-null), avg length 9.98
+- **difficulty_score**: 325 unique values (8,580 non-null), range 0.0000 - 0.8611, avg 0.3359
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `source_job_id`: R0001.5
-- `target_job_id`: R0001.6
-- `similarity_rank`: 1
-- `similarity_score`: 1.0
-- `skill_overlap_score`: 1.0
-- `shared_skills_count`: 20
-- `career_move_type`: lateral
-- `difficulty_score`: 0.0
+- **source_job_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **target_job_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **similarity_rank**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+- **similarity_score**: `1.0`, `0.813953488372093`, `0.8`, `0.7954545454545454`, `0.7708333333333334`, `0.7692307692307693`, `0.7543859649122807`, `0.75`, `0.7446808510638298`, `0.7413793103448276`
+- **skill_overlap_score**: `1.0`, `0.5294117647058824`, `0.4264705882352941`, `0.4117647058823529`, `0.673469387755102`, `0.5510204081632653`, `0.3823529411764705`, `0.3235294117647059`, `0.2352941176470588`, `0.2058823529411764`
+- **shared_skills_count**: `20`, `10`, `8`, `13`, `11`, `7`, `6`, `4`, `5`, `3`
+- **career_move_type**: `lateral`, `progression`
+- **difficulty_score**: `0.0`, `0.47058823529411764`, `0.5735294117647058`, `0.5882352941176471`, `0.326530612244898`, `0.44897959183673475`, `0.6176470588235294`, `0.6764705882352942`, `0.7647058823529412`, `0.7941176470588236`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `source_job_id`: R0001.5
+  - `target_job_id`: R0001.6
+  - `similarity_rank`: 1
+  - `similarity_score`: 1.0
+  - `skill_overlap_score`: 1.0
+  - `shared_skills_count`: 20
+  - `career_move_type`: lateral
+  - `difficulty_score`: 0.0
+
+**Record 2:**
+  - `source_job_id`: R0001.5
+  - `target_job_id`: R0053.0
+  - `similarity_rank`: 2
+  - `similarity_score`: 0.5294117647058824
+  - `skill_overlap_score`: 0.5294117647058824
+  - `shared_skills_count`: 10
+  - `career_move_type`: progression
+  - `difficulty_score`: 0.47058823529411764
+
+**Record 3:**
+  - `source_job_id`: R0001.5
+  - `target_job_id`: R0053.1
+  - `similarity_rank`: 3
+  - `similarity_score`: 0.5294117647058824
+  - `skill_overlap_score`: 0.5294117647058824
+  - `shared_skills_count`: 10
+  - `career_move_type`: progression
+  - `difficulty_score`: 0.47058823529411764
 
 ---
 
@@ -207,21 +240,38 @@ CREATE TABLE job_similarities (
 - `job_to` → `jobs.JobProfileID`
 - `job_from` → `jobs.JobProfileID`
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **job_from**: 715 unique values, avg length 7.0
-- **job_to**: 715 unique values, avg length 7.0
-- **similarity_score**: Range 0.0000 - 1.0000, avg 0.3419
-- **skill_overlap_score**: Range 0.0000 - 0.0000, avg 0.0000
-- **shared_skills_count**: 0 unique values, range 0 - 0
-- **total_skills_from**: 0 unique values, range 0 - 0
-- **total_skills_to**: 0 unique values, range 0 - 0
+- **job_from**: 715 unique values (510,510 non-null), avg length 7.0
+- **job_to**: 715 unique values (510,510 non-null), avg length 7.0
+- **similarity_score**: 1,106 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.3419
+- **skill_overlap_score**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
+- **shared_skills_count**: 0 unique values (0 non-null), range 0 - 0
+- **total_skills_from**: 0 unique values (0 non-null), range 0 - 0
+- **total_skills_to**: 0 unique values (0 non-null), range 0 - 0
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `job_from`: R0001.5
-- `job_to`: R0001.6
-- `similarity_score`: 1.0
+- **job_from**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **job_to**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **similarity_score**: `1.0`, `0.8604651162790697`, `0.813953488372093`, `0.8048780487804879`, `0.8`, `0.7959183673469388`, `0.7954545454545454`, `0.7906976744186046`, `0.7843137254901961`, `0.78`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `job_from`: R0001.5
+  - `job_to`: R0001.6
+  - `similarity_score`: 1.0
+
+**Record 2:**
+  - `job_from`: R0001.5
+  - `job_to`: R0002.0
+  - `similarity_score`: 0.3529411764705882
+
+**Record 3:**
+  - `job_from`: R0001.5
+  - `job_to`: R0002.1
+  - `similarity_score`: 0.3529411764705882
 
 ---
 
@@ -240,17 +290,34 @@ CREATE TABLE job_skills (
 - `Skill_ID` → `skills.Skill_ID`
 - `JobProfileID` → `jobs.JobProfileID`
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **JobProfileID**: 715 unique values, avg length 7.0
-- **Skill_ID**: 2,091 unique values, avg length 20.0
-- **Skill_Weight**: Range 1.0000 - 1.0000, avg 1.0000
+- **JobProfileID**: 715 unique values (40,170 non-null), avg length 7.0
+- **Skill_ID**: 2,091 unique values (40,170 non-null), avg length 20.0
+- **Skill_Weight**: 1 unique values (40,170 non-null), range 1.0000 - 1.0000, avg 1.0000
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `JobProfileID`: R0001.5
-- `Skill_ID`: BGSD16A8EEF4F5775E15
-- `Skill_Weight`: 1.0
+- **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **Skill_ID**: `BGS10EE289B9FDE2C4B1`, `BGS11665AC6BD06C5EBD`, `BGS117E3FE9519A5B542`, `BGS1241B6719A7FE041D`, `BGS1250D82C4B027A171`, `BGS147DBB4CF132F0523`, `BGS152BE1A314EFF3FE3`, `BGS166A638195D1E2BAE`, `BGS16C952D775A16E650`, `BGS1737E89A3E6B7A57C`
+- **Skill_Weight**: `1.0`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `JobProfileID`: R0001.5
+  - `Skill_ID`: BGSD16A8EEF4F5775E15
+  - `Skill_Weight`: 1.0
+
+**Record 2:**
+  - `JobProfileID`: R0001.5
+  - `Skill_ID`: ES147CB8BEA5CF1AF1F6
+  - `Skill_Weight`: 1.0
+
+**Record 3:**
+  - `JobProfileID`: R0001.5
+  - `Skill_ID`: ES203B9B0426DA590EDF
+  - `Skill_Weight`: 1.0
 
 ---
 
@@ -267,23 +334,49 @@ CREATE TABLE jobs (
 );
 ```
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **JobProfileID**: 715 unique values, avg length 7.0
-- **JobProfile**: 336 unique values, avg length 33.44
-- **JobID**: 240 unique values, avg length 5.0
-- **Job**: 53 unique values, avg length 19.98
-- **JobFamily**: 8 unique values, avg length 19.06
-- **JobFamilyGroup**: 7 unique values, avg length 14.76
+- **JobProfileID**: 715 unique values (715 non-null), avg length 7.0
+- **JobProfile**: 336 unique values (715 non-null), avg length 33.44
+- **JobID**: 240 unique values (715 non-null), avg length 5.0
+- **Job**: 53 unique values (715 non-null), avg length 19.98
+- **JobFamily**: 8 unique values (715 non-null), avg length 19.06
+- **JobFamilyGroup**: 7 unique values (715 non-null), avg length 14.76
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `JobProfileID`: R0001.5
-- `JobProfile`: Analyst - Data Governance Specialist
-- `JobID`: J0001
-- `Job`: Data Governance Specialist
-- `JobFamily`: Data & Analytics
-- `JobFamilyGroup`: Technology
+- **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **JobProfile**: `Analyst - Data Governance S...`, `Data Scientist - Manager`, `Senior Associate Executive ...`, `Analyst - Executive Director`, `Systems Analyst - Director`, `Graduate - Financial Analyst`, `Senior Associate Operations...`, `Graduate - Executive Director`, `Senior Associate Budget Ana...`, `Employee Relations Speciali...`
+- **JobID**: `J0001`, `J0002`, `J0003`, `J0005`, `J0007`, `J0009`, `J0010`, `J0022`, `J0023`, `J0025`
+- **Job**: `Data Governance Specialist`, `Data Scientist`, `Executive Director`, `Systems Analyst`, `Financial Analyst`, `Operations Analyst`, `Budget Analyst`, `Employee Relations Specialist`, `Organisational Development ...`, `General Manager`
+- **JobFamily**: `Banking Operations`, `Customer Service & Sales`, `Data & Analytics`, `Executive Leadership`, `Finance & Accounting`, `Human Resources`, `Risk & Compliance`, `Technology & Engineering`
+- **JobFamilyGroup**: `Customer & Commercial`, `Executive & Leadership`, `Finance`, `Operations`, `Risk & Control Functions`, `Support Functions`, `Technology`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `JobProfileID`: R0001.5
+  - `JobProfile`: Analyst - Data Governance Specialist
+  - `JobID`: J0001
+  - `Job`: Data Governance Specialist
+  - `JobFamily`: Data & Analytics
+  - `JobFamilyGroup`: Technology
+
+**Record 2:**
+  - `JobProfileID`: R0001.6
+  - `JobProfile`: Data Scientist - Manager
+  - `JobID`: J0001
+  - `Job`: Data Scientist
+  - `JobFamily`: Data & Analytics
+  - `JobFamilyGroup`: Technology
+
+**Record 3:**
+  - `JobProfileID`: R0002.0
+  - `JobProfile`: Senior Associate Executive Director
+  - `JobID`: J0002
+  - `Job`: Executive Director
+  - `JobFamily`: Executive Leadership
+  - `JobFamilyGroup`: Executive & Leadership
 
 ---
 
@@ -292,6 +385,7 @@ CREATE TABLE jobs (
 ```sql
 CREATE TABLE positions (
     Position Number TEXT PRIMARY KEY,
+    Position Name TEXT,
     JobProfileID TEXT,
     Employee Number TEXT,
     Division TEXT,
@@ -316,47 +410,114 @@ CREATE TABLE positions (
 
 - `JobProfileID` → `jobs.JobProfileID`
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **Position Number**: 5,000 unique values, avg length 8.0
-- **JobProfileID**: 628 unique values, avg length 7.0
-- **Employee Number**: 3,501 unique values, avg length 5.6
-- **Division**: 6 unique values, avg length 20.27
-- **Business_Unit**: 10 unique values, avg length 14.4
-- **Team**: 10 unique values, avg length 24.52
-- **SubTeam**: 30 unique values, avg length 7.0
-- **Function**: 26 unique values, avg length 7.0
-- **SubFunction**: 20 unique values, avg length 5.54
-- **Org_Level_8**: 50 unique values, avg length 8.0
-- **Org_Level_9**: 30 unique values, avg length 7.0
-- **Org_Level_10**: 100 unique values, avg length 8.0
-- **Location**: 6 unique values, avg length 8.51
-- **Rg**: 5 unique values, avg length 2.66
-- **Cty**: 1 unique values, avg length 2.0
-- **Employee Group**: 5 unique values, avg length 6.15
-- **Salary Group**: 9 unique values, avg length 7.0
-- **Employee Subgroup**: 4 unique values, avg length 5.6
+- **Position Number**: 5,000 unique values (5,000 non-null), avg length 8.0
+- **Position Name**: 580 unique values (5,000 non-null), avg length 21.92
+- **JobProfileID**: 628 unique values (5,000 non-null), avg length 7.0
+- **Employee Number**: 3,501 unique values (5,000 non-null), avg length 5.6
+- **Division**: 6 unique values (5,000 non-null), avg length 20.27
+- **Business_Unit**: 10 unique values (5,000 non-null), avg length 14.4
+- **Team**: 10 unique values (5,000 non-null), avg length 24.52
+- **SubTeam**: 30 unique values (5,000 non-null), avg length 7.0
+- **Function**: 26 unique values (5,000 non-null), avg length 7.0
+- **SubFunction**: 20 unique values (5,000 non-null), avg length 5.54
+- **Org_Level_8**: 50 unique values (5,000 non-null), avg length 8.0
+- **Org_Level_9**: 30 unique values (5,000 non-null), avg length 7.0
+- **Org_Level_10**: 100 unique values (5,000 non-null), avg length 8.0
+- **Location**: 6 unique values (5,000 non-null), avg length 8.51
+- **Rg**: 5 unique values (5,000 non-null), avg length 2.66
+- **Cty**: 1 unique values (5,000 non-null), avg length 2.0
+- **Employee Group**: 5 unique values (5,000 non-null), avg length 6.15
+- **Salary Group**: 9 unique values (5,000 non-null), avg length 7.0
+- **Employee Subgroup**: 4 unique values (5,000 non-null), avg length 5.6
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `Position Number`: 50000000
-- `JobProfileID`: R0453.0
-- `Employee Number`: 102031.0
-- `Division`: Technology
-- `Business_Unit`: Corporate Banking
-- `Team`: Wealth Management Operations
-- `SubTeam`: Team 20
-- `Function`: Squad D
-- `SubFunction`: Pod 18
-- `Org_Level_8`: Unit 047
-- `Org_Level_9`: Cell 12
-- `Org_Level_10`: Node 060
-- `Location`: Adelaide
-- `Rg`: SA
-- `Cty`: AU
-- `Employee Group`: Casual
-- `Salary Group`: Group 7
-- `Employee Subgroup`: Part Time
+- **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **Position Name**: `Data Manager`, `Risk Senior Developer`, `Technology Principal Specia...`, `Investment Senior Developer`, `Markets Principal Developer`, `Legal Executive Advisor`, `Audit Principal Consultant`, `Credit Vice President`, `Marketing Consultant`, `Treasury Engineer`
+- **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
+- **Employee Number**: `102031.0`, `100121.0`, `100644.0`, `102831.0`, `101745.0`, `102052.0`, `101642.0`, `103249.0`, `102673.0`, `102992.0`
+- **Division**: `Business & Private Banking`, `Corporate & Institutional B...`, `Customer Banking & Wealth`, `Group Functions`, `NAB Ventures`, `Technology`
+- **Business_Unit**: `Business Banking`, `Corporate Banking`, `Finance`, `Human Resources`, `Legal & Compliance`, `NAB Ventures`, `Personal Banking`, `Risk Management`, `Technology`, `Wealth Management`
+- **Team**: `Business Banking Operations`, `Corporate Banking Operations`, `Finance Strategy`, `Human Resources Strategy`, `Legal & Compliance Strategy`, `NAB Ventures Operations`, `Personal Banking Operations`, `Risk Management Strategy`, `Technology Operations`, `Wealth Management Operations`
+- **SubTeam**: `Team 20`, `Team 02`, `Team 19`, `Team 27`, `Team 15`, `Team 22`, `Team 13`, `Team 12`, `Team 25`, `Team 05`
+- **Function**: `Squad A`, `Squad B`, `Squad C`, `Squad D`, `Squad E`, `Squad F`, `Squad G`, `Squad H`, `Squad I`, `Squad J`
+- **SubFunction**: `Pod 18`, `Pod 12`, `Pod 15`, `Pod 5`, `Pod 13`, `Pod 2`, `Pod 20`, `Pod 1`, `Pod 9`, `Pod 4`
+- **Org_Level_8**: `Unit 047`, `Unit 011`, `Unit 020`, `Unit 040`, `Unit 005`, `Unit 017`, `Unit 035`, `Unit 048`, `Unit 038`, `Unit 008`
+- **Org_Level_9**: `Cell 12`, `Cell 21`, `Cell 22`, `Cell 17`, `Cell 14`, `Cell 07`, `Cell 11`, `Cell 09`, `Cell 16`, `Cell 18`
+- **Org_Level_10**: `Node 060`, `Node 067`, `Node 023`, `Node 073`, `Node 039`, `Node 065`, `Node 078`, `Node 033`, `Node 014`, `Node 027`
+- **Location**: `Adelaide`, `Brisbane City`, `Docklands`, `Parramatta`, `Perth`, `Sydney`
+- **Rg**: `SA`, `QLD`, `VIC`, `NSW`, `WA`
+- **Cty**: `AU`
+- **Employee Group**: `Casual`, `Contractor`, `Permanent`, `Fixed Term`, ``
+- **Salary Group**: `Group 7`, `Group 1`, `Group 5`, `Group 6`, `Group 3`, `External`, `Group 4`, `Group 2`, `Casual`
+- **Employee Subgroup**: `Part Time`, `Full Time`, `Casual`, ``
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `Position Number`: 50000000
+  - `Position Name`: Data Manager
+  - `JobProfileID`: R0453.0
+  - `Employee Number`: 102031.0
+  - `Division`: Technology
+  - `Business_Unit`: Corporate Banking
+  - `Team`: Wealth Management Operations
+  - `SubTeam`: Team 20
+  - `Function`: Squad D
+  - `SubFunction`: Pod 18
+  - `Org_Level_8`: Unit 047
+  - `Org_Level_9`: Cell 12
+  - `Org_Level_10`: Node 060
+  - `Location`: Adelaide
+  - `Rg`: SA
+  - `Cty`: AU
+  - `Employee Group`: Casual
+  - `Salary Group`: Group 7
+  - `Employee Subgroup`: Part Time
+
+**Record 2:**
+  - `Position Number`: 50000001
+  - `Position Name`: Risk Senior Developer
+  - `JobProfileID`: R0400.6
+  - `Employee Number`: 100121.0
+  - `Division`: NAB Ventures
+  - `Business_Unit`: Finance
+  - `Team`: Business Banking Operations
+  - `SubTeam`: Team 02
+  - `Function`: Squad Y
+  - `SubFunction`: Pod 12
+  - `Org_Level_8`: Unit 011
+  - `Org_Level_9`: Cell 21
+  - `Org_Level_10`: Node 067
+  - `Location`: Parramatta
+  - `Rg`: NSW
+  - `Cty`: AU
+  - `Employee Group`: Contractor
+  - `Salary Group`: Group 1
+  - `Employee Subgroup`: Part Time
+
+**Record 3:**
+  - `Position Number`: 50000002
+  - `Position Name`: Technology Principal Specialist
+  - `JobProfileID`: R0465.3
+  - `Employee Number`: 100644.0
+  - `Division`: NAB Ventures
+  - `Business_Unit`: Business Banking
+  - `Team`: Legal & Compliance Strategy
+  - `SubTeam`: Team 19
+  - `Function`: Squad U
+  - `SubFunction`: Pod 18
+  - `Org_Level_8`: Unit 020
+  - `Org_Level_9`: Cell 22
+  - `Org_Level_10`: Node 023
+  - `Location`: Parramatta
+  - `Rg`: NSW
+  - `Cty`: AU
+  - `Employee Group`: Contractor
+  - `Salary Group`: Group 5
+  - `Employee Subgroup`: Full Time
 
 ---
 
@@ -370,17 +531,34 @@ CREATE TABLE schema_metadata (
 );
 ```
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **key**: 4 unique values, avg length 12.0
-- **value**: 4 unique values, avg length 27.5
-- **created_at**: 1 unique values, avg length 26.0
+- **key**: 4 unique values (4 non-null), avg length 12.0
+- **value**: 4 unique values (4 non-null), avg length 27.5
+- **created_at**: 1 unique values (4 non-null), avg length 26.0
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `key`: schema_version
-- `value`: 1.0
-- `created_at`: 2025-06-13T18:36:07.482003
+- **key**: `created_date`, `purpose`, `schema_version`, `source_document`
+- **value**: `1.0`, `2025-06-15T16:46:46.146146`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
+- **created_at**: `2025-06-15T16:46:46.146146`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `key`: schema_version
+  - `value`: 1.0
+  - `created_at`: 2025-06-15T16:46:46.146146
+
+**Record 2:**
+  - `key`: created_date
+  - `value`: 2025-06-15T16:46:46.146146
+  - `created_at`: 2025-06-15T16:46:46.146146
+
+**Record 3:**
+  - `key`: source_document
+  - `value`: docs/sqlite_schema_design.md
+  - `created_at`: 2025-06-15T16:46:46.146146
 
 ---
 
@@ -405,38 +583,88 @@ CREATE TABLE skills (
 );
 ```
 
-**Key Column Statistics:**
+**Column Statistics:**
 
-- **Skill_ID**: 38,395 unique values, avg length 20.0
-- **Skill_Name**: 38,395 unique values, avg length 19.68
-- **Category**: 29 unique values, avg length 0.2
-- **Subcategory**: 191 unique values, avg length 0.23
-- **SkillType**: 4 unique values, avg length 1.64
-- **Latest_Version**: 48 unique values, avg length 3.98
-- **Description**: 2,422 unique values, avg length 24.08
-- **Info_URL**: 3,731 unique values, avg length 5.83
-- **Category_ID**: 29 unique values, range 0 - 0
-- **Subcategory_ID**: 187 unique values, range 100 - 0
-- **Type_ID**: 4 unique values, avg length 0.29
-- **Market_Demand**: 1 unique values, avg length 0
-- **Rarity_Score**: Range 0.0000 - 0.0000, avg 0.0000
+- **Skill_ID**: 38,395 unique values (38,395 non-null), avg length 20.0
+- **Skill_Name**: 38,395 unique values (38,395 non-null), avg length 19.68
+- **Category**: 29 unique values (38,395 non-null), avg length 0.2
+- **Subcategory**: 191 unique values (38,395 non-null), avg length 0.23
+- **SkillType**: 4 unique values (38,395 non-null), avg length 1.64
+- **Latest_Version**: 48 unique values (38,395 non-null), avg length 3.98
+- **Description**: 2,422 unique values (38,395 non-null), avg length 24.08
+- **Info_URL**: 3,731 unique values (38,395 non-null), avg length 5.83
+- **Category_ID**: 29 unique values (38,395 non-null), range 0 - 0
+- **Subcategory_ID**: 187 unique values (38,395 non-null), range 100 - 0
+- **Type_ID**: 4 unique values (38,395 non-null), avg length 0.29
+- **Market_Demand**: 1 unique values (38,395 non-null), avg length 0
+- **Rarity_Score**: 1 unique values (38,395 non-null), range 0.0000 - 0.0000, avg 0.0000
 
-**Sample Records:**
+**Sample Data by Column:**
 
-- `Skill_ID`: BGS1024316C916ACCFA3
-- `Skill_Name`: DX Spectrum
-- `Category`: Information Technology
-- `Subcategory`: Enterprise Information Management
-- `SkillType`: Specialized Skill
-- `Latest_Version`: 8.5
-- `Description`: 
-- `Info_URL`: https://lightcast.io/open-skills/skills/BGS1024...
-- `Is_Language`: 0
-- `Category_ID`: 17
-- `Subcategory_ID`: 411
-- `Type_ID`: ST1
-- `Market_Demand`: 
-- `Rarity_Score`: 
+- **Skill_ID**: `BGS1024316C916ACCFA3`, `BGS105C99F084505B956`, `BGS1080D1F8CED414379`, `BGS10AB6DEBB81A2E88C`, `BGS10B5E145CA48862FC`, `BGS10CBE4935DDCAE5AD`, `BGS10EE289B9FDE2C4B1`, `BGS10F3F05054C5731C2`, `BGS10F94E4049444B523`, `BGS110587665F051DF29`
+- **Skill_Name**: `DX Spectrum`, `Microsoft Sysprep`, `Application Remediation`, `Clinical Assay`, `Welding Tips`, `Apoptosis`, `Investment Account Management`, `GPS Data`, `Bill Of Materials`, `Video Remote Interpreting (...`
+- **Category**: ``, `Administration`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Education and Training`, `Energy and Utilities`, `Engineering`
+- **Subcategory**: ``, `Administrative Support and ...`, `Document Management`, `Office Management`, `Office and Productivity Equ...`, `Office and Productivity Sof...`, `Scheduling`, `Data Analysis`, `Data Science`, `Data Visualization`
+- **SkillType**: `Specialized Skill`, ``, `Certification`, `Common Skill`
+- **Latest_Version**: `8.5`, `9.31`, `8.4`, `8.2`, `8.6`, `8.11`, `8.27`, `8.3`, `8.8`, `8.9`
+- **Description**: ``, `Respiratory diseases, or lu...`, `In law as practiced in coun...`, `A presentation conveys info...`, `A fuel is any material that...`, `A cardiac stress test is a ...`, `Micromachines are mechanica...`, `Phlebotomy is the process o...`, `A topical medication is a m...`, `A complication in medicine,...`
+- **Info_URL**: `https://lightcast.io/open-s...`, ``, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`
+- **Is_Language**: `0`, ``, `1`
+- **Category_ID**: `17`, ``, `14`, `7`, `19`, `0`, `21`, `6`, `11`, `1`
+- **Subcategory_ID**: `411`, ``, `491`, `289`, `175`, `494`, `345`, `507`, `177`, `447`
+- **Type_ID**: `ST1`, ``, `ST3`, `ST2`
+- **Market_Demand**: ``
+- **Rarity_Score**: ``
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `Skill_ID`: BGS1024316C916ACCFA3
+  - `Skill_Name`: DX Spectrum
+  - `Category`: Information Technology
+  - `Subcategory`: Enterprise Information Management
+  - `SkillType`: Specialized Skill
+  - `Latest_Version`: 8.5
+  - `Description`: 
+  - `Info_URL`: https://lightcast.io/open-skills/skills/BGS1024...
+  - `Is_Language`: 0
+  - `Category_ID`: 17
+  - `Subcategory_ID`: 411
+  - `Type_ID`: ST1
+  - `Market_Demand`: 
+  - `Rarity_Score`: 
+
+**Record 2:**
+  - `Skill_ID`: BGS105C99F084505B956
+  - `Skill_Name`: Microsoft Sysprep
+  - `Category`: 
+  - `Subcategory`: 
+  - `SkillType`: 
+  - `Latest_Version`: 9.31
+  - `Description`: 
+  - `Info_URL`: 
+  - `Is_Language`: 
+  - `Category_ID`: 
+  - `Subcategory_ID`: 
+  - `Type_ID`: 
+  - `Market_Demand`: 
+  - `Rarity_Score`: 
+
+**Record 3:**
+  - `Skill_ID`: BGS1080D1F8CED414379
+  - `Skill_Name`: Application Remediation
+  - `Category`: 
+  - `Subcategory`: 
+  - `SkillType`: 
+  - `Latest_Version`: 9.31
+  - `Description`: 
+  - `Info_URL`: 
+  - `Is_Language`: 
+  - `Category_ID`: 
+  - `Subcategory_ID`: 
+  - `Type_ID`: 
+  - `Market_Demand`: 
+  - `Rarity_Score`: 
 
 ---
 
@@ -697,4 +925,4 @@ This schema documentation should be used to:
 3. **Validate data integrity** during pipeline updates
 4. **Plan schema evolution** for future requirements
 
-**Last Updated**: 2025-06-14 10:45:50
+**Last Updated**: 2025-06-15 17:02:44
