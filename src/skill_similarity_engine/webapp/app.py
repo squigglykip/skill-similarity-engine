@@ -704,6 +704,237 @@ def create_app(config=None):
             }
         })
 
+    @app.route('/api/skills-analysis/<from_job_id>/<to_job_id>')
+    def api_skills_analysis(from_job_id, to_job_id):
+        """API endpoint for skills transition analysis between two jobs."""
+        try:
+            db = get_db()
+            
+            # Get skills for both jobs with skill metadata
+            skills_query = """
+            WITH job1_skills AS (
+                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
+                FROM job_skills js
+                JOIN skills s ON js.Skill_ID = s.Skill_ID
+                WHERE js.JobProfileID = ?
+            ),
+            job2_skills AS (
+                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
+                FROM job_skills js
+                JOIN skills s ON js.Skill_ID = s.Skill_ID
+                WHERE js.JobProfileID = ?
+            ),
+            skills_matched AS (
+                SELECT j1.Skill_ID, j1.Skill_Name, j1.Category, j1.Subcategory, j1.SkillType
+                FROM job1_skills j1
+                INNER JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
+            ),
+            skills_to_develop AS (
+                SELECT j2.Skill_ID, j2.Skill_Name, j2.Category, j2.Subcategory, j2.SkillType
+                FROM job2_skills j2
+                LEFT JOIN job1_skills j1 ON j2.Skill_ID = j1.Skill_ID
+                WHERE j1.Skill_ID IS NULL
+            ),
+            skills_transferable AS (
+                SELECT j1.Skill_ID, j1.Skill_Name, j1.Category, j1.Subcategory, j1.SkillType
+                FROM job1_skills j1
+                LEFT JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
+                WHERE j2.Skill_ID IS NULL
+            )
+            SELECT 
+                'matched' as skill_status,
+                COUNT(*) as skill_count,
+                SkillType,
+                Category
+            FROM skills_matched
+            GROUP BY SkillType, Category
+            UNION ALL
+            SELECT 
+                'develop' as skill_status,
+                COUNT(*) as skill_count,
+                SkillType,
+                Category
+            FROM skills_to_develop
+            GROUP BY SkillType, Category
+            UNION ALL
+            SELECT 
+                'transferable' as skill_status,
+                COUNT(*) as skill_count,
+                SkillType,
+                Category
+            FROM skills_transferable
+            GROUP BY SkillType, Category
+            """
+            
+            skills_analysis = db.execute(skills_query, (from_job_id, to_job_id)).fetchall()
+            
+            # Calculate summary metrics
+            skills_matched = sum(row['skill_count'] for row in skills_analysis if row['skill_status'] == 'matched')
+            skills_to_develop = sum(row['skill_count'] for row in skills_analysis if row['skill_status'] == 'develop')
+            skills_transferable = sum(row['skill_count'] for row in skills_analysis if row['skill_status'] == 'transferable')
+            
+            # Calculate difficulty based on skills overlap
+            total_required_skills = skills_matched + skills_to_develop
+            difficulty = 'Low' if total_required_skills == 0 else (
+                'Low' if skills_to_develop / total_required_skills <= 0.3 else
+                'Medium' if skills_to_develop / total_required_skills <= 0.6 else 'High'
+            )
+            
+            # Get detailed skills for each category (SQLite compatible)
+            detailed_skills_query = """
+            WITH job1_skills AS (
+                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType
+                FROM job_skills js
+                JOIN skills s ON js.Skill_ID = s.Skill_ID
+                WHERE js.JobProfileID = ?
+            ),
+            job2_skills AS (
+                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType
+                FROM job_skills js
+                JOIN skills s ON js.Skill_ID = s.Skill_ID
+                WHERE js.JobProfileID = ?
+            )
+            SELECT 
+                'matched' as status,
+                j1.Skill_Name as skill_name,
+                j1.Category as category,
+                j1.SkillType as skill_type
+            FROM job1_skills j1
+            INNER JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
+            UNION ALL
+            SELECT 
+                'develop' as status,
+                j2.Skill_Name as skill_name,
+                j2.Category as category,
+                j2.SkillType as skill_type
+            FROM job2_skills j2
+            LEFT JOIN job1_skills j1 ON j2.Skill_ID = j1.Skill_ID
+            WHERE j1.Skill_ID IS NULL
+            UNION ALL
+            SELECT 
+                'transferable' as status,
+                j1.Skill_Name as skill_name,
+                j1.Category as category,
+                j1.SkillType as skill_type
+            FROM job1_skills j1
+            LEFT JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
+            WHERE j2.Skill_ID IS NULL
+            ORDER BY status, category, skill_name
+            LIMIT 50
+            """
+            
+            detailed_skills = db.execute(detailed_skills_query, (from_job_id, to_job_id)).fetchall()
+            
+            return jsonify({
+                'success': True,
+                'skills_matched': skills_matched,
+                'skills_to_develop': skills_to_develop,
+                'skills_transferable': skills_transferable,
+                'transition_difficulty': difficulty,
+                'skill_type_distribution': {
+                    row['SkillType']: row['skill_count'] 
+                    for row in skills_analysis 
+                    if row['skill_status'] == 'matched'
+                },
+                'detailed_skills': [
+                    {
+                        'name': row['skill_name'],
+                        'category': row['category'],
+                        'skill_type': row['skill_type'],
+                        'status': row['status']
+                    }
+                    for row in detailed_skills
+                ]
+            })
+            
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/workforce-analysis/<job_ids>')
+    def api_workforce_analysis(job_ids):
+        """API endpoint for workforce intelligence analysis for one or more jobs."""
+        try:
+            db = get_db()
+            
+            # Parse job IDs
+            job_id_list = job_ids.split(',')
+            placeholders = ','.join(['?' for _ in job_id_list])
+            
+            # Get workforce distribution for the jobs
+            workforce_query = f"""
+            SELECT 
+                j.JobProfileID,
+                j.JobProfile,
+                j.JobFamily,
+                p.Division,
+                p.Business_Unit,
+                p.Location,
+                p.Rg,
+                COUNT(p."Position Number") as position_count
+            FROM jobs j
+            LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+            WHERE j.JobProfileID IN ({placeholders})
+            GROUP BY j.JobProfileID, j.JobProfile, j.JobFamily, p.Division, p.Business_Unit, p.Location, p.Rg
+            ORDER BY j.JobProfile, position_count DESC
+            """
+            
+            workforce_data = db.execute(workforce_query, job_id_list).fetchall()
+            
+            # Calculate summary metrics
+            total_positions = sum(row['position_count'] for row in workforce_data)
+            unique_divisions = len(set(row['Division'] for row in workforce_data if row['Division']))
+            unique_locations = len(set(row['Location'] for row in workforce_data if row['Location']))
+            
+            # Group by job for detailed analysis
+            jobs_analysis = {}
+            for row in workforce_data:
+                job_id = row['JobProfileID']
+                if job_id not in jobs_analysis:
+                    jobs_analysis[job_id] = {
+                        'job_title': row['JobProfile'],
+                        'job_family': row['JobFamily'],
+                        'total_positions': 0,
+                        'divisions': {},
+                        'locations': {},
+                        'business_units': {}
+                    }
+                
+                job_data = jobs_analysis[job_id]
+                job_data['total_positions'] += row['position_count']
+                
+                if row['Division']:
+                    job_data['divisions'][row['Division']] = job_data['divisions'].get(row['Division'], 0) + row['position_count']
+                
+                if row['Location']:
+                    job_data['locations'][row['Location']] = job_data['locations'].get(row['Location'], 0) + row['position_count']
+                
+                if row['Business_Unit']:
+                    job_data['business_units'][row['Business_Unit']] = job_data['business_units'].get(row['Business_Unit'], 0) + row['position_count']
+            
+            return jsonify({
+                'success': True,
+                'total_positions': total_positions,
+                'divisions_represented': unique_divisions,
+                'locations_spread': unique_locations,
+                'jobs_analysis': jobs_analysis,
+                'detailed_workforce': [
+                    {
+                        'job_id': row['JobProfileID'],
+                        'job_title': row['JobProfile'],
+                        'job_family': row['JobFamily'],
+                        'division': row['Division'],
+                        'business_unit': row['Business_Unit'],
+                        'location': row['Location'],
+                        'region': row['Rg'],
+                        'position_count': row['position_count']
+                    }
+                    for row in workforce_data
+                ]
+            })
+            
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     @app.route('/api/organizational-data')
     def api_organizational_data():
         """API endpoint to get organizational hierarchy data for filters."""

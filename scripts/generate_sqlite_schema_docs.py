@@ -109,9 +109,9 @@ class SQLiteSchemaAnalyzer:
         cursor = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}")
         row_count = cursor.fetchone()[0]
         
-        # Get sample data (first 3 rows)
+        # Get sample data (first 10 rows)
         try:
-            cursor = self.conn.execute(f"SELECT * FROM {table_name} LIMIT 3")
+            cursor = self.conn.execute(f"SELECT * FROM {table_name} LIMIT 10")
             sample_rows = [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error:
             sample_rows = []
@@ -274,6 +274,46 @@ class SQLiteSchemaAnalyzer:
                     
         return top_values
     
+    def get_sample_data_for_all_columns(self) -> Dict[str, Dict[str, List[Any]]]:
+        """Get sample data for all columns in all tables."""
+        sample_data = {}
+        
+        # Get all table names
+        cursor = self.conn.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+        """)
+        table_names = [row[0] for row in cursor.fetchall()]
+        
+        for table_name in table_names:
+            sample_data[table_name] = {}
+            
+            # Get column names
+            cursor = self.conn.execute(f"PRAGMA table_info({table_name})")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            for column in columns:
+                try:
+                    # Handle column names with spaces or special characters
+                    quoted_col_name = f'"{column}"' if ' ' in column or '-' in column else column
+                    
+                    # Get 10 sample values (non-null, distinct)
+                    cursor = self.conn.execute(f"""
+                        SELECT DISTINCT {quoted_col_name}
+                        FROM {table_name}
+                        WHERE {quoted_col_name} IS NOT NULL
+                        LIMIT 10
+                    """)
+                    
+                    values = [row[0] for row in cursor.fetchall()]
+                    sample_data[table_name][column] = values
+                    
+                except sqlite3.Error:
+                    sample_data[table_name][column] = []
+                    
+        return sample_data
+    
     def generate_mermaid_er_diagram(self, tables: List[Dict[str, Any]]) -> str:
         """Generate Mermaid ER diagram from table information."""
         mermaid = ["erDiagram"]
@@ -320,6 +360,7 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
         tables = analyzer.get_tables_info()
         indexes = analyzer.get_indexes_info()
         top_values = analyzer.get_top_values_for_key_columns()
+        sample_data = analyzer.get_sample_data_for_all_columns()
         mermaid_diagram = analyzer.generate_mermaid_er_diagram(tables)
         
         # Generate markdown documentation
@@ -449,49 +490,78 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
                     doc_lines.append(f"- `{fk['column']}` → `{fk['references_table']}.{fk['references_column']}`")
                 doc_lines.append("")
             
-            # Column statistics
+            # Column statistics with unique values count
             if table['column_statistics']:
                 doc_lines.extend([
-                    "**Key Column Statistics:**",
+                    "**Column Statistics:**",
                     ""
                 ])
                 
                 for col_name, stats in table['column_statistics'].items():
+                    unique_count = stats.get('unique_values', 0) or 0
+                    non_null_count = stats.get('non_null_count', 0) or 0
+                    
                     if stats['type'] == 'text':
-                        unique_count = stats.get('unique_values', 0) or 0
                         avg_length = stats.get('avg_length', 0) or 0
-                        doc_lines.append(f"- **{col_name}**: {unique_count:,} unique values, avg length {avg_length}")
+                        doc_lines.append(f"- **{col_name}**: {unique_count:,} unique values ({non_null_count:,} non-null), avg length {avg_length}")
                     elif stats['type'] == 'numeric':
                         min_val = stats.get('min_value', 0) or 0
                         max_val = stats.get('max_value', 0) or 0
                         avg_val = stats.get('avg_value', 0) or 0
-                        doc_lines.append(f"- **{col_name}**: Range {min_val:.4f} - {max_val:.4f}, avg {avg_val:.4f}")
+                        doc_lines.append(f"- **{col_name}**: {unique_count:,} unique values ({non_null_count:,} non-null), range {min_val:.4f} - {max_val:.4f}, avg {avg_val:.4f}")
                     elif stats['type'] == 'integer':
-                        unique_count = stats.get('unique_values', 0) or 0
                         min_val = stats.get('min_value', 0) or 0
                         max_val = stats.get('max_value', 0) or 0
-                        doc_lines.append(f"- **{col_name}**: {unique_count:,} unique values, range {min_val} - {max_val}")
+                        doc_lines.append(f"- **{col_name}**: {unique_count:,} unique values ({non_null_count:,} non-null), range {min_val} - {max_val}")
                 
                 doc_lines.append("")
             
-            # Sample data
-            if table['sample_rows']:
+            # Sample data for each column
+            table_name = table['name']
+            if table_name in sample_data and sample_data[table_name]:
                 doc_lines.extend([
-                    "**Sample Records:**",
+                    "**Sample Data by Column:**",
                     ""
                 ])
                 
-                # Show first sample record in a readable format
-                sample = table['sample_rows'][0]
-                for key, value in sample.items():
-                    if value is not None:
-                        # Truncate long values
-                        display_value = str(value)
-                        if len(display_value) > 50:
-                            display_value = display_value[:47] + "..."
-                        doc_lines.append(f"- `{key}`: {display_value}")
+                for col in table['columns']:
+                    col_name = col['name']
+                    if col_name in sample_data[table_name] and sample_data[table_name][col_name]:
+                        samples = sample_data[table_name][col_name]
+                        # Format sample values, truncating if too long
+                        formatted_samples = []
+                        for sample in samples[:10]:  # Limit to 10 samples
+                            if sample is not None:
+                                sample_str = str(sample)
+                                if len(sample_str) > 30:
+                                    sample_str = sample_str[:27] + "..."
+                                formatted_samples.append(f"`{sample_str}`")
+                        
+                        if formatted_samples:
+                            doc_lines.append(f"- **{col_name}**: {', '.join(formatted_samples)}")
                 
-                doc_lines.extend(["", "---", ""])
+                doc_lines.append("")
+            
+            # Sample complete records
+            if table['sample_rows']:
+                doc_lines.extend([
+                    "**Sample Complete Records:**",
+                    ""
+                ])
+                
+                # Show first 3 complete sample records in a readable format
+                for idx, sample in enumerate(table['sample_rows'][:3], 1):
+                    doc_lines.append(f"**Record {idx}:**")
+                    for key, value in sample.items():
+                        if value is not None:
+                            # Truncate long values
+                            display_value = str(value)
+                            if len(display_value) > 50:
+                                display_value = display_value[:47] + "..."
+                            doc_lines.append(f"  - `{key}`: {display_value}")
+                    doc_lines.append("")
+                
+                doc_lines.extend(["---", ""])
         
         # Top values for key columns
         if top_values:
