@@ -1,0 +1,94 @@
+{
+  "platform_overview": {
+    "total_jobs": 715,
+    "total_skills": 38395,
+    "total_positions": 5000,
+    "career_pathways": 8580,
+    "job_families": 8,
+    "divisions": 6
+  },
+  "top_divisions": {
+    "Business & Private Banking": {
+      "unique_roles": 789,
+      "total_positions": 876,
+      "unique_skills": 1143.5
+    },
+    "Group Functions": {
+      "unique_roles": 767,
+      "total_positions": 854,
+      "unique_skills": 1117.4
+    },
+    "Customer Banking & Wealth": {
+      "unique_roles": 732,
+      "total_positions": 832,
+      "unique_skills": 1116.8
+    },
+    "Corporate & Institutional Banking": {
+      "unique_roles": 755,
+      "total_positions": 825,
+      "unique_skills": 1107.3
+    },
+    "NAB Ventures": {
+      "unique_roles": 723,
+      "total_positions": 813,
+      "unique_skills": 1077.5
+    }
+  },
+  "mobility_hubs": [
+    {
+      "JobFamily": "Data & Analytics",
+      "total_connectivity": 618
+    },
+    {
+      "JobFamily": "Banking Operations",
+      "total_connectivity": 617
+    },
+    {
+      "JobFamily": "Finance & Accounting",
+      "total_connectivity": 616
+    },
+    {
+      "JobFamily": "Human Resources",
+      "total_connectivity": 570
+    },
+    {
+      "JobFamily": "Executive Leadership",
+      "total_connectivity": 556
+    }
+  ],
+  "top_locations": [
+    {
+      "Location": "Perth",
+      "total_positions": 896,
+      "unique_skills": 1938
+    },
+    {
+      "Location": "Brisbane City",
+      "total_positions": 863,
+      "unique_skills": 1874
+    },
+    {
+      "Location": "Parramatta",
+      "total_positions": 826,
+      "unique_skills": 1848
+    },
+    {
+      "Location": "Docklands",
+      "total_positions": 819,
+      "unique_skills": 1899
+    },
+    {
+      "Location": "Adelaide",
+      "total_positions": 811,
+      "unique_skills": 1935
+    }
+  ],
+  "skill_categories": {
+    "": {
+      "Skill_Name": 1819,
+      "positions_with_skill": 156.4
+    }
+  },
+  "last_updated": "2025-06-15 21:05:35",
+  "data_version": "2025-Q2"
+}
