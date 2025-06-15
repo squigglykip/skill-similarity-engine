@@ -1,494 +1,399 @@
-# NAB Skill Similarity Engine - Handover Documentation
+# LLM Handover Prompt: Real Data Integration for Career Pathways
 
-## Project Overview & Current Status
+## 🎯 **MISSION OBJECTIVE**
 
-You are taking over development of the **NAB Skill Similarity Engine**, a sophisticated workforce analytics platform that identifies reskilling opportunities through job-to-job skill similarity analysis. This is Phase 8 of an 8-phase project with Phases 1-7 completed and production-ready.
+You are taking over development of the **NAB Skill Similarity Engine Phase 8.2.4 Career Pathway Explorer**. The core functionality and JavaScript integration are **COMPLETED** but require **SQL query fixes** to return real database calculations:
 
-## What Has Been Achieved ✅
+1. **Skills Transition Analysis** - API endpoints working, but SQL queries need database integration
+2. **Workforce Intelligence** - API endpoints working, but SQL queries need database integration
 
-### 🎯 **Core Engine (Production Ready)**
-- **510,510 job pair comparisons** processed in ~3 seconds
-- **Asymmetric similarity calculation** using pure skill-based overlap
-- **79MB SQLite business context database** with comprehensive job, skills, and similarity data
-- **Quarterly versioning system** with automated data pipeline
-- **Memory-optimized processing** handling 35,000+ jobs efficiently
+Your task is to **fix the SQL queries in the Flask API endpoints** to return real database calculations instead of mock data.
 
-### 🗄️ **Database Architecture (Completed)**
-```sql
--- Core tables in production use:
-- jobs (715 JobProfiles)              ✅ COMPLETED
-- job_skills (7,280 relationships)    ✅ COMPLETED  
-- job_similarities (510,510 records)  ✅ COMPLETED
-- career_pathways (8,500+ records)    ✅ COMPLETED (NEW)
-- positions (1,200+ employee positions) ✅ COMPLETED
-- skills (comprehensive taxonomy)      ✅ COMPLETED
+## 📊 **CURRENT STATE ANALYSIS**
+
+### ✅ **What's Already Working (Real Data & Integration)**
+- **Career Progression Journey**: Breadcrumb trail with real job titles, similarity scores, pathway structure
+- **D3.js Tree Visualization**: Real career pathways from `career_pathways` table (8,580 relationships)
+- **Interactive Tree Selection**: Node highlighting, expand/collapse, and pathway generation
+- **Dynamic Breadcrumb System**: Click any step in career journey to analyze that specific transition
+- **Database Integration**: Complete SQLite database with jobs, skills, positions, career_pathways tables
+- **UI Framework**: Professional NAB-styled interface with responsive design
+- **JavaScript Integration**: Breadcrumb clicks trigger correct API calls and update analysis sections
+- **API Endpoint Structure**: `/api/skills-analysis/` and `/api/workforce-analysis/` endpoints working
+- **Error Handling**: Resolved DOM errors and null pointer exceptions in breadcrumb system
+
+### 📋 **What Needs SQL Query Fixes**
+- **Skills Transition Analysis**: API calls working, but SQL queries return mock data instead of real calculations
+- **Workforce Intelligence**: API calls working, but SQL queries return mock data instead of real calculations
+- **Database Query Integration**: Connect existing API endpoints to real job_skills and positions tables
+
+## 🎯 **HOW THE CAREER PATHWAY ANALYSIS SYSTEM WORKS**
+
+The Career Pathway Explorer operates as an integrated three-section analysis system that responds dynamically to user interactions:
+
+### **Section 1: Interactive Tree Visualization**
+- **User Action**: Click any node in the D3.js tree diagram
+- **System Response**: 
+  - Highlights selected node with golden glow and thick border
+  - Generates pathway from root (starting job) to selected node
+  - Updates Section 2 with breadcrumb journey
+  - Triggers analysis updates in Section 3
+
+### **Section 2: Career Progression Journey (Breadcrumb Trail)**
+- **Auto-Generated**: Created automatically when tree node is selected
+- **Real Data**: Uses actual job titles, similarity scores, and pathway structure from database
+- **Interactive Elements**: Each breadcrumb box is clickable
+- **Default Selection**: Last breadcrumb (selected tree node) is highlighted by default
+- **User Interaction**: Click any breadcrumb to analyze that specific transition step
+
+### **Section 3: Transition Analysis (Skills + Workforce Intelligence)**
+- **Context-Aware**: Updates based on which breadcrumb is selected in Section 2
+- **Default Behavior**: Shows analysis between parent and child of selected tree node
+- **Interactive Behavior**: When user clicks different breadcrumb, shows analysis for that transition
+- **Two Sub-Sections**:
+  - **Skills Transition Analysis**: Skills overlap, gaps, and development requirements
+  - **Workforce Intelligence**: Position counts, geographic distribution, organizational context
+
+### **User Workflow Example**:
+1. **Tree Selection**: User clicks "Data Scientist - Senior" in tree
+2. **Pathway Generation**: System shows breadcrumb: "Risk Analyst → Business Analyst → Data Scientist → Data Scientist - Senior"
+3. **Default Analysis**: Section 3 shows transition from "Data Scientist" → "Data Scientist - Senior"
+4. **Interactive Analysis**: User clicks "Business Analyst" breadcrumb
+5. **Updated Analysis**: Section 3 now shows transition from "Risk Analyst" → "Business Analyst"
+6. **Flexible Exploration**: User can click any breadcrumb to analyze any transition in the pathway
+
+## 🗂️ **KEY FILES YOU'LL WORK WITH**
+
+### **Primary Development Files**
 ```
-
-### 🚀 **Career Pathways Solution (Just Implemented)**
-We just solved a **major performance bottleneck** in the career pathway visualization:
-
-**Problem:** D3.js tree was artificially limited to 3→2→1 relationships due to `max_results` parameter constraints
-**Solution:** Pre-computed career pathways with ~8,500 relationships (top 12 per job)
-
-**New `career_pathways` Table Schema:**
-```sql
-CREATE TABLE career_pathways (
-    source_job_id TEXT NOT NULL,            -- Source JobProfileID
-    target_job_id TEXT NOT NULL,            -- Target JobProfileID
-    similarity_rank INTEGER NOT NULL,       -- Rank (1-12) based on similarity
-    similarity_score REAL NOT NULL,        -- Overall similarity (0-1)
-    skill_overlap_score REAL,              -- Skills-specific similarity
-    shared_skills_count INTEGER,           -- Number of overlapping skills
-    career_move_type TEXT,                  -- 'lateral', 'progression', 'cross_family'
-    difficulty_score REAL,                 -- Estimated transition difficulty (0-1)
-    
-    PRIMARY KEY (source_job_id, target_job_id)
-);
-```
-
-### 🌐 **Flask Webapp (In Progress)**
-- **Professional NAB-styled UI** with responsive design
-- **Multi-page application** (job search, similarities, career pathways)
-- **D3.js tree visualization** for career progression
-- **Comprehensive filters** (organizational, skills, similarity thresholds)
-- **API endpoints** for AJAX functionality
-
-## Current Issue & Next Steps 🎯
-
-### **CRITICAL ISSUE: D3 Tree Node Spacing & Text Overlap**
-
-The career pathway tree visualization has a **persistent text overlap problem** that has resisted multiple attempted solutions. This is now the **highest priority issue** blocking user adoption.
-
-**Current Problem:**
-- **Text labels overlap** at deeper tree levels (level 2+), especially with cousin nodes
-- **D3.js separation function** is being called correctly but spacing is insufficient
-- **Auto-fit scaling** negates large spacing values when tree is fitted to viewport
-- **Cousin node confusion** - D3's separation function struggles with non-sibling relationships
-
-**What Has Been Attempted (All Failed):**
-
-1. **✗ Standardized text layout** (68px fixed height, 0.9em line spacing, 180px width, 3-line max)
-2. **✗ Aggressive D3 separation values** (300-600 D3 units, 20% of tree height)
-3. **✗ Absolute minimum spacing** (7.8 D3 units minimum based on text height)
-4. **✗ Tree state multipliers** (1.1-1.5x for different tree sizes)
-5. **✗ Manual level spacing** (88px per level added to y-coordinates after D3 layout)
-6. **✗ Disabled auto-fit** (confirmed spacing works at 100% scale but gets compressed)
-
-**Root Cause Analysis:**
-- D3's `separation()` function only controls **horizontal spacing between siblings/cousins**
-- **Vertical spacing between tree levels** requires manual y-coordinate adjustment
-- **Auto-fit scaling** compresses the entire tree, negating large spacing values
-- **Cousin relationships** confuse D3's separation logic at deeper levels
-
-**Current State:**
-- Spacing function returns 139-209 D3 units (confirmed via debug logs)
-- Level spacing adds 88px per depth level (confirmed applied)
-- Auto-fit disabled for testing (spacing visible at 100% scale)
-- Text still overlaps at levels 2+ when tree is viewed normally
-
-### **Next Approach Needed: Alternative Spacing Strategy**
-
-The current D3.js tree layout approach may be fundamentally incompatible with dense text labels. Consider:
-
-1. **Switch to D3 nodeSize() instead of size()** - gives fixed node dimensions
-2. **Custom tree layout algorithm** - bypass D3's built-in spacing entirely  
-3. **Force-directed layout** - let physics handle spacing naturally
-4. **Hierarchical grid layout** - place nodes on a predictable grid
-5. **Text-aware spacing calculation** - measure actual text dimensions dynamically
-
-**Alternative: SQL Query Optimization (Lower Priority)**
-
-The SQL queries are working but could be simplified:
-- Remove recursive complexity from `career_pathways.sql`
-- Use direct lookups from pre-computed `career_pathways` table
-- Optimize for 12 children per node (not limited to 3)
-- Ensure <2 second response times
-
-### **Key Files to Focus On:**
-
-```
+skill-similarity-engine/
 ├── src/skill_similarity_engine/webapp/
-│   ├── templates/career_pathways.html (lines 995-1050)    # Spacing functions - CRITICAL
-│   ├── templates/career_pathways.html (lines 1200-1210)   # D3 separation function
-│   ├── templates/career_pathways.html (lines 1150-1200)   # Level spacing function
-│   ├── app.py (lines 290-450)                            # /api/d3-tree-data endpoint
-│   └── sql/career_pathways.sql                           # Tree queries (lower priority)
+│   ├── app.py                           # Flask routes and API endpoints
+│   ├── database.py                      # Database connection and query execution
+│   ├── templates/career_pathways.html   # Main template with JavaScript functions
+│   └── sql/                            # Organized SQL queries
+│       ├── skills.sql                  # Skills analysis queries
+│       ├── positions.sql               # Workforce/position queries  
+│       ├── career_pathways.sql         # Career pathway queries
+│       └── README.md                   # SQL query documentation
+└── models/2025-Q2/business_context.sqlite  # SQLite database with real data
 ```
 
-### **Current Spacing Implementation Details**
-
-**1. Standardized Text Layout (career_pathways.html lines 1650-1700):**
-```javascript
-// Fixed text dimensions for predictable spacing
-.style("font-size", "11px")
-.style("line-height", "0.9em")        // Tight line spacing
-.call(wrapText, 180);                 // 180px width, max 3 lines
-
-function getNodeTextHeight() {
-    return 68; // Always returns 68px (20px circle + 39px text + 9px padding)
-}
-```
-
-**2. D3 Separation Function (career_pathways.html lines 1200-1210):**
-```javascript
-.separation((a, b) => {
-    const spacing = getAdaptiveNodeSpacing(a, b);
-    return spacing; // Returns 139-209 D3 units
-});
-
-function getAdaptiveNodeSpacing(a, b) {
-    const minimumAbsoluteSpacing = 139; // 6% of 2320px tree height
-    const multiplier = a.parent == b.parent ? 1.1 : 1.2; // Siblings vs cousins
-    return minimumAbsoluteSpacing * multiplier;
-}
-```
-
-**3. Manual Level Spacing (career_pathways.html lines 1150-1200):**
-```javascript
-function applyLevelSpacing() {
-    const levelSpacing = 88; // 68px node + 20px buffer
-    pathwayRoot.descendants().forEach(node => {
-        node.y += node.depth * levelSpacing; // Add vertical spacing per level
-    });
-}
-```
-
-**4. Auto-fit Problem (career_pathways.html lines 1250-1300):**
-```javascript
-// This scales down the entire tree, negating our large spacing values
-function fitTreeToView() {
-    const scale = Math.min(scaleX, scaleY, 1); // Compresses tree to fit viewport
-    pathwaySvg.call(pathwaySvg.zoom.transform, d3.zoomIdentity.scale(scale));
-}
-```
-
-### **Research Findings & Potential Solutions**
-
-**Key Insight from Stack Overflow Research:**
-- D3's `separation()` function **only controls horizontal spacing** between nodes at the same level
-- **Vertical spacing between tree levels** must be handled separately via manual y-coordinate adjustment
-- **nodeSize() vs size()**: Using `tree.nodeSize([width, height])` instead of `tree.size([width, height])` gives fixed node dimensions
-
-**Promising Alternative Approaches:**
-
-**Option 1: Switch to nodeSize() Layout**
-```javascript
-// Instead of: pathwayTree = d3.tree().size([pathwayHeight, pathwayWidth])
-pathwayTree = d3.tree().nodeSize([180, 88]); // Fixed width x height per node
-// This gives each node exactly 180px width x 88px height
-// Should eliminate overlap by guaranteeing minimum space
-```
-
-**Option 2: Force-Directed Layout**
-```javascript
-// Replace tree layout with force simulation
-const simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).distance(100))
-    .force("charge", d3.forceManyBody().strength(-300))
-    .force("center", d3.forceCenter(width/2, height/2))
-    .force("collision", d3.forceCollide().radius(50)); // Prevent overlap
-```
-
-**Option 3: Custom Grid Layout**
-```javascript
-// Place nodes on predictable grid positions
-function calculateGridPosition(node) {
-    const x = node.depth * 250; // Fixed horizontal spacing
-    const y = node.index * 88;  // Fixed vertical spacing based on sibling index
-    return {x, y};
-}
-```
-
-**Option 4: Text-Aware Dynamic Spacing**
-```javascript
-// Measure actual text dimensions and adjust spacing accordingly
-function measureTextDimensions(text, fontSize) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = `${fontSize}px Source Sans Pro`;
-    return context.measureText(text);
-}
-```
-
-**Debug Tools Already Implemented:**
-- Comprehensive console logging for spacing calculations
-- Tree state analysis (COLLAPSED/MEDIUM/LARGE detection)
-- D3 separation function call verification
-- Level spacing application confirmation
-
-## Technical Context You Need
-
-### **Database Connection Pattern:**
-```python
-db = get_db()
-cursor = db.execute(query, params)
-results = cursor.fetchall()
-```
-
-### **D3.js Expected Format:**
-```javascript
-{
-    "id": "job_123",
-    "name": "Data Analyst", 
-    "parent": "job_456",           // null for root
-    "level": 2,
-    "similarity_score": 0.85,
-    "category": "Analytics",
-    "children": [...]              // Populated by D3
-}
-```
-
-### **Current Query Parameters:**
-- `job_ids` - Starting job(s) for tree root
-- `similarity_threshold` - Minimum similarity (0.2 default)
-- `max_depth` - Tree levels (3 default) 
-- `max_results` - Children per node (10 default)
-- Organizational filters (division, business_unit, location, region)
-
-## Pre-computed Data Advantages
-
-The new `career_pathways` table gives you:
-- **Pre-ranked relationships** (similarity_rank 1-12 per job)
-- **Career move classification** (lateral/progression/cross_family)
-- **Difficulty scoring** for transition analysis
-- **Indexed performance** - queries should be <1 second
-
-## Key Architectural Principles
-
-1. **JobProfile-Centric**: Everything centers on JobProfileID, not individual positions
-2. **Pre-computation First**: Avoid on-the-fly calculations in web queries
-3. **Configurability**: Similarity thresholds and tree depth should be adjustable
-4. **NAB Styling**: Professional red/white color scheme with Epilogue/Source Sans fonts
-5. **Performance**: Target <2 second response times for tree generation
-
-## Development Environment
-
-- **Python 3.11+** with Flask webapp
-- **SQLite database** (79MB) at `data/business_context/nab_business_context.db`
-- **Windows PowerShell** environment
-- **UK English spelling** throughout
-- **Run via:** `python main.py` → Option 4 (Run Flask Webapp)
-
-## SQL Query Rebuild Strategy & Steps
-
-### **Step 1: Replace the Complex Recursive Query**
-
-The current `get_career_tree_fast` query in `career_pathways.sql` is overly complex. Replace it with a simple, level-based approach:
-
+### **Database Schema (SQLite)**
 ```sql
--- query_name: get_d3_tree_data_simple
--- Simple tree builder using pre-computed career pathways
--- No recursion needed - just direct lookups by level
-
--- Level 0: Root nodes (selected starting jobs)
-SELECT 
-    j.JobProfileID as id,
-    j.JobProfile as name,
-    NULL as parent,
-    0 as level,
-    j.JobFamily as category,
-    1.0 as similarity_score,
-    'root' as node_type,
-    j.JobProfileID as path
-FROM jobs j
-WHERE j.JobProfileID IN ({job_placeholders})
-
-UNION ALL
-
--- Level 1: Direct career pathways from selected jobs
-SELECT 
-    cp.target_job_id as id,
-    j.JobProfile as name,
-    cp.source_job_id as parent,
-    1 as level,
-    j.JobFamily as category,
-    cp.similarity_score,
-    'career_option' as node_type,
-    cp.source_job_id || '->' || cp.target_job_id as path
-FROM career_pathways cp
-JOIN jobs j ON cp.target_job_id = j.JobProfileID
-WHERE cp.source_job_id IN ({job_placeholders})
-  AND cp.similarity_score >= ?  -- similarity_threshold
-  AND cp.similarity_rank <= ?   -- max_results
-  
-UNION ALL
-
--- Level 2: Second-level pathways
-SELECT 
-    cp2.target_job_id as id,
-    j.JobProfile as name,
-    cp2.source_job_id as parent,
-    2 as level,
-    j.JobFamily as category,
-    cp2.similarity_score,
-    'career_option' as node_type,
-    cp1.source_job_id || '->' || cp1.target_job_id || '->' || cp2.target_job_id as path
-FROM career_pathways cp1
-JOIN career_pathways cp2 ON cp1.target_job_id = cp2.source_job_id
-JOIN jobs j ON cp2.target_job_id = j.JobProfileID
-WHERE cp1.source_job_id IN ({job_placeholders})
-  AND cp1.similarity_score >= ?
-  AND cp1.similarity_rank <= ?
-  AND cp2.similarity_score >= ?
-  AND cp2.similarity_rank <= ?
-  AND cp2.target_job_id NOT IN ({job_placeholders})  -- Avoid cycles back to root
-
--- Continue pattern for Level 3, 4, etc. based on max_depth parameter
+-- Core tables you'll query:
+jobs            # id, job_title, job_family, job_level
+job_skills      # job_id, skills_skill_id, proficiency_level (40,170 mappings)
+skills          # id, skill_name, skill_category, skill_subcategory  
+positions       # PositionID, JobProfileID, Division, BusinessUnit, Location
+career_pathways # from_job_id, to_job_id, similarity_score, shared_skills_count
 ```
 
-### **Step 2: Implement Dynamic Level Generation**
+## 🎯 **CURRENT UI STATE & FUNCTIONALITY**
 
-Create a Python function to generate the appropriate number of UNION clauses based on `max_depth`:
+### **✅ What's Working Perfectly (No Changes Needed)**
+- **Tree Node Highlighting**: Golden glow and thick border on selected nodes
+- **Breadcrumb Generation**: Automatic pathway creation from tree selections
+- **Breadcrumb Highlighting**: Visual indication of selected breadcrumb with blue ring
+- **Interactive Breadcrumb Selection**: Click any breadcrumb to change analysis context
+- **UI State Management**: Smooth transitions and loading indicators
+- **Error Handling**: Graceful handling of missing DOM elements and null checks
+- **Information Modals**: Interactive help system explaining how each section works
+- **SkillType Integration**: Enhanced skills display with Specialized Skills, Common Skills, and Certifications
+- **Skill Type Distribution**: Visual breakdown showing the composition of skill types in transitions
 
-```python
-def build_tree_query(job_count: int, max_depth: int) -> str:
-    """Build dynamic tree query based on depth requirements."""
-    
-    job_placeholders = ','.join(['?' for _ in range(job_count)])
-    
-    # Level 0: Root nodes
-    query_parts = [f"""
-    SELECT 
-        j.JobProfileID as id,
-        j.JobProfile as name,
-        NULL as parent,
-        0 as level,
-        j.JobFamily as category,
-        1.0 as similarity_score,
-        'root' as node_type
-    FROM jobs j
-    WHERE j.JobProfileID IN ({job_placeholders})
-    """]
-    
-    # Generate levels 1 through max_depth
-    for level in range(1, max_depth + 1):
-        level_query = build_level_query(level, job_placeholders)
-        query_parts.append(level_query)
-    
-    return " UNION ALL ".join(query_parts) + " ORDER BY level, similarity_score DESC"
+### **📋 Current Mock Data Functions (Need Real Data Integration)**
+```javascript
+// These functions work perfectly but use mock data:
+populateSkillsTransitionAnalysisForStep(pathNodes, selectedBreadcrumbIndex)
+populateWorkforceIntelligenceForStep(pathNodes, selectedBreadcrumbIndex)
+
+// Enhanced with SkillType metadata and information modals
+// The UI logic is complete - only the data source needs to change
 ```
 
-### **Step 3: Add Organizational Filtering**
+### **🔧 Integration Points Already Built**
+- **Breadcrumb Context**: `selectedBreadcrumbIndex` tracks which transition to analyze
+- **Node Context**: `pathNodes` array contains full pathway from root to selected node
+- **Dynamic Updates**: All sections update automatically when breadcrumb selection changes
+- **Visual Feedback**: Users see exactly which transition is being analyzed
 
-Apply organizational filters efficiently using LEFT JOINs:
+## 🎯 **SPECIFIC TASKS TO COMPLETE**
 
+### ✅ **COMPLETED: JavaScript Integration & Error Resolution**
+
+**What Was Achieved**:
+- **Resolved critical DOM errors** that prevented breadcrumb selection from updating analysis sections
+- **Fixed breadcrumb click handlers** to properly call API endpoints and update Skills/Workforce sections
+- **Enhanced modular JavaScript integration** with proper fallback handling and state synchronization
+- **Disabled problematic embedded functions** that caused null pointer exceptions
+- **Added job ID extraction utilities** to handle different node data formats
+
+**Console Log Evidence**:
+```
+✅ Real skills analysis populated for step 3
+✅ Real workforce analysis populated for step 2  
+🔍 Fetching skills analysis: node_17 → node_81
+🔍 Fetching workforce analysis for jobs: node_0, node_5, node_17, node_81
+```
+
+**Impact**: Breadcrumb selection now works flawlessly - clicking any breadcrumb triggers the correct API calls and updates both analysis sections with contextually appropriate data.
+
+### **Task 1: Skills Transition Analysis SQL Query Integration** 📋 **NEXT PRIORITY**
+
+**✅ Current Implementation (WORKING)**:
+- **Breadcrumb selection system**: Fully functional with proper context handling
+- **API endpoint structure**: `/api/skills-analysis/<from_job_id>/<to_job_id>` working correctly
+- **JavaScript integration**: `populateSkillsTransitionAnalysisForStep()` calls API and updates UI
+- **Error handling**: Graceful fallbacks and proper state management
+
+**Console Evidence**:
+```javascript
+🔍 Fetching skills analysis: node_17 → node_81
+✅ Real skills analysis populated for step 3
+```
+
+**📋 Current Problem**: API endpoints return mock data instead of real database calculations
+
+**Your Solution**:
+1. **Fix existing Flask API endpoint** `/api/skills-analysis/<from_job_id>/<to_job_id>` (already exists)
+2. **Replace mock calculations with real SQL queries**:
+   - **Skills Matched**: COUNT of skills shared between both jobs from `job_skills` table
+   - **Skills to Develop**: COUNT of skills in target job but not source job  
+   - **Transferable Skills**: COUNT of skills in source job applicable to target
+   - **Real skill names** from `skills` table grouped by category
+   - **SkillType distribution**: COUNT by SkillType (Specialized Skill, Common Skill, Certification)
+3. **JavaScript already working** - no changes needed to UI integration
+4. **Breadcrumb context already handled** - API receives correct job IDs for any transition
+
+**SQL Query Pattern** (use `sql/skills.sql` as reference):
 ```sql
--- Add to each level's query:
-LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
-WHERE (? = '' OR p.Division = ?)
-  AND (? = '' OR p.Business_Unit = ?)
-  AND (? = '' OR p.Location = ?)
-  AND (? = '' OR p.Rg = ?)
+-- Skills matched between two jobs with SkillType metadata
+SELECT s.skill_name, s.Category, s.Subcategory, s.SkillType,
+       COUNT(*) as skill_count
+FROM job_skills js1 
+JOIN job_skills js2 ON js1.skills_skill_id = js2.skills_skill_id
+JOIN skills s ON js1.skills_skill_id = s.id
+WHERE js1.job_id = ? AND js2.job_id = ?
+GROUP BY s.SkillType, s.Category
+ORDER BY s.SkillType, skill_count DESC;
 ```
 
-### **Step 4: Optimize Parameter Handling**
+### **Task 2: Workforce Intelligence SQL Query Integration** 📋 **NEXT PRIORITY**
 
-The Flask endpoint should pass parameters in this order:
-1. `job_ids` (repeated for each level)
-2. `similarity_threshold` (repeated for each level)
-3. `max_results` (repeated for each level)
-4. Organizational filters (division, business_unit, location, region)
+**✅ Current Implementation (WORKING)**:
+- **Breadcrumb-aware system**: Fully functional with proper context handling
+- **API endpoint structure**: `/api/workforce-analysis/<job_ids>` working correctly  
+- **JavaScript integration**: `populateWorkforceIntelligenceForStep()` calls API and updates UI
+- **Context handling**: API receives correct job sequence for any breadcrumb selection
 
-### **Step 5: Update Flask Endpoint Logic**
+**Console Evidence**:
+```javascript
+🔍 Fetching workforce analysis for jobs: node_0, node_5, node_17, node_81
+✅ Real workforce analysis populated for step 3
+```
 
-Modify the `/api/d3-tree-data` endpoint in `app.py`:
+**📋 Current Problem**: API endpoints return mock data instead of real database calculations
 
+**Your Solution**:
+1. **Fix existing Flask API endpoint** `/api/workforce-analysis/<job_ids>` (already exists)
+2. **Replace mock calculations with real SQL queries**:
+   - **Real position counts** per job from `positions` table
+   - **Real Division and Business Unit** distribution
+   - **Real geographic spread** (Melbourne, Sydney, Brisbane counts)
+   - **Actual organizational deployment** patterns
+3. **JavaScript already working** - no changes needed to UI integration
+4. **Breadcrumb context already handled** - API receives correct job sequence
+5. **Handle missing data**: Some jobs may not have current positions - show graceful fallbacks
+
+**SQL Query Pattern** (use `sql/positions.sql` as reference):
+```sql
+-- Position counts and distribution for jobs
+SELECT j.job_title, p.Division, p.BusinessUnit, p.Location, COUNT(*) as position_count
+FROM jobs j 
+LEFT JOIN positions p ON j.id = p.JobProfileID 
+WHERE j.id IN (?, ?, ?)
+GROUP BY j.id, p.Division, p.BusinessUnit, p.Location;
+```
+
+### **Task 3: Database Query Optimization**
+
+**Performance Requirements**:
+- **Sub-2-second response** for all API calls
+- **Efficient JOINs** across jobs, skills, positions tables
+- **Query caching** for frequently accessed combinations
+
+**Your Implementation**:
+1. **Add database indexes** if needed for performance
+2. **Implement query caching** in Flask app for repeated requests
+3. **Optimize SQL queries** using existing indexes
+4. **Add query performance logging** to identify bottlenecks
+
+### **Task 4: Error Handling & Data Validation**
+
+**Edge Cases to Handle**:
+- Jobs with **no skill mappings** in `job_skills` table
+- Jobs with **no current positions** in `positions` table  
+- **Incomplete pathway data** or missing similarity scores
+- **Database connection errors** or query timeouts
+
+**Your Implementation**:
+1. **Graceful fallbacks** when real data is missing
+2. **User-friendly error messages** instead of JavaScript errors
+3. **Data quality indicators** (e.g., "Based on X positions" disclaimers)
+4. **Loading states** for database queries
+
+## 🔧 **TECHNICAL IMPLEMENTATION GUIDE**
+
+### **Step 1: Examine Current Structure**
+```bash
+# Start by understanding the current implementation
+cd skill-similarity-engine
+python run_webapp.py  # Launch webapp on localhost:5000
+# Navigate to /career-pathways and test current functionality
+```
+
+### **Step 2: Database Exploration**
 ```python
-@app.route('/api/d3-tree-data')
-def api_d3_tree_data():
-    # Get parameters
-    job_ids = request.args.get('jobs', '').split(',')
-    similarity_threshold = float(request.args.get('similarity', 0.2))
-    max_depth = int(request.args.get('depth', 3))
-    max_results = int(request.args.get('max_results', 12))  # Now supports 12!
-    
-    # Build dynamic query
-    tree_query = build_tree_query(len(job_ids), max_depth)
-    
-    # Execute with proper parameter repetition
-    params = []
-    for level in range(max_depth + 1):
-        params.extend(job_ids)  # Job IDs for each level
-        if level > 0:  # Skip for root level
-            params.extend([similarity_threshold, max_results])
-    
-    # Add organizational filters
-    params.extend([division_filter, division_filter, 
-                   business_unit_filter, business_unit_filter,
-                   location_filter, location_filter,
-                   region_filter, region_filter])
-    
-    db = get_db()
-    results = db.execute(tree_query, params).fetchall()
-    
-    # Convert to D3.js format and return
-    return jsonify(build_tree_structure(results))
+# Connect to database and explore schema
+import sqlite3
+conn = sqlite3.connect('models/2025-Q2/business_context.sqlite')
+
+# Check available data
+conn.execute("SELECT COUNT(*) FROM job_skills").fetchone()  # Should show 40,170
+conn.execute("SELECT COUNT(*) FROM positions").fetchone()   # Check position data
+conn.execute("SELECT * FROM skills LIMIT 5").fetchall()    # See skill structure
 ```
 
-### **Step 6: Performance Optimizations**
+### **Step 3: API Development Pattern**
+```python
+# In app.py, add new routes following existing patterns
+@app.route('/api/skills-analysis/<int:from_job_id>/<int:to_job_id>')
+def get_skills_analysis(from_job_id, to_job_id):
+    try:
+        # Use sql/skills.sql queries
+        query = queries.get('skills', 'get_skills_gap_between_jobs')
+        results = db.execute(query, (from_job_id, to_job_id)).fetchall()
+        return jsonify({'skills_matched': results, 'status': 'success'})
+    except Exception as e:
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+```
 
-1. **Use Indexes**: The query will automatically use `idx_career_pathways_source` and `idx_career_pathways_rank`
-2. **Limit Early**: Apply `similarity_rank <= ?` to use pre-computed rankings
-3. **Avoid Subqueries**: Use direct JOINs instead of nested SELECTs
-4. **Cache Results**: Consider caching common tree structures
+### **Step 4: JavaScript Integration Pattern**
+```javascript
+// Update populateSkillsTransitionAnalysis() function
+async function populateSkillsTransitionAnalysis(pathNodes) {
+    const startNode = pathNodes[0];
+    const endNode = pathNodes[pathNodes.length - 1];
+    
+    try {
+        const response = await fetch(`/api/skills-analysis/${startNode.id}/${endNode.id}`);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Use real data instead of mock calculations
+            document.getElementById('skills-matched-count').textContent = data.skills_matched.length;
+            // ... populate with real skill names
+        } else {
+            // Fallback to mock data with error indicator
+            console.warn('Using fallback data:', data.error);
+        }
+    } catch (error) {
+        console.error('Skills analysis API error:', error);
+        // Graceful fallback to current mock data
+    }
+}
+```
 
-### **Step 7: Testing Strategy**
+## 📋 **SUCCESS CRITERIA CHECKLIST**
 
-Test the rebuilt queries with:
-1. Single job root → Should show 12 children at level 1
-2. Multiple job roots → Should create virtual root with multiple branches
-3. Deep trees (5+ levels) → Should complete in <2 seconds
-4. Organizational filters → Should properly filter at each level
-5. Edge cases → Empty results, circular references, etc.
+### **Functional Requirements**
+- [x] **API endpoints working** - Skills and workforce analysis endpoints respond correctly
+- [x] **JavaScript integration complete** - Breadcrumb selection triggers API calls and UI updates
+- [x] **Breadcrumb context handling** - API receives correct job IDs for any transition
+- [ ] **Skills Analysis shows real skill names** from database instead of hardcoded examples
+- [ ] **Skills counts are calculated** from actual job-skill mappings, not approximations  
+- [ ] **SkillType metadata is displayed** for each skill (Specialized Skill, Common Skill, Certification)
+- [ ] **Skill Type Distribution shows real counts** by SkillType from database
+- [ ] **Workforce Intelligence shows real position counts** from positions table
+- [ ] **Geographic distribution reflects actual** Melbourne/Sydney/Brisbane position data
+- [ ] **Organizational context uses real** Division and Business Unit data
 
-## Expected Outcome
+### **Performance Requirements**  
+- [ ] **All API calls complete in <2 seconds** with full dataset
+- [ ] **Database queries are optimized** with appropriate indexes
+- [ ] **Query caching implemented** for frequently accessed data
+- [ ] **Loading indicators shown** during database queries
 
-After rebuilding the queries, the career pathway tree should:
-- ✅ Show 12 children per node (configurable)
-- ✅ Build trees in <2 seconds  
-- ✅ Support 3-7 levels of depth
-- ✅ Handle multiple starting jobs
-- ✅ Apply organizational filters correctly
-- ✅ Generate proper D3.js format
+### **Quality Requirements**
+- [ ] **Graceful error handling** when data is missing or incomplete
+- [ ] **Data quality indicators** shown (e.g., "Based on 47 positions")
+- [ ] **Fallback displays** when real data unavailable
+- [ ] **User-friendly error messages** instead of technical errors
 
-## Questions to Ask Yourself
+### **Integration Requirements**
+- [x] **No breaking changes** to existing UI or user experience
+- [x] **Consistent styling** with current NAB design system
+- [x] **JavaScript integration complete** - breadcrumb system working flawlessly
+- [x] **Error handling implemented** - graceful fallbacks for missing data
+- [ ] **SQL query integration** - replace mock data with real database calculations
+- [ ] **Comprehensive testing** with various job combinations
 
-1. Can I simplify this query by removing recursive elements?
-2. Am I using the pre-computed `similarity_rank` effectively?
-3. Are the organizational filters being applied efficiently?
-4. Is the query result structure optimal for D3.js tree building?
+## 🚀 **GETTING STARTED CHECKLIST**
 
-## Success Metrics
+1. **[ ] Set up development environment**
+   ```bash
+   cd skill-similarity-engine
+   pip install -r requirements.txt
+   python run_webapp.py
+   ```
 
-**Primary Goal (Critical):**
-- ✅ **Zero text overlap** at all tree levels (1-7)
-- ✅ **Readable text labels** with proper spacing between nodes
-- ✅ **Consistent spacing** regardless of tree size or depth
-- ✅ **Scalable solution** that works with auto-fit enabled
+2. **[ ] Explore current functionality**
+   - Navigate to `localhost:5000/career-pathways`
+   - Test tree visualization and breadcrumb functionality
+   - Identify mock data in Skills and Workforce sections
 
-**Secondary Goals (Important):**
-- Tree generation time: Target <2 seconds
-- Node children: Up to 12 per parent (currently working)
-- Tree depth: Configurable 1-7 levels (currently working)
-- Memory usage: Minimal (direct table lookups)
-- UI responsiveness: Smooth D3.js rendering
+3. **[ ] Examine database structure**
+   - Connect to `models/2025-Q2/business_context.sqlite`
+   - Explore `job_skills`, `skills`, `positions` tables
+   - Understand data relationships and quality
 
-**Current Status:**
-- ❌ Text overlap persists at levels 2+ (BLOCKING ISSUE)
-- ✅ Tree generation performance is acceptable
-- ✅ 12 children per node supported
-- ✅ Configurable depth working
-- ✅ SQL queries optimized
+4. **[ ] Review existing SQL queries**
+   - Study `src/skill_similarity_engine/webapp/sql/README.md`
+   - Examine `skills.sql` and `positions.sql` for query patterns
+   - Test queries in SQLite browser or Python
 
-## Files That Should NOT Be Changed
+5. **[ ] Start with Skills Analysis**
+   - Create `/api/skills-analysis` endpoint first
+   - Test with simple job pair (e.g., job_id 1 and 2)
+   - Update JavaScript to consume real data
 
-- Core engine (`similarity/`, `models/`, `data/`)
-- Database schema (`schema_builder.py`)
-- Pre-computation logic (`precompute.py`)
-- Main CLI (`main.py`)
+6. **[ ] Move to Workforce Intelligence**
+   - Create `/api/workforce-analysis` endpoint
+   - Handle position data aggregation
+   - Update JavaScript for real position counts
 
-**Focus only on the webapp SQL queries and potentially the Flask endpoint logic.**
+7. **[ ] Optimize and test**
+   - Add performance monitoring
+   - Test with various job combinations
+   - Ensure error handling works correctly
+
+## 💡 **HELPFUL CONTEXT**
+
+### **Project Background**
+This is Phase 8.2.4 of the NAB Skill Similarity Engine, a strategic workforce intelligence platform for the Future Skills team. The system has 8,580 pre-computed career pathways and comprehensive job-skill mappings (40,170 relationships) ready for integration.
+
+### **User Experience Priority**
+The interface should feel **seamless and professional**. Users shouldn't notice the transition from mock to real data - they should just see more accurate, relevant information that reflects their actual organizational context.
+
+### **Data Quality Reality**
+Not all jobs have complete skill mappings or current positions. Your implementation should handle this gracefully with appropriate messaging rather than breaking the user experience.
+
+### **Performance Context**
+The database contains substantial data (40K+ job-skill mappings, thousands of positions) but is optimized for fast queries. Focus on efficient JOINs and consider caching for repeated requests.
 
 ---
 
-**Your Mission:** Rebuild the career pathway tree SQL queries from scratch to be simple, fast, and fully utilize the pre-computed `career_pathways` table. The user wants to start over with a clean, optimized approach. 
+**🎯 FINAL REMINDER**: Your goal is to make the Skills Transition Analysis and Workforce Intelligence sections show **real, accurate data from the database** while maintaining the excellent user experience that's already been built. Focus on **data integration, performance, and error handling** rather than UI changes.
+
+**Good luck! The foundation is solid - you're just connecting the final data pipes.** 🚀 
