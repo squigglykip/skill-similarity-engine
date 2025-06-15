@@ -93,27 +93,41 @@ def create_app(config=None):
         try:
             db = get_db()
             
-            # Get basic stats for homepage
-            stats_query = queries.get('metadata', 'get_database_stats')
-            stats = db.execute(stats_query).fetchall()
+            # Get platform metrics for dashboard
+            platform_metrics_query = queries.get('metadata', 'get_platform_metrics')
+            platform_metrics_raw = db.execute(platform_metrics_query).fetchall()
             
-            # Get job families overview
-            families_query = queries.get('jobs', 'get_job_families')
-            families = db.execute(families_query).fetchall()
+            # Convert platform metrics to dictionary for easier template access
+            platform_metrics = {}
+            for row in platform_metrics_raw:
+                platform_metrics[row['metric']] = row['count']
             
-            sample_jobs = get_sample_jobs(10)
+            # Get top job families
+            top_families_query = queries.get('metadata', 'get_top_job_families')
+            top_families = db.execute(top_families_query).fetchall()
+            
+            sample_jobs = get_sample_jobs(6)  # Reduced for cleaner display
             
             return render_template('index.html', 
                                  sample_jobs=sample_jobs,
-                                 database_stats=stats, 
-                                 job_families=families[:5])  # Top 5 families
+                                 platform_metrics=platform_metrics,
+                                 top_families=top_families[:5])  # Top 5 families
         except Exception as e:
             print(f"Error loading homepage: {e}")
-            sample_jobs = get_sample_jobs(10)
+            sample_jobs = get_sample_jobs(6)
+            # Fallback with empty metrics
+            platform_metrics = {
+                'jobs_count': 0,
+                'skills_count': 0,
+                'positions_count': 0,
+                'pathways_count': 0,
+                'job_families_count': 0,
+                'divisions_count': 0
+            }
             return render_template('index.html', 
                                  sample_jobs=sample_jobs,
-                                 database_stats=[], 
-                                 job_families=[])
+                                 platform_metrics=platform_metrics,
+                                 top_families=[])
 
     @app.route('/components')
     def components():

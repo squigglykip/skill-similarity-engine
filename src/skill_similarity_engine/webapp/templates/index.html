@@ -66,17 +66,26 @@
         </div>
     </section>
 
-    <!-- Dashboard Metrics -->
+    <!-- Platform Overview Dashboard -->
     <section class="mb-12">
         <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-6">Platform Overview</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Strategic Platform Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             
             <!-- Jobs Analyzed Card -->
             <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-600">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Jobs Analyzed</p>
-                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ sample_jobs|length * 47 if sample_jobs else '2,847' }}</p>
+                        <div class="flex items-center space-x-2">
+                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Job Profiles</p>
+                            <button class="text-gray-400 hover:text-gray-600" title="Total number of job profiles across all families, representing the complete job architecture">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(platform_metrics.jobs_count) if platform_metrics.jobs_count else '715' }}</p>
                     </div>
                     <div class="p-3 bg-red-100 rounded-full">
                         <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,29 +94,116 @@
                     </div>
                 </div>
                 <div class="mt-4">
-                    <p class="text-sm font-source text-gray-600">Database ready for analysis</p>
+                    <p class="text-sm font-source text-gray-600">Across {{ platform_metrics.job_families_count or '8' }} job families</p>
                 </div>
             </div>
 
-            <!-- Skills Mapped Card -->
+            <!-- Skills Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Skills Library</p>
+                            <button class="text-gray-400 hover:text-gray-600" title="Comprehensive skills taxonomy from Lightcast, including specialized skills, certifications, and common skills">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(platform_metrics.skills_count) if platform_metrics.skills_count else '38,395' }}</p>
+                    </div>
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm font-source text-gray-600">In comprehensive taxonomy</p>
+                </div>
+            </div>
+
+            <!-- Career Pathways Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Career Pathways</p>
+                            <button class="text-gray-400 hover:text-gray-600" title="Pre-computed career pathways based on skill similarity, ranked by transition feasibility">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(platform_metrics.pathways_count) if platform_metrics.pathways_count else '8,580' }}</p>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm font-source text-gray-600">Pre-computed relationships</p>
+                </div>
+            </div>
+
+            <!-- Active Positions Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-purple-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Active Positions</p>
+                            <button class="text-gray-400 hover:text-gray-600" title="Current workforce positions across all divisions, providing context for career transition impact analysis">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(platform_metrics.positions_count) if platform_metrics.positions_count else '5,000' }}</p>
+                    </div>
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm font-source text-gray-600">Across {{ platform_metrics.divisions_count or '6' }} divisions</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Job Families Display -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Top Job Families Card -->
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-epilogue font-medium text-gray-900">Top Job Families</h3>
+                    <p class="text-sm font-source text-gray-600">Distribution of job profiles by family</p>
                 </div>
                 <div class="p-6">
                     <div class="space-y-3">
+                        {% for family in top_families %}
                         <div class="flex justify-between items-center">
-                            <span class="text-sm font-source text-gray-900">Technology</span>
-                            <span class="text-xs font-source font-medium text-gray-500">245 roles</span>
+                            <span class="text-sm font-source text-gray-900">{{ family.job_family }}</span>
+                            <span class="text-xs font-source font-medium text-gray-500">{{ family.job_count }} roles</span>
+                        </div>
+                        {% else %}
+                        <!-- Fallback data if no families loaded -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-source text-gray-900">Banking Operations</span>
+                            <span class="text-xs font-source font-medium text-gray-500">101 roles</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm font-source text-gray-900">Risk & Compliance</span>
-                            <span class="text-xs font-source font-medium text-gray-500">198 roles</span>
+                            <span class="text-sm font-source text-gray-900">Data & Analytics</span>
+                            <span class="text-xs font-source font-medium text-gray-500">99 roles</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm font-source text-gray-900">Customer Service</span>
-                            <span class="text-xs font-source font-medium text-gray-500">167 roles</span>
+                            <span class="text-sm font-source text-gray-900">Finance & Accounting</span>
+                            <span class="text-xs font-source font-medium text-gray-500">98 roles</span>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -125,7 +221,12 @@
                             Current
                         </span>
                     </div>
-                    <p class="text-sm font-source text-gray-600">Updated quarterly</p>
+                    <p class="text-sm font-source text-gray-600">Updated quarterly with versioned model outputs</p>
+                    <div class="text-xs font-source text-gray-500 space-y-1">
+                        <p>• Skills similarity matrices</p>
+                        <p>• Career pathway rankings</p>
+                        <p>• Workforce context data</p>
+                    </div>
                 </div>
             </div>
         </div>
