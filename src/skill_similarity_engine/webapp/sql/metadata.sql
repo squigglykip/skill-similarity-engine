@@ -275,4 +275,47 @@ SELECT
         (COUNT(DISTINCT job_id) * 100.0) / (SELECT COUNT(*) FROM jobs), 
         2
     )
-FROM job_skills; 
+FROM job_skills;
+
+-- query_name: get_platform_metrics
+-- Get strategic platform metrics for homepage dashboard
+SELECT 
+    'jobs_count' as metric,
+    COUNT(*) as count
+FROM jobs
+UNION ALL
+SELECT 
+    'skills_count',
+    COUNT(*)
+FROM skills
+UNION ALL
+SELECT 
+    'positions_count',
+    COUNT(*)
+FROM positions
+UNION ALL
+SELECT 
+    'pathways_count',
+    COUNT(*)
+FROM career_pathways
+UNION ALL
+SELECT 
+    'job_families_count',
+    COUNT(DISTINCT JobFamily)
+FROM jobs
+UNION ALL
+SELECT 
+    'divisions_count',
+    COUNT(DISTINCT Division)
+FROM positions;
+
+-- query_name: get_top_job_families
+-- Get top job families with counts for homepage dashboard
+SELECT 
+    JobFamily as job_family,
+    COUNT(*) as job_count
+FROM jobs 
+WHERE JobFamily IS NOT NULL
+GROUP BY JobFamily
+ORDER BY job_count DESC
+LIMIT 10; 
