@@ -754,6 +754,271 @@ Based on the conversation summary, the current implementation uses a mix of real
 - 📋 **SQL Query Integration**: API endpoints need database query fixes for real data calculations
 - 🎯 **Integration Target**: Fix SQL queries to return real database calculations instead of mock data
 
+**8.2.5 Executive Dashboard Enhancement** 📋 **NEXT PRIORITY**
+**Branch: `8.2.5-feature/webapp-foundation/executive-dashboard`**
+
+> **Strategic Focus**: *"Transform the homepage into a comprehensive executive intelligence platform showcasing high-level workforce insights derived from the comprehensive analysis in `executive_insights.json`."*
+
+This phase elevates the homepage from a basic landing page to a strategic workforce intelligence dashboard that provides executives with immediate access to key insights about organizational capability, mobility potential, and strategic workforce planning opportunities.
+
+**🎯 NAVIGATION ENHANCEMENT**
+
+**8.2.5.1 Strategic Navigation Structure** 📋 **REQUIRED**
+- [ ] **Executive Dashboard Section Navigation**
+  - [ ] Platform Overview (key metrics and data version)
+  - [ ] Career Pathway Intelligence (mobility hubs and connectivity insights)
+  - [ ] Workforce Mobility Analysis (similarity distribution and readiness scores)
+  - [ ] Strategic Recommendations (executive-level actionable insights)
+  - [ ] Cross-Family Analysis (inter-departmental mobility patterns)
+  - [ ] Geographic Intelligence (location-based capability distribution)
+
+- [ ] **Enhanced Navigation UX**
+  - [ ] Smooth scroll navigation between dashboard sections
+  - [ ] Collapsible section headers for executive briefing mode
+  - [ ] Quick jump navigation sidebar for rapid insight access
+  - [ ] Export capabilities for executive presentation materials
+  - [ ] Print-friendly layout for board meeting materials
+
+**📊 DASHBOARD CONTENT IMPLEMENTATION**
+
+**8.2.5.2 Platform Overview Enhancement** ✅ **COMPLETED**
+- [x] **Strategic Platform Metrics** (from `executive_insights.json`)
+  ```
+  🎯 PLATFORM OVERVIEW:
+     • 715 job profiles across 8 job families
+     • 38,395 skills in comprehensive taxonomy  
+     • 8,580 pre-computed career pathways
+     • 5,000 active positions across 6 divisions
+  ```
+- [x] **Platform Metrics SQL Queries**:
+  ```sql
+  -- Basic platform metrics
+  SELECT COUNT(*) as count FROM jobs;                           -- jobs_count
+  SELECT COUNT(*) as count FROM skills;                         -- skills_count  
+  SELECT COUNT(*) as count FROM positions;                      -- positions_count
+  SELECT COUNT(*) as count FROM career_pathways;                -- pathways_count
+  SELECT COUNT(DISTINCT JobFamily) as count FROM jobs;          -- job_families
+  SELECT COUNT(DISTINCT Division) as count FROM positions;      -- divisions
+  ```
+- [x] **Retain Existing Components**: Keep "Jobs Analysed" and "Data Version" sections
+- [x] **Enhanced Metrics Display**: Add visual indicators and professional styling
+- [x] **Contextual Tooltips**: Methodology explanations for executive understanding
+
+**8.2.5.3 Career Pathway Intelligence Dashboard** 📋 **REQUIRED**
+- [ ] **Mobility Hub Analysis** 
+  ```
+  🚀 CAREER PATHWAY INSIGHTS:
+     • 128 job family pathway combinations identified
+     • Top mobility hub: Data & Analytics (618 connections)
+     • Average pathway similarity: 0.78
+  ```
+- [ ] **Career Pathway SQL Queries**:
+  ```sql
+  -- Career pathway analysis by job family
+  SELECT 
+      j1.JobFamily as source_family,
+      j2.JobFamily as target_family,
+      cp.career_move_type,
+      COUNT(*) as pathway_count,
+      AVG(cp.similarity_score) as avg_similarity,
+      AVG(cp.shared_skills_count) as avg_shared_skills
+  FROM career_pathways cp
+  JOIN jobs j1 ON cp.source_job_id = j1.JobProfileID
+  JOIN jobs j2 ON cp.target_job_id = j2.JobProfileID
+  WHERE cp.similarity_rank <= 5  -- Focus on top pathways
+  GROUP BY j1.JobFamily, j2.JobFamily, cp.career_move_type
+  HAVING pathway_count >= 3
+  ORDER BY pathway_count DESC;
+  
+  -- Most connected job families (mobility hubs)
+  SELECT 
+      j.JobFamily,
+      COUNT(DISTINCT cp.target_job_id) as outbound_pathways,
+      COUNT(DISTINCT cp.source_job_id) as inbound_pathways,
+      (COUNT(DISTINCT cp.target_job_id) + COUNT(DISTINCT cp.source_job_id)) as total_connectivity
+  FROM jobs j
+  LEFT JOIN career_pathways cp ON j.JobProfileID = cp.source_job_id OR j.JobProfileID = cp.target_job_id
+  WHERE cp.similarity_rank <= 3
+  GROUP BY j.JobFamily
+  ORDER BY total_connectivity DESC
+  LIMIT 10;
+  ```
+- [ ] **Most Connected Job Families Display** (as percentages of total job profiles)
+  ```
+  🎯 Most Connected Job Families:
+             JobFamily  Connectivity %
+      Data & Analytics           86.4%
+    Banking Operations           86.3% 
+  Finance & Accounting           86.2%
+       Human Resources           79.7%
+  Executive Leadership           77.8%
+  ```
+- [ ] **Interactive Connectivity Visualisation**: Hover effects showing actual numbers
+- [ ] **Strategic Context**: Executive interpretation of mobility patterns
+
+**8.2.5.4 Workforce Mobility Readiness Analysis** 📋 **REQUIRED**
+- [ ] **Skills Similarity Strategic Insights**
+  ```
+  🎯 SKILL SIMILARITY STRATEGIC INSIGHTS:
+  📊 WORKFORCE MOBILITY READINESS:
+     • High mobility potential (≥0.7): 3,092 job pairs (0.6%)
+     • Medium mobility potential (0.4-0.7): 187,621 job pairs (36.8%)
+     • Low mobility potential (<0.4): 319,797 job pairs (62.6%)
+  ```
+- [ ] **Similarity Analysis SQL Queries**:
+  ```sql
+  -- Load all similarity scores for distribution analysis
+  SELECT similarity_score
+  FROM job_similarities
+  ORDER BY similarity_score;
+  
+  -- Raw similarity statistics
+  SELECT 
+      COUNT(*) as total_records,
+      MIN(similarity_score) as min_score,
+      MAX(similarity_score) as max_score,
+      AVG(similarity_score) as avg_score,
+      COUNT(DISTINCT similarity_score) as unique_scores
+  FROM job_similarities;
+  
+  -- Similarity data quality diagnosis
+  SELECT 
+      COUNT(*) as total_pairs,
+      COUNT(CASE WHEN similarity_score = 1.0 THEN 1 END) as perfect_matches,
+      COUNT(CASE WHEN job_from = job_to THEN 1 END) as self_comparisons,
+      COUNT(CASE WHEN shared_skills_count IS NOT NULL THEN 1 END) as has_shared_skills_data,
+      MIN(similarity_score) as min_score,
+      MAX(similarity_score) as max_score,
+      AVG(similarity_score) as avg_score
+  FROM job_similarities
+  WHERE similarity_score > 0;
+  ```
+- [ ] **Similarity Distribution Visualisation**: Executive-friendly histogram
+- [ ] **Strategic Interpretation**: Workforce flexibility scoring and implications
+- [ ] **Mobility Readiness Dashboard**: Color-coded segments with strategic context
+
+**8.2.5.5 Strategic Recommendations Panel** 📋 **REQUIRED**
+- [ ] **Executive Strategic Insights**
+  ```
+  🎯 STRATEGIC RECOMMENDATIONS FOR EXECUTIVE TEAM:
+  
+  1. 🛡️ WORKFORCE RESILIENCE:
+     • 15 skills identified with high concentration risk
+     • Recommend cross-training programs for critical skills
+     • Consider geographic redistribution of specialized roles
+  
+  2. 🚀 CAREER MOBILITY OPTIMIZATION:
+     • Data & Analytics identified as key mobility hub
+     • 128 active career pathways mapped
+     • Leverage mobility hubs for internal talent development
+  ```
+- [ ] **Actionable Recommendations Display**: Executive-ready strategic insights
+- [ ] **Priority Indicators**: High/Medium/Low priority recommendations
+- [ ] **Implementation Roadmap**: Timeline suggestions for strategic initiatives
+
+**8.2.5.6 Cross-Family Similarity Intelligence** 📋 **REQUIRED**
+- [ ] **Inter-Departmental Mobility Analysis**
+  ```
+  📈 TOP CROSS-FAMILY SIMILARITIES:
+     • Risk & Compliance ↔ Banking Operations (0.368 similarity)
+     • Risk & Compliance ↔ Finance & Accounting (0.362 similarity)
+     • Risk & Compliance ↔ Data & Analytics (0.360 similarity)
+     • Human Resources ↔ Banking Operations (0.360 similarity)
+  ```
+- [ ] **Cross-Family Analysis SQL Queries**:
+  ```sql
+  -- Job family similarity matrix analysis
+  SELECT 
+      j1.JobFamily as family1,
+      j2.JobFamily as family2,
+      AVG(js.similarity_score) as avg_similarity,
+      COUNT(js.similarity_score) as pair_count
+  FROM job_similarities js
+  LEFT JOIN jobs j1 ON js.job_from = j1.JobProfileID
+  LEFT JOIN jobs j2 ON js.job_to = j2.JobProfileID
+  WHERE j1.JobFamily IS NOT NULL AND j2.JobFamily IS NOT NULL
+  GROUP BY j1.JobFamily, j2.JobFamily
+  HAVING COUNT(js.similarity_score) >= 5
+  ORDER BY avg_similarity DESC;
+  ```
+- [ ] **Cross-Family Mobility Matrix**: Visual heatmap of inter-departmental connections
+- [ ] **Strategic Mobility Insights**: Executive interpretation of cross-functional opportunities
+- [ ] **Redeployment Intelligence**: Organisational restructure and capability reallocation insights
+
+**8.2.5.7 Geographic Intelligence Dashboard** 📋 **REQUIRED**
+- [ ] **Location-Based Capability Analysis**
+  ```
+  🌍 GEOGRAPHIC INSIGHTS:
+     • 6 locations analysed
+     • Largest hub: Perth (896 positions, 17.9%)
+     • Most diverse: Perth (1,938 unique skills)
+  ```
+- [ ] **Geographic Analysis SQL Queries**:
+  ```sql
+  -- Division and business unit skills distribution
+  SELECT 
+      p.Division,
+      p.Business_Unit,
+      COUNT(DISTINCT p.JobProfileID) as unique_roles,
+      COUNT(DISTINCT p."Position Number") as total_positions,
+      COUNT(DISTINCT js.Skill_ID) as unique_skills
+  FROM positions p
+  LEFT JOIN job_skills js ON p.JobProfileID = js.JobProfileID
+  WHERE p.Division IS NOT NULL
+  GROUP BY p.Division, p.Business_Unit
+  ORDER BY total_positions DESC;
+  
+  -- Skills concentration risk analysis
+  SELECT 
+      s.Skill_Name,
+      s.Category,
+      s.SkillType,
+      COUNT(DISTINCT js.JobProfileID) as roles_with_skill,
+      COUNT(DISTINCT CASE WHEN p.JobProfileID IS NOT NULL THEN p."Position Number" END) as positions_with_skill,
+      COUNT(DISTINCT p.Division) as divisions_with_skill,
+      COUNT(DISTINCT p.Location) as locations_with_skill
+  FROM skills s
+  LEFT JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+  LEFT JOIN positions p ON js.JobProfileID = p.JobProfileID
+  WHERE js.JobProfileID IS NOT NULL
+  GROUP BY s.Skill_ID, s.Skill_Name, s.Category, s.SkillType
+  HAVING roles_with_skill >= 2
+  ORDER BY positions_with_skill DESC;
+  ```
+- [ ] **Geographic Distribution Visualisation**: Interactive map or bar chart
+- [ ] **Strategic Location Analysis**: Capability concentration and diversification insights
+- [ ] **Workforce Planning Context**: Geographic resilience and opportunity assessment
+
+**🔧 TECHNICAL IMPLEMENTATION**
+
+**8.2.5.8 Data Integration Infrastructure** 📋 **REQUIRED**
+- [ ] **Executive Insights JSON Integration**: Connect `executive_insights.json` to homepage
+- [ ] **Real-Time Data Binding**: Dynamic updates from comprehensive analysis results
+- [ ] **Performance Optimisation**: Sub-2-second dashboard load times
+- [ ] **Responsive Design**: Executive-friendly mobile and tablet access
+- [ ] **Export Functionality**: PDF/PowerPoint export for executive presentations
+
+**8.2.5.9 User Experience Enhancement** 📋 **REQUIRED**
+- [ ] **Executive-Optimised UI**: Clean, high-level insights with drill-down capability
+- [ ] **Contextual Help System**: Methodology explanations and strategic interpretation
+- [ ] **Interactive Elements**: Hover insights, expandable sections, contextual tooltips
+- [ ] **Professional Styling**: NAB-branded executive presentation quality
+- [ ] **Accessibility Compliance**: Executive accessibility requirements and mobile optimisation
+
+**🎯 STRATEGIC IMPACT OBJECTIVES:**
+1. **Executive Briefing Ready**: Homepage serves as comprehensive workforce intelligence briefing
+2. **Strategic Decision Support**: Key insights readily available for executive conversations
+3. **Workforce Planning Intelligence**: Data-driven insights for organisational development
+4. **Cross-Functional Understanding**: Clear visibility of inter-departmental mobility opportunities
+5. **Geographic Strategy Support**: Location-based capability intelligence for strategic planning
+
+**📊 SUCCESS METRICS:**
+- **Dashboard Load Performance**: <2 seconds for all executive insights
+- **Data Accuracy**: 100% alignment with `executive_insights.json` comprehensive analysis
+- **Executive Usability**: Intuitive navigation and clear strategic context
+- **Mobile Compatibility**: Full functionality on executive mobile devices
+- **Export Capability**: Professional presentation materials generation
+
 ---
 
 **8.2.5 White Paper Generation System** 📋 **PLANNED**
