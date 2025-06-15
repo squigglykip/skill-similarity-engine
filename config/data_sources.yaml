@@ -75,6 +75,7 @@ data_sources:
     description: "Current workforce context and position information with enriched JobProfileID"
     expected_columns:
       - "Position Number"
+      - "Position Name"
     optional_columns:
       - "Employee Number"
       - "Business Unit"
@@ -97,6 +98,7 @@ data_sources:
     column_mapping:
       # Keep original field names
       "Position Number": "Position Number"
+      "Position Name": "Position Name"
       "JobProfileID": "JobProfileID"  # Include enriched JobProfileID
       "Employee Number": "Employee Number"
       "Location": "Location"

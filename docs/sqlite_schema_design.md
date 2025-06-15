@@ -1,10 +1,10 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Business Context Database
 
-**Generated**: 2025-06-15 13:21:03
-**Database File**: `c:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
-**Database Size**: 80.89 MB
-**Last Modified**: 2025-06-14T14:45:23.063359
+**Generated**: 2025-06-15 17:02:44
+**Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
+**Database Size**: 81.0 MB
+**Last Modified**: 2025-06-15T16:47:01.827018
 
 ---
 
@@ -45,7 +45,7 @@ to support career pathway analysis and workforce planning.
 - **Total Tables**: 7
 - **Total Records**: 603,374
 - **Total Indexes**: 18
-- **Database Size**: 80.89 MB
+- **Database Size**: 81.0 MB
 
 ## Entity Relationship Diagram
 
@@ -89,6 +89,7 @@ erDiagram
 
     POSITIONS {
         text Position Number PK
+        text Position Name
         text JobProfileID FK
         text Employee Number
         text Division
@@ -384,6 +385,7 @@ CREATE TABLE jobs (
 ```sql
 CREATE TABLE positions (
     Position Number TEXT PRIMARY KEY,
+    Position Name TEXT,
     JobProfileID TEXT,
     Employee Number TEXT,
     Division TEXT,
@@ -411,6 +413,7 @@ CREATE TABLE positions (
 **Column Statistics:**
 
 - **Position Number**: 5,000 unique values (5,000 non-null), avg length 8.0
+- **Position Name**: 580 unique values (5,000 non-null), avg length 21.92
 - **JobProfileID**: 628 unique values (5,000 non-null), avg length 7.0
 - **Employee Number**: 3,501 unique values (5,000 non-null), avg length 5.6
 - **Division**: 6 unique values (5,000 non-null), avg length 20.27
@@ -432,6 +435,7 @@ CREATE TABLE positions (
 **Sample Data by Column:**
 
 - **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **Position Name**: `Data Manager`, `Risk Senior Developer`, `Technology Principal Specia...`, `Investment Senior Developer`, `Markets Principal Developer`, `Legal Executive Advisor`, `Audit Principal Consultant`, `Credit Vice President`, `Marketing Consultant`, `Treasury Engineer`
 - **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
 - **Employee Number**: `102031.0`, `100121.0`, `100644.0`, `102831.0`, `101745.0`, `102052.0`, `101642.0`, `103249.0`, `102673.0`, `102992.0`
 - **Division**: `Business & Private Banking`, `Corporate & Institutional B...`, `Customer Banking & Wealth`, `Group Functions`, `NAB Ventures`, `Technology`
@@ -454,6 +458,7 @@ CREATE TABLE positions (
 
 **Record 1:**
   - `Position Number`: 50000000
+  - `Position Name`: Data Manager
   - `JobProfileID`: R0453.0
   - `Employee Number`: 102031.0
   - `Division`: Technology
@@ -474,6 +479,7 @@ CREATE TABLE positions (
 
 **Record 2:**
   - `Position Number`: 50000001
+  - `Position Name`: Risk Senior Developer
   - `JobProfileID`: R0400.6
   - `Employee Number`: 100121.0
   - `Division`: NAB Ventures
@@ -494,6 +500,7 @@ CREATE TABLE positions (
 
 **Record 3:**
   - `Position Number`: 50000002
+  - `Position Name`: Technology Principal Specialist
   - `JobProfileID`: R0465.3
   - `Employee Number`: 100644.0
   - `Division`: NAB Ventures
@@ -533,25 +540,25 @@ CREATE TABLE schema_metadata (
 **Sample Data by Column:**
 
 - **key**: `created_date`, `purpose`, `schema_version`, `source_document`
-- **value**: `1.0`, `2025-06-13T18:36:07.482003`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
-- **created_at**: `2025-06-13T18:36:07.482003`
+- **value**: `1.0`, `2025-06-15T16:46:46.146146`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
+- **created_at**: `2025-06-15T16:46:46.146146`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `key`: schema_version
   - `value`: 1.0
-  - `created_at`: 2025-06-13T18:36:07.482003
+  - `created_at`: 2025-06-15T16:46:46.146146
 
 **Record 2:**
   - `key`: created_date
-  - `value`: 2025-06-13T18:36:07.482003
-  - `created_at`: 2025-06-13T18:36:07.482003
+  - `value`: 2025-06-15T16:46:46.146146
+  - `created_at`: 2025-06-15T16:46:46.146146
 
 **Record 3:**
   - `key`: source_document
   - `value`: docs/sqlite_schema_design.md
-  - `created_at`: 2025-06-13T18:36:07.482003
+  - `created_at`: 2025-06-15T16:46:46.146146
 
 ---
 
@@ -918,4 +925,4 @@ This schema documentation should be used to:
 3. **Validate data integrity** during pipeline updates
 4. **Plan schema evolution** for future requirements
 
-**Last Updated**: 2025-06-15 13:21:03
+**Last Updated**: 2025-06-15 17:02:44

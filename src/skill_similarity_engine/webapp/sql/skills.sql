@@ -201,4 +201,121 @@ ORDER BY s.skill_name,
         WHEN 'Principal' THEN 7
         WHEN 'Executive' THEN 8
         ELSE 9
-    END; 
+    END;
+
+-- query_name: get_transferable_skills_analysis
+-- Advanced transferable skills analysis based on category relationships and co-occurrence patterns
+WITH source_skills AS (
+    SELECT js.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
+    FROM job_skills js
+    JOIN skills s ON js.Skill_ID = s.Skill_ID
+    WHERE js.JobProfileID = ?
+),
+target_skills AS (
+    SELECT js.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
+    FROM job_skills js
+    JOIN skills s ON js.Skill_ID = s.Skill_ID
+    WHERE js.JobProfileID = ?
+),
+skills_matched AS (
+    SELECT ss.Skill_ID, ss.Skill_Name, ss.Category, ss.Subcategory, ss.SkillType
+    FROM source_skills ss
+    INNER JOIN target_skills ts ON ss.Skill_ID = ts.Skill_ID
+),
+skills_to_develop AS (
+    SELECT ts.Skill_ID, ts.Skill_Name, ts.Category, ts.Subcategory, ts.SkillType
+    FROM target_skills ts
+    LEFT JOIN source_skills ss ON ts.Skill_ID = ss.Skill_ID
+    WHERE ss.Skill_ID IS NULL
+),
+skills_only_in_source AS (
+    SELECT ss.Skill_ID, ss.Skill_Name, ss.Category, ss.Subcategory, ss.SkillType
+    FROM source_skills ss
+    LEFT JOIN target_skills ts ON ss.Skill_ID = ts.Skill_ID
+    WHERE ts.Skill_ID IS NULL
+),
+-- Calculate skill co-occurrence patterns with target job skills
+skill_cooccurrence AS (
+    SELECT 
+        sos.Skill_ID as source_skill_id,
+        sos.Skill_Name as source_skill_name,
+        sos.Category as source_category,
+        sos.SkillType as source_skill_type,
+        COUNT(DISTINCT js2.JobProfileID) as jobs_with_target_category,
+        CAST(COUNT(DISTINCT js2.JobProfileID) AS REAL) / 
+            (SELECT COUNT(DISTINCT JobProfileID) FROM job_skills) as cooccurrence_score
+    FROM skills_only_in_source sos
+    JOIN job_skills js1 ON sos.Skill_ID = js1.Skill_ID
+    -- Find jobs that have this source skill AND skills from target categories
+    JOIN job_skills js2 ON js1.JobProfileID = js2.JobProfileID
+    JOIN skills s2 ON js2.Skill_ID = s2.Skill_ID
+    -- Match with categories present in target job
+    WHERE s2.Category IN (SELECT DISTINCT Category FROM target_skills)
+        AND js1.Skill_ID != js2.Skill_ID
+    GROUP BY sos.Skill_ID, sos.Skill_Name, sos.Category, sos.SkillType
+),
+-- Classify transferability based on multiple criteria
+transferable_skills AS (
+    SELECT 
+        sos.Skill_ID,
+        sos.Skill_Name,
+        sos.Category,
+        sos.Subcategory,
+        sos.SkillType,
+        COALESCE(sc.cooccurrence_score, 0) as cooccurrence_score,
+        CASE 
+            -- High transferability: Same category as target skills
+            WHEN sos.Category IN (SELECT DISTINCT Category FROM target_skills) THEN 'High'
+            -- Medium transferability: High co-occurrence with target skill categories
+            WHEN COALESCE(sc.cooccurrence_score, 0) >= 0.3 THEN 'Medium'
+            -- Low transferability: Common skills (communication, leadership, etc.)
+            WHEN sos.SkillType = 'Common Skill' THEN 'Low'
+            -- Minimal transferability: Specialized skills with no category overlap
+            ELSE 'Minimal'
+        END as transferability_level,
+        CASE 
+            WHEN sos.Category IN (SELECT DISTINCT Category FROM target_skills) THEN 'Same category as target role'
+            WHEN COALESCE(sc.cooccurrence_score, 0) >= 0.3 THEN 'Frequently paired with target skills'
+            WHEN sos.SkillType = 'Common Skill' THEN 'Foundational transferable skill'
+            ELSE 'Limited direct relevance'
+        END as transferability_reason
+    FROM skills_only_in_source sos
+    LEFT JOIN skill_cooccurrence sc ON sos.Skill_ID = sc.source_skill_id
+    WHERE CASE 
+        WHEN sos.Category IN (SELECT DISTINCT Category FROM target_skills) THEN 1
+        WHEN COALESCE(sc.cooccurrence_score, 0) >= 0.2 THEN 1
+        WHEN sos.SkillType = 'Common Skill' THEN 1
+        ELSE 0
+    END = 1
+)
+-- Return comprehensive analysis
+SELECT 
+    'matched' as skill_status,
+    COUNT(*) as skill_count,
+    SkillType,
+    Category,
+    '' as transferability_level,
+    '' as transferability_reason
+FROM skills_matched
+GROUP BY SkillType, Category
+UNION ALL
+SELECT 
+    'develop' as skill_status,
+    COUNT(*) as skill_count,
+    SkillType,
+    Category,
+    '' as transferability_level,
+    '' as transferability_reason
+FROM skills_to_develop
+GROUP BY SkillType, Category
+UNION ALL
+SELECT 
+    'transferable' as skill_status,
+    COUNT(*) as skill_count,
+    SkillType,
+    Category,
+    transferability_level,
+    MAX(transferability_reason) as transferability_reason
+FROM transferable_skills
+GROUP BY SkillType, Category, transferability_level
+ORDER BY skill_status, transferability_level DESC, skill_count DESC; 
