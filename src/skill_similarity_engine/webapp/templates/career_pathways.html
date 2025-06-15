@@ -595,8 +595,53 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTreeControls();
     initializeOrganisationalFilters();
     
+    // Check for URL parameters (e.g., ?start=R0276.5)
+    checkForStartParameter();
+    
     console.log('✅ Career Pathway Explorer loaded');
 });
+
+// Check for start parameter in URL and pre-select job
+function checkForStartParameter() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const startJobId = urlParams.get('start');
+    
+    if (startJobId) {
+        console.log(`🎯 Found start parameter: ${startJobId}`);
+        
+        // Fetch the job details and pre-select it
+        fetch(`/api/job-details/${startJobId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.job) {
+                    const job = {
+                        id: data.job.id,
+                        title: data.job.title,
+                        family: data.job.family,
+                        level: data.job.group || 'N/A'
+                    };
+                    
+                    console.log(`✅ Pre-selecting job: ${job.title} (${job.id})`);
+                    
+                    // Add to selected jobs
+                    selectedJobs.set(job.id, job);
+                    updateSelectedJobsDisplay();
+                    updateBuildTreeButton();
+                    
+                    // Update search input to show the selected job title
+                    const searchInput = document.getElementById('pathway-job-search');
+                    if (searchInput) {
+                        searchInput.placeholder = `${job.title} selected - search for more...`;
+                    }
+                } else {
+                    console.warn(`⚠️ Job not found for ID: ${startJobId}`);
+                }
+            })
+            .catch(error => {
+                console.error(`❌ Error loading job ${startJobId}:`, error);
+            });
+    }
+}
 
 // Global Variables
 let selectedJobs = new Map(); // Use Map for better job management
@@ -693,7 +738,7 @@ function initializeJobSearch() {
                          data-job-id="${job.id}"
                          onclick="selectJob(${JSON.stringify(job).replace(/"/g, '&quot;')})">
                         <div class="font-source font-medium text-sm">${job.title}</div>
-                        <div class="font-source text-xs text-gray-600">${job.family}</div>
+                        <div class="font-source text-xs text-gray-600">${job.id} • ${job.family}</div>
                         ${selectedJobs.has(job.id) ? '<div class="text-xs text-blue-600 font-medium mt-1">✓ Selected</div>' : ''}
                     </div>
                 `).join('')}
