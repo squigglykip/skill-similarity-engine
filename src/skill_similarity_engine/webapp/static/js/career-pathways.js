@@ -798,11 +798,15 @@ SkillEngine.CareerPathways = {
     extractJobId(nodeData) {
         if (!nodeData) return null;
         
-        // Try different possible ID fields
-        return nodeData.id || 
-               nodeData.JobProfileID || 
-               nodeData.job_id ||
-               (nodeData.data && (nodeData.data.id || nodeData.data.JobProfileID)) ||
+        // Priority: Real JobProfileID first, then fallback to D3 node ID
+        // The D3 tree uses 'job_id' for the real database JobProfileID
+        // and 'id' for the D3 node identifier (node_0, node_1, etc.)
+        return nodeData.job_id ||                                           // D3 tree: Real JobProfileID (R0001.5)
+               nodeData.JobProfileID ||                                     // Direct database queries
+               (nodeData.data && nodeData.data.job_id) ||                   // Nested D3 data
+               (nodeData.data && nodeData.data.JobProfileID) ||             // Nested database data
+               nodeData.id ||                                               // Fallback: D3 node ID
+               (nodeData.data && nodeData.data.id) ||                       // Nested fallback
                null;
     },
 

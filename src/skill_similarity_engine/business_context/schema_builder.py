@@ -126,6 +126,7 @@ class SchemaBuilder:
         sql = """
         CREATE TABLE positions (
             "Position Number" TEXT PRIMARY KEY,     -- Unique position identifier
+            "Position Name" TEXT,                   -- Human-readable position name/title
             JobProfileID TEXT,                      -- Direct link to jobs table (enriched during loading)
             "Employee Number" TEXT,                 -- Current employee (if filled)
             

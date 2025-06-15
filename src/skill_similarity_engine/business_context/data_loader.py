@@ -478,6 +478,7 @@ class DataLoader:
             # Map columns to database schema (flexible mapping)
             column_mapping = {
                 'Position Number': 'Position Number',
+                'Position Name': 'Position Name',
                 'JobProfileID': 'JobProfileID',  # Now included directly
                 'Employee Number': 'Employee Number',
                 # Organizational hierarchy mapping
@@ -509,7 +510,7 @@ class DataLoader:
                 df_mapped['JobProfileID'] = df['JobProfileID']
             
             # Ensure required columns exist with defaults
-            required_columns = ['Position Number', 'JobProfileID', 'Employee Number',
+            required_columns = ['Position Number', 'Position Name', 'JobProfileID', 'Employee Number',
                               'Division', 'Business_Unit', 'Team', 'SubTeam', 'Function', 'SubFunction',
                               'Org_Level_8', 'Org_Level_9', 'Org_Level_10',
                               'Location', 'Rg', 'Cty',
