@@ -2,6 +2,11 @@
 
 {% block title %}Career Pathway Explorer - NAB Skills Intelligence Platform{% endblock %}
 
+{% block head %}
+<!-- Career Pathways specific styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/career-pathways.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="bg-white min-h-screen">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -17,7 +22,7 @@
         </div>
 
         <!-- Step 1: Job Selection Panel -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-16">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 1: Select Starting Role</h2>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-blue-100 text-blue-800">
@@ -80,7 +85,7 @@
         </div>
 
         <!-- Step 2: Career Pathway Visualization -->
-        <div id="step-2-panel" class="bg-white rounded-lg shadow-lg p-6 mb-6 hidden">
+        <div id="step-2-panel" class="bg-white rounded-lg shadow-lg p-8 mb-16 hidden">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 2: Explore Career Pathways</h2>
                 <div class="flex items-center space-x-2">
@@ -283,6 +288,16 @@
                 
                 <!-- Tree Canvas -->
                 <div id="career-pathway-tree" class="w-full bg-white relative" style="height: 600px; overflow: hidden;">
+                    <!-- Expand Button (hidden until tree is loaded) -->
+                    <button id="expand-tree-btn" 
+                            onclick="openFullScreenTree()" 
+                            class="absolute top-4 right-4 z-10 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 p-2 rounded-lg shadow-lg border border-gray-200 transition-all duration-200 hidden"
+                            title="Expand tree to full screen">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                        </svg>
+                    </button>
+                    
                     <div class="flex items-center justify-center h-full text-gray-500">
                         <div class="text-center">
                             <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +372,7 @@
         </div>
 
         <!-- Step 3: Pathway Selection Details -->
-        <div id="pathway-details-panel" class="bg-white rounded-lg shadow-lg p-6 hidden">
+        <div id="pathway-details-panel" class="bg-white rounded-lg shadow-lg p-8 mb-16 hidden">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 3: Career Pathway Analysis</h2>
                 <button onclick="closePathwayDetails()" class="text-gray-400 hover:text-gray-600">
@@ -430,7 +445,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="bg-white rounded-lg p-4 border border-green-200">
                     <div class="text-2xl font-epilogue font-bold text-green-600" id="skills-matched-count">-</div>
-                    <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills Matched</div>
+                    <div class="text-xs font-source font-medium text-gray-500 uppercase">Skills Shared</div>
                 </div>
                 <div class="bg-white rounded-lg p-4 border border-green-200">
                     <div class="text-2xl font-epilogue font-bold text-orange-600" id="skills-develop-count">-</div>
@@ -454,7 +469,7 @@
     </div>
 
     <!-- Step 4: Workforce Intelligence -->
-    <div id="workforce-intelligence-panel" class="bg-white rounded-lg shadow-lg p-6 mb-6 hidden">
+    <div id="workforce-intelligence-panel" class="bg-white rounded-lg shadow-lg p-8 mb-16 hidden">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 4: Workforce Intelligence</h2>
         </div>
@@ -486,6 +501,13 @@
             </div>
             
             <div class="p-6">
+            
+                <!-- Workforce Analysis Header -->
+                <div id="workforce-comparison-header" class="mb-6 p-4 bg-gradient-to-r from-blue-100 to-indigo-100 border-l-4 border-blue-600 rounded-md shadow-sm">
+                    <div class="text-lg font-epilogue font-semibold text-blue-900">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
             
                 <!-- Workforce Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -552,6 +574,56 @@
         </div>
     </div>
 
+        <!-- Full Screen Tree Modal -->
+        <div id="fullscreen-tree-overlay" class="fixed inset-0 bg-black bg-opacity-95 z-50 hidden">
+            <div class="flex flex-col h-full">
+                <!-- Full Screen Header -->
+                <div class="flex items-center justify-between p-4 bg-white bg-opacity-10 backdrop-blur-sm">
+                    <div class="flex items-center space-x-4">
+                        <h3 class="text-lg font-epilogue font-semibold text-white">Career Pathway Tree - Full Screen View</h3>
+                        <div class="text-sm font-source text-gray-300" id="fullscreen-tree-info">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Tree Controls in Full Screen -->
+                        <button id="fullscreen-expand-all-btn" 
+                                class="text-xs bg-green-600 hover:bg-green-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            ⬇️ Expand All
+                        </button>
+                        <button id="fullscreen-collapse-all-btn" 
+                                class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-source font-medium px-3 py-1 rounded transition-colors duration-200">
+                            ⬆️ Collapse All
+                        </button>
+                        <button onclick="closeFullScreenTree()" 
+                                class="text-white hover:text-gray-300 p-1 rounded transition-colors duration-200"
+                                title="Exit full screen">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Full Screen Tree Container -->
+                <div class="flex-1 relative overflow-hidden">
+                    <div id="fullscreen-career-pathway-tree" class="w-full h-full bg-gray-900">
+                        <!-- Tree will be moved/recreated here -->
+                    </div>
+                </div>
+                
+                <!-- Full Screen Footer -->
+                <div class="p-2 bg-white bg-opacity-10 backdrop-blur-sm">
+                    <div class="flex items-center justify-center space-x-6 text-xs text-gray-300">
+                        <span>🖱️ Drag to pan</span>
+                        <span>🔍 Scroll to zoom</span>
+                        <span>👆 Click nodes to expand</span>
+                        <span>⌨️ Press ESC to exit full screen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Information Modals -->
         <div id="info-modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
             <div class="flex items-center justify-center min-h-screen p-4">
@@ -586,19 +658,7 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <script>
-// Career Pathway Explorer JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Loading Career Pathway Explorer...');
-    
-    // Initialize components
-    initializeJobSearch();
-    initializeTreeControls();
-    initializeOrganisationalFilters();
-    
-    console.log('✅ Career Pathway Explorer loaded');
-});
-
-// Global Variables
+// Global Variables - MUST be declared first
 let selectedJobs = new Map(); // Use Map for better job management
 let treeData = null;
 let svg = null;
@@ -611,6 +671,119 @@ let lastBuiltTree = null;
 let lastClickedNode = null; // Track last clicked node for highlighting
 let selectedBreadcrumbIndex = null; // Track which breadcrumb is selected
 let i = 0;
+
+// Career Pathway Explorer JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Loading Career Pathway Explorer...');
+    console.log('🔍 Checking selectedJobs Map availability:', typeof selectedJobs, selectedJobs);
+    
+    // Initialize components
+    initializeJobSearch();
+    initializeTreeControls();
+    initializeOrganisationalFilters();
+    
+    // Check for URL parameters (e.g., ?start=R0276.5) - AFTER initialization
+    setTimeout(() => {
+        checkForStartParameter();
+    }, 100); // Small delay to ensure everything is initialized
+    
+    console.log('✅ Career Pathway Explorer loaded');
+});
+
+// Check for start parameter in URL and pre-select job (with auto-build)
+function checkForStartParameter() {
+    console.log('🔍 checkForStartParameter called, selectedJobs type:', typeof selectedJobs);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const startJobId = urlParams.get('start');
+    
+    console.log('🔍 URL params:', window.location.search);
+    console.log('🔍 startJobId found:', startJobId);
+    
+    if (startJobId) {
+        console.log(`🎯 Found start parameter: ${startJobId} - auto-loading from Job Explorer`);
+        
+        // Fetch the job details and pre-select it
+        fetch(`/api/job-details/${startJobId}`)
+            .then(response => {
+                console.log('🔍 API response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('🔍 API response data:', data);
+                
+                if (data.job) {
+                    const job = {
+                        id: data.job.id,
+                        title: data.job.title,
+                        family: data.job.family,
+                        group: data.job.group || 'N/A' // Use 'group' to match existing structure
+                    };
+                    
+                    console.log(`✅ Pre-selecting job from URL: ${job.title} (${job.id})`);
+                    console.log('🔍 selectedJobs before adding:', selectedJobs.size);
+                    
+                    // Add to selected jobs
+                    selectedJobs.set(job.id, job);
+                    console.log('🔍 selectedJobs after adding:', selectedJobs.size, Array.from(selectedJobs.keys()));
+                    
+                    // Update the selected jobs display directly
+                    const selectedContainer = document.getElementById('pathway-selected-jobs');
+                    if (selectedContainer) {
+                        if (selectedJobs.size === 0) {
+                            selectedContainer.innerHTML = '<span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>';
+                        } else {
+                            selectedContainer.innerHTML = Array.from(selectedJobs.values()).map(job => `
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source bg-red-100 text-red-800 mr-2 mb-2">
+                                    ${job.title}
+                                    <button onclick="removeJob('${job.id}')" class="ml-2 text-red-600 hover:text-red-800">×</button>
+                                </span>
+                            `).join('');
+                        }
+                        console.log('🔍 Updated selected jobs display directly');
+                    } else {
+                        console.warn('🔍 pathway-selected-jobs element not found');
+                    }
+                    
+                    if (typeof updateBuildTreeButton === 'function') {
+                        updateBuildTreeButton();
+                        console.log('🔍 Called updateBuildTreeButton');
+                    } else {
+                        console.warn('🔍 updateBuildTreeButton function not available');
+                    }
+                    
+                    // Update search input to show the selected job title
+                    const searchInput = document.getElementById('pathway-job-search');
+                    if (searchInput) {
+                        searchInput.placeholder = `${job.title} selected - search for more...`;
+                        console.log('🔍 Updated search input placeholder');
+                    } else {
+                        console.warn('🔍 pathway-job-search element not found');
+                    }
+                    
+                    // Automatically build the tree after a short delay
+                    console.log(`🌳 Auto-building career pathway tree for: ${job.title}`);
+                    setTimeout(() => {
+                        console.log('🌳 Attempting to call buildCareerPathwayTree...');
+                        if (typeof buildCareerPathwayTree === 'function') {
+                            console.log('🌳 buildCareerPathwayTree function found, calling it...');
+                            buildCareerPathwayTree();
+                        } else {
+                            console.warn('🌳 buildCareerPathwayTree function not available yet');
+                        }
+                    }, 1000); // Longer delay to ensure everything is ready
+                    
+                } else {
+                    console.warn(`⚠️ Job not found for ID: ${startJobId}`, data);
+                }
+            })
+            .catch(error => {
+                console.error(`❌ Error loading job ${startJobId}:`, error);
+            });
+    } else {
+        console.log('🔍 No start parameter found in URL');
+    }
+}
 
 // Job Search Functionality
 function initializeJobSearch() {
@@ -693,7 +866,7 @@ function initializeJobSearch() {
                          data-job-id="${job.id}"
                          onclick="selectJob(${JSON.stringify(job).replace(/"/g, '&quot;')})">
                         <div class="font-source font-medium text-sm">${job.title}</div>
-                        <div class="font-source text-xs text-gray-600">${job.family}</div>
+                        <div class="font-source text-xs text-gray-600">${job.id} • ${job.family}</div>
                         ${selectedJobs.has(job.id) ? '<div class="text-xs text-blue-600 font-medium mt-1">✓ Selected</div>' : ''}
                     </div>
                 `).join('')}
@@ -709,6 +882,9 @@ function initializeJobSearch() {
             selectedJobs.set(job.id, job);
             updateSelectedJobsDisplay();
             updateBuildTreeButton();
+            
+            // Update URL to reflect the selection (for bookmarking/sharing)
+            updateURLWithSelectedJob(job.id);
         }
         
         searchInput.value = '';
@@ -718,19 +894,7 @@ function initializeJobSearch() {
     // Make selectJob available globally for onclick handlers
     window.selectJob = selectJob;
     
-    // Update selected jobs display
-    function updateSelectedJobsDisplay() {
-        if (selectedJobs.length === 0) {
-            selectedContainer.innerHTML = '<span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>';
-        } else {
-            selectedContainer.innerHTML = selectedJobs.map(job => `
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source bg-red-100 text-red-800">
-                    ${job.title}
-                    <button onclick="removeJob('${job.id}')" class="ml-2 text-red-600 hover:text-red-800">×</button>
-                </span>
-            `).join(' ');
-        }
-    }
+    // Removed duplicate updateSelectedJobsDisplay function - using the one below
     
     // Remove job function
     window.removeJob = function(jobId) {
@@ -769,6 +933,23 @@ function initializeJobSearch() {
     
     // Store selected jobs globally for tree building
     window.getSelectedJobs = () => Array.from(selectedJobs.values());
+}
+
+// Update URL with selected job for bookmarking/sharing
+function updateURLWithSelectedJob(jobId) {
+    // Only update URL if we're not already loading from a URL parameter
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    const currentStartParam = currentUrlParams.get('start');
+    
+    // If the URL doesn't already have this job ID, update it
+    if (currentStartParam !== jobId) {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('start', jobId);
+        
+        // Use history.replaceState to update URL without reloading page
+        window.history.replaceState({}, '', newUrl);
+        console.log(`🔗 Updated URL: ${newUrl.pathname}${newUrl.search}`);
+    }
 }
 
 // Update build tree button state (moved to global scope)
@@ -1359,6 +1540,9 @@ function buildD3Tree(data, container) {
     
     // Initialize and update the tree
     updatePathwayTree();
+    
+    // Show the expand button since tree is now loaded
+    showExpandButton();
     
     // nodeSize() handles spacing automatically - no manual spacing needed!
     
@@ -2271,6 +2455,9 @@ function clearCareerTree() {
         </div>
     `;
     
+    // Hide the expand button when tree is cleared
+    hideExpandButton();
+    
     // Remove any tree status
     const statusElement = document.querySelector('.tree-status');
     if (statusElement) {
@@ -3053,8 +3240,8 @@ function populateSkillsTransitionAnalysisForStep(pathNodes, selectedStepIndex) {
     const headerElement = document.getElementById('skills-comparison-header');
     if (headerElement) {
         const headerText = selectedStepIndex === 0 ? 
-                    `<strong>Analysing:</strong> Full Career Journey from <em>${headerStartRole}</em> to <em>${headerEndRole}</em>` :
-        `<strong>Analysing:</strong> <em>${headerStartRole}</em> → <em>${headerEndRole}</em>`;
+                    `<strong>Skills Transition Analysis:</strong> Full Career Journey from ${headerStartRole} to ${headerEndRole}` :
+        `<strong>Skills Transition Analysis:</strong> ${headerStartRole} → ${headerEndRole}`;
         headerElement.querySelector('div').innerHTML = headerText;
     }
     
@@ -3137,7 +3324,10 @@ async function fetchSkillsAnalysis(startJobId, endJobId, selectedStepIndex, cont
                         <div id="matched-skills-visible">
                             ${matchedSkills.map(skill => `
                                 <div class="flex items-center justify-between">
-                                    <div>• ${skill.name}</div>
+                                    <div>• ${skill.info_url && skill.info_url.trim() ? 
+                                        `<a href="${skill.info_url}" target="_blank" rel="noopener noreferrer" class="text-green-700 hover:text-green-900 hover:underline">${skill.name}</a>` : 
+                                        skill.name
+                                    }</div>
                                     <div class="flex space-x-1">
                                         <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
                                     </div>
@@ -3147,7 +3337,10 @@ async function fetchSkillsAnalysis(startJobId, endJobId, selectedStepIndex, cont
                         <div id="matched-skills-hidden" class="hidden">
                             ${allMatchedSkills.slice(8).map(skill => `
                                 <div class="flex items-center justify-between">
-                                    <div>• ${skill.name}</div>
+                                    <div>• ${skill.info_url && skill.info_url.trim() ? 
+                                        `<a href="${skill.info_url}" target="_blank" rel="noopener noreferrer" class="text-green-700 hover:text-green-900 hover:underline">${skill.name}</a>` : 
+                                        skill.name
+                                    }</div>
                                     <div class="flex space-x-1">
                                         <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
                                     </div>
@@ -3169,7 +3362,10 @@ async function fetchSkillsAnalysis(startJobId, endJobId, selectedStepIndex, cont
                         <div id="develop-skills-visible">
                             ${developSkills.map(skill => `
                                 <div class="flex items-center justify-between">
-                                    <div>• ${skill.name}</div>
+                                    <div>• ${skill.info_url && skill.info_url.trim() ? 
+                                        `<a href="${skill.info_url}" target="_blank" rel="noopener noreferrer" class="text-orange-700 hover:text-orange-900 hover:underline">${skill.name}</a>` : 
+                                        skill.name
+                                    }</div>
                                     <div class="flex space-x-1">
                                         <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
                                     </div>
@@ -3179,7 +3375,10 @@ async function fetchSkillsAnalysis(startJobId, endJobId, selectedStepIndex, cont
                         <div id="develop-skills-hidden" class="hidden">
                             ${allDevelopSkills.slice(8).map(skill => `
                                 <div class="flex items-center justify-between">
-                                    <div>• ${skill.name}</div>
+                                    <div>• ${skill.info_url && skill.info_url.trim() ? 
+                                        `<a href="${skill.info_url}" target="_blank" rel="noopener noreferrer" class="text-orange-700 hover:text-orange-900 hover:underline">${skill.name}</a>` : 
+                                        skill.name
+                                    }</div>
                                     <div class="flex space-x-1">
                                         <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.skill_type)}">${skill.skill_type}</span>
                                     </div>
@@ -3358,6 +3557,15 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
         const targetJob = data.jobs_analysis[targetJobId];
         if (targetJob) {
             document.getElementById('workforce-pathway-count').textContent = `${targetJob.job_title} - Position Breakdown`;
+            
+            // Update workforce comparison header
+            const workforceHeaderElement = document.getElementById('workforce-comparison-header');
+            if (workforceHeaderElement) {
+                const workforceHeaderText = selectedStepIndex === 0 ? 
+                    `<strong>Workforce Intelligence:</strong> Full Career Journey Analysis` :
+                    `<strong>Workforce Intelligence:</strong> Focus on ${targetJob.job_title}`;
+                workforceHeaderElement.querySelector('div').innerHTML = workforceHeaderText;
+            }
         }
         
         // Filter detailed workforce data for the target job only
@@ -4076,72 +4284,114 @@ function toggleFilterPanel() {
     }
 }
 
+// Full Screen Tree Functions
+function openFullScreenTree() {
+    const overlay = document.getElementById('fullscreen-tree-overlay');
+    const normalTreeContainer = document.getElementById('career-pathway-tree');
+    const fullscreenTreeContainer = document.getElementById('fullscreen-career-pathway-tree');
+    const fullscreenInfo = document.getElementById('fullscreen-tree-info');
+    
+    // Show the full screen overlay
+    overlay.classList.remove('hidden');
+    
+    // Update info text
+    const selectedJobsCount = selectedJobs.size;
+    const selectedJobsList = Array.from(selectedJobs.values()).map(job => job.title).join(', ');
+    fullscreenInfo.innerHTML = `Starting from: ${selectedJobsList} | ${selectedJobsCount} role${selectedJobsCount !== 1 ? 's' : ''} selected`;
+    
+    // Move the SVG from normal container to fullscreen container
+    const treeSvg = normalTreeContainer.querySelector('svg');
+    if (treeSvg) {
+        // Store the original parent for restoration
+        treeSvg.originalParent = normalTreeContainer;
+        
+        // Clone the SVG to preserve the original
+        const svgClone = treeSvg.cloneNode(true);
+        
+        // Clear fullscreen container and add the cloned SVG
+        fullscreenTreeContainer.innerHTML = '';
+        fullscreenTreeContainer.appendChild(svgClone);
+        
+        // Update SVG dimensions for fullscreen
+        const fullscreenRect = fullscreenTreeContainer.getBoundingClientRect();
+        svgClone.setAttribute('width', fullscreenRect.width);
+        svgClone.setAttribute('height', fullscreenRect.height);
+        
+        // Re-initialize zoom behavior for fullscreen
+        const svg = d3.select(svgClone);
+        const g = svg.select('g');
+        
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on('zoom', function(event) {
+                g.attr('transform', event.transform);
+            });
+        
+        svg.call(zoom);
+        
+        // Center the tree in fullscreen
+        const transform = d3.zoomIdentity.translate(fullscreenRect.width / 2, 50).scale(0.8);
+        svg.call(zoom.transform, transform);
+    }
+    
+    // Connect fullscreen expand/collapse buttons
+    document.getElementById('fullscreen-expand-all-btn').onclick = expandAllNodes;
+    document.getElementById('fullscreen-collapse-all-btn').onclick = collapseAllNodes;
+    
+    // Add escape key listener
+    document.addEventListener('keydown', handleFullscreenEscape);
+    
+    // Hide body scrollbar
+    document.body.style.overflow = 'hidden';
+    
+    console.log('🔍 Opened full screen tree view');
+}
+
+function closeFullScreenTree() {
+    const overlay = document.getElementById('fullscreen-tree-overlay');
+    
+    // Hide the full screen overlay
+    overlay.classList.add('hidden');
+    
+    // Remove escape key listener
+    document.removeEventListener('keydown', handleFullscreenEscape);
+    
+    // Restore body scrollbar
+    document.body.style.overflow = '';
+    
+    console.log('✅ Closed full screen tree view');
+}
+
+function handleFullscreenEscape(event) {
+    if (event.key === 'Escape') {
+        closeFullScreenTree();
+    }
+}
+
+// Show expand button when tree is loaded
+function showExpandButton() {
+    const expandBtn = document.getElementById('expand-tree-btn');
+    if (expandBtn) {
+        expandBtn.classList.remove('hidden');
+    }
+}
+
+// Hide expand button when tree is cleared
+function hideExpandButton() {
+    const expandBtn = document.getElementById('expand-tree-btn');
+    if (expandBtn) {
+        expandBtn.classList.add('hidden');
+    }
+}
+
 // Initialize filter panel state on page load
 document.addEventListener('DOMContentLoaded', function() {
     const content = document.getElementById('filter-panel-content');
     // Set initial collapsed state
     content.classList.add('collapsed');
     content.style.maxHeight = '0px';
+    
 });
 </script>
-
-<style>
-/* Custom slider styling */
-.slider::-webkit-slider-thumb {
-    appearance: none;
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    background: #dc2626;
-    cursor: pointer;
-}
-
-.slider::-moz-range-thumb {
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    background: #dc2626;
-    cursor: pointer;
-    border: none;
-}
-
-/* Enhanced tree node highlighting */
-.pathway-node-circle {
-    transition: all 0.3s ease-in-out;
-}
-
-/* Breadcrumb selection transitions */
-[onclick^="showJourneyStep"] {
-    transition: all 0.3s ease-in-out;
-}
-
-[onclick^="showJourneyStep"]:hover {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Pulse animation for selected breadcrumb */
-@keyframes pulse-ring {
-    0% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-    }
-}
-
-/* Apply pulse to selected breadcrumb */
-.ring-4.ring-blue-500 {
-    animation: pulse-ring 2s infinite;
-}
-
-/* Skills and Workforce context indicators */
-.context-transition {
-    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
-}
-</style>
 
 {% endblock %}

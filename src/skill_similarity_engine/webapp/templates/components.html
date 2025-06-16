@@ -2,6 +2,11 @@
 
 {% block title %}NAB Design System - Component Library{% endblock %}
 
+{% block head %}
+<!-- Components showcase specific styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="bg-white min-h-screen">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
