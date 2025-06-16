@@ -171,15 +171,15 @@ def create_app(config=None):
             return render_template('index.html', 
                                  sample_jobs=sample_jobs,
                                  platform_metrics=platform_metrics,
-                                 top_families=top_families[:5],
+                                 top_families=top_families[:3],
                                  career_insights=career_insights,
-                                 mobility_hubs=mobility_hubs[:5],
+                                 mobility_hubs=mobility_hubs[:3],
                                  similarity_distribution=similarity_distribution,
                                  similarity_stats=similarity_stats,
-                                 strategic_recommendations=strategic_recommendations,
-                                 skills_concentration=skills_concentration[:10],
-                                 cross_family_opportunities=cross_family_opportunities[:8],
-                                 cross_family_similarities=cross_family_similarities[:8],
+                                 strategic_recommendations=strategic_recommendations[:5],
+                                 skills_concentration=skills_concentration[:5],
+                                 cross_family_opportunities=cross_family_opportunities[:3],
+                                 cross_family_similarities=cross_family_similarities[:3],
                                  cross_family_stats=cross_family_stats_raw)  # Top recommendations and insights
         except Exception as e:
             print(f"Error loading homepage: {e}")
