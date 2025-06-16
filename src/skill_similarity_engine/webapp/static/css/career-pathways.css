@@ -1,0 +1,436 @@
+/* =================================================================
+   Career Pathways - Component Specific Styles
+   Dedicated CSS for career_pathways.html components
+   ================================================================= */
+
+/* =================================================================
+   Slider Components (Career Pathways Specific)
+   ================================================================= */
+
+.career-slider::-webkit-slider-thumb {
+    appearance: none;
+    height: var(--slider-thumb-size);
+    width: var(--slider-thumb-size);
+    border-radius: var(--border-radius-full);
+    background: var(--color-nab-red);
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.career-slider::-webkit-slider-thumb:hover {
+    background: var(--color-nab-red-dark);
+    box-shadow: var(--shadow-lg);
+}
+
+.career-slider::-moz-range-thumb {
+    height: var(--slider-thumb-size);
+    width: var(--slider-thumb-size);
+    border-radius: var(--border-radius-full);
+    background: var(--color-nab-red);
+    cursor: pointer;
+    border: none;
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.career-slider::-moz-range-thumb:hover {
+    background: var(--color-nab-red-dark);
+    box-shadow: var(--shadow-lg);
+}
+
+/* =================================================================
+   Tree Visualization Components
+   ================================================================= */
+
+.pathway-node-circle {
+    transition: all var(--transition-slow);
+    cursor: pointer;
+}
+
+.pathway-node-circle:hover {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+}
+
+.pathway-node-text {
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.pathway-node-text:hover {
+    fill: var(--color-blue-600);
+    font-weight: 600;
+}
+
+.pathway-link {
+    transition: all var(--transition-base);
+}
+
+.pathway-link:hover {
+    stroke-width: 3;
+    stroke: var(--color-blue-500);
+}
+
+/* =================================================================
+   Breadcrumb Navigation
+   ================================================================= */
+
+.breadcrumb-step {
+    transition: all var(--transition-slow);
+    cursor: pointer;
+}
+
+.breadcrumb-step:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-md);
+}
+
+.breadcrumb-step.selected {
+    animation: pulse-ring 2s infinite;
+}
+
+/* Pulse animation for selected breadcrumb */
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* =================================================================
+   Filter Panel Components
+   ================================================================= */
+
+.filter-panel {
+    transition: all var(--transition-slow);
+}
+
+.filter-panel-content {
+    transition: max-height var(--transition-slow) ease-in-out;
+    overflow: hidden;
+}
+
+.filter-panel-content.collapsed {
+    max-height: 0 !important;
+}
+
+.filter-panel-chevron {
+    transition: transform var(--transition-base);
+}
+
+.filter-panel-toggle:hover .filter-panel-chevron {
+    color: var(--color-blue-600);
+}
+
+/* =================================================================
+   Pathway Details Panel
+   ================================================================= */
+
+.pathway-details-panel {
+    backdrop-filter: blur(8px);
+    background-color: rgba(255, 255, 255, 0.95);
+    transition: all var(--transition-slow);
+}
+
+.pathway-details-content {
+    animation: slideInRight var(--transition-slow) ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.pathway-metric-card {
+    transition: all var(--transition-base);
+    border-left: 4px solid transparent;
+}
+
+.pathway-metric-card:hover {
+    border-left-color: var(--color-blue-500);
+    background-color: var(--color-blue-50);
+    transform: translateX(4px);
+}
+
+/* =================================================================
+   Journey Step Analysis
+   ================================================================= */
+
+.journey-step-card {
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.journey-step-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left var(--transition-slow);
+}
+
+.journey-step-card:hover::before {
+    left: 100%;
+}
+
+.journey-step-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.similarity-score-indicator {
+    position: relative;
+    overflow: hidden;
+}
+
+.similarity-score-high {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-light) 100%);
+    color: white;
+}
+
+.similarity-score-medium {
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-light) 100%);
+    color: white;
+}
+
+.similarity-score-low {
+    background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-light) 100%);
+    color: white;
+}
+
+/* =================================================================
+   Context Transition Indicators
+   ================================================================= */
+
+.context-transition {
+    transition: all var(--transition-slow);
+    position: relative;
+}
+
+.context-transition::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-blue-500);
+    transition: width var(--transition-base);
+}
+
+.context-transition:hover::after {
+    width: 100%;
+}
+
+.context-transition:hover {
+    background-color: var(--color-blue-50);
+    border-color: var(--color-blue-200);
+}
+
+/* =================================================================
+   Skills Comparison Components
+   ================================================================= */
+
+.skills-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-4);
+}
+
+.skill-match-indicator {
+    position: relative;
+    padding: var(--spacing-2) var(--spacing-3);
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-base);
+}
+
+.skill-match-high {
+    background: var(--color-success-light);
+    color: var(--color-success-dark);
+    border: 1px solid var(--color-success);
+}
+
+.skill-match-partial {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border: 1px solid var(--color-warning);
+}
+
+.skill-match-missing {
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
+    border: 1px solid var(--color-gray-300);
+}
+
+.skill-match-indicator:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+/* =================================================================
+   Workforce Intelligence Panel
+   ================================================================= */
+
+.workforce-panel {
+    background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-blue-50) 100%);
+    border: 1px solid var(--color-blue-200);
+}
+
+.workforce-metric {
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.workforce-metric:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.workforce-chart-container {
+    position: relative;
+    background: white;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-4);
+    box-shadow: var(--shadow-sm);
+}
+
+/* =================================================================
+   Export and Action Buttons
+   ================================================================= */
+
+.export-button {
+    background: linear-gradient(135deg, var(--color-nab-red) 0%, var(--color-nab-red-dark) 100%);
+    color: white;
+    border: none;
+    padding: var(--spacing-2) var(--spacing-4);
+    border-radius: var(--border-radius-md);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.export-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left var(--transition-base);
+}
+
+.export-button:hover::before {
+    left: 100%;
+}
+
+.export-button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.export-button:active {
+    transform: translateY(0);
+}
+
+/* =================================================================
+   Loading States
+   ================================================================= */
+
+.pathway-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-8);
+}
+
+.pathway-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--color-gray-200);
+    border-top: 4px solid var(--color-blue-500);
+    border-radius: var(--border-radius-full);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.pathway-skeleton {
+    background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-100) 50%, var(--color-gray-200) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* =================================================================
+   Responsive Design
+   ================================================================= */
+
+@media (max-width: 768px) {
+    .pathway-details-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+    }
+    
+    .pathway-details-content {
+        height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .skills-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .breadcrumb-step {
+        font-size: var(--font-size-sm);
+        padding: var(--spacing-2);
+    }
+    
+    .journey-step-card {
+        margin-bottom: var(--spacing-4);
+    }
+}
+
+@media (max-width: 640px) {
+    .filter-panel-content {
+        padding: var(--spacing-2);
+    }
+    
+    .pathway-metric-card {
+        padding: var(--spacing-3);
+    }
+    
+    .workforce-panel {
+        padding: var(--spacing-3);
+    }
+}

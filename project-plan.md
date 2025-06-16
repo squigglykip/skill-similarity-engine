@@ -412,8 +412,9 @@ This phase builds a **restricted-access strategic intelligence platform** exclus
 - ✅ UI Framework & Component Library (8.2.2) - **COMPLETED**
 - ✅ Workforce Intelligence Core (8.2.3) - **COMPLETED**
 - ✅ Career Pathway Explorer (8.2.4) - **COMPLETED** (Real Data Integration Required)
-- 📋 Strategic Reports Generator (8.2.5) - **NEXT PRIORITY**
-- 📋 Documentation & Methodology Transparency (8.2.6) - **PLANNED**
+- ✅ Executive Dashboard Enhancement (8.2.5) - **95% COMPLETED** (Cross-Family Analysis Remaining)
+- 📋 Strategic Reports Generator (8.2.6) - **NEXT PRIORITY** *(Renumbered from 8.2.5)*
+- 📋 Documentation & Methodology Transparency (8.2.7) - **PLANNED** *(Renumbered from 8.2.6)*
 
 **8.2.2 User Interface Foundation** ✅ **COMPLETED**  
 **Branch: `8.2.2-feature/webapp-foundation/ui-framework`**
@@ -646,6 +647,32 @@ The implementation transforms the tool from a job catalogue to genuine strategic
 
 **Next Phase Focus**: With the core visualization challenges solved, future work can focus on **feature enhancement and user experience polish** as outlined in the remaining webapp integration tasks below.
 
+**🔗 SKILLS HYPERLINKS IMPLEMENTATION** ✅ **COMPLETED** *(NEW ACHIEVEMENT)*
+
+**8.2.4.7 Skills URL Integration Across Platform** ✅ **COMPLETED**
+- [x] **Job Explorer Skills Hyperlinks** ✅ **COMPLETED**
+  - [x] Updated backend API to include `Info_URL` field from skills table
+  - [x] Enhanced `/api/job-details/<job_id>` endpoint with skills URL data
+  - [x] Modified frontend JavaScript to create conditional hyperlinks
+  - [x] Skills by category section: clickable skill badges when URLs available
+  - [x] All skills list section: clickable skill names with external link indicators
+  - [x] **Data Reality**: Only 9.7% of skills have URLs (3,730 of 38,395), but infrastructure ready
+
+- [x] **Career Pathways Skills Hyperlinks** ✅ **COMPLETED**
+  - [x] Updated skills-analysis API to include `info_url` field in detailed_skills response
+  - [x] Enhanced SQL queries in both job1_skills and job2_skills CTEs
+  - [x] Modified "Skills Shared Between Job Profiles" section with conditional hyperlinks
+  - [x] Updated "Skills to Develop" section with conditional hyperlinks
+  - [x] Consistent styling: `text-blue-600 hover:text-blue-800 hover:underline`
+  - [x] Graceful fallback: plain text display when URLs not available
+
+- [x] **Technical Implementation Details**
+  - [x] Backend: Added `s.Info_URL` to all relevant SQL queries
+  - [x] API Response: Included `info_url` field in JSON responses
+  - [x] Frontend: Conditional rendering `${skill.info_url ? '<a href="..." target="_blank">' : ''}${skill.name}${skill.info_url ? '</a>' : ''}`
+  - [x] User Experience: External links open in new tabs with visual indicators
+  - [x] **Future Ready**: Infrastructure supports 100% URL coverage when data improves
+
 **🎯 REAL DATA INTEGRATION REQUIREMENTS** 📋 **IN PROGRESS**
 
 Based on the conversation summary, the current implementation uses a mix of real and mock data. Significant progress has been made on UI integration and breadcrumb functionality:
@@ -787,6 +814,7 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
   🎯 PLATFORM OVERVIEW:
      • 715 job profiles across 8 job families
      • 38,395 skills in comprehensive taxonomy  
+     • 2,091 skills actively in use (NEW: Skills In Use card)
      • 8,580 pre-computed career pathways
      • 5,000 active positions across 6 divisions
   ```
@@ -794,6 +822,12 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
 - [x] **Enhanced Executive Context**: Added explanatory text describing foundation datasets
 - [x] **Enhanced Metrics Display**: Add visual indicators and professional styling
 - [x] **Contextual Tooltips**: Methodology explanations for executive understanding
+- [x] **Skills In Use Card Implementation** ✅ **NEW ACHIEVEMENT**
+  - [x] Added 5th metric card showing actual skills utilisation vs total library
+  - [x] Updated SQL query: `COUNT(DISTINCT Skill_ID) FROM job_skills`
+  - [x] Changed grid layout from 4 to 5 columns with orange colour scheme
+  - [x] Professional tooltips explaining active skills vs comprehensive taxonomy
+  - [x] **Impact**: Shows 2,091 skills actively mapped vs 38,395 total (5.4% utilisation)
 
 **8.2.5.3 + 8.2.5.4 Workforce Mobility Intelligence Dashboard** ✅ **COMPLETED** *(Combined sections 8.2.5.3 + 8.2.5.4)*
 - [x] **Unified Section Structure** with comprehensive explanatory text
@@ -892,10 +926,19 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
 - **Mobile Compatibility**: Full functionality on executive mobile devices
 - **Export Capability**: Professional presentation materials generation
 
+**🎯 SECTION 8.2.5 ACHIEVEMENT SUMMARY:**
+- **Overall Progress**: 4/5 sections completed (80%)
+- **Platform Overview**: ✅ Enhanced with 5th "Skills In Use" card showing 2,091 active skills
+- **Workforce Mobility Intelligence**: ✅ Complete with pathway connectivity and readiness analysis
+- **Strategic Recommendations**: ✅ Complete with priority-based recommendations and implementation roadmap
+- **Skills Hyperlinks**: ✅ Complete across Job Explorer and Career Pathways (NEW ACHIEVEMENT)
+- **Cross-Family Analysis**: 📋 Remaining task - inter-departmental mobility intelligence
+- **Next Priority**: Complete Cross-Family Similarity Intelligence to achieve 100% section completion
+
 ---
 
-**8.2.5 White Paper Generation System** 📋 **PLANNED**
-**Branch: `8.2.5-feature/webapp-foundation/white-papers`**
+**8.2.6 White Paper Generation System** 📋 **PLANNED**
+**Branch: `8.2.6-feature/webapp-foundation/white-papers`**
 
 - [ ] **Template Engine & Content Generation**
   - [ ] Create Jinja2 templates for different white paper types
@@ -925,8 +968,8 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
   - [ ] Generate PowerPoint slides for presentations
   - [ ] Add email integration for automatic report distribution
 
-**8.2.6 Documentation & Methodology Transparency** 📋 **PLANNED**
-**Branch: `8.2.6-feature/webapp-foundation/documentation`**
+**8.2.7 Documentation & Methodology Transparency** 📋 **PLANNED**
+**Branch: `8.2.7-feature/webapp-foundation/documentation`**
 
 > **Strategic Imperative**: *"As a Future Skills strategist, I need complete transparency of methodology and data sources behind every analysis to ensure informed strategic decision-making and accountability."*
 
@@ -958,8 +1001,8 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
   - [ ] Change impact assessments when methodologies evolve
   - [ ] Export capabilities for external validation and review
 
-**8.2.7 Deployment & User Experience** 📋 **PLANNED**
-**Branch: `8.2.7-feature/webapp-foundation/deployment`**
+**8.2.8 Deployment & User Experience** 📋 **PLANNED**
+**Branch: `8.2.8-feature/webapp-foundation/deployment`**
 
 - [ ] **Local Deployment System**
   - [ ] Create `.bat` file launcher for seamless Windows deployment
