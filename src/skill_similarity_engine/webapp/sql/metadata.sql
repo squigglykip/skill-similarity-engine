@@ -290,6 +290,11 @@ SELECT
 FROM skills
 UNION ALL
 SELECT 
+    'skills_in_use_count',
+    COUNT(DISTINCT Skill_ID)
+FROM job_skills
+UNION ALL
+SELECT 
     'positions_count',
     COUNT(*)
 FROM positions
@@ -555,16 +560,16 @@ SELECT
 -- Simple skills concentration risk analysis for executive summary
 SELECT 
     s.Category as skill_category,
-    COUNT(DISTINCT s.SkillID) as unique_skills,
+    COUNT(DISTINCT s.Skill_ID) as unique_skills,
     COUNT(js.JobProfileID) as total_job_mappings,
-    ROUND(COUNT(js.JobProfileID) * 1.0 / COUNT(DISTINCT s.SkillID), 1) as avg_jobs_per_skill,
+    ROUND(COUNT(js.JobProfileID) * 1.0 / COUNT(DISTINCT s.Skill_ID), 1) as avg_jobs_per_skill,
     CASE 
-        WHEN COUNT(js.JobProfileID) * 1.0 / COUNT(DISTINCT s.SkillID) > 15 THEN 'HIGH CONCENTRATION'
-        WHEN COUNT(js.JobProfileID) * 1.0 / COUNT(DISTINCT s.SkillID) > 8 THEN 'MEDIUM CONCENTRATION'
+        WHEN COUNT(js.JobProfileID) * 1.0 / COUNT(DISTINCT s.Skill_ID) > 15 THEN 'HIGH CONCENTRATION'
+        WHEN COUNT(js.JobProfileID) * 1.0 / COUNT(DISTINCT s.Skill_ID) > 8 THEN 'MEDIUM CONCENTRATION'
         ELSE 'LOW CONCENTRATION'
     END as concentration_risk
 FROM skills s
-JOIN job_skills js ON s.SkillID = js.SkillID
+JOIN job_skills js ON s.Skill_ID = js.Skill_ID
 WHERE s.Category IS NOT NULL
 GROUP BY s.Category
 ORDER BY avg_jobs_per_skill DESC

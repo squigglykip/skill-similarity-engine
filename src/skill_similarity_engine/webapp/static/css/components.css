@@ -1,0 +1,499 @@
+/* =================================================================
+   Components - Design System Showcase Styles
+   Dedicated CSS for components.html (design system) page
+   ================================================================= */
+
+/* =================================================================
+   Component Showcase Sections
+   ================================================================= */
+
+.component-showcase {
+    background: linear-gradient(135deg, var(--color-gray-50) 0%, #ffffff 100%);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-6);
+    margin-bottom: var(--spacing-8);
+    position: relative;
+    overflow: hidden;
+}
+
+.component-showcase::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(45deg, transparent 40%, rgba(59, 130, 246, 0.05) 50%, transparent 60%);
+    pointer-events: none;
+}
+
+.component-showcase:hover {
+    border-color: var(--color-blue-300);
+    box-shadow: var(--shadow-md);
+}
+
+/* =================================================================
+   Typography Showcase
+   ================================================================= */
+
+.typography-example {
+    padding: var(--spacing-4);
+    border-left: 3px solid var(--color-blue-500);
+    background: white;
+    margin-bottom: var(--spacing-4);
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+    transition: all var(--transition-base);
+}
+
+.typography-example:hover {
+    background: var(--color-blue-50);
+    border-left-color: var(--color-blue-600);
+    transform: translateX(4px);
+}
+
+.typography-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-700);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-2);
+    display: block;
+}
+
+/* =================================================================
+   Button Showcase
+   ================================================================= */
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+}
+
+.button-demo {
+    position: relative;
+    transition: all var(--transition-base);
+}
+
+.button-demo:hover {
+    transform: scale(1.05);
+}
+
+/* Enhanced button styles for showcase */
+.btn-showcase-primary {
+    background: linear-gradient(135deg, var(--color-nab-red) 0%, var(--color-nab-red-dark) 100%);
+    color: white;
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-2) var(--spacing-6);
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    border: none;
+}
+
+.btn-showcase-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left var(--transition-base);
+}
+
+.btn-showcase-primary:hover::before {
+    left: 100%;
+}
+
+.btn-showcase-primary:hover {
+    background: linear-gradient(135deg, var(--color-nab-red-dark) 0%, #991b1b 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-showcase-secondary {
+    border: 2px solid var(--color-nab-red);
+    color: var(--color-nab-red);
+    background: white;
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-2) var(--spacing-6);
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-base);
+}
+
+.btn-showcase-secondary:hover {
+    background: var(--color-nab-red);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-showcase-tertiary {
+    color: var(--color-nab-red);
+    background: transparent;
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-2) var(--spacing-4);
+    border: none;
+    transition: all var(--transition-base);
+    position: relative;
+}
+
+.btn-showcase-tertiary::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-nab-red);
+    transition: width var(--transition-base);
+}
+
+.btn-showcase-tertiary:hover::after {
+    width: 100%;
+}
+
+.btn-showcase-tertiary:hover {
+    color: var(--color-nab-red-dark);
+}
+
+/* =================================================================
+   Card Showcase
+   ================================================================= */
+
+.card-demo {
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-demo:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.card-demo-metric {
+    border-left: 4px solid var(--color-nab-red);
+    background: white;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-6);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-demo-metric:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+}
+
+.card-demo-data {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.card-demo-data:hover {
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-gray-50) 100%);
+}
+
+.card-demo-similarity {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-6);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-demo-similarity:hover {
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-blue-50) 100%);
+}
+
+/* =================================================================
+   Form Showcase
+   ================================================================= */
+
+.form-demo {
+    background: white;
+    padding: var(--spacing-6);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--color-gray-200);
+}
+
+.form-input-demo {
+    width: 100%;
+    padding: var(--spacing-3);
+    border: 2px solid var(--color-gray-300);
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-primary);
+    transition: all var(--transition-base);
+}
+
+.form-input-demo:focus {
+    border-color: var(--color-nab-red);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    outline: none;
+}
+
+.form-select-demo {
+    width: 100%;
+    padding: var(--spacing-3);
+    border: 2px solid var(--color-gray-300);
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-primary);
+    background: white;
+    transition: all var(--transition-base);
+}
+
+.form-select-demo:focus {
+    border-color: var(--color-nab-red);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    outline: none;
+}
+
+/* =================================================================
+   Data Table Showcase
+   ================================================================= */
+
+.table-demo {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+.table-demo table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-demo th {
+    background: var(--color-gray-50);
+    padding: var(--spacing-4);
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-gray-700);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.table-demo td {
+    padding: var(--spacing-4);
+    border-bottom: 1px solid var(--color-gray-100);
+    transition: background-color var(--transition-base);
+}
+
+.table-demo tr:hover td {
+    background: var(--color-gray-50);
+}
+
+.table-demo tr:last-child td {
+    border-bottom: none;
+}
+
+/* =================================================================
+   Progress Bar Showcase
+   ================================================================= */
+
+.progress-demo {
+    background: var(--color-gray-200);
+    border-radius: var(--border-radius-full);
+    height: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill-demo {
+    height: 100%;
+    background: linear-gradient(135deg, var(--color-nab-red) 0%, var(--color-nab-red-dark) 100%);
+    border-radius: var(--border-radius-full);
+    transition: width var(--transition-slow);
+    position: relative;
+}
+
+.progress-fill-demo::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+/* =================================================================
+   Badge Showcase
+   ================================================================= */
+
+.badge-demo {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-1) var(--spacing-3);
+    border-radius: var(--border-radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-base);
+    margin: var(--spacing-1);
+}
+
+.badge-demo:hover {
+    transform: scale(1.1);
+}
+
+.badge-demo-high {
+    background: var(--color-nab-red);
+    color: white;
+}
+
+.badge-demo-medium {
+    background: var(--color-warning);
+    color: white;
+}
+
+.badge-demo-low {
+    background: var(--color-gray-400);
+    color: white;
+}
+
+/* =================================================================
+   Code Examples
+   ================================================================= */
+
+.code-example {
+    background: var(--color-gray-900);
+    color: var(--color-gray-100);
+    padding: var(--spacing-4);
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    overflow-x: auto;
+    margin-top: var(--spacing-4);
+    position: relative;
+}
+
+.code-example::before {
+    content: 'HTML';
+    position: absolute;
+    top: var(--spacing-2);
+    right: var(--spacing-2);
+    background: var(--color-blue-600);
+    color: white;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--border-radius-sm);
+    font-size: 10px;
+    font-weight: var(--font-weight-medium);
+}
+
+/* =================================================================
+   Color Palette Showcase
+   ================================================================= */
+
+.color-palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-4);
+    margin-top: var(--spacing-6);
+}
+
+.color-swatch {
+    text-align: center;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+}
+
+.color-swatch:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.color-preview {
+    height: 80px;
+    width: 100%;
+    position: relative;
+}
+
+.color-info {
+    padding: var(--spacing-3);
+    background: white;
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.color-name {
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-900);
+}
+
+.color-value {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    font-family: var(--font-mono);
+}
+
+/* =================================================================
+   Responsive Design
+   ================================================================= */
+
+@media (max-width: 768px) {
+    .component-showcase {
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-6);
+    }
+    
+    .button-group {
+        flex-direction: column;
+        gap: var(--spacing-2);
+    }
+    
+    .color-palette {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: var(--spacing-2);
+    }
+    
+    .table-demo {
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .typography-example {
+        padding: var(--spacing-3);
+    }
+    
+    .form-demo {
+        padding: var(--spacing-4);
+    }
+    
+    .code-example {
+        padding: var(--spacing-3);
+        font-size: var(--font-size-xs);
+    }
+}
+
+/* =================================================================
+   Print Styles
+   ================================================================= */
+
+@media print {
+    .component-showcase {
+        box-shadow: none !important;
+        border: 1px solid var(--color-gray-300) !important;
+        break-inside: avoid;
+    }
+    
+    .button-demo,
+    .card-demo {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .code-example {
+        background: white !important;
+        color: black !important;
+        border: 1px solid var(--color-gray-300) !important;
+    }
+}

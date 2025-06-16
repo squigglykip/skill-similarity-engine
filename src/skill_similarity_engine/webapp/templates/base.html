@@ -34,6 +34,8 @@
             }
         }
     </script>
+    <!-- CSS Variables and Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
     <!-- Custom CSS for any additional styling -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     
@@ -67,9 +69,9 @@
                         <a href="{{ url_for('career_pathways') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Career Pathways
                         </a>
-                        <a href="{{ url_for('components') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <!-- <a href="{{ url_for('components') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Components
-                        </a>
+                        </a> -->
                     </div>
                 </div>
                 

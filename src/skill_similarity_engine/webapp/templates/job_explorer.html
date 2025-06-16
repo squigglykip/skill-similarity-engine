@@ -3,60 +3,8 @@
 {% block title %}Job Profile Explorer - NAB Skills Intelligence Platform{% endblock %}
 
 {% block head %}
-<style>
-/* Custom slider styling */
-.slider {
-    -webkit-appearance: none;
-    appearance: none;
-    background: linear-gradient(to right, #e5e7eb 0%, #3b82f6 50%, #1d4ed8 100%);
-    outline: none;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-}
-
-.slider:hover {
-    opacity: 1;
-}
-
-.slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: #3b82f6;
-    cursor: pointer;
-    border-radius: 50%;
-    border: 2px solid #ffffff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: #3b82f6;
-    cursor: pointer;
-    border-radius: 50%;
-    border: 2px solid #ffffff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Basic chart container styling only */
-.similarity-chart-container {
-    margin-top: 12px;
-    padding: 16px;
-    background: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-}
-
-.chart-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: #475569;
-    margin-bottom: 12px;
-    text-align: center;
-}
-</style>
+<!-- Job Explorer specific styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/job-explorer.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -91,13 +39,13 @@
                         <div class="relative">
                             <input type="text" 
                                    id="job-explorer-search"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source"
+                                   class="job-search-input w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source"
                                    placeholder="e.g., Risk Analyst, R0001.5, Data Scientist..."
                                    autocomplete="off">
                             
                             <!-- Search Dropdown -->
                             <div id="job-explorer-dropdown" 
-                                 class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                                 class="job-search-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
                                 <!-- Results populated by JavaScript -->
                             </div>
                         </div>
@@ -175,7 +123,7 @@
                 <!-- Welcome State -->
                 <div id="welcome-state" class="text-center py-20">
                     <div class="max-w-md mx-auto">
-                        <div class="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-6">
+                        <div class="welcome-state-icon p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-6">
                             <svg class="w-12 h-12 text-blue-600 mx-auto mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
@@ -191,7 +139,7 @@
                 <div id="job-profile-content" class="hidden space-y-6">
                     
                     <!-- Job Header -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="job-profile-card bg-white rounded-lg shadow-lg p-6">
                         <div class="flex items-start justify-between mb-4">
                             <div>
                                 <h2 id="job-title-header" class="text-2xl font-epilogue font-bold text-gray-900 mb-2">Job Title</h2>
@@ -262,7 +210,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-epilogue font-semibold text-gray-900">Similar Jobs & Career Pathways</h3>
                             <button id="view-all-pathways" class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
-                                View All Pathways →
+                                Launch Career Explorer →
                             </button>
                         </div>
                         
@@ -280,7 +228,7 @@
                                        max="100" 
                                        value="90" 
                                        step="5"
-                                       class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                                       class="similarity-slider flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                                 <span class="text-xs font-source text-gray-500">100%</span>
                             </div>
                             <p class="text-xs font-source text-gray-600 mt-2">
@@ -333,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('job-explorer-search');
     const searchDropdown = document.getElementById('job-explorer-dropdown');
     const welcomeState = document.getElementById('welcome-state');
-    const jobProfileContent = document.getElementById('job-profile-content');
+    const jobProfileContent = document.getElementById('job-profile-content');   
     // const jobDetailsPanel = document.getElementById('job-details-panel'); // Removed panel
     const gettingStartedPanel = document.getElementById('getting-started-panel');
     
@@ -471,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
             searchDropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No jobs found</div>';
         } else {
             searchDropdown.innerHTML = jobs.map(job => `
-                <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                <div class="job-search-dropdown-item p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
                      data-job='${JSON.stringify(job)}' onclick="selectJob(this)">
                     <div class="font-medium text-sm text-gray-900">${job.title}</div>
                     <div class="text-xs text-gray-500">${job.id} • ${job.family} • ${job.group || 'N/A'}</div>
@@ -633,14 +581,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             document.getElementById('similar-jobs-list').innerHTML = filteredPathways.slice(0, 5)
                 .map(pathway => `
-                    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer">
+                    <div class="similar-job-item flex justify-between items-center p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer">
                         <div>
                             <p class="text-sm font-source font-medium text-gray-900">${pathway.job_title}</p>
                             <p class="text-xs font-source text-gray-500">${pathway.job_family}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm font-source font-bold text-blue-600">${(pathway.similarity_score * 100).toFixed(1)}%</p>
-                            <p class="text-xs font-source text-gray-500">similarity</p>
+                            <span class="similarity-score-badge">${(pathway.similarity_score * 100).toFixed(1)}%</span>
+                            <p class="text-xs font-source text-gray-500 mt-1">similarity</p>
                         </div>
                     </div>
                 `).join('');
@@ -694,12 +642,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 document.getElementById('skills-by-category').innerHTML = Object.entries(skillsByCategory)
                     .map(([category, skills]) => `
-                        <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="skill-category-card p-4 border border-gray-200 rounded-lg">
                             <h5 class="text-sm font-source font-semibold text-gray-700 mb-2">${category} (${skills.length})</h5>
                             <div class="flex flex-wrap gap-2">
                                 ${skills.slice(0, 5).map(skill => `
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-source font-medium ${categoryColors[category] || categoryColors['Other']}">
-                                        ${skill.name}
+                                    <span class="skill-badge inline-flex items-center px-2 py-1 rounded-full text-xs font-source font-medium ${categoryColors[category] || categoryColors['Other']}">
+                                        ${skill.info_url && skill.info_url.trim() ? 
+                                            `<a href="${skill.info_url}" target="_blank" rel="noopener noreferrer" class="hover:underline">${skill.name}</a>` : 
+                                            skill.name
+                                        }
                                     </span>
                                 `).join('')}
                                 ${skills.length > 5 ? `<span class="text-xs text-gray-500">+${skills.length - 5} more</span>` : ''}
@@ -711,12 +662,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('skills-list').innerHTML = data.skills
                     .map(skill => `
                         <div class="text-sm font-source text-gray-700 py-1">
-                            <span class="inline-flex items-center">
-                                <svg class="w-3 h-3 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                </svg>
-                                ${skill.name}
-                            </span>
+                            <div class="flex items-center justify-between">
+                                <span class="inline-flex items-center">
+                                    <svg class="w-3 h-3 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    ${skill.info_url && skill.info_url.trim() ? 
+                                        `<a href="${skill.info_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline">${skill.name}</a>` : 
+                                        skill.name
+                                    }
+                                </span>
+                                <span class="px-1.5 py-0.5 rounded text-xs ${getSkillTypeClass(skill.type)}">${skill.type || 'Skill'}</span>
+                            </div>
                         </div>
                     `).join('');
             })
@@ -802,6 +759,20 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = `/career-pathways?start=${selectedJob.id}`;
         }
     });
+
+    // Helper function to get CSS classes for skill types (same as Career Pathways)
+    function getSkillTypeClass(skillType) {
+        switch (skillType) {
+            case 'Specialized Skill':
+                return 'bg-blue-100 text-blue-700 border border-blue-200';
+            case 'Common Skill':
+                return 'bg-green-100 text-green-700 border border-green-200';
+            case 'Certification':
+                return 'bg-purple-100 text-purple-700 border border-purple-200';
+            default:
+                return 'bg-gray-100 text-gray-700 border border-gray-200';
+        }
+    }
 });
 </script>
 

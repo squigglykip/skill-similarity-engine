@@ -149,12 +149,22 @@ def create_app(config=None):
                 cross_family_query = queries.get('metadata', 'get_cross_family_mobility_opportunities')
                 cross_family_opportunities = db.execute(cross_family_query).fetchall()
                 
-                skills_concentration = []  # Not needed for executive summary
+                # Get cross-family similarity analysis
+                cross_family_similarities_query = queries.get('similarities', 'get_cross_family_similarities')
+                cross_family_similarities = db.execute(cross_family_similarities_query, (0.4, 12)).fetchall()
+                
+                cross_family_stats_query = queries.get('similarities', 'get_cross_family_stats')
+                cross_family_stats_raw = db.execute(cross_family_stats_query).fetchall()
+                
+                skills_concentration_query = queries.get('metadata', 'get_skills_concentration_analysis')
+                skills_concentration = db.execute(skills_concentration_query).fetchall()
             except Exception as e:
                 print(f"Warning: Strategic recommendations query failed: {e}")
                 strategic_recommendations = []
                 skills_concentration = []
                 cross_family_opportunities = []
+                cross_family_similarities = []
+                cross_family_stats_raw = None
             
             sample_jobs = get_sample_jobs(6)  # Reduced for cleaner display
             
@@ -168,7 +178,9 @@ def create_app(config=None):
                                  similarity_stats=similarity_stats,
                                  strategic_recommendations=strategic_recommendations,
                                  skills_concentration=skills_concentration[:10],
-                                 cross_family_opportunities=cross_family_opportunities[:8])  # Top recommendations and insights
+                                 cross_family_opportunities=cross_family_opportunities[:8],
+                                 cross_family_similarities=cross_family_similarities[:8],
+                                 cross_family_stats=cross_family_stats_raw)  # Top recommendations and insights
         except Exception as e:
             print(f"Error loading homepage: {e}")
             sample_jobs = get_sample_jobs(6)
@@ -176,6 +188,7 @@ def create_app(config=None):
             platform_metrics = {
                 'jobs_count': 0,
                 'skills_count': 0,
+                'skills_in_use_count': 0,
                 'positions_count': 0,
                 'pathways_count': 0,
                 'job_families_count': 0,
@@ -191,7 +204,9 @@ def create_app(config=None):
                                  similarity_stats={},
                                  strategic_recommendations=[],
                                  skills_concentration=[],
-                                 cross_family_opportunities=[])
+                                 cross_family_opportunities=[],
+                                 cross_family_similarities=[],
+                                 cross_family_stats=None)
 
     @app.route('/components')
     def components():
@@ -313,7 +328,7 @@ def create_app(config=None):
             
             # Get skills for this job
             skills_query = """
-            SELECT s.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
+            SELECT s.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType, s.Info_URL
             FROM job_skills js
             JOIN skills s ON js.Skill_ID = s.Skill_ID
             WHERE js.JobProfileID = ?
@@ -351,7 +366,8 @@ def create_app(config=None):
                     'name': skill['Skill_Name'],
                     'category': skill['Category'],
                     'subcategory': skill['Subcategory'],
-                    'type': skill['SkillType']
+                    'type': skill['SkillType'],
+                    'info_url': skill['Info_URL']
                 } for skill in skills],
                 'stats': {
                     'skills_count': len(skills),
@@ -1002,13 +1018,13 @@ def create_app(config=None):
             # Get detailed skills for each category (SQLite compatible)
             detailed_skills_query = """
             WITH job1_skills AS (
-                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType
+                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType, s.Info_URL
                 FROM job_skills js
                 JOIN skills s ON js.Skill_ID = s.Skill_ID
                 WHERE js.JobProfileID = ?
             ),
             job2_skills AS (
-                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType
+                SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType, s.Info_URL
                 FROM job_skills js
                 JOIN skills s ON js.Skill_ID = s.Skill_ID
                 WHERE js.JobProfileID = ?
@@ -1017,7 +1033,8 @@ def create_app(config=None):
                 'matched' as status,
                 j1.Skill_Name as skill_name,
                 j1.Category as category,
-                j1.SkillType as skill_type
+                j1.SkillType as skill_type,
+                j1.Info_URL as info_url
             FROM job1_skills j1
             INNER JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
             UNION ALL
@@ -1025,7 +1042,8 @@ def create_app(config=None):
                 'develop' as status,
                 j2.Skill_Name as skill_name,
                 j2.Category as category,
-                j2.SkillType as skill_type
+                j2.SkillType as skill_type,
+                j2.Info_URL as info_url
             FROM job2_skills j2
             LEFT JOIN job1_skills j1 ON j2.Skill_ID = j1.Skill_ID
             WHERE j1.Skill_ID IS NULL
@@ -1070,7 +1088,8 @@ def create_app(config=None):
                         'name': row['skill_name'],
                         'category': row['category'] or 'General',
                         'skill_type': row['skill_type'] or 'Skill',
-                        'status': row['status']
+                        'status': row['status'],
+                        'info_url': row['info_url']
                     }
                     for row in detailed_skills
                 ]
