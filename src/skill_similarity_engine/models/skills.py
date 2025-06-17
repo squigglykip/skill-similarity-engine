@@ -38,13 +38,20 @@ class SkillType(Enum):
         Raises:
             ValueError: If the string doesn't match any known skill type
         """
+        # Handle None, NaN, or empty values
+        if type_str is None or (hasattr(type_str, '__iter__') and not isinstance(type_str, str)) or str(type_str).lower() in ['nan', '', 'none']:
+            return cls.COMMON  # Default to COMMON for missing values
+        
+        # Convert to string if not already
+        type_str = str(type_str)
+        
         # Handle the case where the full enum is provided (e.g., "SkillType.SPECIALIZED")
-        if isinstance(type_str, str) and type_str.startswith("SkillType."):
+        if type_str.startswith("SkillType."):
             # Extract the part after "SkillType."
             type_str = type_str.split(".", 1)[1]
         
         # Direct enum name match (case-insensitive)
-        if isinstance(type_str, str) and type_str.upper() in ["COMMON", "SPECIALIZED", "CERTIFICATION"]:
+        if type_str.upper() in ["COMMON", "SPECIALIZED", "CERTIFICATION"]:
             return getattr(cls, type_str.upper())
         
         type_map = {
@@ -53,6 +60,7 @@ class SkillType(Enum):
             "specialized": cls.SPECIALIZED,
             "specialized skill": cls.SPECIALIZED,
             "certification": cls.CERTIFICATION,
+            "certification skill": cls.CERTIFICATION,
             # Map legacy types to appropriate new types
             "technical": cls.SPECIALIZED,
             "soft": cls.COMMON,
@@ -65,7 +73,8 @@ class SkillType(Enum):
         if normalized_type in type_map:
             return type_map[normalized_type]
         
-        raise ValueError(f"Unknown skill type: {type_str}")
+        # If we still can't match, default to COMMON instead of raising an error
+        return cls.COMMON
 
 
 @dataclass

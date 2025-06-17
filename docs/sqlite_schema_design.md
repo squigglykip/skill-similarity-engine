@@ -1,10 +1,10 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Business Context Database
 
-**Generated**: 2025-06-15 17:02:44
-**Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
-**Database Size**: 81.0 MB
-**Last Modified**: 2025-06-15T16:47:01.827018
+**Generated**: 2025-06-17 21:45:36
+**Database File**: `c:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
+**Database Size**: 105.56 MB
+**Last Modified**: 2025-06-17T21:26:12.207917
 
 ---
 
@@ -23,7 +23,7 @@ to support career pathway analysis and workforce planning.
 - **`job_skills`** (40,170 records) - JobProfileID, Skill_ID, Skill_Weight
 - **`jobs`** (715 records) - JobProfileID, JobProfile, JobFamily, JobFamilyGroup
 - **`positions`** (5,000 records) - JobProfileID, Division, Business_Unit, Location, Team
-- **`skills`** (38,395 records) - Skill_ID, Skill_Name, Category, SkillType
+- **`skills`** (38,430 records) - Skill_ID, Skill_Name, Category, SkillType
 
 **Key Relationships:**
 - `jobs.JobProfileID` → `career_pathways.source_job_id/target_job_id`
@@ -43,9 +43,9 @@ to support career pathway analysis and workforce planning.
 ## Database Statistics
 
 - **Total Tables**: 7
-- **Total Records**: 603,374
-- **Total Indexes**: 18
-- **Database Size**: 81.0 MB
+- **Total Records**: 603,409
+- **Total Indexes**: 10
+- **Database Size**: 105.56 MB
 
 ## Entity Relationship Diagram
 
@@ -79,19 +79,35 @@ erDiagram
     }
 
     JOBS {
-        text JobProfileID PK
+        text JobProfileID
         text JobProfile
         text JobID
         text Job
         text JobFamily
         text JobFamilyGroup
+        text ProfileTitleSuffix
+        text ManagementLevel
+        text JobSubFunctionID
+        text JobSubFunction
+        text JobCategoryID
+        text JobCategory
+        text Customer_Facing
+        text is_Banker
+        text Executive_Leadership_Group
+        text Accountability_Scope
     }
 
     POSITIONS {
-        text Position Number PK
+        integer Position Number
         text Position Name
-        text JobProfileID FK
+        text JobProfileID
         text Employee Number
+        text Location
+        text Rg
+        text Cty
+        text Employee Group
+        text Salary Group
+        text Employee Subgroup
         text Division
         text Business_Unit
         text Team
@@ -101,12 +117,6 @@ erDiagram
         text Org_Level_8
         text Org_Level_9
         text Org_Level_10
-        text Location
-        text Rg
-        text Cty
-        text Employee Group
-        text Salary Group
-        text Employee Subgroup
     }
 
     SCHEMA_METADATA {
@@ -122,12 +132,18 @@ erDiagram
         text Subcategory
         text SkillType
         text Latest_Version
-        text Description
+        integer category_id
+        text description
+        text descriptionSource
         text Info_URL
         boolean Is_Language
-        integer Category_ID
-        integer Subcategory_ID
-        text Type_ID
+        boolean isSoftware
+        integer subcategory_id
+        text tag_wikipediaExtract
+        text tag_wikipediaUrl
+        text tags
+        text type_id
+        text type_name
         text Market_Demand
         real Rarity_Score
     }
@@ -138,7 +154,6 @@ erDiagram
     JOBS ||--o{ JOB_SIMILARITIES : "job_from"
     SKILLS ||--o{ JOB_SKILLS : "Skill_ID"
     JOBS ||--o{ JOB_SKILLS : "JobProfileID"
-    JOBS ||--o{ POSITIONS : "JobProfileID"
 ```
 
 ---
@@ -182,16 +197,16 @@ CREATE TABLE career_pathways (
 - **target_job_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
 - **similarity_rank**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
 - **similarity_score**: `1.0`, `0.813953488372093`, `0.8`, `0.7954545454545454`, `0.7708333333333334`, `0.7692307692307693`, `0.7543859649122807`, `0.75`, `0.7446808510638298`, `0.7413793103448276`
-- **skill_overlap_score**: `1.0`, `0.5294117647058824`, `0.4264705882352941`, `0.4117647058823529`, `0.673469387755102`, `0.5510204081632653`, `0.3823529411764705`, `0.3235294117647059`, `0.2352941176470588`, `0.2058823529411764`
-- **shared_skills_count**: `20`, `10`, `8`, `13`, `11`, `7`, `6`, `4`, `5`, `3`
+- **skill_overlap_score**: `1.0`, `0.6730769230769231`, `0.6538461538461539`, `0.6666666666666666`, `0.5882352941176471`, `0.5490196078431373`, `0.5692307692307692`, `0.5538461538461539`, `0.5961538461538461`, `0.5769230769230769`
+- **shared_skills_count**: `20`, `13`, `11`, `10`, `12`, `14`, `9`, `8`, `6`, `5`
 - **career_move_type**: `lateral`, `progression`
-- **difficulty_score**: `0.0`, `0.47058823529411764`, `0.5735294117647058`, `0.5882352941176471`, `0.326530612244898`, `0.44897959183673475`, `0.6176470588235294`, `0.6764705882352942`, `0.7647058823529412`, `0.7941176470588236`
+- **difficulty_score**: `0.0`, `0.32692307692307687`, `0.34615384615384615`, `0.33333333333333337`, `0.4117647058823529`, `0.4509803921568627`, `0.4307692307692308`, `0.4461538461538461`, `0.40384615384615385`, `0.42307692307692313`
 
 **Sample Complete Records:**
 
 **Record 1:**
-  - `source_job_id`: R0001.5
-  - `target_job_id`: R0001.6
+  - `source_job_id`: R0293.5
+  - `target_job_id`: R0293.3
   - `similarity_rank`: 1
   - `similarity_score`: 1.0
   - `skill_overlap_score`: 1.0
@@ -200,24 +215,24 @@ CREATE TABLE career_pathways (
   - `difficulty_score`: 0.0
 
 **Record 2:**
-  - `source_job_id`: R0001.5
-  - `target_job_id`: R0053.0
+  - `source_job_id`: R0293.5
+  - `target_job_id`: R0293.2
   - `similarity_rank`: 2
-  - `similarity_score`: 0.5294117647058824
-  - `skill_overlap_score`: 0.5294117647058824
-  - `shared_skills_count`: 10
-  - `career_move_type`: progression
-  - `difficulty_score`: 0.47058823529411764
+  - `similarity_score`: 1.0
+  - `skill_overlap_score`: 1.0
+  - `shared_skills_count`: 20
+  - `career_move_type`: lateral
+  - `difficulty_score`: 0.0
 
 **Record 3:**
-  - `source_job_id`: R0001.5
-  - `target_job_id`: R0053.1
+  - `source_job_id`: R0293.5
+  - `target_job_id`: R0293.0
   - `similarity_rank`: 3
-  - `similarity_score`: 0.5294117647058824
-  - `skill_overlap_score`: 0.5294117647058824
-  - `shared_skills_count`: 10
-  - `career_move_type`: progression
-  - `difficulty_score`: 0.47058823529411764
+  - `similarity_score`: 1.0
+  - `skill_overlap_score`: 1.0
+  - `shared_skills_count`: 20
+  - `career_move_type`: lateral
+  - `difficulty_score`: 0.0
 
 ---
 
@@ -325,58 +340,118 @@ CREATE TABLE job_skills (
 
 ```sql
 CREATE TABLE jobs (
-    JobProfileID TEXT PRIMARY KEY,
-    JobProfile TEXT NOT NULL,
+    JobProfileID TEXT,
+    JobProfile TEXT,
     JobID TEXT,
     Job TEXT,
     JobFamily TEXT,
-    JobFamilyGroup TEXT
+    JobFamilyGroup TEXT,
+    ProfileTitleSuffix TEXT,
+    ManagementLevel TEXT,
+    JobSubFunctionID TEXT,
+    JobSubFunction TEXT,
+    JobCategoryID TEXT,
+    JobCategory TEXT,
+    Customer_Facing TEXT,
+    is_Banker TEXT,
+    Executive_Leadership_Group TEXT,
+    Accountability_Scope TEXT
 );
 ```
 
 **Column Statistics:**
 
 - **JobProfileID**: 715 unique values (715 non-null), avg length 7.0
-- **JobProfile**: 336 unique values (715 non-null), avg length 33.44
+- **JobProfile**: 306 unique values (715 non-null), avg length 22.65
 - **JobID**: 240 unique values (715 non-null), avg length 5.0
-- **Job**: 53 unique values (715 non-null), avg length 19.98
-- **JobFamily**: 8 unique values (715 non-null), avg length 19.06
-- **JobFamilyGroup**: 7 unique values (715 non-null), avg length 14.76
+- **Job**: 35 unique values (715 non-null), avg length 17.99
+- **JobFamily**: 7 unique values (715 non-null), avg length 17.74
+- **JobFamilyGroup**: 5 unique values (715 non-null), avg length 17.43
+- **ProfileTitleSuffix**: 16 unique values (715 non-null), avg length 9.01
+- **ManagementLevel**: 8 unique values (715 non-null), avg length 7.03
+- **JobSubFunctionID**: 509 unique values (715 non-null), avg length 6.0
+- **JobSubFunction**: 111 unique values (715 non-null), avg length 18.01
+- **JobCategoryID**: 4 unique values (715 non-null), avg length 3.08
+- **JobCategory**: 4 unique values (715 non-null), avg length 11.37
+- **Customer_Facing**: 2 unique values (715 non-null), avg length 17.68
+- **is_Banker**: 2 unique values (715 non-null), avg length 8.27
+- **Executive_Leadership_Group**: 2 unique values (715 non-null), avg length 1.2
+- **Accountability_Scope**: 3 unique values (715 non-null), avg length 0.71
 
 **Sample Data by Column:**
 
 - **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
-- **JobProfile**: `Analyst - Data Governance S...`, `Data Scientist - Manager`, `Senior Associate Executive ...`, `Analyst - Executive Director`, `Systems Analyst - Director`, `Graduate - Financial Analyst`, `Senior Associate Operations...`, `Graduate - Executive Director`, `Senior Associate Budget Ana...`, `Employee Relations Speciali...`
-- **JobID**: `J0001`, `J0002`, `J0003`, `J0005`, `J0007`, `J0009`, `J0010`, `J0022`, `J0023`, `J0025`
-- **Job**: `Data Governance Specialist`, `Data Scientist`, `Executive Director`, `Systems Analyst`, `Financial Analyst`, `Operations Analyst`, `Budget Analyst`, `Employee Relations Specialist`, `Organisational Development ...`, `General Manager`
-- **JobFamily**: `Banking Operations`, `Customer Service & Sales`, `Data & Analytics`, `Executive Leadership`, `Finance & Accounting`, `Human Resources`, `Risk & Compliance`, `Technology & Engineering`
-- **JobFamilyGroup**: `Customer & Commercial`, `Executive & Leadership`, `Finance`, `Operations`, `Risk & Control Functions`, `Support Functions`, `Technology`
+- **JobProfile**: `Financial Analyst - 5`, `Financial Analyst - 6`, `Digital Product Manager - III`, `Cybersecurity Analyst - 1`, `Digital Product Manager - 2`, `Cybersecurity Analyst - 3`, `Cybersecurity Analyst - 4`, `Cloud Architect - II`, `Data Scientist - 2`, `Chief Officer - III`
+- **JobID**: `R0001`, `R0002`, `R0003`, `R0005`, `R0007`, `R0009`, `R0010`, `R0022`, `R0023`, `R0025`
+- **Job**: `Financial Analyst`, `Digital Product Manager`, `Cybersecurity Analyst`, `Cloud Architect`, `Data Scientist`, `Chief Officer`, `General Manager`, `Customer Service Representa...`, `Business Banker`, `Legal Counsel`
+- **JobFamily**: `Finance & Treasury`, `Technology & Digital`, `Executive & Leadership`, `Customer & Commercial`, `Support Functions`, `Operations`, `Risk & Compliance`
+- **JobFamilyGroup**: `Risk & Finance`, `Technology & Operations`, `Executive`, `Commercial Banking`, `Corporate Functions`
+- **ProfileTitleSuffix**: `Advisor`, `III`, `Consultant`, `Associate`, `II`, `Manager`, `Team Member`, `I`, `Group Executive`, `UNGRADED`
+- **ManagementLevel**: `Group 4`, `Group 1`, `Group 2`, `Group 3`, `Group 6`, `Group 5`, `Group NA`, `Group 7`
+- **JobSubFunctionID**: `JF0229`, `JF0518`, `JF0778`, `JF0368`, `JF0644`, `JF0104`, `JF0547`, `JF0787`, `JF0406`, `JF0920`
+- **JobSubFunction**: `Foreign Exchange`, `Settlement Operations`, `Business Services`, `Customer Service Operations`, `Investment Operations`, `Fiduciary Services`, `Investment Banking`, `Portfolio Management`, `Cybersecurity`, `Communications`
+- **JobCategoryID**: `JC1`, `JC2`, `JC10`, `JC3`
+- **JobCategory**: `Enabling`, `Support`, `Executive & General Management`, `Revenue Generating`
+- **Customer_Facing**: `Customer Facing`, `Non-Customer Facing`
+- **is_Banker**: `Non-Banker`, `Banker`
+- **Executive_Leadership_Group**: ``, `Executive Leadership Group`
+- **Accountability_Scope**: ``, `Supports`, `Direct`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `JobProfileID`: R0001.5
-  - `JobProfile`: Analyst - Data Governance Specialist
-  - `JobID`: J0001
-  - `Job`: Data Governance Specialist
-  - `JobFamily`: Data & Analytics
-  - `JobFamilyGroup`: Technology
+  - `JobProfile`: Financial Analyst - 5
+  - `JobID`: R0001
+  - `Job`: Financial Analyst
+  - `JobFamily`: Finance & Treasury
+  - `JobFamilyGroup`: Risk & Finance
+  - `ProfileTitleSuffix`: Advisor
+  - `ManagementLevel`: Group 4
+  - `JobSubFunctionID`: JF0229
+  - `JobSubFunction`: Foreign Exchange
+  - `JobCategoryID`: JC1
+  - `JobCategory`: Enabling
+  - `Customer_Facing`: Customer Facing
+  - `is_Banker`: Non-Banker
+  - `Executive_Leadership_Group`: 
+  - `Accountability_Scope`: 
 
 **Record 2:**
   - `JobProfileID`: R0001.6
-  - `JobProfile`: Data Scientist - Manager
-  - `JobID`: J0001
-  - `Job`: Data Scientist
-  - `JobFamily`: Data & Analytics
-  - `JobFamilyGroup`: Technology
+  - `JobProfile`: Financial Analyst - 6
+  - `JobID`: R0001
+  - `Job`: Financial Analyst
+  - `JobFamily`: Finance & Treasury
+  - `JobFamilyGroup`: Risk & Finance
+  - `ProfileTitleSuffix`: Advisor
+  - `ManagementLevel`: Group 1
+  - `JobSubFunctionID`: JF0518
+  - `JobSubFunction`: Settlement Operations
+  - `JobCategoryID`: JC2
+  - `JobCategory`: Support
+  - `Customer_Facing`: Non-Customer Facing
+  - `is_Banker`: Non-Banker
+  - `Executive_Leadership_Group`: 
+  - `Accountability_Scope`: 
 
 **Record 3:**
   - `JobProfileID`: R0002.0
-  - `JobProfile`: Senior Associate Executive Director
-  - `JobID`: J0002
-  - `Job`: Executive Director
-  - `JobFamily`: Executive Leadership
-  - `JobFamilyGroup`: Executive & Leadership
+  - `JobProfile`: Digital Product Manager - III
+  - `JobID`: R0002
+  - `Job`: Digital Product Manager
+  - `JobFamily`: Technology & Digital
+  - `JobFamilyGroup`: Technology & Operations
+  - `ProfileTitleSuffix`: III
+  - `ManagementLevel`: Group 4
+  - `JobSubFunctionID`: JF0778
+  - `JobSubFunction`: Business Services
+  - `JobCategoryID`: JC2
+  - `JobCategory`: Support
+  - `Customer_Facing`: Non-Customer Facing
+  - `is_Banker`: Non-Banker
+  - `Executive_Leadership_Group`: 
+  - `Accountability_Scope`: 
 
 ---
 
@@ -384,10 +459,16 @@ CREATE TABLE jobs (
 
 ```sql
 CREATE TABLE positions (
-    Position Number TEXT PRIMARY KEY,
+    Position Number INTEGER,
     Position Name TEXT,
     JobProfileID TEXT,
     Employee Number TEXT,
+    Location TEXT,
+    Rg TEXT,
+    Cty TEXT,
+    Employee Group TEXT,
+    Salary Group TEXT,
+    Employee Subgroup TEXT,
     Division TEXT,
     Business_Unit TEXT,
     Team TEXT,
@@ -396,26 +477,22 @@ CREATE TABLE positions (
     SubFunction TEXT,
     Org_Level_8 TEXT,
     Org_Level_9 TEXT,
-    Org_Level_10 TEXT,
-    Location TEXT,
-    Rg TEXT,
-    Cty TEXT,
-    Employee Group TEXT,
-    Salary Group TEXT,
-    Employee Subgroup TEXT
+    Org_Level_10 TEXT
 );
 ```
 
-**Foreign Key Relationships:**
-
-- `JobProfileID` → `jobs.JobProfileID`
-
 **Column Statistics:**
 
-- **Position Number**: 5,000 unique values (5,000 non-null), avg length 8.0
+- **Position Number**: 5,000 unique values (5,000 non-null), range 50000000 - 50004999
 - **Position Name**: 580 unique values (5,000 non-null), avg length 21.92
 - **JobProfileID**: 628 unique values (5,000 non-null), avg length 7.0
 - **Employee Number**: 3,501 unique values (5,000 non-null), avg length 5.6
+- **Location**: 6 unique values (5,000 non-null), avg length 8.51
+- **Rg**: 5 unique values (5,000 non-null), avg length 2.66
+- **Cty**: 1 unique values (5,000 non-null), avg length 2.0
+- **Employee Group**: 5 unique values (5,000 non-null), avg length 6.15
+- **Salary Group**: 9 unique values (5,000 non-null), avg length 7.0
+- **Employee Subgroup**: 4 unique values (5,000 non-null), avg length 5.6
 - **Division**: 6 unique values (5,000 non-null), avg length 20.27
 - **Business_Unit**: 10 unique values (5,000 non-null), avg length 14.4
 - **Team**: 10 unique values (5,000 non-null), avg length 24.52
@@ -425,34 +502,28 @@ CREATE TABLE positions (
 - **Org_Level_8**: 50 unique values (5,000 non-null), avg length 8.0
 - **Org_Level_9**: 30 unique values (5,000 non-null), avg length 7.0
 - **Org_Level_10**: 100 unique values (5,000 non-null), avg length 8.0
-- **Location**: 6 unique values (5,000 non-null), avg length 8.51
-- **Rg**: 5 unique values (5,000 non-null), avg length 2.66
-- **Cty**: 1 unique values (5,000 non-null), avg length 2.0
-- **Employee Group**: 5 unique values (5,000 non-null), avg length 6.15
-- **Salary Group**: 9 unique values (5,000 non-null), avg length 7.0
-- **Employee Subgroup**: 4 unique values (5,000 non-null), avg length 5.6
 
 **Sample Data by Column:**
 
 - **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
 - **Position Name**: `Data Manager`, `Risk Senior Developer`, `Technology Principal Specia...`, `Investment Senior Developer`, `Markets Principal Developer`, `Legal Executive Advisor`, `Audit Principal Consultant`, `Credit Vice President`, `Marketing Consultant`, `Treasury Engineer`
-- **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
+- **JobProfileID**: `R0453.0`, `R0400.6`, `R0465.3`, `R0079.4`, `R0350.5`, `R0454.5`, `R0096.0`, `R0045.0`, `R0352.0`, `R0307.6`
 - **Employee Number**: `102031.0`, `100121.0`, `100644.0`, `102831.0`, `101745.0`, `102052.0`, `101642.0`, `103249.0`, `102673.0`, `102992.0`
-- **Division**: `Business & Private Banking`, `Corporate & Institutional B...`, `Customer Banking & Wealth`, `Group Functions`, `NAB Ventures`, `Technology`
-- **Business_Unit**: `Business Banking`, `Corporate Banking`, `Finance`, `Human Resources`, `Legal & Compliance`, `NAB Ventures`, `Personal Banking`, `Risk Management`, `Technology`, `Wealth Management`
-- **Team**: `Business Banking Operations`, `Corporate Banking Operations`, `Finance Strategy`, `Human Resources Strategy`, `Legal & Compliance Strategy`, `NAB Ventures Operations`, `Personal Banking Operations`, `Risk Management Strategy`, `Technology Operations`, `Wealth Management Operations`
-- **SubTeam**: `Team 20`, `Team 02`, `Team 19`, `Team 27`, `Team 15`, `Team 22`, `Team 13`, `Team 12`, `Team 25`, `Team 05`
-- **Function**: `Squad A`, `Squad B`, `Squad C`, `Squad D`, `Squad E`, `Squad F`, `Squad G`, `Squad H`, `Squad I`, `Squad J`
-- **SubFunction**: `Pod 18`, `Pod 12`, `Pod 15`, `Pod 5`, `Pod 13`, `Pod 2`, `Pod 20`, `Pod 1`, `Pod 9`, `Pod 4`
-- **Org_Level_8**: `Unit 047`, `Unit 011`, `Unit 020`, `Unit 040`, `Unit 005`, `Unit 017`, `Unit 035`, `Unit 048`, `Unit 038`, `Unit 008`
-- **Org_Level_9**: `Cell 12`, `Cell 21`, `Cell 22`, `Cell 17`, `Cell 14`, `Cell 07`, `Cell 11`, `Cell 09`, `Cell 16`, `Cell 18`
-- **Org_Level_10**: `Node 060`, `Node 067`, `Node 023`, `Node 073`, `Node 039`, `Node 065`, `Node 078`, `Node 033`, `Node 014`, `Node 027`
-- **Location**: `Adelaide`, `Brisbane City`, `Docklands`, `Parramatta`, `Perth`, `Sydney`
-- **Rg**: `SA`, `QLD`, `VIC`, `NSW`, `WA`
+- **Location**: `Adelaide`, `Parramatta`, `Brisbane City`, `Perth`, `Docklands`, `Sydney`
+- **Rg**: `SA`, `NSW`, `QLD`, `WA`, `VIC`
 - **Cty**: `AU`
 - **Employee Group**: `Casual`, `Contractor`, `Permanent`, `Fixed Term`, ``
 - **Salary Group**: `Group 7`, `Group 1`, `Group 5`, `Group 6`, `Group 3`, `External`, `Group 4`, `Group 2`, `Casual`
 - **Employee Subgroup**: `Part Time`, `Full Time`, `Casual`, ``
+- **Division**: `Technology`, `NAB Ventures`, `Group Functions`, `Business & Private Banking`, `Customer Banking & Wealth`, `Corporate & Institutional B...`
+- **Business_Unit**: `Corporate Banking`, `Finance`, `Business Banking`, `Legal & Compliance`, `Personal Banking`, `NAB Ventures`, `Human Resources`, `Wealth Management`, `Technology`, `Risk Management`
+- **Team**: `Wealth Management Operations`, `Business Banking Operations`, `Legal & Compliance Strategy`, `Technology Operations`, `Human Resources Strategy`, `Personal Banking Operations`, `Finance Strategy`, `Corporate Banking Operations`, `NAB Ventures Operations`, `Risk Management Strategy`
+- **SubTeam**: `Team 20`, `Team 02`, `Team 19`, `Team 27`, `Team 15`, `Team 22`, `Team 13`, `Team 12`, `Team 25`, `Team 05`
+- **Function**: `Squad D`, `Squad Y`, `Squad U`, `Squad E`, `Squad S`, `Squad R`, `Squad M`, `Squad F`, `Squad T`, `Squad C`
+- **SubFunction**: `Pod 18`, `Pod 12`, `Pod 15`, `Pod 5`, `Pod 13`, `Pod 2`, `Pod 20`, `Pod 1`, `Pod 9`, `Pod 4`
+- **Org_Level_8**: `Unit 047`, `Unit 011`, `Unit 020`, `Unit 040`, `Unit 005`, `Unit 017`, `Unit 035`, `Unit 048`, `Unit 038`, `Unit 008`
+- **Org_Level_9**: `Cell 12`, `Cell 21`, `Cell 22`, `Cell 17`, `Cell 14`, `Cell 07`, `Cell 11`, `Cell 09`, `Cell 16`, `Cell 18`
+- **Org_Level_10**: `Node 060`, `Node 067`, `Node 023`, `Node 073`, `Node 039`, `Node 065`, `Node 078`, `Node 033`, `Node 014`, `Node 027`
 
 **Sample Complete Records:**
 
@@ -461,6 +532,12 @@ CREATE TABLE positions (
   - `Position Name`: Data Manager
   - `JobProfileID`: R0453.0
   - `Employee Number`: 102031.0
+  - `Location`: Adelaide
+  - `Rg`: SA
+  - `Cty`: AU
+  - `Employee Group`: Casual
+  - `Salary Group`: Group 7
+  - `Employee Subgroup`: Part Time
   - `Division`: Technology
   - `Business_Unit`: Corporate Banking
   - `Team`: Wealth Management Operations
@@ -470,18 +547,18 @@ CREATE TABLE positions (
   - `Org_Level_8`: Unit 047
   - `Org_Level_9`: Cell 12
   - `Org_Level_10`: Node 060
-  - `Location`: Adelaide
-  - `Rg`: SA
-  - `Cty`: AU
-  - `Employee Group`: Casual
-  - `Salary Group`: Group 7
-  - `Employee Subgroup`: Part Time
 
 **Record 2:**
   - `Position Number`: 50000001
   - `Position Name`: Risk Senior Developer
   - `JobProfileID`: R0400.6
   - `Employee Number`: 100121.0
+  - `Location`: Parramatta
+  - `Rg`: NSW
+  - `Cty`: AU
+  - `Employee Group`: Contractor
+  - `Salary Group`: Group 1
+  - `Employee Subgroup`: Part Time
   - `Division`: NAB Ventures
   - `Business_Unit`: Finance
   - `Team`: Business Banking Operations
@@ -491,18 +568,18 @@ CREATE TABLE positions (
   - `Org_Level_8`: Unit 011
   - `Org_Level_9`: Cell 21
   - `Org_Level_10`: Node 067
-  - `Location`: Parramatta
-  - `Rg`: NSW
-  - `Cty`: AU
-  - `Employee Group`: Contractor
-  - `Salary Group`: Group 1
-  - `Employee Subgroup`: Part Time
 
 **Record 3:**
   - `Position Number`: 50000002
   - `Position Name`: Technology Principal Specialist
   - `JobProfileID`: R0465.3
   - `Employee Number`: 100644.0
+  - `Location`: Parramatta
+  - `Rg`: NSW
+  - `Cty`: AU
+  - `Employee Group`: Contractor
+  - `Salary Group`: Group 5
+  - `Employee Subgroup`: Full Time
   - `Division`: NAB Ventures
   - `Business_Unit`: Business Banking
   - `Team`: Legal & Compliance Strategy
@@ -512,12 +589,6 @@ CREATE TABLE positions (
   - `Org_Level_8`: Unit 020
   - `Org_Level_9`: Cell 22
   - `Org_Level_10`: Node 023
-  - `Location`: Parramatta
-  - `Rg`: NSW
-  - `Cty`: AU
-  - `Employee Group`: Contractor
-  - `Salary Group`: Group 5
-  - `Employee Subgroup`: Full Time
 
 ---
 
@@ -540,29 +611,29 @@ CREATE TABLE schema_metadata (
 **Sample Data by Column:**
 
 - **key**: `created_date`, `purpose`, `schema_version`, `source_document`
-- **value**: `1.0`, `2025-06-15T16:46:46.146146`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
-- **created_at**: `2025-06-15T16:46:46.146146`
+- **value**: `1.0`, `2025-06-17T21:25:54.663230`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
+- **created_at**: `2025-06-17T21:25:54.663230`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `key`: schema_version
   - `value`: 1.0
-  - `created_at`: 2025-06-15T16:46:46.146146
+  - `created_at`: 2025-06-17T21:25:54.663230
 
 **Record 2:**
   - `key`: created_date
-  - `value`: 2025-06-15T16:46:46.146146
-  - `created_at`: 2025-06-15T16:46:46.146146
+  - `value`: 2025-06-17T21:25:54.663230
+  - `created_at`: 2025-06-17T21:25:54.663230
 
 **Record 3:**
   - `key`: source_document
   - `value`: docs/sqlite_schema_design.md
-  - `created_at`: 2025-06-15T16:46:46.146146
+  - `created_at`: 2025-06-17T21:25:54.663230
 
 ---
 
-### 7. **skills** - 38,395 records
+### 7. **skills** - 38,430 records
 
 ```sql
 CREATE TABLE skills (
@@ -572,47 +643,58 @@ CREATE TABLE skills (
     Subcategory TEXT,
     SkillType TEXT,
     Latest_Version TEXT,
-    Description TEXT,
+    category_id INTEGER,
+    description TEXT,
+    descriptionSource TEXT,
     Info_URL TEXT,
     Is_Language BOOLEAN,
-    Category_ID INTEGER,
-    Subcategory_ID INTEGER,
-    Type_ID TEXT,
-    Market_Demand TEXT,
-    Rarity_Score REAL
+    isSoftware BOOLEAN,
+    subcategory_id INTEGER,
+    tag_wikipediaExtract TEXT,
+    tag_wikipediaUrl TEXT,
+    tags TEXT,
+    type_id TEXT,
+    type_name TEXT,
+    Market_Demand TEXT DEFAULT '',
+    Rarity_Score REAL DEFAULT NULL
 );
 ```
 
 **Column Statistics:**
 
-- **Skill_ID**: 38,395 unique values (38,395 non-null), avg length 20.0
-- **Skill_Name**: 38,395 unique values (38,395 non-null), avg length 19.68
-- **Category**: 29 unique values (38,395 non-null), avg length 0.2
-- **Subcategory**: 191 unique values (38,395 non-null), avg length 0.23
-- **SkillType**: 4 unique values (38,395 non-null), avg length 1.64
-- **Latest_Version**: 48 unique values (38,395 non-null), avg length 3.98
-- **Description**: 2,422 unique values (38,395 non-null), avg length 24.08
-- **Info_URL**: 3,731 unique values (38,395 non-null), avg length 5.83
-- **Category_ID**: 29 unique values (38,395 non-null), range 0 - 0
-- **Subcategory_ID**: 187 unique values (38,395 non-null), range 100 - 0
-- **Type_ID**: 4 unique values (38,395 non-null), avg length 0.29
-- **Market_Demand**: 1 unique values (38,395 non-null), avg length 0
-- **Rarity_Score**: 1 unique values (38,395 non-null), range 0.0000 - 0.0000, avg 0.0000
+- **Skill_ID**: 38,430 unique values (38,430 non-null), avg length 20.0
+- **Skill_Name**: 38,430 unique values (38,430 non-null), avg length 19.68
+- **Category**: 34 unique values (38,430 non-null), avg length 17.96
+- **Subcategory**: 460 unique values (38,430 non-null), avg length 20.29
+- **SkillType**: 3 unique values (38,430 non-null), avg length 16.57
+- **Latest_Version**: 51 unique values (38,430 non-null), avg length 3.98
+- **category_id**: 34 unique values (38,430 non-null), range 0 - 0
+- **description**: 36,922 unique values (38,430 non-null), avg length 483.26
+- **descriptionSource**: 0 unique values (0 non-null), avg length 0
+- **Info_URL**: 38,430 unique values (38,430 non-null), avg length 60.0
+- **subcategory_id**: 453 unique values (38,430 non-null), range 100 - 0
+- **tag_wikipediaExtract**: 0 unique values (0 non-null), avg length 0
+- **tag_wikipediaUrl**: 0 unique values (0 non-null), avg length 0
+- **tags**: 0 unique values (0 non-null), avg length 0
+- **type_id**: 3 unique values (38,430 non-null), avg length 3.0
+- **type_name**: 0 unique values (0 non-null), avg length 0
+- **Market_Demand**: 1 unique values (38,430 non-null), avg length 0
+- **Rarity_Score**: 1 unique values (38,430 non-null), range 0.0000 - 0.0000, avg 0.0000
 
 **Sample Data by Column:**
 
 - **Skill_ID**: `BGS1024316C916ACCFA3`, `BGS105C99F084505B956`, `BGS1080D1F8CED414379`, `BGS10AB6DEBB81A2E88C`, `BGS10B5E145CA48862FC`, `BGS10CBE4935DDCAE5AD`, `BGS10EE289B9FDE2C4B1`, `BGS10F3F05054C5731C2`, `BGS10F94E4049444B523`, `BGS110587665F051DF29`
 - **Skill_Name**: `DX Spectrum`, `Microsoft Sysprep`, `Application Remediation`, `Clinical Assay`, `Welding Tips`, `Apoptosis`, `Investment Account Management`, `GPS Data`, `Bill Of Materials`, `Video Remote Interpreting (...`
-- **Category**: ``, `Administration`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Education and Training`, `Energy and Utilities`, `Engineering`
-- **Subcategory**: ``, `Administrative Support and ...`, `Document Management`, `Office Management`, `Office and Productivity Equ...`, `Office and Productivity Sof...`, `Scheduling`, `Data Analysis`, `Data Science`, `Data Visualization`
-- **SkillType**: `Specialized Skill`, ``, `Certification`, `Common Skill`
+- **Category**: ``, `Administration`, `Agriculture, Horticulture, ...`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Economics, Policy, and Soci...`, `Education and Training`
+- **Subcategory**: ``, `Administrative Support and ...`, `Dictation`, `Document Management`, `Office Management`, `Office and Productivity Equ...`, `Office and Productivity Sof...`, `Scheduling`, `Agricultural Management and...`, `Agricultural Research and A...`
+- **SkillType**: `Specialized Skill`, `Common Skill`, `Certification`
 - **Latest_Version**: `8.5`, `9.31`, `8.4`, `8.2`, `8.6`, `8.11`, `8.27`, `8.3`, `8.8`, `8.9`
-- **Description**: ``, `Respiratory diseases, or lu...`, `In law as practiced in coun...`, `A presentation conveys info...`, `A fuel is any material that...`, `A cardiac stress test is a ...`, `Micromachines are mechanica...`, `Phlebotomy is the process o...`, `A topical medication is a m...`, `A complication in medicine,...`
-- **Info_URL**: `https://lightcast.io/open-s...`, ``, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`
-- **Is_Language**: `0`, ``, `1`
-- **Category_ID**: `17`, ``, `14`, `7`, `19`, `0`, `21`, `6`, `11`, `1`
-- **Subcategory_ID**: `411`, ``, `491`, `289`, `175`, `494`, `345`, `507`, `177`, `447`
-- **Type_ID**: `ST1`, ``, `ST3`, `ST2`
+- **category_id**: `17`, `30`, `21`, `13`, `32`, `14`, `12`, `4`, `16`, `23`
+- **description**: ``, `Microsoft Sysprep is a util...`, `Application Remediation ref...`, `Clinical Assay refers to a ...`, `Welding Tips refers to the ...`, `Apoptosis is a process of p...`, `Investment Account Manageme...`, `GPS Data refers to informat...`, `A Bill of Materials (BOM) i...`, `Video Remote Interpreting (...`
+- **Info_URL**: `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`
+- **Is_Language**: `0`, `1`
+- **subcategory_id**: `411`, `476`, `477`, `621`, `542`, `622`, `281`, `422`, `633`, `487`
+- **type_id**: `ST1`, `ST2`, `ST3`
 - **Market_Demand**: ``
 - **Rarity_Score**: ``
 
@@ -625,44 +707,44 @@ CREATE TABLE skills (
   - `Subcategory`: Enterprise Information Management
   - `SkillType`: Specialized Skill
   - `Latest_Version`: 8.5
-  - `Description`: 
+  - `category_id`: 17
+  - `description`: 
   - `Info_URL`: https://lightcast.io/open-skills/skills/BGS1024...
   - `Is_Language`: 0
-  - `Category_ID`: 17
-  - `Subcategory_ID`: 411
-  - `Type_ID`: ST1
+  - `subcategory_id`: 411
+  - `type_id`: ST1
   - `Market_Demand`: 
   - `Rarity_Score`: 
 
 **Record 2:**
   - `Skill_ID`: BGS105C99F084505B956
   - `Skill_Name`: Microsoft Sysprep
-  - `Category`: 
-  - `Subcategory`: 
-  - `SkillType`: 
+  - `Category`: Information Technology
+  - `Subcategory`: Software Development Tools
+  - `SkillType`: Specialized Skill
   - `Latest_Version`: 9.31
-  - `Description`: 
-  - `Info_URL`: 
-  - `Is_Language`: 
-  - `Category_ID`: 
-  - `Subcategory_ID`: 
-  - `Type_ID`: 
+  - `category_id`: 17
+  - `description`: Microsoft Sysprep is a utility tool used to pre...
+  - `Info_URL`: https://lightcast.io/open-skills/skills/BGS105C...
+  - `Is_Language`: 0
+  - `subcategory_id`: 476
+  - `type_id`: ST1
   - `Market_Demand`: 
   - `Rarity_Score`: 
 
 **Record 3:**
   - `Skill_ID`: BGS1080D1F8CED414379
   - `Skill_Name`: Application Remediation
-  - `Category`: 
-  - `Subcategory`: 
-  - `SkillType`: 
+  - `Category`: Information Technology
+  - `Subcategory`: Software Quality Assurance
+  - `SkillType`: Specialized Skill
   - `Latest_Version`: 9.31
-  - `Description`: 
-  - `Info_URL`: 
-  - `Is_Language`: 
-  - `Category_ID`: 
-  - `Subcategory_ID`: 
-  - `Type_ID`: 
+  - `category_id`: 17
+  - `description`: Application Remediation refers to the process o...
+  - `Info_URL`: https://lightcast.io/open-skills/skills/BGS1080...
+  - `Is_Language`: 0
+  - `subcategory_id`: 477
+  - `type_id`: ST1
   - `Market_Demand`: 
   - `Rarity_Score`: 
 
@@ -674,24 +756,21 @@ Top values for important categorical columns:
 
 ### jobs.JobFamily
 
-- **Banking Operations**: 101 records
-- **Data & Analytics**: 99 records
-- **Finance & Accounting**: 98 records
-- **Human Resources**: 94 records
-- **Executive Leadership**: 88 records
-- **Customer Service & Sales**: 81 records
-- **Risk & Compliance**: 78 records
-- **Technology & Engineering**: 76 records
+- **Technology & Digital**: 115 records
+- **Finance & Treasury**: 108 records
+- **Operations**: 107 records
+- **Support Functions**: 106 records
+- **Risk & Compliance**: 95 records
+- **Customer & Commercial**: 94 records
+- **Executive & Leadership**: 90 records
 
 ### jobs.JobFamilyGroup
 
-- **Technology**: 175 records
-- **Operations**: 101 records
-- **Finance**: 98 records
-- **Support Functions**: 94 records
-- **Executive & Leadership**: 88 records
-- **Customer & Commercial**: 81 records
-- **Risk & Control Functions**: 78 records
+- **Technology & Operations**: 222 records
+- **Risk & Finance**: 203 records
+- **Corporate Functions**: 106 records
+- **Commercial Banking**: 94 records
+- **Executive**: 90 records
 
 ### positions.Division
 
@@ -726,22 +805,22 @@ Top values for important categorical columns:
 
 ### skills.Category
 
-- **Information Technology**: 168 records
-- **Health Care**: 57 records
-- **Business**: 15 records
-- **Administration**: 14 records
-- **Engineering**: 14 records
-- **Physical and Inherent Abilities**: 13 records
-- **Analysis**: 12 records
-- **Customer and Client Support**: 12 records
-- **Design**: 12 records
-- **Marketing and Public Relations**: 11 records
+- **Information Technology**: 10,628 records
+- **Health Care**: 3,737 records
+- **Engineering**: 2,202 records
+- **Science and Research**: 1,833 records
+- **Finance**: 1,621 records
+- **Business**: 1,538 records
+- **Media and Communications**: 1,432 records
+- **Analysis**: 1,262 records
+- **Law, Regulation, and Compliance**: 1,134 records
+- **Manufacturing and Production**: 1,111 records
 
 ### skills.SkillType
 
-- **Specialized Skill**: 3,639 records
-- **Certification**: 66 records
-- **Common Skill**: 25 records
+- **Specialized Skill**: 34,406 records
+- **Certification**: 3,525 records
+- **Common Skill**: 499 records
 
 ### career_pathways.career_move_type
 
@@ -801,50 +880,6 @@ CREATE INDEX idx_job_skills_job ON job_skills(JobProfileID)
 **idx_job_skills_skill**
 ```sql
 CREATE INDEX idx_job_skills_skill ON job_skills(Skill_ID)
-```
-
-### jobs table indexes
-
-**idx_jobs_family**
-```sql
-CREATE INDEX idx_jobs_family ON jobs(JobFamily)
-```
-
-**idx_jobs_family_group**
-```sql
-CREATE INDEX idx_jobs_family_group ON jobs(JobFamilyGroup)
-```
-
-### positions table indexes
-
-**idx_positions_business_unit**
-```sql
-CREATE INDEX idx_positions_business_unit ON positions(Business_Unit)
-```
-
-**idx_positions_division**
-```sql
-CREATE INDEX idx_positions_division ON positions(Division)
-```
-
-**idx_positions_function**
-```sql
-CREATE INDEX idx_positions_function ON positions(Function)
-```
-
-**idx_positions_job_profile**
-```sql
-CREATE INDEX idx_positions_job_profile ON positions(JobProfileID)
-```
-
-**idx_positions_location**
-```sql
-CREATE INDEX idx_positions_location ON positions(Location, Rg)
-```
-
-**idx_positions_team**
-```sql
-CREATE INDEX idx_positions_team ON positions(Team)
 ```
 
 ### skills table indexes
@@ -925,4 +960,4 @@ This schema documentation should be used to:
 3. **Validate data integrity** during pipeline updates
 4. **Plan schema evolution** for future requirements
 
-**Last Updated**: 2025-06-15 17:02:44
+**Last Updated**: 2025-06-17 21:45:36

@@ -1,0 +1,711 @@
+{
+    "metadata": {
+        "row_count": 10000,
+        "column_count": 18,
+        "memory_usage": "20.34991455078125 MB",
+        "column_names": [
+            "category_id",
+            "category_name",
+            "description",
+            "descriptionSource",
+            "id",
+            "infoUrl",
+            "isLanguage",
+            "isSoftware",
+            "name",
+            "source_version",
+            "subcategory_id",
+            "subcategory_name",
+            "tag_wikipediaExtract",
+            "tag_wikipediaUrl",
+            "tags",
+            "type",
+            "type_id",
+            "type_name"
+        ],
+        "duplicate_rows": 0,
+        "duplicate_percentage": 0.0
+    },
+    "schema": {
+        "category_id": {
+            "data_type": "float64",
+            "memory_usage": "78.25390625 KB",
+            "null_values": {
+                "count": 58,
+                "percentage": 0.58
+            },
+            "unique_values": {
+                "count": 32,
+                "percentage": 0.32
+            },
+            "statistics": {
+                "min": 0.0,
+                "max": 32.0,
+                "mean": 14.731040032186682,
+                "median": 17.0,
+                "std": 8.080913124795778
+            },
+            "most_common_values": {
+                "17.0": 2807,
+                "14.0": 944,
+                "0.0": 806,
+                "11.0": 562,
+                "30.0": 465
+            },
+            "examples": [
+                "17.0",
+                "30.0",
+                "23.0"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "0.0",
+                "1.0",
+                "10.0",
+                "11.0",
+                "12.0",
+                "13.0",
+                "14.0",
+                "15.0",
+                "16.0",
+                "17.0",
+                "19.0",
+                "2.0",
+                "20.0",
+                "21.0",
+                "22.0",
+                "23.0",
+                "24.0",
+                "25.0",
+                "26.0",
+                "27.0",
+                "28.0",
+                "29.0",
+                "3.0",
+                "30.0",
+                "31.0",
+                "32.0",
+                "4.0",
+                "5.0",
+                "6.0",
+                "7.0",
+                "8.0",
+                "9.0"
+            ]
+        },
+        "category_name": {
+            "data_type": "object",
+            "memory_usage": "640.845703125 KB",
+            "null_values": {
+                "count": 864,
+                "percentage": 8.64
+            },
+            "unique_values": {
+                "count": 31,
+                "percentage": 0.31
+            },
+            "statistics": {
+                "min_length": 5,
+                "max_length": 43,
+                "mean_length": 19.787872154115586
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "Information Technology": 2807,
+                "Health Care": 944,
+                "nan": 864,
+                "Engineering": 562,
+                "Science and Research": 465
+            },
+            "examples": [
+                "Information Technology",
+                "Science and Research",
+                "Media and Communications"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "Administration",
+                "Agriculture, Horticulture, and Landscaping",
+                "Analysis",
+                "Architecture and Construction",
+                "Business",
+                "Customer and Client Support",
+                "Design",
+                "Economics, Policy, and Social Studies",
+                "Education and Training",
+                "Energy and Utilities",
+                "Engineering",
+                "Environment",
+                "Finance",
+                "Health Care",
+                "Hospitality and Food Services",
+                "Human Resources",
+                "Information Technology",
+                "Law, Regulation, and Compliance",
+                "Maintenance, Repair, and Facility Services",
+                "Manufacturing and Production",
+                "Marketing and Public Relations",
+                "Media and Communications",
+                "Performing Arts, Sports, and Recreation",
+                "Personal Care and Services",
+                "Physical and Inherent Abilities",
+                "Property and Real Estate",
+                "Public Safety and National Security",
+                "Sales",
+                "Science and Research",
+                "Social and Human Services",
+                "Transportation, Supply Chain, and Logistics"
+            ]
+        },
+        "description": {
+            "data_type": "object",
+            "memory_usage": "5224.5029296875 KB",
+            "null_values": {
+                "count": 378,
+                "percentage": 3.78
+            },
+            "unique_values": {
+                "count": 9618,
+                "percentage": 96.18
+            },
+            "statistics": {
+                "min_length": 5,
+                "max_length": 1653,
+                "mean_length": 503.28486801080857
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "nan": 378,
+                "Oracle Database is a multi-model database management system produced and marketed by Oracle Corporation.": 2,
+                "IBM Series/1 refers to a family of minicomputers developed by IBM, designed for industrial and commercial control applications. This skill involves configuring, programming, and maintaining IBM Series/1 systems, which are used to manage real-time data processing and control tasks in specialized environments. It is used to support legacy applications and hardware integrations in environments that require robust and reliable computing capabilities.": 2,
+                "PRO/II is a process simulation software used in engineering and chemical industries. It enables users to model, simulate, and optimize various processes such as chemical reactions, heat transfer, and mass transfer. PRO/II helps engineers design and analyze complex systems, improve efficiency, and troubleshoot potential issues before implementation, ultimately aiding in the development of safer and more cost-effective processes.": 2,
+                "Google Services refers to a suite of tools and platforms provided by Google, which includes cloud computing, data storage, communication tools, and APIs for application development. This skill is used to manage and integrate various Google products like Gmail, Google Drive, Google Cloud, and Maps into workflows, enabling data management, communication, and business processes. Google Services allows for efficient collaboration, data sharing, and leveraging cloud-based infrastructure for scaling applications and services across industries.": 2
+            },
+            "examples": [
+                "Application Remediation refers to the process of identifying and addressing vulnerabilities or deficiencies within software applications to enhance their security, performance, and compliance. This skill involves assessing existing applications, implementing necessary updates or fixes, and ensuring adherence to industry standards and best practices. Knowledge of Application Remediation is used to mitigate risks associated with software vulnerabilities, improve user experience, and maintain regulatory compliance by systematically evaluating and enhancing application functionality.",
+                "Apoptosis is a process of programmed cell death that occurs naturally in the body to eliminate damaged or unwanted cells. It involves a series of complex signaling pathways, which ultimately leads to the fragmentation of the cell into small apoptotic bodies that are easily cleared by phagocytic cells. Dysregulation of apoptosis can lead to a variety of diseases such as cancer, autoimmune disorders, and degenerative disorders. Understanding the mechanisms of apoptosis is essential for the development of new therapies to treat these diseases.",
+                "HDR (High Dynamic Range) Photography refers to a technique that captures a greater dynamic range of luminosity than standard photography. This skill involves taking multiple exposures of the same scene at different exposure levels and then combining them to create a single image that retains detail in both the highlights and shadows. Knowledge of HDR Photography is used to enhance images in various settings, such as landscapes and architectural photography, by producing a more balanced and visually appealing representation of the scene."
+            ],
+            "potential_categorical": false
+        },
+        "descriptionSource": {
+            "data_type": "object",
+            "memory_usage": "579.6455078125 KB",
+            "null_values": {
+                "count": 337,
+                "percentage": 3.37
+            },
+            "unique_values": {
+                "count": 648,
+                "percentage": 6.48
+            },
+            "statistics": {
+                "min_length": 9,
+                "max_length": 81,
+                "mean_length": 11.296077822622374
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "LIGHTCAST": 9016,
+                "nan": 337,
+                "https://en.wikipedia.org/wiki/Pydio": 1,
+                "https://en.wikipedia.org/wiki/PureMVC": 1,
+                "https://en.wikipedia.org/wiki/Respiratory_system": 1
+            },
+            "examples": [
+                "LIGHTCAST",
+                "LIGHTCAST",
+                "LIGHTCAST"
+            ],
+            "potential_categorical": false
+        },
+        "id": {
+            "data_type": "object",
+            "memory_usage": "673.95703125 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 10000,
+                "percentage": 100.0
+            },
+            "statistics": {
+                "min_length": 20,
+                "max_length": 20,
+                "mean_length": 20.0
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "BGS1080D1F8CED414379": 1,
+                "KS1271S6MRZJ50JL7ZXH": 1,
+                "KS1271C5XV9YXK7DPM7Q": 1,
+                "KS1271C690M5PNDKZMJJ": 1,
+                "KS1271C6B9HZV9TB696B": 1
+            },
+            "examples": [
+                "BGS1080D1F8CED414379",
+                "BGS10CBE4935DDCAE5AD",
+                "BGS116EF40D7FF3202D1"
+            ],
+            "potential_categorical": false
+        },
+        "infoUrl": {
+            "data_type": "object",
+            "memory_usage": "1064.58203125 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 10000,
+                "percentage": 100.0
+            },
+            "statistics": {
+                "min_length": 60,
+                "max_length": 60,
+                "mean_length": 60.0
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "https://lightcast.io/open-skills/skills/BGS1080D1F8CED414379": 1,
+                "https://lightcast.io/open-skills/skills/KS1271S6MRZJ50JL7ZXH": 1,
+                "https://lightcast.io/open-skills/skills/KS1271C5XV9YXK7DPM7Q": 1,
+                "https://lightcast.io/open-skills/skills/KS1271C690M5PNDKZMJJ": 1,
+                "https://lightcast.io/open-skills/skills/KS1271C6B9HZV9TB696B": 1
+            },
+            "examples": [
+                "https://lightcast.io/open-skills/skills/BGS1080D1F8CED414379",
+                "https://lightcast.io/open-skills/skills/BGS10CBE4935DDCAE5AD",
+                "https://lightcast.io/open-skills/skills/BGS116EF40D7FF3202D1"
+            ],
+            "potential_categorical": false
+        },
+        "isLanguage": {
+            "data_type": "bool",
+            "memory_usage": "9.89453125 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 2,
+                "percentage": 0.02
+            },
+            "statistics": {
+                "min": 0.0,
+                "max": 1.0,
+                "mean": 0.0077,
+                "median": 0.0,
+                "std": 0.08741552578011953
+            },
+            "most_common_values": {
+                "False": 9923,
+                "True": 77
+            },
+            "examples": [
+                "False",
+                "False",
+                "False"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "False",
+                "True"
+            ]
+        },
+        "isSoftware": {
+            "data_type": "bool",
+            "memory_usage": "9.89453125 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 2,
+                "percentage": 0.02
+            },
+            "statistics": {
+                "min": 0.0,
+                "max": 1.0,
+                "mean": 0.2835,
+                "median": 0.0,
+                "std": 0.45071949681202017
+            },
+            "most_common_values": {
+                "False": 7165,
+                "True": 2835
+            },
+            "examples": [
+                "False",
+                "False",
+                "False"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "False",
+                "True"
+            ]
+        },
+        "name": {
+            "data_type": "object",
+            "memory_usage": "671.4990234375 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 10000,
+                "percentage": 100.0
+            },
+            "statistics": {
+                "min_length": 3,
+                "max_length": 86,
+                "mean_length": 19.7441
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "Application Remediation": 1,
+                "Nitriding": 1,
+                "Neutral Build": 1,
+                "Nikto Web Scanner": 1,
+                "Nimadi Language": 1
+            },
+            "examples": [
+                "Application Remediation",
+                "Apoptosis",
+                "HDR Photography"
+            ],
+            "potential_categorical": false
+        },
+        "source_version": {
+            "data_type": "float64",
+            "memory_usage": "78.25390625 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 37,
+                "percentage": 0.37
+            },
+            "statistics": {
+                "min": 8.0,
+                "max": 9.7,
+                "mean": 9.204535,
+                "median": 9.31,
+                "std": 0.32845972714205834
+            },
+            "most_common_values": {
+                "9.31": 9016,
+                "8.14": 518,
+                "8.16": 210,
+                "8.2": 33,
+                "8.4": 31
+            },
+            "examples": [
+                "9.31",
+                "9.31",
+                "9.31"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "8.0",
+                "8.1",
+                "8.11",
+                "8.12",
+                "8.13",
+                "8.14",
+                "8.16",
+                "8.17",
+                "8.18",
+                "8.19",
+                "8.2",
+                "8.21",
+                "8.22",
+                "8.23",
+                "8.24",
+                "8.25",
+                "8.26",
+                "8.27",
+                "8.29",
+                "8.3",
+                "8.4",
+                "8.5",
+                "8.6",
+                "8.7",
+                "8.8",
+                "8.9",
+                "9.14",
+                "9.18",
+                "9.19",
+                "9.22",
+                "9.23",
+                "9.24",
+                "9.25",
+                "9.26",
+                "9.31",
+                "9.5",
+                "9.7"
+            ]
+        },
+        "subcategory_id": {
+            "data_type": "float64",
+            "memory_usage": "78.25390625 KB",
+            "null_values": {
+                "count": 58,
+                "percentage": 0.58
+            },
+            "unique_values": {
+                "count": 447,
+                "percentage": 4.47
+            },
+            "statistics": {
+                "min": 100.0,
+                "max": 658.0,
+                "mean": 365.29571514785755,
+                "median": 385.0,
+                "std": 165.63235467002332
+            },
+            "most_common_values": {
+                "100.0": 806,
+                "476.0": 144,
+                "474.0": 124,
+                "392.0": 120,
+                "477.0": 108
+            },
+            "examples": [
+                "477.0",
+                "622.0",
+                "565.0"
+            ],
+            "potential_categorical": false
+        },
+        "subcategory_name": {
+            "data_type": "object",
+            "memory_usage": "663.986328125 KB",
+            "null_values": {
+                "count": 864,
+                "percentage": 8.64
+            },
+            "unique_values": {
+                "count": 450,
+                "percentage": 4.5
+            },
+            "statistics": {
+                "min_length": 3,
+                "max_length": 52,
+                "mean_length": 22.381567425569177
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "nan": 864,
+                "Software Development Tools": 144,
+                "Software Development": 124,
+                "Cybersecurity": 120,
+                "Software Quality Assurance": 108
+            },
+            "examples": [
+                "Software Quality Assurance",
+                "Molecular, Cellular, and Microbiology",
+                "Photo/Video Production and Technology"
+            ],
+            "potential_categorical": false
+        },
+        "tag_wikipediaExtract": {
+            "data_type": "object",
+            "memory_usage": "3807.6201171875 KB",
+            "null_values": {
+                "count": 2769,
+                "percentage": 27.69
+            },
+            "unique_values": {
+                "count": 6818,
+                "percentage": 68.18
+            },
+            "statistics": {
+                "min_length": 5,
+                "max_length": 2791,
+                "mean_length": 434.9033328723551
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "nan": 2769,
+                "The Oracle Certification Program certifies candidates on skills and knowledge related to Oracle products and technologies.": 32,
+                "The Computing Technology Industry Association (CompTIA) is an American non-profit trade association, issuing professional certifications for the information technology (IT) industry. It is considered one of the IT industry's top trade associations. Based in Downers Grove, Illinois, CompTIA issues vendor-neutral professional certifications in over 120 countries. The organization releases over 50 industry studies annually to track industry trends and changes. Over 2.2 million people have earned CompTIA certifications since the association was established.": 19,
+                "The National Center for Construction Education and Research, commonly referred to by the acronym NCCER, is a not-for-profit 501(c)(3) education foundation for professional craft certification, formed in 1996.": 15,
+                "Nursing credentials and certifications are the various credentials and certifications that a person must have to practice nursing legally. Nurses' postnominal letters reflect their credentials—that is, their achievements in nursing education, licensure, certification, and fellowship. The letters usually appear in the following order:Highest earned academic degree in or related to nursing Nursing licensure Nursing certification Nursing fellowship": 15
+            },
+            "examples": [
+                "Apoptosis is a form of programmed cell death that occurs in multicellular organisms. Biochemical events lead to characteristic cell changes (morphology) and death. These changes include blebbing, cell shrinkage, nuclear fragmentation, chromatin condensation, DNA fragmentation, and mRNA decay. The average adult human loses between 50 and 70 billion cells each day due to apoptosis. For an average human child between eight and fourteen years old, approximately twenty to thirty billion cells die per day.",
+                "In photography and videography, multi-exposure HDR capture is a technique allowing to capture high dynamic range (HDR) images by taking and then combining several different exposures of the same subject matter.",
+                "Petroleum geology is the study of origin, occurrence, movement, accumulation, and exploration of hydrocarbon fuels. It refers to the specific set of geological disciplines that are applied to the search for hydrocarbons."
+            ],
+            "potential_categorical": false
+        },
+        "tag_wikipediaUrl": {
+            "data_type": "object",
+            "memory_usage": "764.392578125 KB",
+            "null_values": {
+                "count": 2821,
+                "percentage": 28.21
+            },
+            "unique_values": {
+                "count": 6838,
+                "percentage": 68.38
+            },
+            "statistics": {
+                "min_length": 32,
+                "max_length": 144,
+                "mean_length": 47.43877977434183
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "nan": 2821,
+                "https://en.wikipedia.org/wiki/Oracle_Certification_Program": 28,
+                "https://en.wikipedia.org/wiki/CompTIA": 17,
+                "https://en.wikipedia.org/wiki/Nursing_credentials_and_certifications": 15,
+                "https://en.wikipedia.org/wiki/National_Center_for_Construction_Education_and_Research": 15
+            },
+            "examples": [
+                "https://en.wikipedia.org/wiki/Apoptosis",
+                "https://en.wikipedia.org/wiki/High-dynamic-range_imaging",
+                "https://en.wikipedia.org/wiki/Petroleum_geology"
+            ],
+            "potential_categorical": false
+        },
+        "tags": {
+            "data_type": "object",
+            "memory_usage": "4461.986328125 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 6963,
+                "percentage": 69.63
+            },
+            "statistics": {
+                "min_length": 2,
+                "max_length": 2943,
+                "mean_length": 407.8942
+            },
+            "possibly_contains_json": true,
+            "most_common_values": {
+                "[]": 2753,
+                "[{\"key\": \"wikipediaExtract\", \"value\": \"The Oracle Certification Program certifies candidates on skills and knowledge related to Oracle products and technologies.\"}, {\"key\": \"wikipediaUrl\", \"value\": \"https://en.wikipedia.org/wiki/Oracle_Certification_Program\"}]": 28,
+                "[{\"key\": \"wikipediaExtract\", \"value\": \"The Computing Technology Industry Association (CompTIA) is an American non-profit trade association, issuing professional certifications for the information technology (IT) industry. It is considered one of the IT industry's top trade associations. Based in Downers Grove, Illinois, CompTIA issues vendor-neutral professional certifications in over 120 countries. The organization releases over 50 industry studies annually to track industry trends and changes. Over 2.2\\u00a0million people have earned CompTIA certifications since the association was established.\"}, {\"key\": \"wikipediaUrl\", \"value\": \"https://en.wikipedia.org/wiki/CompTIA\"}]": 17,
+                "[{\"key\": \"wikipediaExtract\", \"value\": \"The National Center for Construction Education and Research, commonly referred to by the acronym NCCER, is a not-for-profit 501(c)(3) education foundation for professional craft certification, formed in 1996.\"}, {\"key\": \"wikipediaUrl\", \"value\": \"https://en.wikipedia.org/wiki/National_Center_for_Construction_Education_and_Research\"}]": 15,
+                "[{\"key\": \"wikipediaExtract\", \"value\": \"Nursing credentials and certifications are the various credentials and certifications that a person must have to practice nursing legally. Nurses' postnominal letters reflect their credentials\\u2014that is, their achievements in nursing education, licensure, certification, and fellowship. The letters usually appear in the following order:Highest earned academic degree in or related to nursing \\nNursing licensure \\nNursing certification \\nNursing fellowship \"}, {\"key\": \"wikipediaUrl\", \"value\": \"https://en.wikipedia.org/wiki/Nursing_credentials_and_certifications\"}]": 15
+            },
+            "examples": [
+                "[]",
+                "[{\"key\": \"wikipediaExtract\", \"value\": \"Apoptosis is a form of programmed cell death that occurs in multicellular organisms. Biochemical events lead to characteristic cell changes (morphology) and death. These changes include blebbing, cell shrinkage, nuclear fragmentation, chromatin condensation, DNA fragmentation, and mRNA decay. The average adult human loses between 50 and 70 billion cells each day due to apoptosis. For an average human child between eight and fourteen years old, approximately twenty to thirty billion cells die per day.\"}, {\"key\": \"wikipediaUrl\", \"value\": \"https://en.wikipedia.org/wiki/Apoptosis\"}]",
+                "[{\"key\": \"wikipediaExtract\", \"value\": \"In photography and videography, multi-exposure HDR capture is a technique allowing to capture high dynamic range (HDR) images by taking and then combining several different exposures of the same subject matter.\"}, {\"key\": \"wikipediaUrl\", \"value\": \"https://en.wikipedia.org/wiki/High-dynamic-range_imaging\"}]"
+            ],
+            "potential_categorical": false
+        },
+        "type": {
+            "data_type": "object",
+            "memory_usage": "884.57421875 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 3,
+                "percentage": 0.03
+            },
+            "statistics": {
+                "min_length": 37,
+                "max_length": 42,
+                "mean_length": 41.5672
+            },
+            "possibly_contains_json": true,
+            "most_common_values": {
+                "{\"id\": \"ST1\", \"name\": \"Specialized Skill\"}": 8951,
+                "{\"id\": \"ST3\", \"name\": \"Certification\"}": 917,
+                "{\"id\": \"ST2\", \"name\": \"Common Skill\"}": 132
+            },
+            "examples": [
+                "{\"id\": \"ST1\", \"name\": \"Specialized Skill\"}",
+                "{\"id\": \"ST1\", \"name\": \"Specialized Skill\"}",
+                "{\"id\": \"ST1\", \"name\": \"Specialized Skill\"}"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "{\"id\": \"ST1\", \"name\": \"Specialized Skill\"}",
+                "{\"id\": \"ST2\", \"name\": \"Common Skill\"}",
+                "{\"id\": \"ST3\", \"name\": \"Certification\"}"
+            ]
+        },
+        "type_id": {
+            "data_type": "object",
+            "memory_usage": "507.94140625 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 3,
+                "percentage": 0.03
+            },
+            "statistics": {
+                "min_length": 3,
+                "max_length": 3,
+                "mean_length": 3.0
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "ST1": 8951,
+                "ST3": 917,
+                "ST2": 132
+            },
+            "examples": [
+                "ST1",
+                "ST1",
+                "ST1"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "ST1",
+                "ST2",
+                "ST3"
+            ]
+        },
+        "type_name": {
+            "data_type": "object",
+            "memory_usage": "640.43359375 KB",
+            "null_values": {
+                "count": 0,
+                "percentage": 0.0
+            },
+            "unique_values": {
+                "count": 3,
+                "percentage": 0.03
+            },
+            "statistics": {
+                "min_length": 12,
+                "max_length": 17,
+                "mean_length": 16.5672
+            },
+            "possibly_contains_json": false,
+            "most_common_values": {
+                "Specialized Skill": 8951,
+                "Certification": 917,
+                "Common Skill": 132
+            },
+            "examples": [
+                "Specialized Skill",
+                "Specialized Skill",
+                "Specialized Skill"
+            ],
+            "potential_categorical": true,
+            "all_categories": [
+                "Certification",
+                "Common Skill",
+                "Specialized Skill"
+            ]
+        }
+    }
+}

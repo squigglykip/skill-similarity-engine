@@ -358,6 +358,21 @@ def generate_comprehensive_job_architecture_records(job_profile_ids):
         family_key = list(BANKING_JOB_FAMILIES.keys())[hash(base_number) % len(BANKING_JOB_FAMILIES)]
         job_family_info = BANKING_JOB_FAMILIES[family_key]
         
+        # Set JobFamily and JobFamilyGroup
+        job_family = family_key  # e.g., 'Technology & Digital'
+        
+        # Create JobFamilyGroup (higher level grouping)
+        if family_key in ['Technology & Digital', 'Operations']:
+            job_family_group = 'Technology & Operations'
+        elif family_key in ['Risk & Compliance', 'Finance & Treasury']:
+            job_family_group = 'Risk & Finance'
+        elif family_key in ['Customer & Commercial']:
+            job_family_group = 'Commercial Banking'
+        elif family_key in ['Executive & Leadership']:
+            job_family_group = 'Executive'
+        else:  # Support Functions
+            job_family_group = 'Corporate Functions'
+        
         # Generate base role from family
         base_role = random.choice(job_family_info['roles'])
         
@@ -415,6 +430,8 @@ def generate_comprehensive_job_architecture_records(job_profile_ids):
             'Job': job_name,
             'JobProfileID': job_profile_id,
             'JobProfile': job_profile_name,
+            'JobFamily': job_family,
+            'JobFamilyGroup': job_family_group,
             'ProfileTitleSuffix': profile_suffix,
             'ManagementLevel': management_level,
             'JobSubFunctionID': job_sub_function_id,
@@ -435,7 +452,7 @@ def main():
     """Generate and save comprehensive dummy job architecture data"""
     
     print(f"Generating comprehensive dummy job architecture data...")
-    print(f"Target schema: 14 columns matching job_arch_schema.json")
+    print(f"Target schema: 16 columns (14 from job_arch_schema.json + JobFamily + JobFamilyGroup)")
     
     # Load actual JobProfileIDs from job-skill mapping file
     actual_job_profile_ids = load_actual_job_profile_ids()
@@ -456,7 +473,7 @@ def main():
     
     print(f"\nGenerated comprehensive dummy job architecture data:")
     print(f"- Records: {len(df):,}")
-    print(f"- Columns: {len(df.columns)} (target: 14)")
+    print(f"- Columns: {len(df.columns)} (target: 16)")
     print(f"- File: {output_file}")
     print(f"- Size: {output_file.stat().st_size / 1024:.1f} KB")
     
@@ -466,9 +483,10 @@ def main():
     
     # Print schema validation
     print(f"\nSchema Validation:")
-    print(f"Expected columns: JobID, Job, JobProfileID, JobProfile, ProfileTitleSuffix, ManagementLevel,")
-    print(f"                  JobSubFunctionID, JobSubFunction, JobCategoryID, JobCategory,")
-    print(f"                  Customer Facing, is Banker, Executive Leadership Group, Accountability Scope")
+    print(f"Expected columns: JobID, Job, JobProfileID, JobProfile, JobFamily, JobFamilyGroup,")
+    print(f"                  ProfileTitleSuffix, ManagementLevel, JobSubFunctionID, JobSubFunction,")
+    print(f"                  JobCategoryID, JobCategory, Customer Facing, is Banker,")
+    print(f"                  Executive Leadership Group, Accountability Scope")
     print(f"Actual columns ({len(df.columns)}): {', '.join(df.columns)}")
     
     # Print key statistics matching the schema

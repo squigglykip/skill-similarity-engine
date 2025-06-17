@@ -373,8 +373,8 @@ class JobArchitectureLoader:
         self.field_mapper = get_field_mapper()
     
     def load_from_csv(self,
-                     jobs_file: str,
-                     job_skills_file: Optional[str] = None,
+                     job_skills_file: str,
+                     jobs_file: Optional[str] = None,
                      chunked: bool = False,
                      chunksize: int = 10000,
                      validate: bool = True) -> JobArchitecture:
@@ -382,8 +382,8 @@ class JobArchitectureLoader:
         Load job architecture from CSV files, with optional chunked/streaming loading and validation.
         
         Args:
-            jobs_file: Path to the jobs CSV file
-            job_skills_file: Path to the job skills CSV file (optional)
+            job_skills_file: Path to the job skills CSV file (required)
+            jobs_file: Path to the jobs CSV file (optional - if None, auto-generate from job_skills_file)
             chunked: Whether to use chunked/streaming loading (default: False)
             chunksize: Number of rows per chunk if chunked (default: 10000)
             validate: Whether to validate rows using the validation engine (default: True)
@@ -402,64 +402,68 @@ class JobArchitectureLoader:
         jobs_validator = None
         skills_validator = None
         if validate:
-            try:
-                jobs_validator = ValidationEngine('jobs')
-            except Exception as e:
-                logger.warning(f"Could not initialise jobs validation engine: {e}")
-                jobs_validator = None
-            if job_skills_file:
+            if jobs_file:  # Only prepare jobs validator if we have a jobs file
                 try:
-                    skills_validator = ValidationEngine('job_skill_mapping')
+                    jobs_validator = ValidationEngine('jobs')
                 except Exception as e:
-                    logger.warning(f"Could not initialise job_skill_mapping validation engine: {e}")
-                    skills_validator = None
-        
-        # Load jobs (chunked or not)
-        jobs_path = os.path.join(self.base_dir, jobs_file)
-        total_rows = None
-        if chunked:
+                    logger.warning(f"Could not initialise jobs validation engine: {e}")
+                    jobs_validator = None
             try:
-                with open(jobs_path, 'r', encoding='utf-8') as f:
-                    total_rows = sum(1 for _ in f) - 1
-            except Exception:
-                total_rows = 0
-            reader = pd.read_csv(jobs_path, chunksize=chunksize)
-            processed = 0
-            with ProgressTracker(total=total_rows if total_rows is not None else 0, desc="Loading jobs (chunked)", show_tqdm=True) as progress:
-                for chunk in reader:
-                    for idx, row in chunk.iterrows():
+                skills_validator = ValidationEngine('job_skill_mapping')
+            except Exception as e:
+                logger.warning(f"Could not initialise job_skill_mapping validation engine: {e}")
+                skills_validator = None
+        
+        # Load jobs from file if provided, otherwise auto-generate from job-skill mapping
+        if jobs_file:
+            jobs_path = os.path.join(self.base_dir, jobs_file)
+            total_rows = None
+            if chunked:
+                try:
+                    with open(jobs_path, 'r', encoding='utf-8') as f:
+                        total_rows = sum(1 for _ in f) - 1
+                except Exception:
+                    total_rows = 0
+                reader = pd.read_csv(jobs_path, chunksize=chunksize)
+                processed = 0
+                with ProgressTracker(total=total_rows if total_rows is not None else 0, desc="Loading jobs (chunked)", show_tqdm=True) as progress:
+                    for chunk in reader:
+                        for idx, row in chunk.iterrows():
+                            row_dict = row.to_dict()
+                            # Validate row if enabled
+                            if jobs_validator:
+                                results = jobs_validator.validate_row(row_dict)
+                                if any(not r.passed for r in results):
+                                    logger.warning(f"Validation failed for job row {int(processed)+1}: {[r.message for r in results if not r.passed]}")
+                                    continue
+                            # Parse and add job
+                            job = self._parse_job_row(row)
+                            if job:
+                                architecture.add_job(job)
+                            processed += 1
+                            progress.update(1)
+            else:
+                jobs_df = pd.read_csv(jobs_path)
+                total_rows = len(jobs_df)
+                with ProgressTracker(total=total_rows, desc="Loading jobs", show_tqdm=True) as progress:
+                    for idx, row in jobs_df.iterrows():
                         row_dict = row.to_dict()
-                        # Validate row if enabled
                         if jobs_validator:
                             results = jobs_validator.validate_row(row_dict)
                             if any(not r.passed for r in results):
-                                logger.warning(f"Validation failed for job row {int(processed)+1}: {[r.message for r in results if not r.passed]}")
+                                logger.warning(f"Validation failed for job row {idx+1}: {[r.message for r in results if not r.passed]}")
                                 continue
-                        # Parse and add job
                         job = self._parse_job_row(row)
                         if job:
                             architecture.add_job(job)
-                        processed += 1
                         progress.update(1)
         else:
-            jobs_df = pd.read_csv(jobs_path)
-            total_rows = len(jobs_df)
-            with ProgressTracker(total=total_rows, desc="Loading jobs", show_tqdm=True) as progress:
-                for idx, row in jobs_df.iterrows():
-                    row_dict = row.to_dict()
-                    if jobs_validator:
-                        results = jobs_validator.validate_row(row_dict)
-                        if any(not r.passed for r in results):
-                            logger.warning(f"Validation failed for job row {idx+1}: {[r.message for r in results if not r.passed]}")
-                            continue
-                    job = self._parse_job_row(row)
-                    if job:
-                        architecture.add_job(job)
-                    progress.update(1)
+            # Auto-generate jobs from job-skill mapping
+            logger.info("No jobs file provided, auto-generating jobs from job-skill mapping")
+            self._auto_generate_jobs_from_mapping(architecture, job_skills_file, chunked, chunksize)
                     
-        # Load job skills if provided
-        if job_skills_file:
-            self._load_job_skills(architecture, job_skills_file, chunked, chunksize, skills_validator)
+        # Load job skills
+        self._load_job_skills(architecture, job_skills_file, chunked, chunksize, skills_validator)
         
         logger.info(f"Loaded {len(architecture.jobs)} jobs into architecture.")
         return architecture
@@ -685,6 +689,67 @@ class JobArchitectureLoader:
             logger = logging.getLogger("skill_similarity_engine.data.loaders")
             logger.warning(f"Failed to parse embedded skills '{skills_str}': {e}")
         return skills
+
+    def _auto_generate_jobs_from_mapping(self, 
+                                       architecture: JobArchitecture, 
+                                       job_skills_file: str,
+                                       chunked: bool = False,
+                                       chunksize: int = 10000) -> None:
+        """
+        Auto-generate minimal Job objects from job-skill mapping file.
+        
+        Args:
+            architecture: JobArchitecture to populate
+            job_skills_file: Path to job-skill mapping CSV file
+            chunked: Whether to use chunked loading
+            chunksize: Chunk size for processing
+        """
+        from skill_similarity_engine.utils.progress import ProgressTracker
+        logger = logging.getLogger("skill_similarity_engine.data.loaders")
+        
+        job_skills_path = os.path.join(self.base_dir, job_skills_file)
+        
+        # First pass: collect unique JobProfileIDs
+        unique_job_ids = set()
+        
+        if chunked:
+            try:
+                with open(job_skills_path, 'r', encoding='utf-8') as f:
+                    total_rows = sum(1 for _ in f) - 1
+            except Exception:
+                total_rows = 0
+            reader = pd.read_csv(job_skills_path, chunksize=chunksize)
+            with ProgressTracker(total=total_rows if total_rows is not None else 0, desc="Scanning for unique job IDs", show_tqdm=True) as progress:
+                for chunk in reader:
+                    for _, row in chunk.iterrows():
+                        if 'JobProfileID' in row and pd.notna(row['JobProfileID']):
+                            unique_job_ids.add(str(row['JobProfileID']))
+                        progress.update(1)
+        else:
+            job_skills_df = pd.read_csv(job_skills_path)
+            total_rows = len(job_skills_df)
+            with ProgressTracker(total=total_rows, desc="Scanning for unique job IDs", show_tqdm=True) as progress:
+                for _, row in job_skills_df.iterrows():
+                    if 'JobProfileID' in row and pd.notna(row['JobProfileID']):
+                        unique_job_ids.add(str(row['JobProfileID']))
+                    progress.update(1)
+        
+        # Second pass: create minimal Job objects
+        logger.info(f"Auto-generating {len(unique_job_ids)} jobs from job-skill mapping")
+        with ProgressTracker(total=len(unique_job_ids), desc="Creating minimal job objects", show_tqdm=True) as progress:
+            for job_id in unique_job_ids:
+                job = Job(
+                    job_id=job_id,
+                    title=job_id,  # Use JobProfileID as title
+                    department="Auto-generated",  # Default department
+                    level=JobLevel.ASSOCIATE,  # Default level
+                    skills={},  # Will be populated by _load_job_skills
+                    seniority=3  # Default seniority
+                )
+                architecture.add_job(job)
+                progress.update(1)
+        
+        logger.info(f"Auto-generated {len(architecture.jobs)} jobs from job-skill mapping")
 
     def load_from_excel(self,
                        excel_file: str,

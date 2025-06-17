@@ -17,6 +17,9 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
 
+# Import progress tracking utilities
+from ..utils.progress import ProgressTracker, progress_context
+
 logger = logging.getLogger(__name__)
 
 
@@ -190,6 +193,7 @@ class SimilarityIntegrator:
         """Load similarity data in chunks to handle large datasets."""
         try:
             total_rows = len(df)
+            total_chunks = (total_rows + chunk_size - 1) // chunk_size
             logger.info(f"Loading {total_rows:,} similarity records in chunks of {chunk_size:,}")
             
             with sqlite3.connect(self.db_path) as conn:
@@ -197,14 +201,25 @@ class SimilarityIntegrator:
                 conn.execute("DELETE FROM job_similarities")
                 logger.info("Cleared existing similarity data")
                 
-                # Load data in chunks
-                for i in range(0, total_rows, chunk_size):
-                    chunk = df.iloc[i:i+chunk_size]
+                # Load data in chunks with progress tracking
+                with ProgressTracker(
+                    total=total_chunks,
+                    desc="Loading similarity records",
+                    memory_tracking=False,  # Skip memory tracking for DB operations
+                    show_tqdm=True
+                ) as progress:
                     
-                    chunk.to_sql('job_similarities', conn, if_exists='append', index=False)
-                    
-                    progress = min(i + chunk_size, total_rows)
-                    logger.info(f"Progress: {progress:,}/{total_rows:,} rows ({progress/total_rows*100:.1f}%)")
+                    for i in range(0, total_rows, chunk_size):
+                        chunk = df.iloc[i:i+chunk_size]
+                        
+                        chunk.to_sql('job_similarities', conn, if_exists='append', index=False)
+                        
+                        # Update progress bar
+                        progress.update(1)
+                        
+                        # Log progress periodically
+                        rows_processed = min(i + chunk_size, total_rows)
+                        logger.info(f"Progress: {rows_processed:,}/{total_rows:,} rows ({rows_processed/total_rows*100:.1f}%)")
                 
                 # Verify final row count
                 cursor = conn.execute("SELECT COUNT(*) FROM job_similarities")

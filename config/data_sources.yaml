@@ -1,12 +1,24 @@
 # Data Sources Configuration for Business Context Database
 # Defines file paths and column mappings for all CSV data sources
 
+# Similarity Calculation Data Sources (Phase 1 - Simplified Architecture)
+similarity_calculation:
+  # Skills Library for Similarity Calculations
+  skills_library:
+    file_path: "skills_library/skills_comprehensive_all_versions.csv"
+    description: "Comprehensive skills library with all versions for similarity calculations"
+    
+  # Job-Skill Mapping for Similarity Calculations  
+  job_skill_mapping:
+    file_path: "input_data/job_skill_mapping.csv"
+    description: "Job-skill mapping file for auto-generating job objects in similarity calculations"
+
 data_sources:
   # Job Architecture Data
   jobs:
     file_path: "job_architecture/dummy_job_architecture.csv"
     table_name: "jobs"
-    description: "Job architecture master data with JobProfileID as primary key"
+    description: "Enhanced job architecture master data with 16-column schema"
     expected_columns:
       - JobProfileID
       - JobProfile
@@ -14,6 +26,16 @@ data_sources:
       - Job
       - JobFamily
       - JobFamilyGroup
+      - ProfileTitleSuffix
+      - ManagementLevel
+      - JobSubFunctionID
+      - JobSubFunction
+      - JobCategoryID
+      - JobCategory
+      - "Customer Facing"
+      - "is Banker"
+      - "Executive Leadership Group"
+      - "Accountability Scope"
     column_mapping:
       JobProfileID: JobProfileID
       JobProfile: JobProfile
@@ -21,31 +43,41 @@ data_sources:
       Job: Job
       JobFamily: JobFamily
       JobFamilyGroup: JobFamilyGroup
+      ProfileTitleSuffix: ProfileTitleSuffix
+      ManagementLevel: ManagementLevel
+      JobSubFunctionID: JobSubFunctionID
+      JobSubFunction: JobSubFunction
+      JobCategoryID: JobCategoryID
+      JobCategory: JobCategory
+      "Customer Facing": Customer_Facing
+      "is Banker": is_Banker
+      "Executive Leadership Group": Executive_Leadership_Group
+      "Accountability Scope": Accountability_Scope
 
   # Skills Library Data
   skills:
-    file_path: "skills_library/lightcast_skills_comprehensive.csv"
+    file_path: "skills_library/skills_comprehensive_all_versions.csv"
     table_name: "skills"
-    description: "Comprehensive skills library from Lightcast API"
+    description: "Enhanced comprehensive skills library with 18-column schema"
     expected_columns:
-      - skill_id
+      - id
       - name
       - category_name
       - subcategory_name
       - type_name
-      - latest_version
+      - source_version
       - description
-      - info_url
+      - infoUrl
     column_mapping:
-      skill_id: Skill_ID
+      id: Skill_ID
       name: Skill_Name
       category_name: Category
       subcategory_name: Subcategory
       type_name: SkillType
-      latest_version: Latest_Version
+      source_version: Latest_Version
       description: Description
-      info_url: Info_URL
-      is_language: Is_Language
+      infoUrl: Info_URL
+      isLanguage: Is_Language
       category_id: Category_ID
       subcategory_id: Subcategory_ID
       type_id: Type_ID

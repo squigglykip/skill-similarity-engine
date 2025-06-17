@@ -6,18 +6,40 @@
 # Version for compatibility tracking
 version: "1.0.0"
 
-# Skills taxonomy field mappings (from raw data schema)
+# Skills taxonomy field mappings (comprehensive skills library format - skills_comprehensive_all_versions.csv)
 skills:
   # Core skill fields - mapping canonical names to actual raw data column names
-  skill_id: "Skill_ID"        # Raw data uses Skill_ID
-  name: "Skill_Name"          # Raw data uses Skill_Name  
-  skill_type: "SkillType"     # Raw data uses SkillType
-  category: "Category"        # Raw data has Category field
-  subcategory: "Subcategory"  # Raw data has Subcategory field
+  skill_id: "id"                    # New schema uses 'id' (not 'skill_id')
+  name: "name"                      # Remains the same
+  skill_type: "type_name"           # New schema uses 'type_name' for readable skill type
+  category: "category_name"         # New schema uses 'category_name' (not 'category')
+  subcategory: "subcategory_name"   # New schema uses 'subcategory_name' (not 'subcategory')
+  
+  # Additional fields from comprehensive skills library
+  description: "description"
+  description_source: "descriptionSource"
+  info_url: "infoUrl"
+  is_language: "isLanguage"
+  is_software: "isSoftware"
+  category_id: "category_id"
+  subcategory_id: "subcategory_id"
+  type_id: "type_id"
+  source_version: "source_version"
+  
+  # Wikipedia integration fields
+  wikipedia_extract: "tag_wikipediaExtract"
+  wikipedia_url: "tag_wikipediaUrl"
+  tags: "tags"
+  
+  # JSON field containing type information
+  type_json: "type"                 # Contains JSON like {"id": "ST1", "name": "Specialized Skill"}
+  
+  # Handle the nan fields explicitly to prevent warnings
+  category_legacy: "category"        # Map the nan category field
+  subcategory_legacy: "subcategory"  # Map the nan subcategory field
+  type_legacy: "type"                # Map the nan type field
   
   # Optional fields that may not exist in raw data but are used in code
-  description: "description"   # Fallback if description field exists
-  category_id: "category_id"   # Fallback if category_id field exists
   aliases: "aliases"           # Fallback if aliases field exists
   related_skills: "related_skills"     # Fallback if related_skills field exists
   prerequisites: "prerequisites"       # Fallback if prerequisites field exists
@@ -74,15 +96,23 @@ legacy:
   # Alternative mappings that might exist in different data sources
   skills:
     skill_id: 
-      - "Skill_ID"      # Primary from schema
-      - "skill_id"      # Legacy/alternative
+      - "skill_id"      # Primary from comprehensive library
+      - "Skill_ID"      # Legacy from old schema
     name:
-      - "Skill_Name"    # Primary from schema  
-      - "name"          # Legacy/alternative
+      - "name"          # Primary from comprehensive library
+      - "Skill_Name"    # Legacy from old schema
     skill_type:
-      - "SkillType"     # Primary from schema
-      - "skill_type"    # Legacy/alternative
-      - "category"      # Alternative interpretation
+      - "type"          # Primary from comprehensive library
+      - "SkillType"     # Legacy from old schema
+      - "skill_type"    # Alternative
+    category:
+      - "category_name" # Primary from comprehensive library
+      - "Category"      # Legacy from old schema
+      - "category"      # Alternative
+    subcategory:
+      - "subcategory_name" # Primary from comprehensive library
+      - "Subcategory"   # Legacy from old schema
+      - "subcategory"   # Alternative
   
   jobs:
     job_id:

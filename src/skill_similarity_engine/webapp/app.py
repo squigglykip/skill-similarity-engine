@@ -315,9 +315,12 @@ def create_app(config=None):
         try:
             db = get_db()
             
-            # Get basic job information
+            # Get complete job information with all 16 columns
             job_query = """
-            SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup, JobID, Job
+            SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup, JobID, Job,
+                   ProfileTitleSuffix, ManagementLevel, JobSubFunctionID, JobSubFunction,
+                   JobCategoryID, JobCategory, Customer_Facing, is_Banker, 
+                   Executive_Leadership_Group, Accountability_Scope
             FROM jobs 
             WHERE JobProfileID = ?
             """
@@ -359,7 +362,17 @@ def create_app(config=None):
                     'family': job['JobFamily'],
                     'group': job['JobFamilyGroup'],
                     'job_id': job['JobID'],
-                    'job_name': job['Job']
+                    'job_name': job['Job'],
+                    'profile_title_suffix': job['ProfileTitleSuffix'],
+                    'management_level': job['ManagementLevel'],
+                    'job_subfunction_id': job['JobSubFunctionID'],
+                    'job_subfunction': job['JobSubFunction'],
+                    'job_category_id': job['JobCategoryID'],
+                    'job_category': job['JobCategory'],
+                    'customer_facing': job['Customer_Facing'] if job['Customer_Facing'] and job['Customer_Facing'].strip() else None,
+                    'is_banker': job['is_Banker'] if job['is_Banker'] and job['is_Banker'].strip() else None,
+                    'executive_leadership_group': job['Executive_Leadership_Group'] if job['Executive_Leadership_Group'] and job['Executive_Leadership_Group'].strip() else None,
+                    'accountability_scope': job['Accountability_Scope'] if job['Accountability_Scope'] and job['Accountability_Scope'].strip() else None
                 },
                 'skills': [{
                     'id': skill['Skill_ID'],

@@ -28,8 +28,11 @@ TQDM_STYLE = {
     'bar_format': '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',
     'colour': 'green',
     'ascii': False,
-    'dynamic_ncols': True,
-    'leave': False  # Don't leave progress bars after completion for cleaner output
+    'dynamic_ncols': False,  # Disable dynamic columns for Windows compatibility
+    'leave': True,  # Leave progress bars visible after completion
+    'ncols': 100,   # Fixed width for consistent display
+    'miniters': 1,  # Update every iteration for smooth progress
+    'mininterval': 0.1  # Minimum time interval between updates (0.1 seconds)
 }
 
 @dataclass
@@ -139,13 +142,12 @@ class ProgressTracker:
         """End tracking progress"""
         if self.pbar:
             if exc_type is None:
-                # Successful completion - make sure the final progress bar stays visible
-                self.pbar.leave = True
-                # Ensure it shows 100% completion
+                # Successful completion - ensure it shows 100% completion
                 if self.stats.completed_items < self.stats.total_items:
                     remaining = self.stats.total_items - self.stats.completed_items
                     self.pbar.update(remaining)
             
+            # Close the progress bar (respects the leave=True setting from TQDM_STYLE)
             self.pbar.close()
         
         if exc_type is None:

@@ -290,28 +290,59 @@ class DataLoader:
             return False
     
     def _load_job_architecture(self, file_path: Path) -> bool:
-        """Load job architecture data into jobs table."""
+        """Load enhanced job architecture data into jobs table with 16-column schema support."""
         try:
             logger.info(f"Loading job architecture from {file_path}")
             
             # Read CSV with proper data types
             df = pd.read_csv(file_path)
             
-            # Map columns to database schema
+            # Enhanced column mapping for 16-column schema
             column_mapping = {
+                # Core 6 columns (backward compatibility)
                 'JobProfileID': 'JobProfileID',
                 'JobProfile': 'JobProfile', 
                 'JobID': 'JobID',
                 'Job': 'Job',
                 'JobFamily': 'JobFamily',
-                'JobFamilyGroup': 'JobFamilyGroup'
+                'JobFamilyGroup': 'JobFamilyGroup',
+                
+                # Enhanced 10 columns (Phase 2 additions)
+                'ProfileTitleSuffix': 'ProfileTitleSuffix',
+                'ManagementLevel': 'ManagementLevel',
+                'JobSubFunctionID': 'JobSubFunctionID',
+                'JobSubFunction': 'JobSubFunction',
+                'JobCategoryID': 'JobCategoryID',
+                'JobCategory': 'JobCategory',
+                'Customer Facing': 'Customer_Facing',  # Note: space in CSV, underscore in DB
+                'is Banker': 'is_Banker',              # Note: space in CSV, underscore in DB
+                'Executive Leadership Group': 'Executive_Leadership_Group',
+                'Accountability Scope': 'Accountability_Scope'
             }
             
-            # Select and rename columns
-            df_mapped = df[list(column_mapping.keys())].rename(columns=column_mapping)
+            # Select available columns (support both old 6-column and new 14-column files)
+            available_columns = [col for col in column_mapping.keys() if col in df.columns]
+            df_mapped = df[available_columns].rename(columns={k: column_mapping[k] for k in available_columns})
             
-            # Clean data
-            df_mapped = df_mapped.fillna('')  # Replace NaN with empty strings
+            # Add missing columns with default values for backward compatibility
+            required_columns = list(column_mapping.values())
+            for col in required_columns:
+                if col not in df_mapped.columns:
+                    df_mapped[col] = ''  # Default empty string for missing columns
+            
+            # Clean data - handle nulls appropriately
+            # For nullable fields, preserve None; for others, use empty strings
+            nullable_fields = ['Customer_Facing', 'is_Banker', 'Executive_Leadership_Group', 'Accountability_Scope']
+            for col in df_mapped.columns:
+                if col in nullable_fields:
+                    # Keep nulls as None for nullable fields, but convert NaN to None
+                    df_mapped[col] = df_mapped[col].replace({pd.NA: None, '': None})
+                else:
+                    # Convert nulls to empty strings for non-nullable fields
+                    df_mapped[col] = df_mapped[col].fillna('')
+            
+            logger.info(f"Processing {len(df_mapped)} job records with {len(available_columns)} columns")
+            logger.debug(f"Available columns: {available_columns}")
             
             # Load into database
             with sqlite3.connect(self.db_path) as conn:
@@ -324,10 +355,12 @@ class DataLoader:
             self.load_stats['jobs'] = {
                 'rows_loaded': len(df_mapped),
                 'total_rows': row_count,
-                'source_file': str(file_path)
+                'source_file': str(file_path),
+                'columns_loaded': len(available_columns),
+                'schema_version': '16-column' if len(available_columns) > 6 else '6-column'
             }
             
-            logger.info(f"Loaded {len(df_mapped)} job records")
+            logger.info(f"✅ Loaded {len(df_mapped)} job records with {self.load_stats['jobs']['schema_version']} schema")
             return True
             
         except Exception as e:
@@ -335,40 +368,79 @@ class DataLoader:
             return False
     
     def _load_skills_library(self, file_path: Path) -> bool:
-        """Load comprehensive skills library into skills table."""
+        """Load enhanced comprehensive skills library into skills table with 18-column schema support."""
         try:
             logger.info(f"Loading skills library from {file_path}")
             
             # Read CSV - handle large file efficiently
             df = pd.read_csv(file_path, low_memory=False)
             
-            # Map columns to database schema
+            # Enhanced column mapping for 18-column schema
             column_mapping = {
-                'skill_id': 'Skill_ID',
-                'name': 'Skill_Name',
-                'category': 'Category',
-                'subcategory': 'Subcategory',
-                'type': 'SkillType',
-                'latest_version': 'Latest_Version'
+                # Core fields (existing mapping)
+                'id': 'Skill_ID',                          # Primary key
+                'name': 'Skill_Name',                      # Skill name
+                'category_name': 'Category',               # Main category
+                'subcategory_name': 'Subcategory',         # Subcategory
+                'type': 'SkillType',                       # Skill type
+                'source_version': 'Latest_Version',        # Version tracking
+                
+                # Enhanced 18-column schema fields
+                'category_id': 'category_id',              # Lightcast category ID
+                'description': 'description',              # Detailed description
+                'descriptionSource': 'descriptionSource',  # Source of description
+                'infoUrl': 'Info_URL',                     # Lightcast URL (fixed mapping)
+                'isLanguage': 'Is_Language',               # Boolean: is language skill (fixed mapping)
+                'isSoftware': 'isSoftware',               # Boolean: is software skill
+                'subcategory_id': 'subcategory_id',       # Lightcast subcategory ID
+                'tag_wikipediaExtract': 'tag_wikipediaExtract',  # Wikipedia extract
+                'tag_wikipediaUrl': 'tag_wikipediaUrl',   # Wikipedia URL
+                'tags': 'tags',                           # JSON field
+                'type_id': 'type_id',                     # Lightcast type ID
+                'type_name': 'type_name'                  # Human-readable type name
             }
             
-            # Select available columns (some may not exist in all datasets)
+            # Select available columns (support both old and new schema files)
             available_columns = [col for col in column_mapping.keys() if col in df.columns]
-            df_mapped = df[available_columns].rename(columns=column_mapping)
+            df_mapped = df[available_columns].rename(columns={k: column_mapping[k] for k in available_columns})
             
             # Add default values for missing columns
-            required_columns = ['Skill_ID', 'Skill_Name', 'Category', 'Subcategory', 'SkillType', 'Latest_Version']
-            for col in required_columns:
+            all_db_columns = list(column_mapping.values()) + ['Market_Demand', 'Rarity_Score']
+            for col in all_db_columns:
                 if col not in df_mapped.columns:
-                    df_mapped[col] = ''
+                    if col in ['Market_Demand']:
+                        df_mapped[col] = ''
+                    elif col in ['Rarity_Score', 'category_id', 'subcategory_id']:
+                        df_mapped[col] = None
+                    elif col in ['isLanguage', 'isSoftware']:
+                        df_mapped[col] = False
+                    else:
+                        df_mapped[col] = ''
             
-            # Clean data
-            df_mapped = df_mapped.fillna('')
-            df_mapped = df_mapped.drop_duplicates(subset=['Skill_ID'])  # Remove duplicates
+            # Clean and validate data
+            df_mapped = df_mapped.fillna('')  # Fill NaN with empty strings for text fields
             
-            # Add placeholder metadata columns
-            df_mapped['Market_Demand'] = ''
-            df_mapped['Rarity_Score'] = None
+            # Handle boolean fields properly
+            if 'isLanguage' in df_mapped.columns:
+                df_mapped['isLanguage'] = df_mapped['isLanguage'].astype(bool)
+            if 'isSoftware' in df_mapped.columns:
+                df_mapped['isSoftware'] = df_mapped['isSoftware'].astype(bool)
+            
+            # Handle JSON fields - ensure they're strings
+            json_fields = ['tags']
+            for field in json_fields:
+                if field in df_mapped.columns:
+                    df_mapped[field] = df_mapped[field].astype(str)
+            
+            # Remove duplicates based on Skill_ID
+            initial_count = len(df_mapped)
+            df_mapped = df_mapped.drop_duplicates(subset=['Skill_ID'])
+            duplicates_removed = initial_count - len(df_mapped)
+            if duplicates_removed > 0:
+                logger.info(f"Removed {duplicates_removed} duplicate skills")
+            
+            logger.info(f"Processing {len(df_mapped)} skills with {len(available_columns)} columns")
+            logger.debug(f"Available columns: {available_columns}")
             
             # Load into database in chunks (large dataset)
             chunk_size = 10000
@@ -382,10 +454,13 @@ class DataLoader:
             self.load_stats['skills'] = {
                 'rows_loaded': len(df_mapped),
                 'total_rows': row_count,
-                'source_file': str(file_path)
+                'source_file': str(file_path),
+                'columns_loaded': len(available_columns),
+                'schema_version': '18-column' if len(available_columns) > 6 else 'legacy',
+                'duplicates_removed': duplicates_removed
             }
             
-            logger.info(f"Loaded {len(df_mapped)} skill records")
+            logger.info(f"✅ Loaded {len(df_mapped)} skill records with {self.load_stats['skills']['schema_version']} schema")
             return True
             
         except Exception as e:

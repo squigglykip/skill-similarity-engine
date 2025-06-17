@@ -364,16 +364,17 @@ class DatabaseValidator:
                 if duplicate_positions > 0:
                     rule_violations.append(f"Duplicate position numbers: {duplicate_positions} duplicates found")
                 
-                # Rule 5: Salary grades should be reasonable (if present) - LENIENT MODE
+                # Rule 5: Salary grades should follow expected patterns (if present) - LENIENT MODE
                 cursor = conn.execute("""
                     SELECT COUNT(*) FROM positions 
                     WHERE "Salary Group" IS NOT NULL AND "Salary Group" != '' 
                       AND "Salary Group" NOT LIKE 'Group %'
+                      AND "Salary Group" NOT IN ('External', 'Casual')
                 """)
                 invalid_salary_grades = cursor.fetchone()[0]
-                # Only flag extreme outliers, allow nulls and 0s for dummy data
+                # Only flag extreme outliers, allow common employment categories for dummy data
                 if invalid_salary_grades > 0:
-                    logger.info(f"Found {invalid_salary_grades} salary grades outside range (1-50) - this may be expected for dummy data")
+                    logger.info(f"Found {invalid_salary_grades} salary grades with unexpected patterns - this may be expected for dummy data")
                     # Don't add to violations - treat as informational for dummy data
                 
                 status = 'FAIL' if rule_violations else 'PASS'

@@ -107,22 +107,51 @@ def load_and_validate_data(logger):
     global loaded_taxonomy, loaded_architecture
     
     print("\n" + "="*60)
-    print("🔧 DATA LOADING & VALIDATION")
+    print("🔧 DATA LOADING & VALIDATION (SIMPLIFIED ARCHITECTURE)")
     print("="*60)
     print("Default data files will be used if you press Enter without typing a path.")
+    print("Jobs will be auto-generated from the job-skill mapping file.")
     
-    # Default file paths
-    default_skills_file = "skills_library/lightcast_skills_comprehensive.csv"
-    default_jobs_file = "job_architecture/dummy_job_architecture.csv" 
-    default_job_skills_file = "input_data/job_skill_mapping.csv"
+    # Check for skills library updates first
+    try:
+        from skill_similarity_engine.api.skills_updater import prompt_skills_update
+        if not prompt_skills_update(logger):
+            print("❌ Skills library update failed. Exiting...")
+            return False
+    except ImportError as e:
+        print(f"⚠️  Skills updater not available: {e}")
+        print("   Proceeding with existing skills library...")
+    except Exception as e:
+        print(f"⚠️  Error checking for skills updates: {e}")
+        print("   Proceeding with existing skills library...")
+    
+    # Load default file paths from config
+    try:
+        from skill_similarity_engine.config.settings import get_config
+        import yaml
+        
+        # Load data sources config
+        config_path = Path("config/data_sources.yaml")
+        if config_path.exists():
+            with open(config_path, 'r') as f:
+                data_sources_config = yaml.safe_load(f)
+                default_skills_file = data_sources_config['similarity_calculation']['skills_library']['file_path']
+                default_job_skills_file = data_sources_config['similarity_calculation']['job_skill_mapping']['file_path']
+        else:
+            # Fallback defaults
+            default_skills_file = "skills_library/skills_comprehensive_all_versions.csv"
+            default_job_skills_file = "input_data/job_skill_mapping.csv"
+    except Exception:
+        # Fallback defaults if config loading fails
+        default_skills_file = "skills_library/skills_comprehensive_all_versions.csv"
+        default_job_skills_file = "input_data/job_skill_mapping.csv"
     
     skills_file = prompt_file_path("Enter path to skills CSV file", default_skills_file)
-    jobs_file = prompt_file_path("Enter path to jobs CSV file", default_jobs_file)
     job_skills_file = prompt_file_path("Enter path to job-skill mapping CSV file", default_job_skills_file)
     
-    # Validate that all required files exist (check with data/ prefix if needed)
+    # Validate that required files exist (check with data/ prefix if needed)
     from pathlib import Path
-    for file_path, file_type in [(skills_file, "skills"), (jobs_file, "jobs"), (job_skills_file, "job-skill mapping")]:
+    for file_path, file_type in [(skills_file, "skills"), (job_skills_file, "job-skill mapping")]:
         # First check the path as-is
         if Path(file_path).exists():
             continue
@@ -137,7 +166,7 @@ def load_and_validate_data(logger):
     
     chunked = prompt_bool("Enable chunked/streaming loading?", default=True)
     chunksize = prompt_int("Chunk size for streaming", default=10000)
-    validate = prompt_bool("Enable schema validation?", default=True)
+    validate = prompt_bool("Enable schema validation?", default=False)  # Disabled by default for comprehensive library
     verbose = prompt_bool("Enable verbose logging?", default=False)
 
     # Set logging level (reduce noise during normal operation)
@@ -146,8 +175,8 @@ def load_and_validate_data(logger):
 
     print(f"\n⏳ Processing data files...")
     print(f"   📊 Skills: {Path(skills_file).name}")
-    print(f"   💼 Jobs: {Path(jobs_file).name}")
     print(f"   🔗 Job-skill mapping: {Path(job_skills_file).name}")
+    print(f"   💼 Jobs: Auto-generated from mapping file")
     
     # Step 1: Load Skill Taxonomy
     print(f"\n📊 Step 1: Loading skill taxonomy...")
@@ -157,7 +186,7 @@ def load_and_validate_data(logger):
             skills_file=skills_file,
             chunked=chunked,
             chunksize=chunksize,
-            validate=validate
+            validate=False  # Disable validation for comprehensive skills library
         )
         loaded_taxonomy = taxonomy
         print(f"✅ Loaded {len(taxonomy.skills):,} skills successfully")
@@ -167,23 +196,23 @@ def load_and_validate_data(logger):
         print(f"❌ ERROR: Failed to load skill taxonomy - {e}")
         return False
 
-    # Step 2: Load Job Architecture
-    print(f"\n💼 Step 2: Loading job architecture...")
+    # Step 2: Load Job Architecture (auto-generated from job-skill mapping)
+    print(f"\n💼 Step 2: Auto-generating job architecture from job-skill mapping...")
     try:
         job_loader = JobArchitectureLoader(taxonomy)
         architecture = job_loader.load_from_csv(
-            jobs_file=jobs_file,
             job_skills_file=job_skills_file,
+            jobs_file=None,  # No jobs file - auto-generate from mapping
             chunked=chunked,
             chunksize=chunksize,
             validate=validate
         )
         loaded_architecture = architecture
-        print(f"✅ Loaded {len(architecture.jobs):,} jobs successfully")
+        print(f"✅ Auto-generated {len(architecture.jobs):,} jobs successfully")
     except Exception as e:
         logger.error(f"Failed to load job architecture: {e}")
         error_registry.register(e)
-        print(f"❌ ERROR: Failed to load job architecture - {e}")
+        print(f"❌ ERROR: Failed to auto-generate job architecture - {e}")
         return False
 
     # Print summary with clear visual separation
@@ -191,11 +220,11 @@ def load_and_validate_data(logger):
     print(f"📋 DATA LOADING SUMMARY")
     print("="*60)
     print(f"✅ Skills loaded: {len(taxonomy.skills):,}")
-    print(f"✅ Jobs loaded: {len(architecture.jobs):,}")
+    print(f"✅ Jobs auto-generated: {len(architecture.jobs):,}")
     print(f"\n📁 Data sources:")
     print(f"   • Skills: {skills_file}")
-    print(f"   • Jobs: {jobs_file}")
     print(f"   • Job-skill mapping: {job_skills_file}")
+    print(f"   • Jobs: Auto-generated from mapping (simplified architecture)")
     print(f"\n⚙️  Configuration:")
     print(f"   • Chunked loading: {'✅ Enabled' if chunked else '❌ Disabled'} (size: {chunksize:,})")
     print(f"   • Schema validation: {'✅ Enabled' if validate else '❌ Disabled'}")

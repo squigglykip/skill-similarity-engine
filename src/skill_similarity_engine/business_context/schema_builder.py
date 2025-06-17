@@ -87,19 +87,31 @@ class SchemaBuilder:
                 logger.warning(f"Could not drop table {table}: {e}")
     
     def _create_jobs_table(self, conn: sqlite3.Connection) -> None:
-        """Create jobs table - Job Architecture Master Data."""
+        """Create jobs table - Enhanced Job Architecture Master Data with 14-column schema."""
         sql = """
         CREATE TABLE jobs (
             JobProfileID TEXT PRIMARY KEY,           -- R0001.5 format
             JobProfile TEXT NOT NULL,               -- "Analyst - Risk Management"
-            JobID TEXT,                             -- Hierarchical job code
-            Job TEXT,                               -- Job title
+            JobID TEXT,                             -- Hierarchical job code (R0001)
+            Job TEXT,                               -- Job title ("Analyst")
             JobFamily TEXT,                         -- "Technology", "Risk", "Finance"
-            JobFamilyGroup TEXT                     -- Higher-level grouping
+            JobFamilyGroup TEXT,                    -- Higher-level grouping
+            
+            -- Enhanced 14-column schema (Phase 2 additions)
+            ProfileTitleSuffix TEXT,                -- "Analyst", "Manager", "Consultant", etc. (16 categories)
+            ManagementLevel TEXT,                   -- "Group 1", "Group 2", ..., "Group 7", "Group NA" (8 categories)
+            JobSubFunctionID TEXT,                  -- "JF0001", "JF0002", ..., "JF0834" (105 unique values)
+            JobSubFunction TEXT,                    -- "Corporate Finance", "Executive", etc. (105 categories)
+            JobCategoryID TEXT,                     -- "JC1", "JC2", "JC3", "JC10" (4 categories)
+            JobCategory TEXT,                       -- "Support", "Revenue Generating", "Enabling", "Executive"
+            Customer_Facing TEXT,                   -- "Customer Facing", "Non-Customer Facing" (nullable, 24 nulls)
+            is_Banker TEXT,                         -- "Banker", "Non-Banker" (nullable, 24 nulls)
+            Executive_Leadership_Group TEXT,        -- "Executive Leadership Group" (nullable, 2903 nulls)
+            Accountability_Scope TEXT               -- "Direct", "Supports" (nullable)
         );
         """
         conn.execute(sql)
-        logger.debug("Created jobs table")
+        logger.debug("Created enhanced jobs table with 14-column schema")
     
     def _create_job_similarities_table(self, conn: sqlite3.Connection) -> None:
         """Create job_similarities table - Pre-computed Job-to-Job Similarities."""
@@ -158,31 +170,37 @@ class SchemaBuilder:
         logger.debug("Created positions table")
     
     def _create_skills_table(self, conn: sqlite3.Connection) -> None:
-        """Create skills table - Comprehensive Skills Library."""
+        """Create skills table - Enhanced Comprehensive Skills Library with 18-column schema."""
         sql = """
         CREATE TABLE skills (
-            Skill_ID TEXT PRIMARY KEY,              -- Lightcast skill identifier
-            Skill_Name TEXT NOT NULL,               -- "Python Programming"
-            Category TEXT,                          -- "Information Technology" 
-            Subcategory TEXT,                       -- "Enterprise Information Management"
-            SkillType TEXT,                         -- "Specialized Skill", "Hard Skill", "Soft Skill"
-            Latest_Version TEXT,                    -- Version tracking
+            Skill_ID TEXT PRIMARY KEY,              -- Lightcast skill identifier (id field from CSV)
+            Skill_Name TEXT NOT NULL,               -- "Python Programming" (name field from CSV)
+            Category TEXT,                          -- "Information Technology" (category_name field)
+            Subcategory TEXT,                       -- "Enterprise Information Management" (subcategory_name field)
+            SkillType TEXT,                         -- "Specialized Skill", "Hard Skill", "Soft Skill" (type field)
+            Latest_Version TEXT,                    -- Version tracking (source_version field)
             
-            -- Rich metadata from Lightcast
-            Description TEXT,                       -- Detailed skill description
-            Info_URL TEXT,                         -- Lightcast skill URL
-            Is_Language BOOLEAN,                   -- Whether skill is a language
-            Category_ID INTEGER,                   -- Lightcast category ID
-            Subcategory_ID INTEGER,               -- Lightcast subcategory ID
-            Type_ID TEXT,                         -- Lightcast type ID (ST1, etc.)
+            -- Enhanced 18-column schema (Phase 2 additions)
+            category_id INTEGER,                    -- Lightcast category ID
+            description TEXT,                       -- Detailed skill description
+            descriptionSource TEXT,                 -- Source of description
+            Info_URL TEXT,                          -- Lightcast skill URL (infoUrl field)
+            Is_Language BOOLEAN,                    -- Whether skill is a language (0.77% true)
+            isSoftware BOOLEAN,                    -- Whether skill is software (28.35% true)
+            subcategory_id INTEGER,               -- Lightcast subcategory ID
+            tag_wikipediaExtract TEXT,            -- Wikipedia integration (68% coverage)
+            tag_wikipediaUrl TEXT,                -- Wikipedia URL
+            tags TEXT,                            -- JSON field: nested structures
+            type_id TEXT,                         -- Lightcast type ID (ST1, etc.)
+            type_name TEXT,                       -- Human-readable type name
             
-            -- Additional metadata
-            Market_Demand TEXT,                     -- "High", "Medium", "Low"
-            Rarity_Score REAL                       -- 0-1 scale for skill uniqueness
+            -- Legacy compatibility fields (maintained for backward compatibility)
+            Market_Demand TEXT DEFAULT '',         -- "High", "Medium", "Low" (placeholder)
+            Rarity_Score REAL DEFAULT NULL        -- 0-1 scale for skill uniqueness (placeholder)
         );
         """
         conn.execute(sql)
-        logger.debug("Created skills table")
+        logger.debug("Created enhanced skills table with 18-column schema")
     
     def _create_job_skills_table(self, conn: sqlite3.Connection) -> None:
         """Create job_skills table - Job-to-Skills Mapping."""

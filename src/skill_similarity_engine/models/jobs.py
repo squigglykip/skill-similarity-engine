@@ -419,7 +419,8 @@ class JobArchitecture:
         
         loader = JobArchitectureLoader(taxonomy)
         if file_path.endswith('.csv'):
-            return loader.load_from_csv(file_path)
+            # For backwards compatibility, assume this is a jobs file and provide a dummy job-skills mapping
+            return loader.load_from_csv(job_skills_file="", jobs_file=file_path)
         elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
             return loader.load_from_excel(file_path)
         else:

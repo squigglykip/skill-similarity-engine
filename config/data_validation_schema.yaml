@@ -32,19 +32,70 @@ job_skill_mapping:
     type: string
     required: true
 
+# Updated skills schema for comprehensive skills library (skills_comprehensive_all_versions.csv)
 skills:
-  Skill_ID:
+  # Core required fields
+  id:
     type: string
     required: true
-  Skill_Name:
+  name:
     type: string
     required: true
-  SkillType:
-    type: string
-    required: true
-  Category:
+  type_name:
     type: string
     required: false
-  Subcategory:
+  
+  # Categorization fields (optional since many have nulls)
+  category_id:
+    type: numeric
+    required: false
+  category_name:
     type: string
+    required: false
+  subcategory_id:
+    type: numeric
+    required: false
+  subcategory_name:
+    type: string
+    required: false
+  
+  # Metadata fields (mostly optional)
+  description:
+    type: string
+    required: false
+  descriptionSource:
+    type: string
+    required: false
+  infoUrl:
+    type: string
+    required: false
+  source_version:
+    type: numeric
+    required: false
+  
+  # Boolean flags
+  isLanguage:
+    type: boolean
+    required: false
+  isSoftware:
+    type: boolean
+    required: false
+  
+  # Type information
+  type_id:
+    type: string
+    required: false
+  type:
+    type: string  # JSON field
+    required: false
+    
+  # Wikipedia integration (optional)
+  tag_wikipediaExtract:
+    type: string
+    required: false
+  tag_wikipediaUrl:
+    type: string
+    required: false
+  tags:
+    type: string  # JSON array field
     required: false 
