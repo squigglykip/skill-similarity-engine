@@ -182,17 +182,60 @@ class SkillTaxonomyLoader:
             description_field = get_raw_field_name('description', 'skills')
             category_id_field = get_raw_field_name('category_id', 'skills')
             
+            # Extract core values - handle both comprehensive and simple schemas
+            skill_id = None
+            # Try comprehensive schema first
+            if 'skill_id' in row and pd.notna(row['skill_id']):
+                skill_id = str(row['skill_id'])
+            elif skill_id_field in row and pd.notna(row[skill_id_field]):
+                skill_id = str(row[skill_id_field])
+            elif 'Skill_ID' in row and pd.notna(row['Skill_ID']):
+                skill_id = str(row['Skill_ID'])  # Legacy fallback
+            
+            name = None
+            # Try comprehensive schema first
+            if 'name' in row and pd.notna(row['name']):
+                name = row['name']
+            elif name_field in row and pd.notna(row[name_field]):
+                name = row[name_field]
+            elif 'Skill_Name' in row and pd.notna(row['Skill_Name']):
+                name = row['Skill_Name']  # Legacy fallback
+            
+            # Description
+            description = ""
+            if 'description' in row and pd.notna(row['description']):
+                description = row['description']
+            elif description_field in row and pd.notna(row[description_field]):
+                description = row[description_field]
+            
+            # Category ID - try multiple sources
+            category_id = None
+            if 'category_id' in row and pd.notna(row['category_id']):
+                category_id = str(row['category_id'])
+            elif category_id_field in row and pd.notna(row[category_id_field]):
+                category_id = str(row[category_id_field])
+            elif 'Category' in row and pd.notna(row['Category']):
+                category_id = str(row['Category'])  # Legacy fallback
+            
             # Handle skill_type which may have multiple possible field names
             skill_type_field = None
             skill_type_value = None
             
-            # Try different possible skill type field names
-            for possible_field in ['skill_type', 'category', 'SkillType']:
-                mapped_field = get_raw_field_name(possible_field, 'skills')
-                if mapped_field in row and pd.notna(row[mapped_field]):
-                    skill_type_field = mapped_field
-                    skill_type_value = row[mapped_field]
-                    break
+            # Try comprehensive schema first
+            if 'type' in row and pd.notna(row['type']):
+                skill_type_value = row['type']
+            elif 'skill_type' in row and pd.notna(row['skill_type']):
+                skill_type_value = row['skill_type']
+            elif 'SkillType' in row and pd.notna(row['SkillType']):
+                skill_type_value = row['SkillType']  # Legacy fallback
+            else:
+                # Try different possible skill type field names
+                for possible_field in ['category', 'Category']:
+                    mapped_field = get_raw_field_name(possible_field, 'skills')
+                    if mapped_field in row and pd.notna(row[mapped_field]):
+                        skill_type_field = mapped_field
+                        skill_type_value = row[mapped_field]
+                        break
             
             # Determine skill type
             skill_type = SkillType.COMMON  # Default
@@ -200,31 +243,18 @@ class SkillTaxonomyLoader:
                 try:
                     skill_type = SkillType.from_string(skill_type_value)
                 except ValueError:
-                    pass  # Keep default
-            
-            # Parse list fields using field mapping
-            aliases = self._parse_list_field(row, "aliases", 'skills')
-            related_skills = self._parse_list_field(row, "related_skills", 'skills')
-            prerequisites = self._parse_list_field(row, "prerequisites", 'skills')
-            
-            # Extract core values
-            skill_id = str(row[skill_id_field]) if skill_id_field in row else None
-            name = row[name_field] if name_field in row else None
-            description = row.get(description_field, "") if description_field in row else ""
-            category_id = str(row[category_id_field]) if category_id_field in row and pd.notna(row.get(category_id_field, None)) else None
+                    # If conversion fails, keep default
+                    pass
             
             if not skill_id or not name:
                 return None
-                
+            
             return Skill(
                 skill_id=skill_id,
                 name=name,
                 description=description,
                 category_id=category_id,
-                skill_type=skill_type,
-                aliases=aliases,
-                related_skills=related_skills,
-                prerequisites=prerequisites
+                skill_type=skill_type
             )
         except Exception as e:
             logger = logging.getLogger("skill_similarity_engine.data.loaders")
@@ -453,27 +483,36 @@ class JobArchitectureLoader:
             # Check if we have a direct department field or need to use location info
             department_field = get_raw_field_name('department', 'jobs')
             
-            # Extract core values
+            # Extract core values - handle both comprehensive and simple schemas
             job_id = None
-            # Try to get job_id - might be JobProfileID in the schema
-            if job_id_field in row and pd.notna(row[job_id_field]):
+            # Try comprehensive schema first (JobProfileID)
+            if 'JobProfileID' in row and pd.notna(row['JobProfileID']):
+                job_id = str(row['JobProfileID'])
+            elif job_id_field in row and pd.notna(row[job_id_field]):
                 job_id = str(row[job_id_field])
-            elif 'JobProfileID' in row and pd.notna(row['JobProfileID']):
-                job_id = str(row['JobProfileID'])  # Fallback to raw schema
             elif 'job_id' in row and pd.notna(row['job_id']):
                 job_id = str(row['job_id'])  # Legacy fallback
                 
             title = None
-            if title_field in row and pd.notna(row[title_field]):
+            # Try comprehensive schema first (JobProfile or Job)
+            if 'JobProfile' in row and pd.notna(row['JobProfile']):
+                title = row['JobProfile']
+            elif 'Job' in row and pd.notna(row['Job']):
+                title = row['Job']
+            elif title_field in row and pd.notna(row[title_field]):
                 title = row[title_field]
             elif 'RoleSet' in row and pd.notna(row['RoleSet']):
-                title = row['RoleSet']  # Fallback to raw schema
+                title = row['RoleSet']  # Fallback to HRIS schema
             elif 'title' in row and pd.notna(row['title']):
                 title = row['title']  # Legacy fallback
                 
-            # For department, check multiple possibilities
+            # For department, try comprehensive schema (JobFamily or JobFamilyGroup)
             department = "Unknown"  # Default value
-            if department_field in row and pd.notna(row[department_field]):
+            if 'JobFamily' in row and pd.notna(row['JobFamily']):
+                department = row['JobFamily']
+            elif 'JobFamilyGroup' in row and pd.notna(row['JobFamilyGroup']):
+                department = row['JobFamilyGroup']
+            elif department_field in row and pd.notna(row[department_field]):
                 department = row[department_field]
             elif 'Org Unit Name' in row and pd.notna(row['Org Unit Name']):
                 department = row['Org Unit Name']  # HRIS fallback

@@ -112,8 +112,8 @@ def load_and_validate_data(logger):
     print("Default data files will be used if you press Enter without typing a path.")
     
     # Default file paths
-    default_skills_file = "input_data/skill_data.csv"
-    default_jobs_file = "input_data/job_data.csv" 
+    default_skills_file = "skills_library/lightcast_skills_comprehensive.csv"
+    default_jobs_file = "job_architecture/dummy_job_architecture.csv" 
     default_job_skills_file = "input_data/job_skill_mapping.csv"
     
     skills_file = prompt_file_path("Enter path to skills CSV file", default_skills_file)

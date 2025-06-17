@@ -878,19 +878,18 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
 - [x] **Cross-Family Mobility Intelligence**: Strategic inter-departmental transition analysis
 - [x] **Strategic SQL Queries**: get_strategic_recommendations, get_skills_concentration_analysis, get_cross_family_mobility_opportunities
 - [x] **Professional UI Design**: Priority badges, metric displays, and implementation timeline
-
-**8.2.5.6 Cross-Family Similarity Intelligence** 📋 **REQUIRED**
-- [ ] **Inter-Departmental Mobility Analysis**
+~~**8.2.5.6 Cross-Family Similarity Intelligence**~~ 🚫 **DEFERRED** *(Future iteration enhancement)*
+- ~~**Inter-Departmental Mobility Analysis**~~
   ```
-  📈 TOP CROSS-FAMILY SIMILARITIES:
+  📈 TOP CROSS-FAMILY SIMILARITIES (FUTURE ENHANCEMENT):
      • Risk & Compliance ↔ Banking Operations (0.368 similarity)
      • Risk & Compliance ↔ Finance & Accounting (0.362 similarity)
      • Risk & Compliance ↔ Data & Analytics (0.360 similarity)
      • Human Resources ↔ Banking Operations (0.360 similarity)
   ```
-- [ ] **Cross-Family Analysis SQL Queries**:
+- ~~**Cross-Family Analysis SQL Queries**~~:
   ```sql
-  -- Job family similarity matrix analysis
+  -- Job family similarity matrix analysis (FUTURE IMPLEMENTATION)
   SELECT 
       j1.JobFamily as family1,
       j2.JobFamily as family2,
@@ -904,9 +903,9 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
   HAVING COUNT(js.similarity_score) >= 5
   ORDER BY avg_similarity DESC;
   ```
-- [ ] **Cross-Family Mobility Matrix**: Visual heatmap of inter-departmental connections
-- [ ] **Strategic Mobility Insights**: Executive interpretation of cross-functional opportunities
-- [ ] **Redeployment Intelligence**: Organisational restructure and capability reallocation insights
+- ~~**Cross-Family Mobility Matrix**: Visual heatmap of inter-departmental connections~~
+- ~~**Strategic Mobility Insights**: Executive interpretation of cross-functional opportunities~~
+- ~~**Redeployment Intelligence**: Organisational restructure and capability reallocation insights~~
 
 ~~**8.2.5.7 Geographic Intelligence Dashboard**~~ 🚫 **REMOVED** *(Not prioritised for current implementation)*
 
@@ -940,33 +939,49 @@ This phase elevates the homepage from a basic landing page to a strategic workfo
 **8.2.6 White Paper Generation System** 📋 **PLANNED**
 **Branch: `8.2.6-feature/webapp-foundation/white-papers`**
 
+> **🎯 DYNAMIC SIMILARITY FRAMEWORK**: Implement intelligent percentile-based story classification that adapts to actual data distribution rather than hardcoded thresholds. With similarity bell curve around 35%, a 68% similarity represents 94th percentile performance and should be classified as "Excellent Opportunities" rather than "Good". The system should dynamically calculate percentiles from the dataset and classify stories accordingly:
+> - **Top 5%**: Outstanding Opportunities (immediate transition ready)
+> - **Top 10%**: Excellent Opportunities (smooth transition prospects) 
+> - **Top 25%**: Good Opportunities (manageable development required)
+> - **Median**: Development Opportunities (significant upskilling needed)
+> - **Below Median**: Transformation Required (major career pivot required)
+
+> **🏢 BUSINESS COMMUNICATION FRAMEWORK**: Refined communication structure balancing technical accuracy with business context:
+> - **Lead with JobProfile**: Start with HR architectural precision - "Analyst - Data Governance Specialist job architecture"
+> - **Translate to Positions**: Follow with business-recognisable language - "which encompasses positions including Data Manager (5), Risk Senior Developer (8), Technology Principal Specialist (10)"
+> - **Complete Structure**: "The [JobProfile] job architecture, which encompasses positions including [Position Names with counts]"
+> - **Technical Foundation**: One JobProfile → Many Positions (1:many relationship)
+> - **Database Strategy**: Query positions table for counts/geography, map through jobs table for similarity calculations
+> - **Business Value**: Maintains technical traceability while providing immediate operational context
+
 - [ ] **Template Engine & Content Generation**
-  - [ ] Create Jinja2 templates for different white paper types
-  - [ ] Implement automated content generation from similarity data
+  - [ ] Create Word document templates for different white paper types
+  - [ ] Implement automated content generation from similarity data using python-docx
+  - [ ] **Implement dynamic percentile-based similarity classification system**
   - [ ] Add career transition opportunity analysis
   - [ ] Generate skill gap assessments and recommendations
   - [ ] Create market context and opportunity scoring
 
-- [ ] **Professional Report Formatting**
-  - [ ] Design professional PDF templates with NAB-inspired branding
-  - [ ] Implement multi-page reports with consistent styling
+- [ ] **Professional Document Formatting**
+  - [ ] Design professional Word templates with NAB-inspired branding
+  - [ ] Implement multi-page documents with consistent styling and headers
   - [ ] Add executive summary and detailed analysis sections
-  - [ ] Include data visualisations (charts, tables, diagrams)
+  - [ ] Include data visualisations (charts, tables, diagrams) embedded in Word
   - [ ] Create appendices with supporting data
 
-- [ ] **Report Customisation**
-  - [ ] Allow customisation of report sections and focus areas
-  - [ ] Implement different report types (individual vs team analysis)
+- [ ] **Document Customisation**
+  - [ ] Allow customisation of document sections and focus areas
+  - [ ] Implement different document types (individual vs team analysis)
   - [ ] Add personalisation options (recipient name, current role)
-  - [ ] Create bulk report generation for multiple roles
+  - [ ] Create bulk document generation for multiple roles
   - [ ] Allow custom branding and messaging
 
 - [ ] **Output Formats & Distribution**
-  - [ ] Generate high-quality PDF reports for distribution
+  - [ ] Generate editable Word documents (.docx) as primary output
   - [ ] Create HTML versions for web viewing and email
-  - [ ] Export to Word documents for collaborative editing
+  - [ ] Allow users to edit Word documents before converting to PDF
   - [ ] Generate PowerPoint slides for presentations
-  - [ ] Add email integration for automatic report distribution
+  - [ ] Add email integration for automatic document distribution
 
 **8.2.7 Documentation & Methodology Transparency** 📋 **PLANNED**
 **Branch: `8.2.7-feature/webapp-foundation/documentation`**

@@ -1,0 +1,58 @@
+{
+  "file_existence": {
+    "Old Job Data": "{'exists': True, 'size_mb': 0.06, 'columns': ['JobProfileID', 'RoleSet', 'Salary Group', 'People Leader Flag', 'Street', 'Suburb', 'Location', 'Cty'], 'readable': True}",
+    "New Job Data": "{'exists': True, 'size_mb': 0.07, 'columns': ['JobProfileID', 'JobProfile', 'JobID', 'Job', 'JobFamily', 'JobFamilyGroup'], 'readable': True}",
+    "Old Skill Data": "{'exists': True, 'size_mb': 0.2, 'columns': ['Skill_ID', 'Skill_Name', 'SkillType', 'Category', 'Subcategory'], 'readable': True}",
+    "New Skill Data": "{'exists': True, 'size_mb': 5.11, 'columns': ['skill_id', 'name', 'description', 'description_source', 'info_url', 'is_language', 'category_id', 'category_name', 'subcategory_id', 'subcategory_name', 'type_id', 'type_name', 'tag_names', 'tag_ids', 'latest_version', 'category', 'subcategory', 'tags', 'type', 'processed_at'], 'readable': True}",
+    "Job-Skill Mapping": "{'exists': True, 'size_mb': 1.15, 'columns': ['JobProfileID', 'Skill_ID'], 'readable': True}"
+  },
+  "job_comparison": {
+    "old_count": 715,
+    "new_count": 715,
+    "common_ids": 715,
+    "old_only": 0,
+    "new_only": 0,
+    "old_duplicates": "0",
+    "new_duplicates": "0",
+    "coverage_rate": 100.0
+  },
+  "skill_comparison": {
+    "old_count": 2068,
+    "new_count": 38395,
+    "common_ids": 2061,
+    "old_only": 7,
+    "new_only": 36334,
+    "old_duplicates": "0",
+    "new_duplicates": "0",
+    "coverage_rate": 99.6615087040619
+  },
+  "mapping_validation": {
+    "total_mappings": 40170,
+    "unique_jobs": 715,
+    "unique_skills": 2091,
+    "old_job_coverage": 100.0,
+    "new_job_coverage": 100.0,
+    "old_skill_coverage": 98.80439980870396,
+    "new_skill_coverage": 98.46963175514108,
+    "duplicates": "0",
+    "job_nulls": "0",
+    "skill_nulls": "0"
+  },
+  "data_quality": {
+    "old_jobs": [],
+    "new_jobs": [],
+    "old_skills": [],
+    "new_skills": [
+      "Very long values in description: max 2095 chars",
+      "Non-ASCII characters in name: 3 rows",
+      "Non-ASCII characters in description: 214 rows"
+    ],
+    "mapping": []
+  },
+  "performance": {
+    "old_jobs": "{'load_time_seconds': 0.004, 'memory_usage_mb': 0.32, 'rows': 715, 'columns': 8}",
+    "new_jobs": "{'load_time_seconds': 0.008, 'memory_usage_mb': 0.27, 'rows': 715, 'columns': 6}",
+    "old_skills": "{'load_time_seconds': 0.007, 'memory_usage_mb': 0.66, 'rows': 2068, 'columns': 5}",
+    "new_skills": "{'load_time_seconds': 0.109, 'memory_usage_mb': 23.27, 'rows': 38395, 'columns': 20}"
+  }
+}
