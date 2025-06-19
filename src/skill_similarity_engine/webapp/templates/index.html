@@ -290,7 +290,7 @@
                     <div class="space-y-3">
                         {% for family in top_families %}
                         <div class="flex justify-between items-center">
-                            <span class="text-sm font-source text-gray-900">{{ family.job_family }}</span>
+                            <span class="text-sm font-source text-gray-900">{{ family.job_function }}</span>
                             <span class="text-xs font-source font-medium text-gray-500">{{ family.job_count }} job profiles</span>
                         </div>
                         {% else %}
@@ -421,7 +421,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="text-lg font-epilogue font-bold text-gray-900">{{ mobility_hubs[0].JobFamily if mobility_hubs else 'Data & Analytics' }}</p>
+                        <p class="text-lg font-epilogue font-bold text-gray-900">{{ mobility_hubs[0].JobFunction if mobility_hubs else 'Data & Analytics' }}</p>
                         <p class="text-sm font-source text-gray-600">{{ career_insights.top_mobility_hub_connections or '618' }} connections</p>
                     </div>
                     <div class="p-3 bg-orange-100 rounded-full">
@@ -534,7 +534,7 @@
                                 <span class="text-white font-epilogue font-bold text-lg">{{ loop.index }}</span>
                             </div>
                             <div>
-                                <p class="text-sm font-epilogue font-medium text-gray-900">{{ hub.JobFamily }}</p>
+                                <p class="text-sm font-epilogue font-medium text-gray-900">{{ hub.JobFunction }}</p>
                                 <p class="text-xs font-source text-gray-600">{{ hub.total_connectivity }} total connections</p>
                             </div>
                         </div>

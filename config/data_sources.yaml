@@ -24,12 +24,12 @@ data_sources:
       - JobProfile
       - JobID
       - Job
-      - JobFamily
-      - JobFamilyGroup
       - ProfileTitleSuffix
       - ManagementLevel
       - JobSubFunctionID
       - JobSubFunction
+      - JobFunctionID
+      - JobFunction
       - JobCategoryID
       - JobCategory
       - "Customer Facing"
@@ -41,12 +41,12 @@ data_sources:
       JobProfile: JobProfile
       JobID: JobID
       Job: Job
-      JobFamily: JobFamily
-      JobFamilyGroup: JobFamilyGroup
       ProfileTitleSuffix: ProfileTitleSuffix
       ManagementLevel: ManagementLevel
       JobSubFunctionID: JobSubFunctionID
       JobSubFunction: JobSubFunction
+      JobFunctionID: JobFunctionID
+      JobFunction: JobFunction
       JobCategoryID: JobCategoryID
       JobCategory: JobCategory
       "Customer Facing": Customer_Facing

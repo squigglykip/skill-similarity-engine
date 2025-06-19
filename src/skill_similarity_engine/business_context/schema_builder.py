@@ -87,21 +87,21 @@ class SchemaBuilder:
                 logger.warning(f"Could not drop table {table}: {e}")
     
     def _create_jobs_table(self, conn: sqlite3.Connection) -> None:
-        """Create jobs table - Enhanced Job Architecture Master Data with 14-column schema."""
+        """Create jobs table - Enhanced Job Architecture Master Data with 16-column schema."""
         sql = """
         CREATE TABLE jobs (
             JobProfileID TEXT PRIMARY KEY,           -- R0001.5 format
             JobProfile TEXT NOT NULL,               -- "Analyst - Risk Management"
             JobID TEXT,                             -- Hierarchical job code (R0001)
             Job TEXT,                               -- Job title ("Analyst")
-            JobFamily TEXT,                         -- "Technology", "Risk", "Finance"
-            JobFamilyGroup TEXT,                    -- Higher-level grouping
             
-            -- Enhanced 14-column schema (Phase 2 additions)
+            -- Enhanced 16-column schema (Phase 2 additions)
             ProfileTitleSuffix TEXT,                -- "Analyst", "Manager", "Consultant", etc. (16 categories)
             ManagementLevel TEXT,                   -- "Group 1", "Group 2", ..., "Group 7", "Group NA" (8 categories)
             JobSubFunctionID TEXT,                  -- "JF0001", "JF0002", ..., "JF0834" (105 unique values)
             JobSubFunction TEXT,                    -- "Corporate Finance", "Executive", etc. (105 categories)
+            JobFunctionID TEXT,                     -- "JF0001", "JF0002", etc. (Function level grouping)
+            JobFunction TEXT,                       -- "Technology", "Risk", "Finance", etc. (Function names)
             JobCategoryID TEXT,                     -- "JC1", "JC2", "JC3", "JC10" (4 categories)
             JobCategory TEXT,                       -- "Support", "Revenue Generating", "Enabling", "Executive"
             Customer_Facing TEXT,                   -- "Customer Facing", "Non-Customer Facing" (nullable, 24 nulls)
@@ -111,7 +111,7 @@ class SchemaBuilder:
         );
         """
         conn.execute(sql)
-        logger.debug("Created enhanced jobs table with 14-column schema")
+        logger.debug("Created enhanced jobs table with 16-column schema")
     
     def _create_job_similarities_table(self, conn: sqlite3.Connection) -> None:
         """Create job_similarities table - Pre-computed Job-to-Job Similarities."""
@@ -243,8 +243,8 @@ class SchemaBuilder:
         """Create performance indexes for webapp queries."""
         indexes = [
             # Job exploration queries
-            "CREATE INDEX idx_jobs_family ON jobs(JobFamily);",
-            "CREATE INDEX idx_jobs_family_group ON jobs(JobFamilyGroup);",
+            "CREATE INDEX idx_jobs_function ON jobs(JobFunction);",
+            "CREATE INDEX idx_jobs_function_id ON jobs(JobFunctionID);",
             
             # Similarity queries (most important)
             "CREATE INDEX idx_similarities_from ON job_similarities(job_from, similarity_score DESC);",

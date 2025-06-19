@@ -3,112 +3,112 @@
 -- Queries for job information, job families, and job relationships
 -- =================================================================
 
--- query_name: get_job_families
--- Get all job families with job counts
+-- query_name: get_job_functions
+-- Get all job functions with job counts
 SELECT 
-    JobFamily as job_family,
+    JobFunction as job_function,
     COUNT(*) as job_count,
     COUNT(DISTINCT CASE WHEN similarity_score >= 0.8 THEN job_to END) as high_similarity_jobs
 FROM jobs j
 LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from
-GROUP BY JobFamily
+GROUP BY JobFunction
 ORDER BY job_count DESC;
 
--- query_name: get_jobs_in_family
--- Get all jobs within a specific job family
+-- query_name: get_jobs_in_function
+-- Get all jobs within a specific job function
 SELECT 
     JobProfileID as id,
     JobProfile as job_title,
-    JobFamily as job_family,
-    JobFamilyGroup as job_family_group
+    JobFunction as job_function,
+    JobFunctionID as job_function_id
 FROM jobs
-WHERE JobFamily = ?
+WHERE JobFunction = ?
 ORDER BY JobProfile;
 
 -- query_name: get_job_details
 -- Get detailed information about a specific job
 SELECT 
-    j.id,
-    j.job_title,
-    j.job_family,
-    j.job_level,
-    j.job_cluster,
-    COUNT(DISTINCT js.skills_skill_id) as total_skills,
-    COUNT(DISTINCT jss.similar_job_id) as similar_jobs_count,
-    AVG(jss.similarity_score) as avg_similarity_score
+    j.JobProfileID as id,
+    j.JobProfile as job_title,
+    j.JobFunction as job_function,
+    j.JobFunctionID as job_function_id,
+    j.ManagementLevel as management_level,
+    COUNT(DISTINCT js.Skill_ID) as total_skills,
+    COUNT(DISTINCT cp.target_job_id) as similar_jobs_count,
+    AVG(cp.similarity_score) as avg_similarity_score
 FROM jobs j
-LEFT JOIN job_skills js ON j.id = js.job_id
-LEFT JOIN job_similarities jss ON j.id = jss.job_id
-WHERE j.id = ?
-GROUP BY j.id, j.job_title, j.job_family, j.job_level, j.job_cluster;
+LEFT JOIN job_skills js ON j.JobProfileID = js.JobProfileID
+LEFT JOIN career_pathways cp ON j.JobProfileID = cp.source_job_id
+WHERE j.JobProfileID = ?
+GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, j.JobFunctionID, j.ManagementLevel;
 
 -- query_name: search_jobs
--- Search jobs by title with optional family filter
+-- Search jobs by title with optional function filter
 SELECT 
-    id,
-    job_title,
-    job_family,
-    job_level,
-    job_cluster
+    JobProfileID as id,
+    JobProfile as job_title,
+    JobFunction as job_function,
+    JobFunctionID as job_function_id,
+    ManagementLevel as management_level
 FROM jobs
-WHERE job_title LIKE ?
-    AND (? IS NULL OR job_family = ?)
-ORDER BY job_title
+WHERE JobProfile LIKE ?
+    AND (? IS NULL OR JobFunction = ?)
+ORDER BY JobProfile
 LIMIT 50;
 
 -- query_name: get_job_skills
--- Get all skills for a specific job with proficiency levels
+-- Get all skills for a specific job
 SELECT 
-    s.skill_name,
-    s.skill_category,
-    s.skill_subcategory,
-    js.proficiency_level,
-    s.id as skill_id
+    s.Skill_Name as skill_name,
+    s.Category as skill_category,
+    s.Subcategory as skill_subcategory,
+    s.SkillType as skill_type,
+    s.Skill_ID as skill_id
 FROM job_skills js
-JOIN skills s ON js.skills_skill_id = s.id
-WHERE js.job_id = ?
-ORDER BY s.skill_category, s.skill_name;
+JOIN skills s ON js.Skill_ID = s.Skill_ID
+WHERE js.JobProfileID = ?
+ORDER BY s.Category, s.Skill_Name;
 
 -- query_name: get_jobs_by_level
--- Get jobs filtered by job level
+-- Get jobs filtered by management level
 SELECT 
-    id,
-    job_title,
-    job_family,
-    job_level,
-    job_cluster
+    JobProfileID as id,
+    JobProfile as job_title,
+    JobFunction as job_function,
+    JobFunctionID as job_function_id,
+    ManagementLevel as management_level
 FROM jobs
-WHERE job_level = ?
-ORDER BY job_family, job_title;
+WHERE ManagementLevel = ?
+ORDER BY JobFunction, JobProfile;
 
--- query_name: get_jobs_by_cluster
--- Get jobs filtered by job cluster
+-- query_name: get_jobs_by_category
+-- Get jobs filtered by job category
 SELECT 
-    id,
-    job_title,
-    job_family,
-    job_level,
-    job_cluster
+    JobProfileID as id,
+    JobProfile as job_title,
+    JobFunction as job_function,
+    JobFunctionID as job_function_id,
+    JobCategory as job_category
 FROM jobs
-WHERE job_cluster = ?
-ORDER BY job_title;
+WHERE JobCategory = ?
+ORDER BY JobProfile;
 
 -- query_name: get_job_summary_stats
 -- Get summary statistics for jobs
 SELECT 
     COUNT(*) as total_jobs,
-    COUNT(DISTINCT job_family) as total_families,
-    COUNT(DISTINCT job_level) as total_levels,
-    COUNT(DISTINCT job_cluster) as total_clusters,
+    COUNT(DISTINCT JobFunction) as total_functions,
+    COUNT(DISTINCT ManagementLevel) as total_levels,
+    COUNT(DISTINCT JobCategory) as total_categories,
     AVG(skill_count) as avg_skills_per_job
 FROM (
     SELECT 
-        j.id,
-        j.job_family,
-        j.job_level,
-        j.job_cluster,
-        COUNT(js.skills_skill_id) as skill_count
+        j.JobProfileID,
+        j.JobFunction,
+        j.ManagementLevel,
+        j.JobCategory,
+        COUNT(js.Skill_ID) as skill_count
     FROM jobs j
-    LEFT JOIN job_skills js ON j.id = js.job_id
-    GROUP BY j.id, j.job_family, j.job_level, j.job_cluster
+    LEFT JOIN job_skills js ON j.JobProfileID = js.JobProfileID
+    GROUP BY j.JobProfileID, j.JobFunction, j.ManagementLevel, j.JobCategory
 ) job_stats; 

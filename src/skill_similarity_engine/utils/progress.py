@@ -28,11 +28,13 @@ TQDM_STYLE = {
     'bar_format': '{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',
     'colour': 'green',
     'ascii': False,
-    'dynamic_ncols': False,  # Disable dynamic columns for Windows compatibility
-    'leave': True,  # Leave progress bars visible after completion
-    'ncols': 100,   # Fixed width for consistent display
-    'miniters': 1,  # Update every iteration for smooth progress
-    'mininterval': 0.1  # Minimum time interval between updates (0.1 seconds)
+    'dynamic_ncols': True,   # Enable dynamic columns for better responsiveness
+    'leave': True,          # Leave progress bars visible after completion
+    'ncols': None,          # Auto-detect terminal width (None for auto-sizing)
+    'miniters': 1,          # Update every iteration for smooth progress
+    'mininterval': 0.1,     # Minimum time interval between updates (0.1 seconds)
+    'file': None,           # Use default output (sys.stderr)
+    'position': 0           # Position for nested progress bars
 }
 
 @dataclass

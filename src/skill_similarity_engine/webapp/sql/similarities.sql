@@ -1,15 +1,15 @@
 -- =================================================================
 -- SIMILARITY QUERIES
--- Queries for job similarities, matching, and relationship analysis
+-- Queries for job similarity analysis and cross-family exploration
 -- =================================================================
 
 -- query_name: get_similar_jobs
--- Get similar jobs for a specific job with similarity scores
+-- Get jobs similar to a given job with similarity scores
 SELECT 
     j.JobProfileID as id,
     j.JobProfile as job_title,
-    j.JobFamily as job_family,
-    j.JobFamilyGroup as job_level,
+    j.JobFunction as job_function,
+    j.JobFunctionID as job_function_id,
     js.similarity_score,
     CASE 
         WHEN js.similarity_score >= 0.8 THEN 'High'
@@ -24,12 +24,12 @@ ORDER BY js.similarity_score DESC
 LIMIT ?;
 
 -- query_name: get_similar_jobs_with_threshold
--- Get similar jobs for a specific job with a custom similarity threshold
+-- Get jobs similar to a given job with a specific similarity threshold
 SELECT 
     j.JobProfileID as id,
     j.JobProfile as job_title,
-    j.JobFamily as job_family,
-    j.JobFamilyGroup as job_level,
+    j.JobFunction as job_function,
+    j.JobFunctionID as job_function_id,
     js.similarity_score,
     CASE 
         WHEN js.similarity_score >= 0.8 THEN 'High'
@@ -43,24 +43,81 @@ WHERE js.job_from = ?
 ORDER BY js.similarity_score DESC
 LIMIT ?;
 
--- query_name: get_top_similar_jobs
--- Get top N most similar jobs for a specific job
+-- query_name: get_job_similarity_stats
+-- Get similarity statistics for a specific job
 SELECT 
+    COUNT(*) as total_similar_jobs,
+    AVG(js.similarity_score) as avg_similarity,
+    MAX(js.similarity_score) as max_similarity,
     j.JobProfileID as id,
     j.JobProfile as job_title,
-    j.JobFamily as job_family,
-    j.JobFamilyGroup as job_family_group,
-    js.similarity_score,
-    CASE 
-        WHEN js.similarity_score >= 0.8 THEN 'High'
-        WHEN js.similarity_score >= 0.6 THEN 'Medium'
-        ELSE 'Low'
-    END as similarity_category
+    j.JobFunction as job_function,
+    j.JobFunctionID as job_function_id
 FROM job_similarities js
-JOIN jobs j ON js.job_to = j.JobProfileID
+JOIN jobs j ON js.job_from = j.JobProfileID
 WHERE js.job_from = ?
+    AND js.similarity_score >= 0.5
+GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, j.JobFunctionID;
+
+-- query_name: get_cross_function_similarities
+-- Get similarities between jobs from different functions
+SELECT 
+    j1.JobFunction as source_function,
+    j2.JobFunction as target_function,
+    AVG(js.similarity_score) as avg_similarity,
+    COUNT(*) as pathway_count
+FROM job_similarities js
+JOIN jobs j1 ON js.job_from = j1.JobProfileID
+JOIN jobs j2 ON js.job_to = j2.JobProfileID
+WHERE j1.JobFunction != j2.JobFunction
+    AND js.similarity_score >= ?
+GROUP BY j1.JobFunction, j2.JobFunction
+ORDER BY avg_similarity DESC
+LIMIT ?;
+
+-- query_name: get_function_mobility_matrix
+-- Generate mobility matrix showing average similarities between functions
+SELECT 
+    j.JobProfileID,
+    j.JobFunction,
+    j.JobFunctionID as job_function_id,
+    COUNT(DISTINCT js.job_to) as similar_jobs_count,
+    AVG(js.similarity_score) as avg_similarity
+FROM jobs j
+LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from AND js.similarity_score >= 0.6
+GROUP BY j.JobProfileID, j.JobFunction, j.JobFunctionID
+ORDER BY similar_jobs_count DESC;
+
+-- query_name: get_highest_similarity_jobs
+-- Get pairs of jobs with highest similarity scores across all functions
+SELECT 
+    j1.JobProfile as source_job,
+    j1.JobFunction as source_function,
+    j2.JobProfile as target_job,
+    j2.JobFunction as target_function,
+    js.similarity_score
+FROM job_similarities js
+JOIN jobs j1 ON js.job_from = j1.JobProfileID
+JOIN jobs j2 ON js.job_to = j2.JobProfileID
 ORDER BY js.similarity_score DESC
 LIMIT ?;
+
+-- query_name: get_cross_function_stats
+-- Get statistics about cross-function job similarities
+SELECT 
+    j1.JobFunction as source_function,
+    j2.JobFunction as target_function,
+    COUNT(*) as total_pathways,
+    AVG(js.similarity_score) as avg_similarity,
+    MAX(js.similarity_score) as max_similarity,
+    MIN(js.similarity_score) as min_similarity
+FROM job_similarities js
+JOIN jobs j1 ON js.job_from = j1.JobProfileID
+JOIN jobs j2 ON js.job_to = j2.JobProfileID
+WHERE j1.JobFunction != j2.JobFunction
+    AND js.similarity_score >= 0.4
+GROUP BY j1.JobFunction, j2.JobFunction
+ORDER BY avg_similarity DESC;
 
 -- query_name: get_similarity_distribution
 -- Get distribution of similarity scores
@@ -102,11 +159,11 @@ WHERE js1.similarity_score >= ?
 ORDER BY avg_similarity DESC
 LIMIT ?;
 
--- query_name: get_similarity_by_family
--- Get similarity statistics between job families
+-- query_name: get_similarity_by_function
+-- Get similarity statistics between job functions
 SELECT 
-    j1.JobFamily as source_family,
-    j2.JobFamily as target_family,
+    j1.JobFunction as source_function,
+    j2.JobFunction as target_function,
     COUNT(*) as relationship_count,
     AVG(js.similarity_score) as avg_similarity,
     MAX(js.similarity_score) as max_similarity,
@@ -114,15 +171,15 @@ SELECT
 FROM job_similarities js
 JOIN jobs j1 ON js.job_from = j1.JobProfileID
 JOIN jobs j2 ON js.job_to = j2.JobProfileID
-GROUP BY j1.JobFamily, j2.JobFamily
+GROUP BY j1.JobFunction, j2.JobFunction
 HAVING COUNT(*) >= ?
 ORDER BY avg_similarity DESC;
 
 -- query_name: find_career_clusters
 -- Find clusters of highly similar jobs (potential career groups)
 SELECT 
-    j.JobFamily,
-    j.JobFamilyGroup as job_level,
+    j.JobFunction,
+    j.ManagementLevel as management_level,
     COUNT(DISTINCT js.job_to) as similar_jobs_count,
     AVG(js.similarity_score) as avg_similarity,
     GROUP_CONCAT(DISTINCT j2.JobProfile, '; ') as similar_job_titles
@@ -130,7 +187,7 @@ FROM jobs j
 JOIN job_similarities js ON j.JobProfileID = js.job_from
 JOIN jobs j2 ON js.job_to = j2.JobProfileID
 WHERE js.similarity_score >= ?
-GROUP BY j.JobProfileID, j.JobFamily, j.JobFamilyGroup
+GROUP BY j.JobProfileID, j.JobFunction, j.ManagementLevel
 HAVING similar_jobs_count >= ?
 ORDER BY similar_jobs_count DESC, avg_similarity DESC;
 
@@ -139,39 +196,39 @@ ORDER BY similar_jobs_count DESC, avg_similarity DESC;
 SELECT 
     j.JobProfileID as id,
     j.JobProfile as job_title,
-    j.JobFamily as job_family,
-    j.JobFamilyGroup as job_level,
+    j.JobFunction as job_function,
+    j.ManagementLevel as management_level,
     COUNT(js.job_to) as total_similarities,
     COUNT(CASE WHEN js.similarity_score >= 0.6 THEN 1 END) as moderate_similarities,
     COUNT(CASE WHEN js.similarity_score >= 0.8 THEN 1 END) as high_similarities,
     AVG(js.similarity_score) as avg_similarity
 FROM jobs j
 LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from
-GROUP BY j.JobProfileID, j.JobProfile, j.JobFamily, j.JobFamilyGroup
+GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, j.ManagementLevel
 HAVING high_similarities < ?
 ORDER BY avg_similarity ASC, total_similarities ASC;
 
--- query_name: get_cross_family_similarities
--- Find highest similarities between different job families
+-- query_name: get_cross_function_similarities_detail
+-- Find highest similarities between different job functions
 SELECT 
-    j1.JobFamily as source_family,
+    j1.JobFunction as source_function,
     j1.JobProfile as source_job,
-    j2.JobFamily as target_family,
+    j2.JobFunction as target_function,
     j2.JobProfile as target_job,
     js.similarity_score
 FROM job_similarities js
 JOIN jobs j1 ON js.job_from = j1.JobProfileID
 JOIN jobs j2 ON js.job_to = j2.JobProfileID
-WHERE j1.JobFamily != j2.JobFamily
+WHERE j1.JobFunction != j2.JobFunction
     AND js.similarity_score >= ?
 ORDER BY js.similarity_score DESC
 LIMIT ?;
 
--- query_name: get_cross_family_stats
--- Get statistics for cross-family mobility analysis  
+-- query_name: get_cross_function_stats_detail
+-- Get statistics for cross-function mobility analysis  
 SELECT 
-    j1.JobFamily as source_family,
-    j2.JobFamily as target_family,
+    j1.JobFunction as source_function,
+    j2.JobFunction as target_function,
     COUNT(*) as total_pairs,
     ROUND(AVG(js.similarity_score), 3) as avg_similarity,
     ROUND(MIN(js.similarity_score), 3) as min_similarity,
@@ -180,9 +237,9 @@ SELECT
 FROM job_similarities js
 JOIN jobs j1 ON js.job_from = j1.JobProfileID
 JOIN jobs j2 ON js.job_to = j2.JobProfileID
-WHERE j1.JobFamily != j2.JobFamily
+WHERE j1.JobFunction != j2.JobFunction
     AND js.similarity_score >= 0.2
-GROUP BY j1.JobFamily, j2.JobFamily
+GROUP BY j1.JobFunction, j2.JobFunction
 HAVING COUNT(*) >= 5
 ORDER BY avg_similarity DESC
 LIMIT 10; 

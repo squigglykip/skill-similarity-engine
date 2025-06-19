@@ -94,7 +94,7 @@ window.SkillEngine = {
                 resultsElement.innerHTML = jobs.map(job => `
                     <div class="search-result-item" data-job-id="${job.id}">
                         <div class="fw-medium">${job.name}</div>
-                        <small class="text-muted">${job.family} • ${job.family_group}</small>
+                        <small class="text-muted">${job.function} • ${job.function_id}</small>
                     </div>
                 `).join('');
                 
@@ -174,7 +174,7 @@ window.SkillEngine = {
                             <div class="col-md-8">
                                 <h6 class="card-title mb-1">${sim.job_name}</h6>
                                 <small class="text-muted">
-                                    <i class="bi bi-folder me-1"></i>${sim.job_family}
+                                    <i class="bi bi-folder me-1"></i>${sim.job_function}
                                 </small>
                                 <div class="mt-2">
                                     <span class="badge badge-skill-count">

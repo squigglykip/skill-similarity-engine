@@ -9,21 +9,32 @@ Simple approach - one endpoint = one CSV file.
 import sys
 import csv
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
 
+import tqdm
+
 from .lightcast_client import LightcastSkillsClient
 from ..utils.progress import ProgressTracker, progress_context
+from ..utils.performance import get_memory_usage
+
+logger = logging.getLogger(__name__)
 
 class EndpointExtractor:
     """Simple extractor for the 5 main Lightcast API endpoints"""
     
-    def __init__(self, client: LightcastSkillsClient, output_dir: str = "data"):
+    def __init__(self, client: LightcastSkillsClient, output_dir: str = "data", use_timestamp: bool = True):
         self.client = client
         self.output_dir = Path(output_dir)
-        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.session_dir = self.output_dir / f"extraction_{self.timestamp}"
+        self.use_timestamp = use_timestamp
+        
+        if use_timestamp:
+            self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.session_dir = self.output_dir / f"extraction_{self.timestamp}"
+        else:
+            self.session_dir = self.output_dir
         
         # Create output directory
         self.session_dir.mkdir(parents=True, exist_ok=True)
@@ -272,7 +283,7 @@ class EndpointExtractor:
         # Process each compatible version (from oldest to newest to ensure latest version wins)
         reversed_versions = list(reversed(compatible_versions))
         with ProgressTracker(total=len(reversed_versions), desc="Processing Versions", show_tqdm=True) as version_tracker:
-            for i, version in enumerate(reversed_versions):  # Reverse to go oldest to newest
+            for i, version in enumerate(reversed_versions):
                 
                 try:
                     # Get skills for this version using the reference fields
@@ -285,24 +296,23 @@ class EndpointExtractor:
                     skills = response.get("data", [])
                     successful_versions += 1
                     
-                    # Process each skill with progress tracking
-                    with ProgressTracker(total=len(skills), desc=f"Version {version} Skills", show_tqdm=False, log_interval=5000) as skill_tracker:
-                        for skill in skills:
-                            skill_id = skill.get("id")
-                            if skill_id:
-                                # Add version information to the skill
-                                skill_with_version = skill.copy()
-                                skill_with_version["source_version"] = version
-                                
-                                # Store/update skill (later versions will overwrite earlier ones)
-                                all_skills_dict[skill_id] = skill_with_version
-                                total_skills_processed += 1
-                                skill_tracker.update(1)
+                    # Process skills silently - no logging during processing
+                    for skill in skills:
+                        skill_id = skill.get("id")
+                        if skill_id:
+                            # Add version information to the skill
+                            skill_with_version = skill.copy()
+                            skill_with_version["source_version"] = version
+                            
+                            # Store/update skill (later versions will overwrite earlier ones)
+                            all_skills_dict[skill_id] = skill_with_version
+                            total_skills_processed += 1
                     
+                    # Update progress bar once per version
                     version_tracker.update(1)
                     
                 except Exception as e:
-                    print(f"  ❌ Error processing version {version}: {e}")
+                    tqdm.tqdm.write(f"  ❌ Error processing version {version}: {e}")
                     version_tracker.update(1)  # Still update progress
                     continue
         

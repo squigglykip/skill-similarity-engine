@@ -510,12 +510,16 @@ class JobArchitectureLoader:
             elif 'title' in row and pd.notna(row['title']):
                 title = row['title']  # Legacy fallback
                 
-            # For department, try comprehensive schema (JobFamily or JobFamilyGroup)
+            # For department, try comprehensive schema (JobFunction, JobFunctionID, or legacy JobFamily/JobFamilyGroup)
             department = "Unknown"  # Default value
-            if 'JobFamily' in row and pd.notna(row['JobFamily']):
-                department = row['JobFamily']
+            if 'JobFunction' in row and pd.notna(row['JobFunction']):
+                department = row['JobFunction']
+            elif 'JobFunctionID' in row and pd.notna(row['JobFunctionID']):
+                department = row['JobFunctionID']
+            elif 'JobFamily' in row and pd.notna(row['JobFamily']):
+                department = row['JobFamily']  # Legacy compatibility
             elif 'JobFamilyGroup' in row and pd.notna(row['JobFamilyGroup']):
-                department = row['JobFamilyGroup']
+                department = row['JobFamilyGroup']  # Legacy compatibility
             elif department_field in row and pd.notna(row[department_field]):
                 department = row[department_field]
             elif 'Org Unit Name' in row and pd.notna(row['Org Unit Name']):

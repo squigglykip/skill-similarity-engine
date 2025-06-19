@@ -2381,12 +2381,12 @@
         dropdown.classList.remove('hidden');
     }
     
-    function selectJob(jobId, jobTitle, jobFamily) {
+    function selectJob(jobId, jobTitle, jobFunction) {
         if (!selectedJobs.has(jobId)) {
             selectedJobs.set(jobId, {
                 id: jobId,
                 title: jobTitle,
-                family: jobFamily
+                function: jobFunction
             });
             
             updateSelectedJobsDisplay();

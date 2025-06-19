@@ -199,8 +199,9 @@ class SkillsLibraryUpdater:
                 
                 # Step 2: Initialize extractor
                 extractor = EndpointExtractor(
-                    client=self.client,
-                    output_dir=str(self.skills_library_dir.parent)
+                    client=self.client,  # type: ignore[arg-type] # guaranteed non-None by assertion
+                    output_dir=str(self.skills_library_dir),
+                    use_timestamp=False
                 )
                 tracker.update(1)
                 
@@ -208,8 +209,8 @@ class SkillsLibraryUpdater:
                 extractor.run_extraction()
                 tracker.update(1)
                 
-                # Step 4: Move files
-                self._move_extracted_files(extractor.session_dir)
+                # Step 4: Files are already in the right place (no move needed)
+                # Since we output directly to skills_library, no file moving required
                 tracker.update(1)
             
             print(f"✅ Skills library updated successfully!")
@@ -229,6 +230,17 @@ class SkillsLibraryUpdater:
         
         print(f"📁 Creating backup: {backup_dir}")
         shutil.copytree(self.skills_library_dir, backup_dir)
+        
+        # Clear existing files instead of removing the entire directory (Windows-friendly)
+        try:
+            for item in self.skills_library_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item)
+        except Exception as e:
+            print(f"⚠️  Warning: Could not clear some files in skills_library: {e}")
+            print("   This may cause file conflicts but won't prevent the update.")
     
     def _move_extracted_files(self, extraction_dir: Path):
         """Move extracted files to the skills library directory"""

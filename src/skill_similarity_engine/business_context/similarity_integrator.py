@@ -216,10 +216,6 @@ class SimilarityIntegrator:
                         
                         # Update progress bar
                         progress.update(1)
-                        
-                        # Log progress periodically
-                        rows_processed = min(i + chunk_size, total_rows)
-                        logger.info(f"Progress: {rows_processed:,}/{total_rows:,} rows ({rows_processed/total_rows*100:.1f}%)")
                 
                 # Verify final row count
                 cursor = conn.execute("SELECT COUNT(*) FROM job_similarities")

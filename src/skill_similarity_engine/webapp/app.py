@@ -59,7 +59,7 @@ def create_app(config=None):
         
         # Use a simplified version for samples with correct column names
         cursor = db.execute("""
-            SELECT JobProfileID as id, JobProfile as job_title, JobFamily as job_family, JobFamilyGroup as job_level 
+            SELECT JobProfileID as id, JobProfile as job_title, JobFunction as job_function, JobFunctionID as job_function_id 
             FROM jobs 
             ORDER BY JobProfile 
             LIMIT ?
@@ -221,21 +221,21 @@ def create_app(config=None):
         try:
             db = get_db()
             
-            # Get job families for filter dropdown
-            families_query = queries.get('jobs', 'get_job_families')
-            families = db.execute(families_query).fetchall()
+            # Get job functions for filter dropdown
+            functions_query = queries.get('jobs', 'get_job_functions')
+            functions = db.execute(functions_query).fetchall()
             
             # Get sample jobs for initial display
             sample_jobs = get_sample_jobs(20)
             
             return render_template('job_explorer.html', 
-                                 job_families=families,
+                                 job_functions=functions,
                                  jobs=sample_jobs)
         except Exception as e:
             print(f"Error loading job search: {e}")
             sample_jobs = get_sample_jobs(20)
             return render_template('job_explorer.html', 
-                                 job_families=[], 
+                                 job_functions=[], 
                                  jobs=sample_jobs)
 
     @app.route('/similarity-results')
@@ -305,8 +305,8 @@ def create_app(config=None):
         return jsonify([{
             'id': job['id'],
             'title': job['job_title'],
-            'family': job['job_family'],
-            'level': job['job_level']
+            'function': job['job_function'],
+            'function_id': job['job_function_id']
         } for job in jobs])
 
     @app.route('/api/job-details/<job_id>')
@@ -317,7 +317,7 @@ def create_app(config=None):
             
             # Get complete job information with all 16 columns
             job_query = """
-            SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup, JobID, Job,
+            SELECT JobProfileID, JobProfile, JobFunctionID, JobFunction, JobID, Job,
                    ProfileTitleSuffix, ManagementLevel, JobSubFunctionID, JobSubFunction,
                    JobCategoryID, JobCategory, Customer_Facing, is_Banker, 
                    Executive_Leadership_Group, Accountability_Scope
@@ -359,8 +359,8 @@ def create_app(config=None):
                 'job': {
                     'id': job['JobProfileID'],
                     'title': job['JobProfile'],
-                    'family': job['JobFamily'],
-                    'group': job['JobFamilyGroup'],
+                    'function': job['JobFunction'],
+                    'function_id': job['JobFunctionID'],
                     'job_id': job['JobID'],
                     'job_name': job['Job'],
                     'profile_title_suffix': job['ProfileTitleSuffix'],
@@ -453,8 +453,8 @@ def create_app(config=None):
         return jsonify([{
             'job_id': sim['id'],
             'job_title': sim['job_title'],
-            'job_family': sim['job_family'],
-            'job_level': sim['job_level'],
+            'job_function': sim['job_function'],
+            'job_function_id': sim['job_function_id'],
             'similarity_score': round(sim['similarity_score'], 3),
             'similarity_category': sim['similarity_category']
         } for sim in similarities])
@@ -467,7 +467,7 @@ def create_app(config=None):
             
             # Get all 12 career pathways for this job from the career_pathways table
             pathways_query = """
-            SELECT cp.similarity_score, j.JobProfile as job_title, j.JobFamily as job_family
+            SELECT cp.similarity_score, j.JobProfile as job_title, j.JobFunction as job_function
             FROM career_pathways cp
             JOIN jobs j ON cp.target_job_id = j.JobProfileID
             WHERE cp.source_job_id = ?
@@ -479,7 +479,7 @@ def create_app(config=None):
             return jsonify([{
                 'similarity_score': round(pathway['similarity_score'], 3),
                 'job_title': pathway['job_title'],
-                'job_family': pathway['job_family']
+                'job_function': pathway['job_function']
             } for pathway in pathways])
             
         except Exception as e:
@@ -797,11 +797,11 @@ def create_app(config=None):
             db = get_db()
             
             if query:
-                # Search jobs by JobProfileID, title, or family
+                # Search jobs by JobProfileID, title, or function
                 search_query = """
-                SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup
+                SELECT JobProfileID, JobProfile, JobFunctionID, JobFunction
                 FROM jobs 
-                WHERE JobProfileID LIKE ? OR JobProfile LIKE ? OR JobFamily LIKE ?
+                WHERE JobProfileID LIKE ? OR JobProfile LIKE ? OR JobFunction LIKE ?
                 ORDER BY 
                     CASE 
                         WHEN JobProfileID LIKE ? THEN 1 
@@ -817,11 +817,11 @@ def create_app(config=None):
             else:
                 # Return popular/sample jobs when no query
                 sample_query = """
-                SELECT j.JobProfileID, j.JobProfile, j.JobFamily, j.JobFamilyGroup,
+                SELECT j.JobProfileID, j.JobProfile, j.JobFunctionID, j.JobFunction,
                        COUNT(js.job_to) as similarity_count
                 FROM jobs j
                 LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from
-                GROUP BY j.JobProfileID, j.JobProfile, j.JobFamily, j.JobFamilyGroup
+                GROUP BY j.JobProfileID, j.JobProfile, j.JobFunctionID, j.JobFunction
                 ORDER BY similarity_count DESC, j.JobProfile
                 LIMIT ?
                 """
@@ -830,8 +830,8 @@ def create_app(config=None):
             return jsonify([{
                 'id': job['JobProfileID'],
                 'title': job['JobProfile'],
-                'family': job['JobFamily'],
-                'group': job['JobFamilyGroup'],
+                'function': job['JobFunction'],
+                'function_id': job['JobFunctionID'],
                 'label': f"{job['JobProfile']} ({job['JobProfileID']})"
             } for job in jobs])
             
@@ -854,43 +854,43 @@ def create_app(config=None):
                 'tree': None
             })
 
-    @app.route('/api/jobs-in-family/<family>')
-    def api_jobs_in_family(family):
-        """API endpoint to get all jobs in a specific family for selection."""
+    @app.route('/api/jobs-in-function/<function>')
+    def api_jobs_in_function(function):
+        """API endpoint to get all jobs in a specific function for selection."""
         try:
             db = get_db()
             jobs_query = """
-            SELECT JobProfileID, JobProfile, JobFamilyGroup 
+            SELECT JobProfileID, JobProfile, JobFunctionID 
             FROM jobs 
-            WHERE JobFamily = ? 
+            WHERE JobFunction = ? 
             ORDER BY JobProfile
             """
-            jobs = db.execute(jobs_query, (family,)).fetchall()
+            jobs = db.execute(jobs_query, (function,)).fetchall()
             
             return jsonify([{
                 'id': job['JobProfileID'],
                 'title': job['JobProfile'],
-                'group': job['JobFamilyGroup']
+                'function_id': job['JobFunctionID']
             } for job in jobs])
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/job-families')
-    def api_job_families():
-        """API endpoint to get all job families using organised SQL."""
+    @app.route('/api/job-functions')
+    def api_job_functions():
+        """API endpoint to get all job functions using organised SQL."""
         from .sql import queries
         
         try:
             db = get_db()
-            families_query = queries.get('jobs', 'get_job_families')
-            families = db.execute(families_query).fetchall()
+            functions_query = queries.get('jobs', 'get_job_functions')
+            functions = db.execute(functions_query).fetchall()
             
             return jsonify([{
-                'name': family['job_family'],
-                'job_count': family['job_count'],
-                'high_similarity_jobs': family['high_similarity_jobs']
-            } for family in families])
+                'name': function['job_function'],
+                'job_count': function['job_count'],
+                'high_similarity_jobs': function['high_similarity_jobs']
+            } for function in functions])
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -1148,7 +1148,7 @@ def create_app(config=None):
             SELECT 
                 j.JobProfileID,
                 j.JobProfile,
-                j.JobFamily,
+                j.JobFunction,
                 (j.JobProfile || ' (' || j.JobProfileID || ')') as job_profile,
                 p."Position Name" as position_name,
                 p.Division,
@@ -1163,7 +1163,7 @@ def create_app(config=None):
             FROM jobs j
             LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
             WHERE j.JobProfileID IN ({placeholders})
-            GROUP BY j.JobProfileID, j.JobProfile, j.JobFamily, p."Position Name", p.Division, p.Business_Unit, p.Team, p."Salary Group", p."Employee Group", p.Location, p.Rg
+            GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, p."Position Name", p.Division, p.Business_Unit, p.Team, p."Salary Group", p."Employee Group", p.Location, p.Rg
             ORDER BY j.JobProfile, p.Division, p.Business_Unit, position_count DESC
             """
             
@@ -1181,7 +1181,7 @@ def create_app(config=None):
                 if job_id not in jobs_analysis:
                     jobs_analysis[job_id] = {
                         'job_title': row['JobProfile'],
-                        'job_family': row['JobFamily'],
+                        'job_function': row['JobFunction'],
                         'total_positions': 0,
                         'divisions': {},
                         'locations': {},
@@ -1445,7 +1445,7 @@ def create_app(config=None):
             db = get_db()
             
             # Get job details
-            job_query = "SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup FROM jobs WHERE JobProfileID = ?"
+            job_query = "SELECT JobProfileID, JobProfile, JobFunctionID, JobFunction FROM jobs WHERE JobProfileID = ?"
             from_job = db.execute(job_query, (from_job_id,)).fetchone()
             to_job = db.execute(job_query, (to_job_id,)).fetchone()
             
@@ -1534,10 +1534,10 @@ def create_app(config=None):
             writer.writerow(['TRANSITION SUMMARY'])
             writer.writerow(['From Job ID:', from_job_id])
             writer.writerow(['From Job Title:', from_job['JobProfile']])
-            writer.writerow(['From Job Family:', from_job['JobFamily']])
+            writer.writerow(['From Job Function:', from_job['JobFunction']])
             writer.writerow(['To Job ID:', to_job_id])
             writer.writerow(['To Job Title:', to_job['JobProfile']])
-            writer.writerow(['To Job Family:', to_job['JobFamily']])
+            writer.writerow(['To Job Function:', to_job['JobFunction']])
             writer.writerow([])
             
             # Write key metrics
@@ -1672,7 +1672,7 @@ def create_app(config=None):
             
             # Get job details
             jobs_query = f"""
-            SELECT JobProfileID, JobProfile, JobFamily, JobFamilyGroup
+            SELECT JobProfileID, JobProfile, JobFunctionID, JobFunction
             FROM jobs 
             WHERE JobProfileID IN ({placeholders})
             ORDER BY JobProfile
@@ -1708,14 +1708,14 @@ def create_app(config=None):
             
             # Write job profiles summary
             writer.writerow(['JOB PROFILES ANALYZED'])
-            writer.writerow(['Job ID', 'Job Title', 'Job Family', 'Job Family Group'])
+            writer.writerow(['Job ID', 'Job Title', 'Job Function ID', 'Job Function'])
             
             for job in jobs_data:
                 writer.writerow([
                     job['JobProfileID'],
                     job['JobProfile'],
-                    job['JobFamily'],
-                    job['JobFamilyGroup'] or 'N/A'
+                    job['JobFunctionID'],
+                    job['JobFunction'] or 'N/A'
                 ])
             
             writer.writerow([])
@@ -1723,7 +1723,7 @@ def create_app(config=None):
             # Write detailed position data
             writer.writerow(['DETAILED POSITION DATA'])
             writer.writerow([
-                'Job ID', 'Job Title', 'Job Family', 'Position Number', 'Position Name',
+                'Job ID', 'Job Title', 'Job Function', 'Position Number', 'Position Name',
                 'Employee Number', 'Division', 'Business Unit', 'Team', 'Salary Group',
                 'Employee Group', 'Location', 'Region'
             ])
@@ -1732,7 +1732,7 @@ def create_app(config=None):
                 writer.writerow([
                     row['JobProfileID'],
                     row['JobProfile'],
-                    row['JobFamily'],
+                    row['JobFunction'],
                     row['Position Number'] or 'N/A',
                     row['Position Name'] or 'N/A',
                     row['Employee Number'] or 'N/A',

@@ -297,35 +297,39 @@ class DataLoader:
             # Read CSV with proper data types
             df = pd.read_csv(file_path)
             
-            # Enhanced column mapping for 16-column schema
-            column_mapping = {
-                # Core 6 columns (backward compatibility)
+            # Define flexible column mapping for job architecture data
+            # This supports both old schema (6 columns) and new schema (16 columns)
+            flexible_mapping = {
                 'JobProfileID': 'JobProfileID',
                 'JobProfile': 'JobProfile', 
                 'JobID': 'JobID',
                 'Job': 'Job',
-                'JobFamily': 'JobFamily',
-                'JobFamilyGroup': 'JobFamilyGroup',
-                
-                # Enhanced 10 columns (Phase 2 additions)
                 'ProfileTitleSuffix': 'ProfileTitleSuffix',
                 'ManagementLevel': 'ManagementLevel',
                 'JobSubFunctionID': 'JobSubFunctionID',
                 'JobSubFunction': 'JobSubFunction',
+                'JobFunctionID': 'JobFunctionID',
+                'JobFunction': 'JobFunction',
                 'JobCategoryID': 'JobCategoryID',
                 'JobCategory': 'JobCategory',
-                'Customer Facing': 'Customer_Facing',  # Note: space in CSV, underscore in DB
-                'is Banker': 'is_Banker',              # Note: space in CSV, underscore in DB
+                'Customer Facing': 'Customer_Facing',
+                'is Banker': 'is_Banker',
                 'Executive Leadership Group': 'Executive_Leadership_Group',
                 'Accountability Scope': 'Accountability_Scope'
             }
             
+            # Alternative mappings for legacy compatibility
+            if 'JobFamily' in df.columns:
+                flexible_mapping['JobFamily'] = 'JobFamily'  # Legacy compatibility
+            if 'JobFamilyGroup' in df.columns:
+                flexible_mapping['JobFamilyGroup'] = 'JobFamilyGroup'  # Legacy compatibility
+            
             # Select available columns (support both old 6-column and new 14-column files)
-            available_columns = [col for col in column_mapping.keys() if col in df.columns]
-            df_mapped = df[available_columns].rename(columns={k: column_mapping[k] for k in available_columns})
+            available_columns = [col for col in flexible_mapping.keys() if col in df.columns]
+            df_mapped = df[available_columns].rename(columns={k: flexible_mapping[k] for k in available_columns})
             
             # Add missing columns with default values for backward compatibility
-            required_columns = list(column_mapping.values())
+            required_columns = list(flexible_mapping.values())
             for col in required_columns:
                 if col not in df_mapped.columns:
                     df_mapped[col] = ''  # Default empty string for missing columns

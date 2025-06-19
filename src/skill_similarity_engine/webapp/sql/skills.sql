@@ -36,9 +36,9 @@ JOIN jobs j ON js.job_id = j.id
 CROSS JOIN (
     SELECT COUNT(*) as total_jobs 
     FROM jobs 
-    WHERE job_family = ?
+    WHERE JobFunction = ?
 ) family_jobs
-WHERE j.job_family = ?
+WHERE j.JobFunction = ?
 GROUP BY s.id, s.skill_name, s.skill_category, s.skill_subcategory, family_jobs.total_jobs
 ORDER BY jobs_count DESC, avg_proficiency_score DESC
 LIMIT ?;
@@ -95,9 +95,9 @@ SELECT
     s.skill_name,
     s.skill_category,
     s.skill_subcategory,
-    COUNT(DISTINCT j.job_family) as families_count,
-    COUNT(DISTINCT js.job_id) as jobs_count,
-    GROUP_CONCAT(DISTINCT j.job_family) as families,
+    COUNT(DISTINCT j.JobFunction) as functions_count,
+    COUNT(DISTINCT js.JobProfileID) as jobs_count,
+    GROUP_CONCAT(DISTINCT j.JobFunction) as functions,
     AVG(CASE 
         WHEN js.proficiency_level = 'Beginner' THEN 1
         WHEN js.proficiency_level = 'Intermediate' THEN 2

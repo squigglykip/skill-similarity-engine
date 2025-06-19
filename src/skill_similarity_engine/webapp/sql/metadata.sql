@@ -30,33 +30,33 @@ SELECT 'Schema Metadata', COUNT(*) FROM schema_metadata;
 SELECT 
     'jobs' as table_name,
     COUNT(*) as record_count,
-    COUNT(DISTINCT job_family) as distinct_families,
-    MIN(id) as min_id,
-    MAX(id) as max_id
+    COUNT(DISTINCT JobFunction) as distinct_functions,
+    MIN(JobProfileID) as min_id,
+    MAX(JobProfileID) as max_id
 FROM jobs
 UNION ALL
 SELECT 
     'skills',
     COUNT(*),
-    COUNT(DISTINCT skill_category),
-    MIN(id),
-    MAX(id)
+    COUNT(DISTINCT Category),
+    MIN(Skill_ID),
+    MAX(Skill_ID)
 FROM skills
 UNION ALL
 SELECT 
     'job_skills',
     COUNT(*),
-    COUNT(DISTINCT job_id),
-    MIN(job_id),
-    MAX(job_id)
+    COUNT(DISTINCT JobProfileID),
+    MIN(JobProfileID),
+    MAX(JobProfileID)
 FROM job_skills
 UNION ALL
 SELECT 
     'job_similarities',
     COUNT(*),
-    COUNT(DISTINCT job_id),
-    MIN(job_id),
-    MAX(job_id)
+    COUNT(DISTINCT job_from),
+    MIN(job_from),
+    MAX(job_from)
 FROM job_similarities
 UNION ALL
 SELECT 
@@ -72,7 +72,7 @@ FROM positions;
 SELECT 
     'Job Completeness' as metric,
     ROUND(
-        (COUNT(CASE WHEN job_title IS NOT NULL AND job_family IS NOT NULL THEN 1 END) * 100.0) / COUNT(*), 
+        (COUNT(CASE WHEN JobProfile IS NOT NULL AND JobFunction IS NOT NULL THEN 1 END) * 100.0) / COUNT(*), 
         2
     ) as percentage
 FROM jobs
@@ -80,7 +80,7 @@ UNION ALL
 SELECT 
     'Skills Completeness',
     ROUND(
-        (COUNT(CASE WHEN skill_name IS NOT NULL AND skill_category IS NOT NULL THEN 1 END) * 100.0) / COUNT(*), 
+        (COUNT(CASE WHEN Skill_Name IS NOT NULL AND Category IS NOT NULL THEN 1 END) * 100.0) / COUNT(*), 
         2
     )
 FROM skills
@@ -88,7 +88,7 @@ UNION ALL
 SELECT 
     'Jobs with Skills',
     ROUND(
-        (COUNT(DISTINCT job_id) * 100.0) / (SELECT COUNT(*) FROM jobs), 
+        (COUNT(DISTINCT JobProfileID) * 100.0) / (SELECT COUNT(*) FROM jobs), 
         2
     )
 FROM job_skills
@@ -96,7 +96,7 @@ UNION ALL
 SELECT 
     'Jobs with Similarities',
     ROUND(
-        (COUNT(DISTINCT job_id) * 100.0) / (SELECT COUNT(*) FROM jobs), 
+        (COUNT(DISTINCT job_from) * 100.0) / (SELECT COUNT(*) FROM jobs), 
         2
     )
 FROM job_similarities;
@@ -127,38 +127,38 @@ ORDER BY avg_score DESC;
 -- query_name: get_skills_distribution
 -- Get distribution of skills across categories
 SELECT 
-    skill_category,
+    Category as skill_category,
     COUNT(*) as skill_count,
-    COUNT(DISTINCT skill_subcategory) as subcategories,
-    COUNT(DISTINCT js.job_id) as jobs_using_category,
+    COUNT(DISTINCT Subcategory) as subcategories,
+    COUNT(DISTINCT js.JobProfileID) as jobs_using_category,
     ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM skills), 2) as percentage_of_skills
 FROM skills s
-LEFT JOIN job_skills js ON s.id = js.skills_skill_id
-GROUP BY skill_category
+LEFT JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+GROUP BY Category
 ORDER BY skill_count DESC;
 
--- query_name: get_job_family_stats
--- Get statistics for each job family
+-- query_name: get_job_function_stats
+-- Get statistics for each job function
 SELECT 
-    job_family,
+    JobFunction as job_function,
     COUNT(*) as job_count,
-    COUNT(DISTINCT job_level) as level_variations,
-    COUNT(DISTINCT job_cluster) as cluster_variations,
+    COUNT(DISTINCT ManagementLevel) as level_variations,
+    COUNT(DISTINCT JobCategory) as category_variations,
     AVG(skill_counts.skill_count) as avg_skills_per_job,
     AVG(similarity_counts.similarity_count) as avg_similarities_per_job
 FROM jobs j
 LEFT JOIN (
-    SELECT job_id, COUNT(*) as skill_count
+    SELECT JobProfileID, COUNT(*) as skill_count
     FROM job_skills
-    GROUP BY job_id
-) skill_counts ON j.id = skill_counts.job_id
+    GROUP BY JobProfileID
+) skill_counts ON j.JobProfileID = skill_counts.JobProfileID
 LEFT JOIN (
-    SELECT job_id, COUNT(*) as similarity_count
+    SELECT job_from, COUNT(*) as similarity_count
     FROM job_similarities
     WHERE similarity_score >= 0.6
-    GROUP BY job_id
-) similarity_counts ON j.id = similarity_counts.job_id
-GROUP BY job_family
+    GROUP BY job_from
+) similarity_counts ON j.JobProfileID = similarity_counts.job_from
+GROUP BY JobFunction
 ORDER BY job_count DESC;
 
 -- query_name: get_schema_metadata
@@ -228,15 +228,15 @@ SELECT
     'Referential Integrity',
     CASE WHEN (
         SELECT COUNT(*) FROM job_skills js 
-        LEFT JOIN jobs j ON js.job_id = j.id 
-        WHERE j.id IS NULL
+        LEFT JOIN jobs j ON js.JobProfileID = j.JobProfileID 
+        WHERE j.JobProfileID IS NULL
     ) = 0 THEN 'OK' ELSE 'ERROR' END,
     'Foreign key relationships are valid'
 UNION ALL
 SELECT 
     'Data Completeness',
     CASE WHEN (
-        SELECT COUNT(*) FROM jobs WHERE job_title IS NULL OR job_family IS NULL
+        SELECT COUNT(*) FROM jobs WHERE JobProfile IS NULL OR JobFunction IS NULL
     ) = 0 THEN 'OK' ELSE 'WARNING' END,
     'Core fields are populated';
 
@@ -246,25 +246,25 @@ SELECT
     'Average Skills per Job' as metric,
     ROUND(AVG(skill_count), 2) as value
 FROM (
-    SELECT job_id, COUNT(*) as skill_count
+    SELECT JobProfileID, COUNT(*) as skill_count
     FROM job_skills
-    GROUP BY job_id
+    GROUP BY JobProfileID
 )
 UNION ALL
 SELECT 
     'Average Similarities per Job',
     ROUND(AVG(similarity_count), 2)
 FROM (
-    SELECT job_id, COUNT(*) as similarity_count
+    SELECT job_from, COUNT(*) as similarity_count
     FROM job_similarities
     WHERE similarity_score >= 0.5
-    GROUP BY job_id
+    GROUP BY job_from
 )
 UNION ALL
 SELECT 
     'Similarity Coverage (%)',
     ROUND(
-        (COUNT(DISTINCT job_id) * 100.0) / (SELECT COUNT(*) FROM jobs), 
+        (COUNT(DISTINCT job_from) * 100.0) / (SELECT COUNT(*) FROM jobs), 
         2
     )
 FROM job_similarities
@@ -272,7 +272,7 @@ UNION ALL
 SELECT 
     'Skills Coverage (%)',
     ROUND(
-        (COUNT(DISTINCT job_id) * 100.0) / (SELECT COUNT(*) FROM jobs), 
+        (COUNT(DISTINCT job_from) * 100.0) / (SELECT COUNT(*) FROM jobs), 
         2
     )
 FROM job_skills;
@@ -306,7 +306,7 @@ FROM career_pathways
 UNION ALL
 SELECT 
     'job_families_count',
-    COUNT(DISTINCT JobFamily)
+    COUNT(DISTINCT JobFunction)
 FROM jobs
 UNION ALL
 SELECT 
@@ -314,22 +314,22 @@ SELECT
     COUNT(DISTINCT Division)
 FROM positions;
 
--- query_name: get_top_job_families
--- Get top job families with counts for homepage dashboard
+-- query_name: get_top_job_functions
+-- Get top job functions with counts for homepage dashboard
 SELECT 
-    JobFamily as job_family,
+    JobFunction as job_function,
     COUNT(*) as job_count
 FROM jobs 
-WHERE JobFamily IS NOT NULL
-GROUP BY JobFamily
+WHERE JobFunction IS NOT NULL
+GROUP BY JobFunction
 ORDER BY job_count DESC
 LIMIT 10;
 
 -- query_name: get_career_pathway_analysis
--- Career pathway analysis by job family for executive dashboard
+-- Career pathway analysis by job function for executive dashboard
 SELECT 
-    j1.JobFamily as source_family,
-    j2.JobFamily as target_family,
+    j1.JobFunction as source_function,
+    j2.JobFunction as target_function,
     cp.career_move_type,
     COUNT(*) as pathway_count,
     ROUND(AVG(cp.similarity_score), 3) as avg_similarity,
@@ -338,14 +338,14 @@ FROM career_pathways cp
 JOIN jobs j1 ON cp.source_job_id = j1.JobProfileID
 JOIN jobs j2 ON cp.target_job_id = j2.JobProfileID
 WHERE cp.similarity_rank <= 5  -- Focus on top pathways
-GROUP BY j1.JobFamily, j2.JobFamily, cp.career_move_type
+GROUP BY j1.JobFunction, j2.JobFunction, cp.career_move_type
 HAVING pathway_count >= 3
 ORDER BY pathway_count DESC;
 
 -- query_name: get_mobility_hubs
--- Most connected job families (mobility hubs) analysis
+-- Most connected job functions (mobility hubs) analysis
 SELECT 
-    j.JobFamily,
+    j.JobFunction,
     COUNT(DISTINCT CASE WHEN cp.source_job_id = j.JobProfileID THEN cp.target_job_id END) as outbound_pathways,
     COUNT(DISTINCT CASE WHEN cp.target_job_id = j.JobProfileID THEN cp.source_job_id END) as inbound_pathways,
     (COUNT(DISTINCT CASE WHEN cp.source_job_id = j.JobProfileID THEN cp.target_job_id END) + 
@@ -359,7 +359,7 @@ SELECT
 FROM jobs j
 LEFT JOIN career_pathways cp ON j.JobProfileID = cp.source_job_id OR j.JobProfileID = cp.target_job_id
 WHERE cp.similarity_rank <= 3
-GROUP BY j.JobFamily
+GROUP BY j.JobFunction
 ORDER BY total_connectivity DESC
 LIMIT 10;
 
@@ -367,7 +367,7 @@ LIMIT 10;
 -- Summary metrics for career pathway insights dashboard
 SELECT 
     'total_pathway_combinations' as metric,
-    COUNT(DISTINCT j1.JobFamily || '→' || j2.JobFamily) as value
+    COUNT(DISTINCT j1.JobFunction || '→' || j2.JobFunction) as value
 FROM career_pathways cp
 JOIN jobs j1 ON cp.source_job_id = j1.JobProfileID
 JOIN jobs j2 ON cp.target_job_id = j2.JobProfileID
@@ -393,7 +393,7 @@ FROM (
     FROM jobs j
     LEFT JOIN career_pathways cp ON j.JobProfileID = cp.source_job_id OR j.JobProfileID = cp.target_job_id
     WHERE cp.similarity_rank <= 3
-    GROUP BY j.JobFamily
+    GROUP BY j.JobFunction
 );
 
 -- query_name: get_similarity_distribution

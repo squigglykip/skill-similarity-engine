@@ -6,7 +6,7 @@ This script creates realistic dummy job architecture data matching the comprehen
 from job_arch_schema.json. Used for development when real data cannot
 be transferred to personal devices.
 
-Based on updated schema: 3,098 job profile records with 14 columns:
+Based on updated schema: 3,098 job profile records with 16 columns:
 - JobID: Related job identifier (384 unique values)
 - Job: Human-readable job name (384 unique values)
 - JobProfileID: Unique identifier (3,098 unique values, 100% unique)
@@ -15,12 +15,17 @@ Based on updated schema: 3,098 job profile records with 14 columns:
 - ManagementLevel: Group level classification (8 categories: Group 1-7, Group NA)
 - JobSubFunctionID: Job sub-function identifier (105 unique values)
 - JobSubFunction: Job sub-function name (105 unique values)
+- JobFunctionID: Job function identifier (~20-25 unique values)
+- JobFunction: Job function name (~20-25 unique values)
 - JobCategoryID: Job category identifier (4 categories: JC1, JC2, JC3, JC10)
 - JobCategory: Job category name (4 categories)
 - Customer Facing: Customer interaction flag (Customer Facing/Non-Customer Facing)
 - is Banker: Banking role flag (Banker/Non-Banker)
 - Executive Leadership Group: Executive flag (mostly null, 195 records have value)
 - Accountability Scope: Accountability type (Direct/Supports, mostly null)
+
+NEW: JobFunction and JobFunctionID are hierarchically above JobSubFunction,
+with multiple subfunctions mapping to each function (fewer unique values).
 """
 
 import pandas as pd
@@ -217,6 +222,186 @@ EXECUTIVE_LEADERSHIP_GROUP = 'Executive Leadership Group'
 # Accountability Scope (mostly null, 164 Supports + 117 Direct)
 ACCOUNTABILITY_SCOPE_OPTIONS = ['Direct', 'Supports']
 
+# Job Functions (higher level than subfunctions, ~20-25 unique values)
+JOB_FUNCTIONS = {
+    'JF001': 'Technology & Engineering',
+    'JF002': 'Risk Management',
+    'JF003': 'Finance & Treasury',
+    'JF004': 'Customer Relations',
+    'JF005': 'Operations & Processing',
+    'JF006': 'Executive Leadership',
+    'JF007': 'Human Resources',
+    'JF008': 'Legal & Compliance',
+    'JF009': 'Marketing & Communications',
+    'JF010': 'Business Development',
+    'JF011': 'Investment Management',
+    'JF012': 'Banking Services',
+    'JF013': 'Research & Analysis',
+    'JF014': 'Project Management',
+    'JF015': 'Audit & Assurance',
+    'JF016': 'Data & Analytics',
+    'JF017': 'Security & Fraud',
+    'JF018': 'Support Services',
+    'JF019': 'Strategy & Planning',
+    'JF020': 'Training & Development',
+    'JF021': 'Quality Management',
+    'JF022': 'Facilities & Administration'
+}
+
+# Hierarchical mapping: JobSubFunction -> JobFunctionID
+SUBFUNCTION_TO_FUNCTION_MAPPING = {
+    # Technology & Engineering
+    'Technology Infrastructure': 'JF001',
+    'Data & Analytics': 'JF016',
+    'Software Engineering': 'JF001',
+    'Systems Analysis': 'JF001',
+    'Database Administration': 'JF001',
+    'Network Administration': 'JF001',
+    'Application Support': 'JF001',
+    'Help Desk': 'JF001',
+    'Technical Support': 'JF001',
+    'Cloud Computing': 'JF001',
+    'Machine Learning': 'JF016',
+    'Artificial Intelligence': 'JF016',
+    'Business Intelligence': 'JF016',
+    
+    # Risk Management
+    'Risk Management': 'JF002',
+    'Credit Risk Assessment': 'JF002',
+    'Operational Risk': 'JF002',
+    'Market Risk': 'JF002',
+    'Model Validation': 'JF002',
+    'Stress Testing': 'JF002',
+    'Basel Compliance': 'JF002',
+    'Regulatory Capital': 'JF002',
+    
+    # Finance & Treasury
+    'Corporate Finance': 'JF003',
+    'Treasury Operations': 'JF003',
+    'Liquidity Management': 'JF003',
+    'Financial Planning': 'JF003',
+    'Budgeting & Forecasting': 'JF003',
+    'Management Accounting': 'JF003',
+    'Financial Reporting': 'JF003',
+    'Tax Services': 'JF003',
+    'Quantitative Analysis': 'JF013',
+    'Statistical Analysis': 'JF013',
+    
+    # Customer Relations
+    'Customer Service Operations': 'JF004',
+    'Customer Experience': 'JF004',
+    'Relationship Management': 'JF004',
+    'Account Management': 'JF004',
+    'Sales': 'JF004',
+    
+    # Banking Services
+    'Wealth Management': 'JF012',
+    'Business Banking': 'JF012',
+    'Digital Banking': 'JF012',
+    'Retail Banking': 'JF012',
+    'Private Banking': 'JF012',
+    'Investment Banking': 'JF012',
+    'Corporate Banking': 'JF012',
+    
+    # Operations & Processing
+    'Payment Systems': 'JF005',
+    'Settlement Operations': 'JF005',
+    'Trade Finance': 'JF005',
+    'Foreign Exchange': 'JF005',
+    'Derivatives Trading': 'JF005',
+    'Fixed Income & Equities Trading': 'JF005',
+    'Custody': 'JF005',
+    'Investment Operations': 'JF005',
+    'Fund Administration': 'JF005',
+    
+    # Investment Management
+    'Asset Management': 'JF011',
+    'Portfolio Management': 'JF011',
+    'Superannuation': 'JF011',
+    'Insurance Services': 'JF011',
+    'Actuarial Services': 'JF011',
+    'Pension Administration': 'JF011',
+    'Trustee Services': 'JF011',
+    'Fiduciary Services': 'JF011',
+    
+    # Research & Analysis
+    'Equity Research': 'JF013',
+    'Fixed Income Research': 'JF013',
+    'Economic Research': 'JF013',
+    
+    # Legal & Compliance
+    'Compliance & Regulatory': 'JF008',
+    'Legal Services': 'JF008',
+    'Anti-Money Laundering': 'JF008',
+    'Know Your Customer': 'JF008',
+    'Regulatory Reporting': 'JF008',
+    'Financial Crime': 'JF008',
+    
+    # Security & Fraud
+    'Cybersecurity': 'JF017',
+    'Information Security': 'JF017',
+    'Physical Security': 'JF017',
+    'Fraud Prevention': 'JF017',
+    
+    # Executive Leadership
+    'Executive: Corporate Functions': 'JF006',
+    'General and Executive Support': 'JF006',
+    
+    # Human Resources
+    'Human Resources': 'JF007',
+    'Learning & Development': 'JF020',
+    'Talent Acquisition': 'JF007',
+    'Employee Relations': 'JF007',
+    'Compensation & Benefits': 'JF007',
+    'Organisational Development': 'JF007',
+    
+    # Strategy & Planning
+    'Strategy & Planning': 'JF019',
+    'Business Development': 'JF010',
+    
+    # Project Management
+    'Project Management': 'JF014',
+    'Program Management': 'JF014',
+    'Change Management': 'JF014',
+    'Business Analysis': 'JF014',
+    'Process Improvement': 'JF021',
+    
+    # Marketing & Communications
+    'Marketing': 'JF009',
+    'Brand Management': 'JF009',
+    'Digital Marketing': 'JF009',
+    'Communications': 'JF009',
+    'Corporate Affairs': 'JF009',
+    
+    # Audit & Assurance
+    'Audit & Assurance': 'JF015',
+    'Internal Audit': 'JF015',
+    'External Audit': 'JF015',
+    'Quality Assurance': 'JF021',
+    
+    # Support Services
+    'Business Services': 'JF018',
+    'Vendor Management': 'JF018',
+    'Procurement': 'JF018',
+    'Facilities Management': 'JF022',
+    'Real Estate': 'JF022',
+    'Environmental Services': 'JF022',
+    'Health & Safety': 'JF022',
+    'Emergency Management': 'JF022',
+    'Business Continuity': 'JF022',
+    'Disaster Recovery': 'JF022',
+    
+    # Data & Analytics
+    'Data Governance': 'JF016',
+    'Data Management': 'JF016',
+    
+    # Product & Innovation
+    'Product Management': 'JF010',
+    
+    # Graduate & Training
+    'Graduate Program': 'JF020'
+}
+
 # Expanded job sub-functions (105 unique values in real data)
 JOB_SUB_FUNCTIONS = [
     'Business Services', 'General and Executive Support', 'Graduate Program',
@@ -251,8 +436,8 @@ JOB_SUB_FUNCTIONS = [
     'Portfolio Management', 'Fund Administration', 'Trustee Services', 'Fiduciary Services'
 ]
 
-# Banking-specific job families and roles
-BANKING_JOB_FAMILIES = {
+# Banking-specific role categories for generating realistic job combinations
+BANKING_ROLE_CATEGORIES = {
     'Technology & Digital': {
         'roles': ['Software Engineer', 'Data Scientist', 'Cybersecurity Analyst', 'Digital Product Manager', 'Cloud Architect'],
         'banker_likelihood': 0.1,
@@ -301,11 +486,29 @@ def generate_job_sub_function_id():
     """Generate a realistic JobSubFunctionID"""
     return f"JF{random.randint(1, 999):04d}"
 
-def determine_management_level_weights(job_family: str, profile_suffix: str) -> Dict[str, float]:
-    """Determine realistic management level weights based on job family and suffix"""
+def get_job_function_from_subfunction(job_sub_function: str) -> tuple[str, str]:
+    """
+    Get JobFunctionID and JobFunction name from JobSubFunction.
+    Returns (job_function_id, job_function_name)
+    """
+    # Get the function ID from the mapping
+    job_function_id = SUBFUNCTION_TO_FUNCTION_MAPPING.get(job_sub_function)
+    
+    # If no mapping found, assign a default function based on common patterns
+    if job_function_id is None:
+        # Default fallback logic
+        job_function_id = 'JF018'  # Support Services as default
+    
+    # Get the function name
+    job_function_name = JOB_FUNCTIONS.get(job_function_id, 'Support Services')
+    
+    return job_function_id, job_function_name
+
+def determine_management_level_weights(role_category: str, profile_suffix: str) -> Dict[str, float]:
+    """Determine realistic management level weights based on role category and suffix"""
     
     # Executive roles get higher groups
-    if 'Executive' in job_family or profile_suffix in ['Group Executive', 'Head of']:
+    if 'Executive' in role_category or profile_suffix in ['Group Executive', 'Head of']:
         return {
             'Group 1': 0.05, 'Group 2': 0.1, 'Group 3': 0.15, 
             'Group 4': 0.2, 'Group 5': 0.2, 'Group 6': 0.15, 
@@ -340,10 +543,13 @@ def weighted_choice(choices: Dict[str, float]) -> str:
     """Make a weighted random choice from a dictionary of choices and probabilities"""
     items = list(choices.keys())
     weights = list(choices.values())
-    return random.choices(items, weights=weights)[0]
+    # Normalize weights to ensure they sum to 1.0
+    weights = np.array(weights)
+    weights = weights / weights.sum()
+    return np.random.choice(items, p=weights)
 
 def generate_comprehensive_job_architecture_records(job_profile_ids):
-    """Generate realistic job architecture records matching the comprehensive 14-column schema"""
+    """Generate realistic job architecture records matching the exact 14-column schema"""
     
     records = []
     
@@ -354,30 +560,15 @@ def generate_comprehensive_job_architecture_records(job_profile_ids):
         # Extract base role number for consistent JobID generation
         base_number = job_profile_id.split('.')[0]  # e.g., 'R0001' from 'R0001.5'
         
-        # Assign job family (deterministic based on base ID for consistency)
-        family_key = list(BANKING_JOB_FAMILIES.keys())[hash(base_number) % len(BANKING_JOB_FAMILIES)]
-        job_family_info = BANKING_JOB_FAMILIES[family_key]
+        # Assign role category (deterministic based on base ID for consistency)
+        category_key = list(BANKING_ROLE_CATEGORIES.keys())[hash(base_number) % len(BANKING_ROLE_CATEGORIES)]
+        role_category_info = BANKING_ROLE_CATEGORIES[category_key]
         
-        # Set JobFamily and JobFamilyGroup
-        job_family = family_key  # e.g., 'Technology & Digital'
-        
-        # Create JobFamilyGroup (higher level grouping)
-        if family_key in ['Technology & Digital', 'Operations']:
-            job_family_group = 'Technology & Operations'
-        elif family_key in ['Risk & Compliance', 'Finance & Treasury']:
-            job_family_group = 'Risk & Finance'
-        elif family_key in ['Customer & Commercial']:
-            job_family_group = 'Commercial Banking'
-        elif family_key in ['Executive & Leadership']:
-            job_family_group = 'Executive'
-        else:  # Support Functions
-            job_family_group = 'Corporate Functions'
-        
-        # Generate base role from family
-        base_role = random.choice(job_family_info['roles'])
+        # Generate base role from category
+        base_role = np.random.choice(role_category_info['roles'])
         
         # Generate ProfileTitleSuffix
-        profile_suffix = random.choice(PROFILE_TITLE_SUFFIXES)
+        profile_suffix = np.random.choice(PROFILE_TITLE_SUFFIXES)
         
         # Create JobProfile name (specific instance)
         if profile_suffix in ['I', 'II', 'III']:
@@ -396,23 +587,26 @@ def generate_comprehensive_job_architecture_records(job_profile_ids):
         job_id = base_number  # Same base number, creating fewer unique JobIDs
         
         # Determine ManagementLevel based on role and suffix
-        management_level_weights = determine_management_level_weights(family_key, profile_suffix)
+        management_level_weights = determine_management_level_weights(category_key, profile_suffix)
         management_level = weighted_choice(management_level_weights)
         
         # Generate JobSubFunction and ID
-        job_sub_function = random.choice(JOB_SUB_FUNCTIONS)
+        job_sub_function = np.random.choice(JOB_SUB_FUNCTIONS)
         job_sub_function_id = generate_job_sub_function_id()
         
-        # Determine JobCategory based on job family
-        job_category_id = weighted_choice(job_family_info['job_category_weights'])
+        # Get JobFunction information from JobSubFunction (hierarchical relationship)
+        job_function_id, job_function = get_job_function_from_subfunction(job_sub_function)
+        
+        # Determine JobCategory based on role category
+        job_category_id = weighted_choice(role_category_info['job_category_weights'])
         job_category = JOB_CATEGORIES[job_category_id]
         
-        # Determine Customer Facing based on family likelihood
-        is_customer_facing = random.random() < job_family_info['customer_facing_likelihood']
+        # Determine Customer Facing based on category likelihood
+        is_customer_facing = random.random() < role_category_info['customer_facing_likelihood']
         customer_facing = 'Customer Facing' if is_customer_facing else 'Non-Customer Facing'
         
-        # Determine Banker status based on family likelihood
-        is_banker_role = random.random() < job_family_info['banker_likelihood']
+        # Determine Banker status based on category likelihood
+        is_banker_role = random.random() < role_category_info['banker_likelihood']
         is_banker = 'Banker' if is_banker_role else 'Non-Banker'
         
         # Executive Leadership Group (only ~6.3% have this value)
@@ -425,17 +619,25 @@ def generate_comprehensive_job_architecture_records(job_profile_ids):
         else:
             accountability_scope = None
         
+        # Customer Facing nulls (24 records, 0.77% of data)
+        if random.random() < 0.0077:
+            customer_facing = None
+        
+        # is Banker nulls (24 records, 0.77% of data)  
+        if random.random() < 0.0077:
+            is_banker = None
+        
         record = {
             'JobID': job_id,
             'Job': job_name,
             'JobProfileID': job_profile_id,
             'JobProfile': job_profile_name,
-            'JobFamily': job_family,
-            'JobFamilyGroup': job_family_group,
             'ProfileTitleSuffix': profile_suffix,
             'ManagementLevel': management_level,
             'JobSubFunctionID': job_sub_function_id,
             'JobSubFunction': job_sub_function,
+            'JobFunctionID': job_function_id,
+            'JobFunction': job_function,
             'JobCategoryID': job_category_id,
             'JobCategory': job_category,
             'Customer Facing': customer_facing,
@@ -452,7 +654,7 @@ def main():
     """Generate and save comprehensive dummy job architecture data"""
     
     print(f"Generating comprehensive dummy job architecture data...")
-    print(f"Target schema: 16 columns (14 from job_arch_schema.json + JobFamily + JobFamilyGroup)")
+    print(f"Target schema: 16 columns (including JobFunction hierarchy)")
     
     # Load actual JobProfileIDs from job-skill mapping file
     actual_job_profile_ids = load_actual_job_profile_ids()
@@ -479,18 +681,32 @@ def main():
     
     # Print sample of the data
     print(f"\nSample data (first 5 rows):")
-    print(df[['JobProfileID', 'JobProfile', 'ProfileTitleSuffix', 'ManagementLevel', 'JobCategory']].head())
+    print(df[['JobProfileID', 'JobProfile', 'JobSubFunction', 'JobFunction', 'JobCategory']].head())
     
     # Print schema validation
     print(f"\nSchema Validation:")
-    print(f"Expected columns: JobID, Job, JobProfileID, JobProfile, JobFamily, JobFamilyGroup,")
+    print(f"Expected columns: JobID, Job, JobProfileID, JobProfile,")
     print(f"                  ProfileTitleSuffix, ManagementLevel, JobSubFunctionID, JobSubFunction,")
-    print(f"                  JobCategoryID, JobCategory, Customer Facing, is Banker,")
-    print(f"                  Executive Leadership Group, Accountability Scope")
+    print(f"                  JobFunctionID, JobFunction, JobCategoryID, JobCategory,")
+    print(f"                  Customer Facing, is Banker, Executive Leadership Group, Accountability Scope")
     print(f"Actual columns ({len(df.columns)}): {', '.join(df.columns)}")
     
+    # Verify exact match with schema
+    expected_columns = [
+        'JobID', 'Job', 'JobProfileID', 'JobProfile', 'ProfileTitleSuffix', 'ManagementLevel',
+        'JobSubFunctionID', 'JobSubFunction', 'JobFunctionID', 'JobFunction', 'JobCategoryID', 'JobCategory', 
+        'Customer Facing', 'is Banker', 'Executive Leadership Group', 'Accountability Scope'
+    ]
+    
+    if list(df.columns) == expected_columns:
+        print(f"✅ Schema matches updated specification exactly!")
+    else:
+        print(f"❌ Schema mismatch detected!")
+        print(f"Missing: {set(expected_columns) - set(df.columns)}")
+        print(f"Extra: {set(df.columns) - set(expected_columns)}")
+    
     # Print key statistics matching the schema
-    print(f"\nKey Statistics (matching real schema):")
+    print(f"\nKey Statistics (including new JobFunction hierarchy):")
     print(f"- Unique JobIDs: {df['JobID'].nunique():,} (target: ~384)")
     print(f"- Unique Jobs: {df['Job'].nunique():,} (target: ~384)")
     print(f"- Unique JobProfileIDs: {df['JobProfileID'].nunique():,} (target: 3,098, 100% unique)")
@@ -498,6 +714,7 @@ def main():
     print(f"- ProfileTitleSuffix categories: {df['ProfileTitleSuffix'].nunique()} (target: 16)")
     print(f"- ManagementLevel categories: {df['ManagementLevel'].nunique()} (target: 8)")
     print(f"- JobSubFunctions: {df['JobSubFunction'].nunique()} (target: 105)")
+    print(f"- JobFunctions: {df['JobFunction'].nunique()} (target: ~20-25)")
     print(f"- JobCategory categories: {df['JobCategory'].nunique()} (target: 4)")
     
     # Print distribution analysis
@@ -514,20 +731,29 @@ def main():
     for category, count in df['JobCategory'].value_counts().items():
         print(f"  - {category}: {count}")
     
+    print(f"\nJobFunction (top 10):")
+    for function, count in df['JobFunction'].value_counts().head(10).items():
+        print(f"  - {function}: {count}")
+    
     print(f"\nCustomer Facing:")
-    for facing, count in df['Customer Facing'].value_counts().items():
+    for facing, count in df['Customer Facing'].value_counts(dropna=False).items():
         print(f"  - {facing}: {count}")
     
     print(f"\nis Banker:")
-    for banker, count in df['is Banker'].value_counts().items():
+    for banker, count in df['is Banker'].value_counts(dropna=False).items():
         print(f"  - {banker}: {count}")
     
     # Check for nulls in key fields
     exec_leadership_nulls = df['Executive Leadership Group'].isnull().sum()
     accountability_nulls = df['Accountability Scope'].isnull().sum()
+    customer_facing_nulls = df['Customer Facing'].isnull().sum()
+    banker_nulls = df['is Banker'].isnull().sum()
+    
     print(f"\nNull Analysis:")
     print(f"- Executive Leadership Group nulls: {exec_leadership_nulls} ({exec_leadership_nulls/len(df)*100:.1f}%) - target: ~93.7%")
     print(f"- Accountability Scope nulls: {accountability_nulls} ({accountability_nulls/len(df)*100:.1f}%) - target: ~90.9%")
+    print(f"- Customer Facing nulls: {customer_facing_nulls} ({customer_facing_nulls/len(df)*100:.1f}%) - target: ~0.77%")
+    print(f"- is Banker nulls: {banker_nulls} ({banker_nulls/len(df)*100:.1f}%) - target: ~0.77%")
     
     # Print schema info
     print(f"\nDataFrame Info:")

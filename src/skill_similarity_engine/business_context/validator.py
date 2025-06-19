@@ -401,7 +401,7 @@ class DatabaseValidator:
                 # Calculate null percentages for key fields
                 key_fields = [
                     ('jobs', 'JobProfile'),
-                    ('jobs', 'JobFamily'),
+                    ('jobs', 'JobFunction'),  # Updated from JobFamily to JobFunction
                     ('skills', 'Skill_Name'),
                     ('skills', 'Category'),
                     ('positions', 'Business_Unit'),
@@ -426,12 +426,12 @@ class DatabaseValidator:
                         quality_issues.append(f"{table}.{field}: {null_percentage:.1f}% null values")
                 
                 # Check for data diversity
-                cursor = conn.execute("SELECT COUNT(DISTINCT JobFamily) FROM jobs")
-                job_family_diversity = cursor.fetchone()[0]
-                quality_metrics['job_family_diversity'] = job_family_diversity
+                cursor = conn.execute("SELECT COUNT(DISTINCT JobFunction) FROM jobs")
+                job_function_diversity = cursor.fetchone()[0]
+                quality_metrics['job_function_diversity'] = job_function_diversity
                 
-                if job_family_diversity < 3:
-                    quality_issues.append(f"Low job family diversity: only {job_family_diversity} families")
+                if job_function_diversity < 3:
+                    quality_issues.append(f"Low job function diversity: only {job_function_diversity} functions")
                 
                 cursor = conn.execute("SELECT COUNT(DISTINCT Category) FROM skills WHERE Category IS NOT NULL AND Category != ''")
                 skill_category_diversity = cursor.fetchone()[0]

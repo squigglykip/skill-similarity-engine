@@ -15,7 +15,7 @@ WITH RECURSIVE tree_builder AS (
         j.JobProfile as name,
         NULL as parent_id,
         0 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         1.0 as similarity_score,
         'starting_role' as career_move_type,
         0.0 as difficulty_score,
@@ -35,7 +35,7 @@ WITH RECURSIVE tree_builder AS (
         j.JobProfile as name,
         cp.source_job_id as parent_id,
         tb.level + 1 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         cp.similarity_score,
         cp.career_move_type,
         cp.difficulty_score,
@@ -106,7 +106,7 @@ FROM (
         j.JobProfile as name,
         NULL as parent_id,
         0 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         1.0 as similarity_score,
         'starting_role' as career_move_type,
         0.0 as difficulty_score,
@@ -124,7 +124,7 @@ FROM (
         j.JobProfile as name,
         cp.source_job_id as parent_id,
         1 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         cp.similarity_score,
         cp.career_move_type,
         cp.difficulty_score,
@@ -146,7 +146,7 @@ FROM (
         j.JobProfile as name,
         cp2.source_job_id as parent_id,
         2 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         cp2.similarity_score,
         cp2.career_move_type,
         cp2.difficulty_score,
@@ -172,7 +172,7 @@ FROM (
         j.JobProfile as name,
         cp3.source_job_id as parent_id,
         3 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         cp3.similarity_score,
         cp3.career_move_type,
         cp3.difficulty_score,
@@ -223,7 +223,7 @@ ORDER BY level, similarity_score DESC, name;
 SELECT 
     cp.target_job_id,
     j.JobProfile as target_job_name,
-    j.JobFamily as target_family,
+    j.JobFunction as target_function,
     cp.similarity_score,
     cp.similarity_rank,
     cp.career_move_type,
@@ -239,7 +239,7 @@ LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
 WHERE cp.source_job_id = ?
   AND cp.similarity_score >= ?
   AND cp.similarity_rank <= ?
-GROUP BY cp.target_job_id, j.JobProfile, j.JobFamily, 
+GROUP BY cp.target_job_id, j.JobProfile, j.JobFunction, 
          cp.similarity_score, cp.similarity_rank, cp.career_move_type,
          cp.difficulty_score, cp.shared_skills_count
 ORDER BY cp.similarity_rank;
@@ -249,10 +249,10 @@ ORDER BY cp.similarity_rank;
 SELECT 
     cp.source_job_id,
     j1.JobProfile as source_job_name,
-    j1.JobFamily as source_family,
+    j1.JobFunction as source_function,
     cp.target_job_id,
     j2.JobProfile as target_job_name,
-    j2.JobFamily as target_family,
+    j2.JobFunction as target_function,
     cp.similarity_score,
     cp.career_move_type,
     cp.difficulty_score,
@@ -290,7 +290,7 @@ ORDER BY avg_similarity DESC;
 SELECT 
     cp.source_job_id,
     j.JobProfile as job_name,
-    j.JobFamily,
+    j.JobFunction,
     COUNT(*) as pathway_count,
     ROUND(AVG(cp.similarity_score), 3) as avg_similarity,
     COUNT(CASE WHEN cp.career_move_type = 'lateral' THEN 1 END) as lateral_moves,
@@ -304,7 +304,7 @@ JOIN jobs j ON cp.source_job_id = j.JobProfileID
 LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
 WHERE cp.similarity_score >= ?
   AND cp.similarity_rank <= ?
-GROUP BY cp.source_job_id, j.JobProfile, j.JobFamily
+GROUP BY cp.source_job_id, j.JobProfile, j.JobFunction
 HAVING pathway_count >= ?  -- Minimum pathways to be considered "well-connected"
 ORDER BY pathway_count DESC, avg_similarity DESC
 LIMIT ?;
@@ -338,11 +338,11 @@ ORDER BY
     s.Category, 
     s.Skill_Name;
 
--- query_name: get_job_family_mobility
--- Analyze mobility patterns between job families
+-- query_name: get_job_function_mobility
+-- Analyze mobility patterns between job functions
 SELECT 
-    j1.JobFamily as source_family,
-    j2.JobFamily as target_family,
+    j1.JobFunction as source_function,
+    j2.JobFunction as target_function,
     COUNT(*) as pathway_count,
     ROUND(AVG(cp.similarity_score), 3) as avg_similarity,
     ROUND(AVG(cp.difficulty_score), 3) as avg_difficulty,
@@ -353,6 +353,6 @@ JOIN jobs j1 ON cp.source_job_id = j1.JobProfileID
 JOIN jobs j2 ON cp.target_job_id = j2.JobProfileID
 WHERE cp.similarity_score >= ?
   AND cp.similarity_rank <= ?
-GROUP BY j1.JobFamily, j2.JobFamily
+GROUP BY j1.JobFunction, j2.JobFunction
 HAVING pathway_count >= ?  -- Minimum pathways for statistical relevance
 ORDER BY pathway_count DESC, avg_similarity DESC; 

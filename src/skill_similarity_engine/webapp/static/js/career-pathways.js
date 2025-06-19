@@ -714,7 +714,7 @@ SkillEngine.CareerPathways = {
             if (!jobGrouped[jobId]) {
                 jobGrouped[jobId] = {
                     job_title: item.job_title,
-                    job_family: item.job_family,
+                    job_function: item.job_function,
                     total_positions: 0,
                     divisions: new Set(),
                     business_units: new Set(),

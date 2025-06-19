@@ -197,9 +197,15 @@ class ModelVersionManager:
             logger.info(f"Updated current symlink: {current_symlink} -> {quarter_dir.name}")
             
         except OSError as e:
-            # Symlinks might not work on all Windows systems
-            print(f"Note: Could not create symlink (models/current -> {quarter_dir.name})")
-            logger.warning(f"Symlink creation failed: {e}")
+            # Symlinks require admin privileges on Windows - this is expected behavior
+            if "WinError 1314" in str(e):
+                # Windows privilege error - common and expected
+                logger.debug(f"Symlink creation skipped on Windows (requires admin privileges): {e}")
+                logger.info(f"Note: models/current symlink not created (Windows requires admin privileges)")
+            else:
+                # Other OS errors
+                print(f"Note: Could not create symlink (models/current -> {quarter_dir.name})")
+                logger.warning(f"Symlink creation failed: {e}")
     
     def list_versions(self) -> list[Path]:
         """

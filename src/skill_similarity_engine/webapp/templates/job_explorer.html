@@ -111,13 +111,13 @@
                                     class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
                             </div>
                             <div class="flex justify-between items-start">
-                                <span class="text-xs font-source text-gray-600">Job Family</span>
-                                <span id="sidebar-job-family"
+                                <span class="text-xs font-source text-gray-600">Job Function</span>
+                                <span id="sidebar-job-function"
                                     class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
                             </div>
                             <div class="flex justify-between items-start">
-                                <span class="text-xs font-source text-gray-600">Family Group</span>
-                                <span id="sidebar-job-family-group"
+                                <span class="text-xs font-source text-gray-600">Function ID</span>
+                                <span id="sidebar-job-function-id"
                                     class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
                             </div>
 
@@ -204,13 +204,13 @@
                                 <h2 id="job-title-header" class="text-2xl font-epilogue font-bold text-gray-900 mb-2">
                                     Job Title</h2>
                                 <div class="flex items-center space-x-3 flex-wrap">
-                                    <span id="job-family-badge"
+                                    <span id="job-function-badge"
                                         class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-blue-100 text-blue-800">
-                                        Job Family
+                                        Job Function
                                     </span>
-                                    <span id="job-level-badge"
+                                    <span id="job-function-id-badge"
                                         class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-gray-100 text-gray-700">
-                                        Level
+                                        Function ID
                                     </span>
                                     <span id="management-level-badge"
                                         class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-green-100 text-green-800 hidden">
@@ -233,7 +233,7 @@
                     <!-- Skills Analysis -->
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skills Requirements</h3>
+                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skills Requirements By Category</h3>
                             <span
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">
                                 Live Data
@@ -518,7 +518,7 @@
                 <div class="job-search-dropdown-item p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
                      data-job='${JSON.stringify(job)}' onclick="selectJob(this)">
                     <div class="font-medium text-sm text-gray-900">${job.title}</div>
-                    <div class="text-xs text-gray-500">${job.id} • ${job.family} • ${job.group || 'N/A'}</div>
+                    <div class="text-xs text-gray-500">${job.id} • ${job.function} • ${job.function_id || 'N/A'}</div>
                 </div>
             `).join('');
             }
@@ -548,8 +548,8 @@
         function loadJobDetails(jobId) {
             // Update job header
             document.getElementById('job-title-header').textContent = selectedJob.title;
-            document.getElementById('job-family-badge').textContent = selectedJob.family;
-            document.getElementById('job-level-badge').textContent = selectedJob.group || 'N/A';
+            document.getElementById('job-function-badge').textContent = selectedJob.function;
+            document.getElementById('job-function-id-badge').textContent = selectedJob.function_id || 'N/A';
             document.getElementById('job-profile-id').textContent = selectedJob.id;
 
             // Update sidebar quick stats
@@ -557,8 +557,8 @@
             document.getElementById('sidebar-job-profile').textContent = selectedJob.title;
             document.getElementById('sidebar-job-id').textContent = selectedJob.id;
             document.getElementById('sidebar-job-name').textContent = selectedJob.title;
-            document.getElementById('sidebar-job-family').textContent = selectedJob.family;
-            document.getElementById('sidebar-job-family-group').textContent = selectedJob.group || 'N/A';
+            document.getElementById('sidebar-job-function').textContent = selectedJob.function;
+            document.getElementById('sidebar-job-function-id').textContent = selectedJob.function_id || 'N/A';
 
             // Load detailed data
             loadJobSkills(jobId);
@@ -572,18 +572,18 @@
 
             // Use exact test data from debug script
             const testPathways = [
-                { "job_family": "Human Resources", "job_title": "Employee Relations Specialist - Manager", "similarity_score": 1.0 },
-                { "job_family": "Executive Leadership", "job_title": "Associate Business Unit Leader", "similarity_score": 1.0 },
-                { "job_family": "Banking Operations", "job_title": "Settlement Officer - Executive Director", "similarity_score": 1.0 },
-                { "job_family": "Banking Operations", "job_title": "Associate Operations Manager", "similarity_score": 1.0 },
-                { "job_family": "Human Resources", "job_title": "HR Analyst - Director", "similarity_score": 0.5 },
-                { "job_family": "Data & Analytics", "job_title": "Graduate - Business Intelligence Analyst", "similarity_score": 0.5 },
-                { "job_family": "Executive Leadership", "job_title": "Senior Associate Regional Head", "similarity_score": 0.5 },
-                { "job_family": "Banking Operations", "job_title": "Analyst - Operations Analyst", "similarity_score": 0.486 },
-                { "job_family": "Executive Leadership", "job_title": "Analyst - Regional Head", "similarity_score": 0.486 },
-                { "job_family": "Finance & Accounting", "job_title": "Budget Analyst - Executive Director", "similarity_score": 0.486 },
-                { "job_family": "Risk & Compliance", "job_title": "Regulatory Specialist - Director", "similarity_score": 0.486 },
-                { "job_family": "Human Resources", "job_title": "Employee Relations Specialist - Manager", "similarity_score": 0.486 }
+                { "job_function": "Human Resources", "job_title": "Employee Relations Specialist - Manager", "similarity_score": 1.0 },
+                { "job_function": "Executive Leadership", "job_title": "Associate Business Unit Leader", "similarity_score": 1.0 },
+                { "job_function": "Banking Operations", "job_title": "Settlement Officer - Executive Director", "similarity_score": 1.0 },
+                { "job_function": "Banking Operations", "job_title": "Associate Operations Manager", "similarity_score": 1.0 },
+                { "job_function": "Human Resources", "job_title": "HR Analyst - Director", "similarity_score": 0.5 },
+                { "job_function": "Data & Analytics", "job_title": "Graduate - Business Intelligence Analyst", "similarity_score": 0.5 },
+                { "job_function": "Executive Leadership", "job_title": "Senior Associate Regional Head", "similarity_score": 0.5 },
+                { "job_function": "Banking Operations", "job_title": "Analyst - Operations Analyst", "similarity_score": 0.486 },
+                { "job_function": "Executive Leadership", "job_title": "Analyst - Regional Head", "similarity_score": 0.486 },
+                { "job_function": "Finance & Accounting", "job_title": "Budget Analyst - Executive Director", "similarity_score": 0.486 },
+                { "job_function": "Risk & Compliance", "job_title": "Regulatory Specialist - Director", "similarity_score": 0.486 },
+                { "job_function": "Human Resources", "job_title": "Employee Relations Specialist - Manager", "similarity_score": 0.486 }
             ];
 
             console.log('📊 Test data loaded:', testPathways);
@@ -683,7 +683,7 @@
                     <div class="similar-job-item flex justify-between items-center p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer">
                         <div>
                             <p class="text-sm font-source font-medium text-gray-900">${pathway.job_title}</p>
-                            <p class="text-xs font-source text-gray-500">${pathway.job_family}</p>
+                            <p class="text-xs font-source text-gray-500">${pathway.job_function}</p>
                         </div>
                         <div class="text-right">
                             <span class="similarity-score-badge">${(pathway.similarity_score * 100).toFixed(1)}%</span>
@@ -717,8 +717,8 @@
                     document.getElementById('sidebar-job-profile').textContent = data.job.title;
                     document.getElementById('sidebar-job-id').textContent = data.job.job_id || '-';
                     document.getElementById('sidebar-job-name').textContent = data.job.job_name || '-';
-                    document.getElementById('sidebar-job-family').textContent = data.job.family;
-                    document.getElementById('sidebar-job-family-group').textContent = data.job.group || '-';
+                    document.getElementById('sidebar-job-function').textContent = data.job.function;
+                    document.getElementById('sidebar-job-function-id').textContent = data.job.function_id || '-';
 
                     // Update enhanced job architecture fields
                     document.getElementById('sidebar-profile-title-suffix').textContent = data.job.profile_title_suffix || '-';
@@ -985,8 +985,8 @@
             metrics.transitionReadiness = Math.round(avgSimilarity * 100);
 
             // Cross-family connections - count unique job families in pathways
-            const uniqueFamilies = new Set(pathways.map(p => p.job_family));
-            metrics.crossFamilyConnections = uniqueFamilies.size;
+            const uniqueFunctions = new Set(pathways.map(p => p.job_function));
+            metrics.crossFamilyConnections = uniqueFunctions.size;
 
             // Hub potential - high if many pathways with good similarity
             const highSimilarityPaths = pathways.filter(p => p.similarity_score > 0.5).length;
@@ -1037,10 +1037,10 @@
                 {
                     title: 'Cross-Family Reach',
                     value: `${metrics.crossFamilyConnections}`,
-                    description: 'Connected job families',
+                    description: 'Connected job functions',
                     color: metrics.crossFamilyConnections >= 5 ? 'green' : metrics.crossFamilyConnections >= 3 ? 'yellow' : 'red',
                     icon: '🌐',
-                    tooltip: 'Shows the diversity of job families accessible from this role. Higher numbers indicate excellent cross-training potential and inter-departmental mobility opportunities, valuable for organisational flexibility.'
+                    tooltip: 'Shows the diversity of job functions accessible from this role. Higher numbers indicate excellent cross-training potential and inter-departmental mobility opportunities, valuable for organisational flexibility.'
                 },
                 {
                     title: 'Strategic Value',

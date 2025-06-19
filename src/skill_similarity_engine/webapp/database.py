@@ -83,7 +83,7 @@ class DatabaseManager:
     def search_jobs(self, search_term: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Search jobs by name with LIKE pattern."""
         query = """
-            SELECT DISTINCT JobProfileID, JobProfile, JobFamily, JobFamilyGroup 
+            SELECT DISTINCT JobProfileID, JobProfile, JobFunctionID, JobFunction 
             FROM jobs 
             WHERE JobProfile LIKE ? 
             ORDER BY JobProfile 
@@ -103,7 +103,7 @@ class DatabaseManager:
         query = """
             SELECT j2.JobProfileID as similar_job_id, 
                    j2.JobProfile as job_name,
-                   j2.JobFamily as job_family,
+                   j2.JobFunction as job_function,
                    js.similarity_score,
                    js.shared_skills_count as skill_overlap
             FROM job_similarities js
@@ -121,8 +121,8 @@ class DatabaseManager:
         """Get similarity score between two specific jobs."""
         query = """
             SELECT js.similarity_score, js.shared_skills_count,
-                   j1.JobProfile as start_job, j1.JobFamily as start_family,
-                   j2.JobProfile as target_job, j2.JobFamily as target_family
+                   j1.JobProfile as start_job, j1.JobFunction as start_function,
+                   j2.JobProfile as target_job, j2.JobFunction as target_function
             FROM job_similarities js
             JOIN jobs j1 ON js.job_from = j1.JobProfileID
             JOIN jobs j2 ON js.job_to = j2.JobProfileID
@@ -156,7 +156,7 @@ class DatabaseManager:
                 'name': job['JobProfile'],
                 'type': 'job',
                 'id': job['JobProfileID'],
-                'family': job['JobFamily'],
+                'function': job['JobFunction'],
                 'children': []
             }
             
@@ -172,7 +172,7 @@ class DatabaseManager:
                     'name': similar_job['JobProfile'],
                     'type': 'similar_job',
                     'id': similar_job['JobProfileID'],
-                    'family': similar_job['JobFamily'],
+                    'function': similar_job['JobFunction'],
                     'similarity': round(similar_job['similarity_score'], 3),
                     'size': int(similar_job['similarity_score'] * 100)
                 }
@@ -187,7 +187,7 @@ class DatabaseManager:
                                 limit: int = 5) -> List[Dict[str, Any]]:
         """Get similar jobs specifically formatted for tree visualization."""
         query = """
-            SELECT j2.JobProfileID, j2.JobProfile, j2.JobFamily, 
+            SELECT j2.JobProfileID, j2.JobProfile, j2.JobFunction, 
                    js.similarity_score
             FROM job_similarities js
             JOIN jobs j2 ON js.job_to = j2.JobProfileID
@@ -214,7 +214,7 @@ class DatabaseManager:
         
         # Find intermediate jobs (high similarity to both start and target)
         query = """
-            SELECT j.JobProfileID, j.JobProfile, j.JobFamily,
+            SELECT j.JobProfileID, j.JobProfile, j.JobFunction,
                    js1.similarity_score as start_similarity,
                    js2.similarity_score as target_similarity,
                    (js1.similarity_score + js2.similarity_score) / 2 as avg_similarity
