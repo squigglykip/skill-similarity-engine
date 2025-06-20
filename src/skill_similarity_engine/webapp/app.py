@@ -111,8 +111,8 @@ def create_app(config=None):
             for row in platform_metrics_raw:
                 platform_metrics[row['metric']] = row['count']
             
-            # Get top job families
-            top_families_query = queries.get('metadata', 'get_top_job_families')
+            # Get top job functions (formerly job families)
+            top_families_query = queries.get('metadata', 'get_top_job_functions')
             top_families = db.execute(top_families_query).fetchall()
             
             # Get career pathway insights
@@ -149,11 +149,11 @@ def create_app(config=None):
                 cross_family_query = queries.get('metadata', 'get_cross_family_mobility_opportunities')
                 cross_family_opportunities = db.execute(cross_family_query).fetchall()
                 
-                # Get cross-family similarity analysis
-                cross_family_similarities_query = queries.get('similarities', 'get_cross_family_similarities')
+                # Get cross-function similarity analysis (renamed from cross-family)
+                cross_family_similarities_query = queries.get('similarities', 'get_cross_function_similarities')
                 cross_family_similarities = db.execute(cross_family_similarities_query, (0.4, 12)).fetchall()
                 
-                cross_family_stats_query = queries.get('similarities', 'get_cross_family_stats')
+                cross_family_stats_query = queries.get('similarities', 'get_cross_function_stats')
                 cross_family_stats_raw = db.execute(cross_family_stats_query).fetchall()
                 
                 skills_concentration_query = queries.get('metadata', 'get_skills_concentration_analysis')
@@ -1210,7 +1210,7 @@ def create_app(config=None):
                     {
                         'job_id': row['JobProfileID'],
                         'job_title': row['JobProfile'],
-                        'job_family': row['JobFamily'],
+                        'job_family': row['JobFunction'],
                         'job_profile': row['job_profile'],
                         'position_name': row['position_name'],
                         'division': row['Division'],
@@ -1309,7 +1309,7 @@ def create_app(config=None):
                     j.JobProfile as name,
                     NULL as parent_id,
                     0 as level,
-                    j.JobFamily as category,
+                    j.JobFunction as category,
                     1.0 as similarity_score,
                     'starting_role' as career_move_type,
                     0.0 as difficulty_score,
@@ -1327,7 +1327,7 @@ def create_app(config=None):
                     j.JobProfile as name,
                     cp.source_job_id as parent_id,
                     tb.level + 1 as level,
-                    j.JobFamily as category,
+                    j.JobFunction as category,
                     cp.similarity_score,
                     cp.career_move_type,
                     cp.difficulty_score,
@@ -1342,7 +1342,7 @@ def create_app(config=None):
             )
             SELECT 
                 tb.*,
-                j.JobFamilyGroup,
+                j.JobSubFunction,
                 CASE 
                     WHEN tb.similarity_score >= 0.8 THEN 'High Similarity'
                     WHEN tb.similarity_score >= 0.6 THEN 'Medium Similarity'
@@ -1395,7 +1395,7 @@ def create_app(config=None):
                     row['id'],
                     row['name'],
                     row['category'],
-                    row['JobFamilyGroup'] or 'N/A',
+                    row['JobSubFunction'] or 'N/A',
                     row['parent_id'] or 'N/A',
                     f"{row['similarity_score']:.3f}",
                     row['similarity_category'],
@@ -1650,8 +1650,8 @@ def create_app(config=None):
             SELECT 
                 j.JobProfileID,
                 j.JobProfile,
-                j.JobFamily,
-                j.JobFamilyGroup,
+                j.JobFunction,
+                j.JobSubFunction,
                 p."Position Number",
                 p."Position Name",
                 p."Employee Number",

@@ -139,7 +139,7 @@ Exceptional transition opportunities have been identified, with performance rank
 We recommend proceeding with a managed transition programme utilising an internal redeployment strategy. The optimal approach involves a <TRANSITION_DURATION> structured transition programme that combines targeted upskilling initiatives with strategic role matching. This approach projects <SUCCESS_PROBABILITY>% successful internal placement outcomes while simultaneously enhancing organisational capability development.
 
 ### Implementation Confidence
-
+x
 Our assessment indicates <CONFIDENCE_LEVEL> confidence in successful outcomes, supported by robust skill alignment data and comprehensive internal pathway options. Risk assessment demonstrates <RISK_LEVEL> potential for business disruption when coupled with proactive change management protocols.
 
 ### Impact Assessment

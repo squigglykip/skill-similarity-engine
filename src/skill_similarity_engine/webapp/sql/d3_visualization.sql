@@ -6,16 +6,16 @@
 -- query_name: get_tree_data_for_family
 -- Generate hierarchical tree data for D3.js collapsible tree visualization
 SELECT 
-    'family' as node_type,
-    j.JobFamily as id,
-    j.JobFamily as name,
+    'function' as node_type,
+    j.JobFunction as id,
+    j.JobFunction as name,
     NULL as parent_id,
     COUNT(*) as children_count,
     0 as similarity_score,
-    'Job Family' as category
+    'Job Function' as category
 FROM jobs j
-WHERE j.JobFamily = ?
-GROUP BY j.JobFamily
+WHERE j.JobFunction = ?
+GROUP BY j.JobFunction
 
 UNION ALL
 
@@ -23,14 +23,14 @@ SELECT
     'job' as node_type,
     j.JobProfileID as id,
     j.JobProfile as name,
-    j.JobFamily as parent_id,
+    j.JobFunction as parent_id,
     COUNT(DISTINCT js.job_to) as children_count,
     0 as similarity_score,
-    COALESCE(j.JobFamilyGroup, 'Unknown') as category
+    COALESCE(j.JobSubFunction, 'Unknown') as category
 FROM jobs j
 LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from AND js.similarity_score >= 0.7
-WHERE j.JobFamily = ?
-GROUP BY j.JobProfileID, j.JobProfile, j.JobFamily, j.JobFamilyGroup
+WHERE j.JobFunction = ?
+GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, j.JobSubFunction
 
 UNION ALL
 
@@ -54,7 +54,7 @@ FROM (
         ROW_NUMBER() OVER (PARTITION BY js.job_from ORDER BY js.similarity_score DESC) as rank
     FROM job_similarities js
     JOIN jobs source_job ON js.job_from = source_job.JobProfileID
-    WHERE source_job.JobFamily = ?
+    WHERE source_job.JobFunction = ?
         AND js.similarity_score >= 0.7
 ) ranked_similarities
 JOIN jobs similar_job ON ranked_similarities.job_to = similar_job.JobProfileID
@@ -65,30 +65,34 @@ ORDER BY node_type, similarity_score DESC, name;
 -- Generate network data for D3.js force-directed graph of job similarities
 SELECT 
     'nodes' as data_type,
-    j.id as id,
-    j.job_title as name,
-    j.job_family as group,
-    j.job_level as level,
-    COUNT(DISTINCT js.similar_job_id) as degree
+    j.JobProfileID as id,
+    j.JobProfile as name,
+    j.JobFunction as group,
+    j.ManagementLevel as level,
+    COUNT(DISTINCT js.job_to) as degree
 FROM jobs j
-LEFT JOIN job_similarities js ON j.id = js.job_id AND js.similarity_score >= ?
-WHERE j.job_family = ?
-GROUP BY j.id, j.job_title, j.job_family, j.job_level
+LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from AND js.similarity_score >= ?
+WHERE j.JobFunction = ?
+GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, j.ManagementLevel
 
 UNION ALL
 
 SELECT 
     'links' as data_type,
-    js.job_id as source,
-    js.similar_job_id as target,
+    js.job_from as source,
+    js.job_to as target,
     js.similarity_score as value,
-    js.similarity_category as type,
+    CASE 
+        WHEN js.similarity_score >= 0.8 THEN 'high'
+        WHEN js.similarity_score >= 0.6 THEN 'medium'
+        ELSE 'low'
+    END as type,
     NULL as degree
 FROM job_similarities js
-JOIN jobs j1 ON js.job_id = j1.id
-JOIN jobs j2 ON js.similar_job_id = j2.id
+JOIN jobs j1 ON js.job_from = j1.JobProfileID
+JOIN jobs j2 ON js.job_to = j2.JobProfileID
 WHERE js.similarity_score >= ?
-    AND (j1.job_family = ? OR j2.job_family = ?)
+    AND (j1.JobFunction = ? OR j2.JobFunction = ?)
 ORDER BY data_type, value DESC;
 
 -- query_name: get_sunburst_data
@@ -98,98 +102,98 @@ SELECT
     'Skills' as id,
     'Skills' as name,
     NULL as parent,
-    COUNT(DISTINCT s.id) as value,
+    COUNT(DISTINCT s.Skill_ID) as value,
     'skills' as category
 FROM skills s
-JOIN job_skills js ON s.id = js.skills_skill_id
-JOIN jobs j ON js.job_id = j.id
-WHERE j.job_family = ?
+JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+JOIN jobs j ON js.JobProfileID = j.JobProfileID
+WHERE j.JobFunction = ?
 
 UNION ALL
 
 SELECT 
     'category' as level,
-    s.skill_category as id,
-    s.skill_category as name,
+    s.Category as id,
+    s.Category as name,
     'Skills' as parent,
-    COUNT(DISTINCT s.id) as value,
+    COUNT(DISTINCT s.Skill_ID) as value,
     'category' as category
 FROM skills s
-JOIN job_skills js ON s.id = js.skills_skill_id
-JOIN jobs j ON js.job_id = j.id
-WHERE j.job_family = ?
-GROUP BY s.skill_category
+JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+JOIN jobs j ON js.JobProfileID = j.JobProfileID
+WHERE j.JobFunction = ?
+GROUP BY s.Category
 
 UNION ALL
 
 SELECT 
     'subcategory' as level,
-    s.skill_category || ' - ' || s.skill_subcategory as id,
-    s.skill_subcategory as name,
-    s.skill_category as parent,
-    COUNT(DISTINCT s.id) as value,
+    s.Category || ' - ' || s.Subcategory as id,
+    s.Subcategory as name,
+    s.Category as parent,
+    COUNT(DISTINCT s.Skill_ID) as value,
     'subcategory' as category
 FROM skills s
-JOIN job_skills js ON s.id = js.skills_skill_id
-JOIN jobs j ON js.job_id = j.id
-WHERE j.job_family = ?
-    AND s.skill_subcategory IS NOT NULL
-GROUP BY s.skill_category, s.skill_subcategory
+JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+JOIN jobs j ON js.JobProfileID = j.JobProfileID
+WHERE j.JobFunction = ?
+    AND s.Subcategory IS NOT NULL
+GROUP BY s.Category, s.Subcategory
 
 UNION ALL
 
 SELECT 
     'skill' as level,
-    CAST(s.id AS TEXT) as id,
-    s.skill_name as name,
-    COALESCE(s.skill_category || ' - ' || s.skill_subcategory, s.skill_category) as parent,
-    COUNT(DISTINCT js.job_id) as value,
+    s.Skill_ID as id,
+    s.Skill_Name as name,
+    COALESCE(s.Category || ' - ' || s.Subcategory, s.Category) as parent,
+    COUNT(DISTINCT js.JobProfileID) as value,
     'skill' as category
 FROM skills s
-JOIN job_skills js ON s.id = js.skills_skill_id
-JOIN jobs j ON js.job_id = j.id
-WHERE j.job_family = ?
-GROUP BY s.id, s.skill_name, s.skill_category, s.skill_subcategory
+JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+JOIN jobs j ON js.JobProfileID = j.JobProfileID
+WHERE j.JobFunction = ?
+GROUP BY s.Skill_ID, s.Skill_Name, s.Category, s.Subcategory
 ORDER BY level, value DESC;
 
 -- query_name: get_chord_diagram_data
--- Generate data for D3.js chord diagram showing skill relationships between job families
+-- Generate data for D3.js chord diagram showing skill relationships between job functions
 SELECT 
-    source_family.job_family as source,
-    target_family.job_family as target,
-    COUNT(DISTINCT common_skills.skills_skill_id) as shared_skills,
+    source_function.JobFunction as source,
+    target_function.JobFunction as target,
+    COUNT(DISTINCT common_skills.Skill_ID) as shared_skills,
     AVG(js.similarity_score) as avg_similarity
 FROM jobs source_job
-JOIN job_skills source_skills ON source_job.id = source_skills.job_id
-JOIN job_skills target_skills ON source_skills.skills_skill_id = target_skills.skills_skill_id
-JOIN jobs target_job ON target_skills.job_id = target_job.id
-JOIN job_similarities js ON source_job.id = js.job_id AND target_job.id = js.similar_job_id
-JOIN (SELECT DISTINCT job_family FROM jobs) source_family ON source_job.job_family = source_family.job_family
-JOIN (SELECT DISTINCT job_family FROM jobs) target_family ON target_job.job_family = target_family.job_family
-JOIN skills common_skills ON source_skills.skills_skill_id = common_skills.id
-WHERE source_job.job_family != target_job.job_family
+JOIN job_skills source_skills ON source_job.JobProfileID = source_skills.JobProfileID
+JOIN job_skills target_skills ON source_skills.Skill_ID = target_skills.Skill_ID
+JOIN jobs target_job ON target_skills.JobProfileID = target_job.JobProfileID
+JOIN job_similarities js ON source_job.JobProfileID = js.job_from AND target_job.JobProfileID = js.job_to
+JOIN (SELECT DISTINCT JobFunction FROM jobs) source_function ON source_job.JobFunction = source_function.JobFunction
+JOIN (SELECT DISTINCT JobFunction FROM jobs) target_function ON target_job.JobFunction = target_function.JobFunction
+JOIN skills common_skills ON source_skills.Skill_ID = common_skills.Skill_ID
+WHERE source_job.JobFunction != target_job.JobFunction
     AND js.similarity_score >= ?
-GROUP BY source_family.job_family, target_family.job_family
+GROUP BY source_function.JobFunction, target_function.JobFunction
 HAVING shared_skills >= ?
 ORDER BY shared_skills DESC, avg_similarity DESC;
 
 -- query_name: get_tree_map_data
--- Generate data for D3.js treemap showing job distribution by family and level
+-- Generate data for D3.js treemap showing job distribution by function and level
 SELECT 
-    j.job_family as family,
-    COALESCE(j.job_level, 'Unknown') as level,
+    j.JobFunction as family,
+    COALESCE(j.ManagementLevel, 'Unknown') as level,
     COUNT(*) as job_count,
     AVG(skill_counts.skill_count) as avg_skills_per_job,
-    COUNT(DISTINCT js.similar_job_id) as total_similarities
+    COUNT(DISTINCT js.job_to) as total_similarities
 FROM jobs j
 LEFT JOIN (
-    SELECT job_id, COUNT(*) as skill_count
+    SELECT JobProfileID, COUNT(*) as skill_count
     FROM job_skills
-    GROUP BY job_id
-) skill_counts ON j.id = skill_counts.job_id
-LEFT JOIN job_similarities js ON j.id = js.job_id AND js.similarity_score >= 0.7
-GROUP BY j.job_family, j.job_level
-ORDER BY j.job_family, j.job_level;
+    GROUP BY JobProfileID
+) skill_counts ON j.JobProfileID = skill_counts.JobProfileID
+LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from AND js.similarity_score >= 0.7
+GROUP BY j.JobFunction, j.ManagementLevel
+ORDER BY j.JobFunction, j.ManagementLevel;
 
 -- query_name: get_career_pathway_tree
 -- Generate tree structure for career pathway visualization

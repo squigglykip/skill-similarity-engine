@@ -360,7 +360,7 @@ class SimilarityMatrixPrecomputer:
         logger.info("🚀 Starting career pathways precomputation...")
         
         # Configuration
-        TOP_N_PATHWAYS = 24  # Top N most similar jobs per source job
+        TOP_N_PATHWAYS = 12  # Top N most similar jobs per source job
         MIN_SIMILARITY_THRESHOLD = 0.01  # Minimum similarity to include (lowered from 0.15)
         
         # Get all unique job IDs and their families
