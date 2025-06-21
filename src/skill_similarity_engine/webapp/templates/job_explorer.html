@@ -77,9 +77,14 @@
                                     class="text-sm font-epilogue font-semibold text-blue-600">0</span>
                             </div>
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs font-source text-gray-600">Active Positions</span>
+                                <span class="text-xs font-source text-gray-600">Position Types</span>
                                 <span id="sidebar-positions-count"
                                     class="text-sm font-epilogue font-semibold text-green-600">0</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-source text-gray-600">Total Employees</span>
+                                <span id="sidebar-employees-count"
+                                    class="text-sm font-epilogue font-semibold text-orange-600">0</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-xs font-source text-gray-600">Career Pathways</span>
@@ -710,6 +715,7 @@
                     // Update sidebar stats
                     document.getElementById('sidebar-skills-count').textContent = data.stats.skills_count;
                     document.getElementById('sidebar-positions-count').textContent = data.stats.positions_count;
+                    document.getElementById('sidebar-employees-count').textContent = data.stats.employee_count;
                     document.getElementById('sidebar-pathways-count').textContent = data.stats.pathways_count;
 
                     // Update sidebar job architecture info with complete details from API

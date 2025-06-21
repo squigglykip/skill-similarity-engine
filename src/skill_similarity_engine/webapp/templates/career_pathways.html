@@ -510,10 +510,14 @@
                 </div>
             
                 <!-- Workforce Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div class="text-2xl font-epilogue font-bold text-blue-600" id="total-positions">-</div>
                         <div class="text-xs font-source font-medium text-gray-500 uppercase">Total Positions</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-epilogue font-bold text-orange-600" id="total-headcount">-</div>
+                        <div class="text-xs font-source font-medium text-gray-500 uppercase">Total Headcount</div>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div class="text-2xl font-epilogue font-bold text-green-600" id="divisions-represented">-</div>
@@ -551,11 +555,15 @@
                                         Business Unit
                                     </th>
                                     <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
+                                        Location
+                                    </th>
+                                    <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
                                         Team Names
                                     </th>
                                     <th class="w-1/8 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
                                         Salary Groups
                                     </th>
+
                                     <th class="w-1/12 px-3 py-3 text-left text-xs font-source font-medium text-gray-500 uppercase tracking-wider">
                                         Position Count
                                     </th>
@@ -3487,6 +3495,7 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
     
     // Show loading indicators
     document.getElementById('total-positions').textContent = '...';
+    document.getElementById('total-headcount').textContent = '...';
     document.getElementById('divisions-represented').textContent = '...';
     document.getElementById('locations-spread').textContent = '...';
     document.getElementById('workforce-pathway-count').textContent = '...';
@@ -3499,10 +3508,7 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
             throw new Error(data.error || 'Unknown error');
         }
         
-        // Update summary cards with real data
-        document.getElementById('total-positions').textContent = data.total_positions.toLocaleString();
-        document.getElementById('divisions-represented').textContent = data.divisions_represented;
-        document.getElementById('locations-spread').textContent = data.locations_spread;
+        // Summary cards will be updated after filtering to match table data
         
         // Update pathway count with context
         const stepContext = selectedStepIndex === 0 ? 
@@ -3572,9 +3578,15 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
         const targetJobPositions = data.detailed_workforce.filter(position => position.job_id === targetJobId);
         
         if (targetJobPositions.length === 0) {
+            // No data available - set all cards to zero
+            document.getElementById('total-positions').textContent = '0';
+            document.getElementById('total-headcount').textContent = '0';
+            document.getElementById('divisions-represented').textContent = '0';
+            document.getElementById('locations-spread').textContent = '0';
+            
             const tableRows = `
                 <tr>
-                    <td colspan="8" class="px-3 py-4 text-center text-sm font-source text-gray-500">
+                    <td colspan="9" class="px-3 py-4 text-center text-sm font-source text-gray-500">
                         No workforce data available for ${targetJobId}
                     </td>
                 </tr>
@@ -3595,6 +3607,7 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
                     position_name: position.position_name || 'Unknown Position Name',
                     division: position.division || 'Unknown Division',
                     business_unit: position.business_unit || 'Unknown Business Unit',
+                    location: position.location || position.region || 'N/A',
                     teams: new Set(),
                     salary_groups: new Set(),
                     employee_groups: new Set(),
@@ -3611,6 +3624,31 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
             if (position.salary_group) entry.salary_groups.add(position.salary_group);
             if (position.employee_group) entry.employee_groups.add(position.employee_group);
         });
+        
+        // Calculate all metrics for the target job (to match table data)
+        const targetJobPositionCount = Array.from(divisionBusinessUnitMap.values()).reduce((sum, entry) => sum + entry.position_count, 0);
+        const targetJobHeadcount = Array.from(divisionBusinessUnitMap.values()).reduce((sum, entry) => sum + entry.headcount, 0);
+        const targetJobDivisions = new Set(Array.from(divisionBusinessUnitMap.values()).map(entry => entry.division).filter(div => div && div !== 'Unknown Division'));
+        const targetJobLocations = new Set();
+        
+        // Extract locations from team names and business units (since location data may be in different fields)
+        Array.from(divisionBusinessUnitMap.values()).forEach(entry => {
+            if (entry.business_unit && entry.business_unit !== 'Unknown Business Unit') {
+                targetJobLocations.add(entry.business_unit);
+            }
+            // Also check if any team names contain location information
+            entry.teams.forEach(team => {
+                if (team && team.includes('Operations')) {
+                    targetJobLocations.add(team);
+                }
+            });
+        });
+        
+        // Update all summary cards with filtered data to match table
+        document.getElementById('total-positions').textContent = targetJobPositionCount.toLocaleString();
+        document.getElementById('total-headcount').textContent = targetJobHeadcount.toLocaleString();
+        document.getElementById('divisions-represented').textContent = targetJobDivisions.size;
+        document.getElementById('locations-spread').textContent = Math.max(targetJobLocations.size, 1); // At least 1 if we have data
         
         // Generate table rows for each Division/Business Unit combination
         const tableRows = Array.from(divisionBusinessUnitMap.values()).map(entry => {
@@ -3639,6 +3677,9 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
                         ${entry.business_unit}
                     </td>
                     <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
+                        ${entry.location}
+                    </td>
+                    <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
                         ${teamDisplay}
                     </td>
                     <td class="px-3 py-4 text-sm font-source text-gray-900 break-words">
@@ -3665,6 +3706,7 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
         
         // Show error state
         document.getElementById('total-positions').textContent = '—';
+        document.getElementById('total-headcount').textContent = '—';
         document.getElementById('divisions-represented').textContent = '—';
         document.getElementById('locations-spread').textContent = '—';
         document.getElementById('workforce-pathway-count').textContent = 'Error';
@@ -3672,7 +3714,7 @@ async function fetchWorkforceAnalysis(jobIds, selectedStepIndex, contextText) {
         const workforceTable = document.getElementById('workforce-pathway-table');
         workforceTable.innerHTML = `
             <tr>
-                <td colspan="8" class="px-3 py-4">
+                <td colspan="9" class="px-3 py-4">
                     <div class="text-center p-4 bg-red-50 border border-red-200 rounded-lg">
                         <div class="text-sm text-red-800">
                             <strong>Unable to load workforce analysis</strong><br>
@@ -3983,11 +4025,13 @@ function populateWorkforceIntelligence(pathNodes) {
     
     // Mock workforce data based on pathway
     const totalPositions = pathNodes.length * Math.floor(Math.random() * 50) + 100;
+    const totalHeadcount = totalPositions * (Math.floor(Math.random() * 3) + 2); // 2-4 employees per position on average
     const divisionsCount = Math.min(pathNodes.length + 1, 5);
     const locationsCount = Math.min(pathNodes.length + 2, 8);
     
     // Update summary cards
     document.getElementById('total-positions').textContent = totalPositions.toLocaleString();
+    document.getElementById('total-headcount').textContent = totalHeadcount.toLocaleString();
     document.getElementById('divisions-represented').textContent = divisionsCount;
     document.getElementById('locations-spread').textContent = locationsCount;
     

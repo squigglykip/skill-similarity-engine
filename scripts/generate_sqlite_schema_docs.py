@@ -645,7 +645,7 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
             "### 3. Organizational Context",
             "```sql",
             "-- Find roles in specific business units",
-            "SELECT DISTINCT j.JobProfile, j.JobFamily, COUNT(p.\"Position Number\") as position_count",
+            "SELECT DISTINCT j.JobProfile, j.JobFamily, COUNT(DISTINCT p.\"Position Number\") as position_count",
             "FROM jobs j",
             "JOIN positions p ON j.JobProfileID = p.JobProfileID",
             "WHERE p.Business_Unit = 'Technology'",

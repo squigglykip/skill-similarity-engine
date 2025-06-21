@@ -1,11 +1,16 @@
 # White Paper Story Mapping & Content Architecture
 ## NAB Skills Intelligence Platform - Phase 8.2.6
 
-**Document Purpose**: Comprehensive mapping of story types, audience adaptations, and content generation logic for automated white paper creation using refined JobProfile-Position communication framework.
+**Document Purpose**: Comprehensive mapping of story types, audience adaptations, and content generation logic for automated white paper creation supporting strategic workforce transitions and skills gap analysis.
 
-**Version**: 1.2  
+**Version**: 2.0  
 **Date**: December 2024  
-**Status**: Prototype Complete - Implementation Phase
+**Status**: Requirements Refined - Implementation Phase
+
+**🎯 FOCUS SCENARIOS**: Refined to three core scenarios based on Future Skills team requirements:
+- **Scenario A**: Skill Sunsetting (skills becoming obsolete, not role redundancy)
+- **Scenario B**: Division Restructure (organisational change and talent redeployment)  
+- **Scenario D**: Skills Gap Analysis (pathway analysis from Job A to Job B)
 
 **🏢 Communication Framework**: JobProfile-first approach maintaining technical accuracy while providing immediate business context through Position Name translation. Balances HR architectural precision with operational recognition.
 
@@ -15,7 +20,8 @@
 - ✅ Confidence assessment integrated ("High")
 - ✅ Database integration with 715 job profiles operational
 - ✅ Refined business communication framework implemented (JobProfile-first with Position translation)
-- 📋 Next: Flask webapp integration for user interface
+- ✅ Requirements refined with Future Skills team stakeholder input
+- 📋 Next: Enhanced UI options and embedded visualisations
 
 # White Paper Generation Experimentation
 ## NAB Skills Intelligence Platform - Phase 8.2.6
@@ -59,43 +65,166 @@
 
 ---
 
-## 2. Scenario Analysis
+## 2. Refined Scenario Analysis
 
-### Common Scenarios Requiring White Papers:
+### Focus Scenarios for Future Skills Team Implementation:
 
-#### Scenario A: **Role Sunsetting**
-- **Trigger**: Technology change, process automation, business model shift
-- **Affected**: 5-50 people in similar roles
+#### Scenario A: **Skill Sunsetting** *(RENAMED from Role Sunsetting)*
+- **Trigger**: Technology change, automation rendering specific skills obsolete
+- **Affected**: 5-50 people with specific skill sets becoming less relevant
 - **Urgency**: Medium-High (3-12 month timeline)
-- **Story Focus**: "Where can these skills be applied?"
+- **Story Focus**: "Where can these transferable skills be applied?"
+- **Key Distinction**: Focus on skill obsolescence, not role redundancy
+- **White Paper Output**: Skills transition analysis with redeployment pathways
 
 #### Scenario B: **Division Restructure**
-- **Trigger**: Organisational change, merger, cost optimisation
-- **Affected**: 20-200 people across multiple roles
+- **Trigger**: Organisational change, merger, cost optimisation, strategic realignment
+- **Affected**: 20-200 people across multiple roles and divisions
 - **Urgency**: High (1-6 month timeline)
-- **Story Focus**: "How do we redeploy this talent?"
+- **Story Focus**: "How do we strategically redeploy this talent?"
+- **Key Features**: Cross-divisional analysis, geographic considerations
+- **White Paper Output**: Large-scale talent redeployment strategy
 
-#### Scenario C: **Proactive Career Planning**
-- **Trigger**: Future skills strategy, succession planning
-- **Affected**: High-potential individuals or critical roles
-- **Urgency**: Low-Medium (6-24 month timeline)
-- **Story Focus**: "What are the growth opportunities?"
-
-#### Scenario D: **Skills Gap Analysis**
-- **Trigger**: New technology adoption, strategic capability building
-- **Affected**: Teams needing to upskill or pivot
+#### Scenario D: **Skills Gap Analysis** *(PRIORITISED)*
+- **Trigger**: Strategic capability building, new technology adoption, upskilling initiatives
+- **Affected**: Teams or individuals targeting specific role transitions
 - **Urgency**: Medium (3-18 month timeline)
-- **Story Focus**: "How do we build these capabilities?"
+- **Story Focus**: "To get from Job A to Job B, we need skills X, Y, and Z"
+- **Key Features**: Detailed pathway analysis, skill gap identification, development roadmaps
+- **White Paper Output**: Comprehensive skills development analysis
 
-#### Scenario E: **Emergency Redeployment**
-- **Trigger**: Market shock, regulatory change, crisis response
-- **Affected**: Variable, often cross-functional
-- **Urgency**: Very High (immediate to 3 months)
-- **Story Focus**: "Who can adapt quickly?"
+### Combined Scenario Applications:
+
+#### **Skill Sunsetting + Skills Gap Analysis**
+**Use Case**: "Our data entry skills are becoming obsolete due to automation. What are the pathways to data analysis roles and what skills need development?"
+
+#### **Division Restructure + Skills Gap Analysis**  
+**Use Case**: "We're restructuring the Technology Division. How do we redeploy talent and what skills development is needed for emerging roles?"
+
+#### **All Three Combined**
+**Use Case**: "Division restructure with skill sunsetting creating need for strategic redeployment with comprehensive skills gap analysis."
 
 ---
 
-## 3. Data-Driven Story Types
+## 2.5 Skills Gap Analysis Deep Dive
+
+### Core Functionality: "To get from Job A to Job B, we need skills X, Y, and Z"
+
+#### **Skills Gap Analysis Algorithm**
+```python
+# Pseudo-code for skills gap analysis
+def analyze_skills_gap(job_from, job_to):
+    skills_from = get_job_skills(job_from)
+    skills_to = get_job_skills(job_to)
+    
+    shared_skills = skills_from.intersection(skills_to)
+    skills_to_develop = skills_to - skills_from
+    transferable_skills = skills_from.intersection(skills_to)
+    
+    return {
+        'similarity_score': calculate_similarity(skills_from, skills_to),
+        'shared_skills': shared_skills,
+        'skills_to_develop': skills_to_develop,
+        'transferable_skills': transferable_skills,
+        'development_priority': rank_by_importance(skills_to_develop),
+        'estimated_timeline': estimate_development_time(skills_to_develop)
+    }
+```
+
+#### **Multi-Target Analysis: Top 3 Matched Jobs**
+```python
+def analyze_top_3_pathways(job_from):
+    all_jobs = get_available_jobs()
+    similarities = calculate_similarities(job_from, all_jobs)
+    top_3_jobs = similarities.nlargest(3)
+    
+    return [analyze_skills_gap(job_from, job) for job in top_3_jobs]
+```
+
+#### **Skills Gap Visualisation Components**
+- **Skills Overlap Venn Diagram**: Visual representation of shared vs required skills
+- **Skills Development Roadmap**: Timeline-based chart showing development progression
+- **Priority Matrix**: Skills categorised by importance and difficulty
+- **Similarity Comparison**: Side-by-side comparison for multiple target roles
+
+#### **White Paper Output Sections for Skills Gap Analysis**
+1. **Skills Alignment Summary**: Overall similarity score and confidence assessment
+2. **Transferable Skills**: What the person already has that applies
+3. **Skills to Develop**: Detailed breakdown of required new skills
+4. **Development Roadmap**: Prioritised learning pathway with timelines
+5. **Success Probability**: Data-driven assessment of transition likelihood
+
+---
+
+## 3. User Interface Requirements
+
+### 3.1 Core UI Input Options for Future Skills Team
+
+#### **Job Selection Interface**
+- **Job From**: Single job selection dropdown/search interface
+- **Job To Options**:
+  - **Specific Job To**: Single target job selection for direct pathway analysis
+  - **Top 3 Matched Jobs**: Automatic selection of 3 highest similarity jobs from Job From
+- **Example Use Cases**:
+  - "From Data Entry Clerk to Business Analyst" (specific pathway)
+  - "From Marketing Coordinator to top 3 matched roles" (discovery mode)
+
+#### **Divisional Context Filtering**
+- **From Division Filter**: Limit source jobs to specific divisions
+  - Use cases: "Only consider Technology Division roles as source"
+- **To Division Filter**: Limit target jobs to specific divisions  
+  - Use cases: "Only show opportunities in Corporate Banking"
+- **Cross-Division Analysis**: Option to include/exclude cross-divisional moves
+- **Division Options**: Based on existing database divisions (Technology, Corporate Banking, Business Banking, etc.)
+
+#### **Management Level Context**
+- **Management Level Filtering**: Filter jobs by seniority level
+  - Individual Contributor, Team Lead, Manager, Senior Manager, Executive
+- **Level Change Analysis**: 
+  - Same level transitions, progression opportunities, lateral moves
+- **Level Flexibility**: Option to include ±1 level from current position
+
+#### **Additional Context Options**
+- **Geographic Scope**: Filter by location (Melbourne, Sydney, Brisbane, Perth, Adelaide)
+- **Skills Focus**: Optionally emphasise specific skill categories (Technical, Leadership, Domain Knowledge)
+- **Timeline Preference**: Development timeline preferences (immediate, 3-6 months, 6-12 months, 12+ months)
+
+### 3.2 Output Format Options
+
+#### **Full White Paper Formats**
+- **Word Document (.docx)**: Complete professional analysis with NAB branding
+- **PDF Export**: Finalised presentation-ready format
+- **HTML Version**: Web-friendly format for email distribution
+
+#### **PowerPoint-Ready Summaries** *(NEW REQUIREMENT)*
+- **Executive Summary Slides**: 2-3 slide summary for presentations
+- **Key Findings Bullet Points**: Copy-paste ready content for PowerPoint
+- **Data Visualisation Slides**: Charts and graphs formatted for presentation
+- **Recommended Actions**: Concise action items for leadership consumption
+
+#### **Embedded Visualisations** *(NEW REQUIREMENT)*
+- **Skills Gap Charts**: matplotlib/seaborn charts showing skill overlap analysis
+- **Pathway Visualisation**: Network diagrams showing transition pathways
+- **Timeline Charts**: Development roadmap visualisations
+- **Similarity Score Visualisations**: Comparison charts across multiple target roles
+
+### 3.3 Corporate Template Integration
+
+#### **NAB Branded Document Templates** *(NEW REQUIREMENT)*
+- **Pre-styled Headers**: Use existing H1, H2, H3 corporate styling
+- **Document Structure**: Maintain NAB document format standards
+- **Corporate Colours**: Consistent colour scheme throughout
+- **Logo and Branding**: Appropriate NAB branding elements
+
+#### **Python-docx Template Integration**
+- **Template Inheritance**: Use existing Word templates as base
+- **Style Preservation**: Maintain corporate formatting standards
+- **Dynamic Content**: Populate template placeholders with analysis data
+- **Professional Output**: Ensure output matches corporate document standards
+
+---
+
+## 4. Data-Driven Story Types
 
 ### Story Architecture Based on Data Patterns:
 
@@ -730,24 +859,41 @@ timeline_emphasis = {
 - [x] Test with sample data from database
 - **Achievement**: Successfully generating "Career Transition Analysis: Analyst - Branch Manager Role Sunset" with "excellent_opportunities" story type
 
-### Phase 2: Dynamic Content Integration (Week 3-4) 📋 **IN PROGRESS**
+### Phase 2: Enhanced UI Requirements Implementation 📋 **NEXT PRIORITY**
+- [ ] **Core UI Input Options**:
+  - [ ] Job From/To selection interface with auto-complete
+  - [ ] "Top 3 Matched Jobs" option for discovery mode
+  - [ ] Divisional context filtering (From/To division filters)
+  - [ ] Management level filtering and progression analysis
+  - [ ] Geographic scope and timeline preference options
+
+### Phase 3: Corporate Template & Visualisation Integration 📋 **PLANNED**
+- [ ] **NAB Branded Template Integration**:
+  - [ ] python-docx integration with existing corporate Word templates
+  - [ ] Style preservation for H1, H2, H3 headers and corporate formatting
+  - [ ] Logo and branding element integration
+- [ ] **Embedded Visualisations**:
+  - [ ] matplotlib/seaborn charts for skills gap analysis
+  - [ ] Pathway network diagrams and timeline visualisations
+  - [ ] Similarity score comparison charts
+- [ ] **PowerPoint-Ready Output**:
+  - [ ] Executive summary slide generation (2-3 slides)
+  - [ ] Copy-paste ready bullet points for presentations
+  - [ ] Data visualisation slides formatted for PowerPoint
+
+### Phase 4: Dynamic Content Integration 📋 **PLANNED**
 - [x] Connect templates to live database queries
 - [x] Implement variable substitution system
-- [ ] Add quality assurance validation
-- [ ] Test end-to-end content generation with all story types
+- [ ] Add quality assurance validation for new UI options
+- [ ] Test end-to-end content generation with refined scenarios (Skill Sunsetting, Division Restructure, Skills Gap Analysis)
+- [ ] Skills gap analysis algorithm refinement ("Job A to Job B requires skills X, Y, Z")
 
-### Phase 3: Document Assembly (Week 5-6) 📋 **NEXT**
-- [ ] Integrate with python-docx for Word generation
-- [ ] Apply NAB branding and formatting
-- [ ] Add charts and visualisations from webapp data
-- [ ] Test complete document generation across all 4 audiences
-
-### Phase 4: Flask Integration (Week 7-8) 📋 **PLANNED**
+### Phase 5: Flask Integration & User Testing 📋 **PLANNED**
 - [ ] Create `/white-papers` route in existing Flask webapp
-- [ ] Add user selection options (scenario, audience, job selection)
+- [ ] Implement enhanced UI options (divisional filtering, management levels, top 3 matches)
 - [ ] Integrate with existing job search and similarity data
-- [ ] Implement download functionality (.docx, .pdf, .html)
-- [ ] User acceptance testing with Future Skills team
+- [ ] Implement multi-format download functionality (.docx with NAB branding, .pdf, .html, PowerPoint summaries)
+- [ ] User acceptance testing with Future Skills team across all three focus scenarios
 
 ---
 
@@ -793,21 +939,118 @@ Enhanced Workflow:
 Job Search → Career Pathways → White Paper Generation → Professional Document (< 30 seconds)
 ```
 
+### 9.3 Technical Implementation for New Requirements
+
+#### **PowerPoint-Ready Output Generation**
+```python
+# Pseudo-code for PowerPoint summary generation
+def generate_powerpoint_summary(analysis_data):
+    summary = {
+        'executive_summary': {
+            'slide_title': f"Skills Transition: {job_from} → {job_to}",
+            'key_metrics': f"Similarity: {similarity:.1%}, Skills to Develop: {len(skills_gap)}",
+            'recommendation': determine_transition_recommendation(analysis_data)
+        },
+        'skills_analysis': {
+            'transferable_skills': format_bullet_points(shared_skills),
+            'development_required': format_bullet_points(skills_to_develop),
+            'timeline_estimate': calculate_development_timeline(skills_gap)
+        },
+        'action_items': generate_actionable_recommendations(analysis_data)
+    }
+    return summary
+```
+
+#### **Embedded Visualisation with matplotlib/seaborn**
+```python
+import matplotlib.pyplot as plt
+import seaborn as sns
+from docx.shared import Inches
+
+def create_skills_gap_chart(job_from, job_to, skills_data):
+    # Create skills overlap visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    
+    # Skills overlap bar chart
+    categories = ['Shared Skills', 'Skills to Develop', 'Transferable Only']
+    values = [len(shared_skills), len(skills_to_develop), len(transferable_only)]
+    ax1.bar(categories, values, color=['#2E8B57', '#FF6B6B', '#4169E1'])
+    ax1.set_title('Skills Gap Analysis')
+    
+    # Development priority heatmap
+    priority_matrix = create_priority_matrix(skills_to_develop)
+    sns.heatmap(priority_matrix, ax=ax2, cmap='RdYlGn_r', annot=True)
+    ax2.set_title('Development Priority Matrix')
+    
+    # Save and embed in Word document
+    img_stream = BytesIO()
+    plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=300)
+    img_stream.seek(0)
+    
+    return img_stream
+
+def embed_chart_in_word(document, chart_stream):
+    paragraph = document.add_paragraph()
+    run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
+    run.add_picture(chart_stream, width=Inches(6))
+```
+
+#### **Corporate Template Integration with python-docx**
+```python
+from docx import Document
+from docx.shared import RGBColor, Pt
+from docx.enum.style import WD_STYLE_TYPE
+
+def apply_nab_template(document_path, content_data):
+    # Load existing NAB template
+    doc = Document(document_path)
+    
+    # Apply corporate styles
+    for style in doc.styles:
+        if style.name == 'Heading 1':
+            style.font.color.rgb = RGBColor(0x2E, 0x8B, 0x57)  # NAB Green
+            style.font.size = Pt(18)
+        elif style.name == 'Heading 2':
+            style.font.color.rgb = RGBColor(0x1C, 0x1C, 0x1C)  # NAB Dark Grey
+            style.font.size = Pt(14)
+    
+    # Populate template placeholders
+    for paragraph in doc.paragraphs:
+        if '<JOB_FROM>' in paragraph.text:
+            paragraph.text = paragraph.text.replace('<JOB_FROM>', content_data['job_from'])
+        if '<SIMILARITY_SCORE>' in paragraph.text:
+            paragraph.text = paragraph.text.replace('<SIMILARITY_SCORE>', f"{content_data['similarity']:.1%}")
+    
+    return doc
+```
+
 ## 10. Success Metrics
 
 ### Quantitative Measures:
-- **Generation Speed**: < 30 seconds per white paper
+- **Generation Speed**: < 30 seconds per white paper (all formats)
 - **Accuracy Rate**: > 95% data accuracy validation
 - **User Adoption**: 80% Future Skills team usage within 3 months
 - **Time Savings**: 2-3 hours per transition analysis
 - **Integration Performance**: Sub-2-second database queries maintained
+- **Format Adoption**: 60% PowerPoint summary usage for presentations
+- **Skills Gap Analysis**: 100% accuracy in skills X, Y, Z identification
 
 ### Qualitative Measures:
 - **Business Relevance**: Content directly supports decision-making
-- **Professional Quality**: Suitable for executive presentation
+- **Professional Quality**: Suitable for executive presentation with NAB branding
 - **Narrative Coherence**: Stories make logical sense and flow well
 - **Actionability**: Recommendations are implementable and specific
 - **Platform Consistency**: Seamless user experience with existing tools
+- **Visual Quality**: Embedded charts enhance understanding and retention
+- **Template Compliance**: Documents match corporate standards and branding
+
+### New Requirements Success Criteria:
+- **Skills Gap Analysis**: Clear "Job A to Job B requires skills X, Y, Z" output
+- **Divisional Filtering**: Accurate division-specific opportunity identification
+- **Management Level Context**: Appropriate level progression recommendations
+- **PowerPoint Integration**: Copy-paste ready summaries that save presentation time
+- **Corporate Branding**: Professional appearance matching NAB document standards
+- **Embedded Visualisations**: Charts and graphs that enhance data comprehension
 
 ---
 

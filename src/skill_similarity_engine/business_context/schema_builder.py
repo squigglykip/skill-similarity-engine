@@ -134,13 +134,13 @@ class SchemaBuilder:
         logger.debug("Created job_similarities table")
     
     def _create_positions_table(self, conn: sqlite3.Connection) -> None:
-        """Create positions table - Workforce Context with full organizational hierarchy."""
+        """Create positions table - Workforce Context with Employee Number as primary key."""
         sql = """
         CREATE TABLE positions (
-            "Position Number" TEXT PRIMARY KEY,     -- Unique position identifier
+            "Employee Number" TEXT PRIMARY KEY,     -- Unique employee identifier (one row per employee)
+            "Position Number" TEXT NOT NULL,        -- Position/role identifier (can be shared by multiple employees)
             "Position Name" TEXT,                   -- Human-readable position name/title
             JobProfileID TEXT,                      -- Direct link to jobs table (enriched during loading)
-            "Employee Number" TEXT,                 -- Current employee (if filled)
             
             -- Organizational Hierarchy (10-level structure) - renamed for clarity
             Division TEXT,                          -- ORG_UNIT_NAME_2: Divisions
@@ -167,7 +167,7 @@ class SchemaBuilder:
         );
         """
         conn.execute(sql)
-        logger.debug("Created positions table")
+        logger.debug("Created positions table with Employee Number as primary key")
     
     def _create_skills_table(self, conn: sqlite3.Connection) -> None:
         """Create skills table - Enhanced Comprehensive Skills Library with 18-column schema."""

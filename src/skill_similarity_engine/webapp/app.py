@@ -339,13 +339,15 @@ def create_app(config=None):
             """
             skills = db.execute(skills_query, (job_id,)).fetchall()
             
-            # Get position count for this job
-            positions_query = """
-            SELECT COUNT(*) as position_count
+            # Get position and employee counts for this job
+            workforce_stats_query = """
+            SELECT 
+                COUNT(DISTINCT "Position Number") as position_count,
+                COUNT(*) as employee_count
             FROM positions p
             WHERE p.JobProfileID = ?
             """
-            position_count = db.execute(positions_query, (job_id,)).fetchone()
+            workforce_stats = db.execute(workforce_stats_query, (job_id,)).fetchone()
             
             # Get similarity count (career pathways)
             pathways_query = """
@@ -384,7 +386,8 @@ def create_app(config=None):
                 } for skill in skills],
                 'stats': {
                     'skills_count': len(skills),
-                    'positions_count': position_count['position_count'] if position_count else 0,
+                    'positions_count': workforce_stats['position_count'] if workforce_stats else 0,
+                    'employee_count': workforce_stats['employee_count'] if workforce_stats else 0,
                     'pathways_count': pathway_count['pathway_count'] if pathway_count else 0
                 }
             })
@@ -399,42 +402,43 @@ def create_app(config=None):
             db = get_db()
             
             # Get workforce distribution by division, business unit, and location
+            # Note: COUNT(*) gives employee count (since each row = one employee)
             workforce_query = """
             SELECT 
                 p.Division,
                 p.Business_Unit,
                 p.Location,
-                COUNT(*) as position_count
+                COUNT(*) as employee_count
             FROM positions p
             WHERE p.JobProfileID = ?
             GROUP BY p.Division, p.Business_Unit, p.Location
-            ORDER BY position_count DESC
+            ORDER BY employee_count DESC
             """
             workforce_data = db.execute(workforce_query, (job_id,)).fetchall()
             
-            # Aggregate by division
+            # Aggregate by division, business unit, and location
             by_division = {}
             by_business_unit = {}
             by_location = {}
-            total_positions = 0
+            total_employees = 0
             
             for row in workforce_data:
-                total_positions += row['position_count']
+                total_employees += row['employee_count']
                 
                 # By division
                 div = row['Division'] or 'Other'
-                by_division[div] = by_division.get(div, 0) + row['position_count']
+                by_division[div] = by_division.get(div, 0) + row['employee_count']
                 
                 # By business unit
                 bu = row['Business_Unit'] or 'Other'
-                by_business_unit[bu] = by_business_unit.get(bu, 0) + row['position_count']
+                by_business_unit[bu] = by_business_unit.get(bu, 0) + row['employee_count']
                 
                 # By location
                 loc = row['Location'] or 'Other'
-                by_location[loc] = by_location.get(loc, 0) + row['position_count']
+                by_location[loc] = by_location.get(loc, 0) + row['employee_count']
             
             return jsonify({
-                'total_positions': total_positions,
+                'total_employees': total_employees,
                 'by_division': [{'division': k, 'count': v} for k, v in sorted(by_division.items(), key=lambda x: x[1], reverse=True)],
                 'by_business_unit': [{'business_unit': k, 'count': v} for k, v in sorted(by_business_unit.items(), key=lambda x: x[1], reverse=True)],
                 'by_location': [{'location': k, 'count': v} for k, v in sorted(by_location.items(), key=lambda x: x[1], reverse=True)]
@@ -1158,7 +1162,7 @@ def create_app(config=None):
                 p."Employee Group",
                 p.Location,
                 p.Rg,
-                COUNT(p."Position Number") as position_count,
+                COUNT(DISTINCT p."Position Number") as position_count,
                 COUNT(DISTINCT p."Employee Number") as headcount
             FROM jobs j
             LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
@@ -1681,7 +1685,7 @@ def create_app(config=None):
             jobs_data = db.execute(jobs_query, actual_job_ids).fetchall()
             
             # Calculate summary statistics
-            total_positions = len([row for row in workforce_data if row['Position Number']])
+            total_positions = len(set(row['Position Number'] for row in workforce_data if row['Position Number']))
             total_employees = len([row for row in workforce_data if row['Employee Number']])
             unique_divisions = len(set(row['Division'] for row in workforce_data if row['Division']))
             unique_locations = len(set(row['Location'] for row in workforce_data if row['Location']))
@@ -1754,7 +1758,7 @@ def create_app(config=None):
                 if row['Division']:
                     if row['Division'] not in divisions:
                         divisions[row['Division']] = {
-                            'positions': 0,
+                            'positions': set(),
                             'employees': 0,
                             'business_units': set(),
                             'locations': set(),
@@ -1762,7 +1766,7 @@ def create_app(config=None):
                         }
                     
                     if row['Position Number']:
-                        divisions[row['Division']]['positions'] += 1
+                        divisions[row['Division']]['positions'].add(row['Position Number'])
                     if row['Employee Number']:
                         divisions[row['Division']]['employees'] += 1
                     if row['Business_Unit']:
@@ -1776,7 +1780,7 @@ def create_app(config=None):
             for division, data in sorted(divisions.items()):
                 writer.writerow([
                     division,
-                    data['positions'],
+                    len(data['positions']),
                     data['employees'],
                     len(data['business_units']),
                     len(data['locations']),
@@ -1792,14 +1796,14 @@ def create_app(config=None):
                 if row['Location']:
                     if row['Location'] not in locations:
                         locations[row['Location']] = {
-                            'positions': 0,
+                            'positions': set(),
                             'employees': 0,
                             'divisions': set(),
                             'jobs': set()
                         }
                     
                     if row['Position Number']:
-                        locations[row['Location']]['positions'] += 1
+                        locations[row['Location']]['positions'].add(row['Position Number'])
                     if row['Employee Number']:
                         locations[row['Location']]['employees'] += 1
                     if row['Division']:
@@ -1811,7 +1815,7 @@ def create_app(config=None):
             for location, data in sorted(locations.items()):
                 writer.writerow([
                     location,
-                    data['positions'],
+                    len(data['positions']),
                     data['employees'],
                     len(data['divisions']),
                     len(data['jobs'])
@@ -1826,7 +1830,7 @@ def create_app(config=None):
                 if row['Business_Unit']:
                     if row['Business_Unit'] not in business_units:
                         business_units[row['Business_Unit']] = {
-                            'positions': 0,
+                            'positions': set(),
                             'employees': 0,
                             'divisions': set(),
                             'locations': set(),
@@ -1834,7 +1838,7 @@ def create_app(config=None):
                         }
                     
                     if row['Position Number']:
-                        business_units[row['Business_Unit']]['positions'] += 1
+                        business_units[row['Business_Unit']]['positions'].add(row['Position Number'])
                     if row['Employee Number']:
                         business_units[row['Business_Unit']]['employees'] += 1
                     if row['Division']:
@@ -1848,7 +1852,7 @@ def create_app(config=None):
             for bu, data in sorted(business_units.items()):
                 writer.writerow([
                     bu,
-                    data['positions'],
+                    len(data['positions']),
                     data['employees'],
                     len(data['divisions']),
                     len(data['locations']),

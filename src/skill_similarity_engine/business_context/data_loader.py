@@ -250,8 +250,15 @@ class DataLoader:
             table_name = dataset_config.get('table_name', dataset_name)
             if dataset_name == 'jobs' and 'JobProfileID' in df_mapped.columns:
                 df_mapped = df_mapped[df_mapped['JobProfileID'] != '']
-            elif dataset_name == 'positions' and 'Position Number' in df_mapped.columns:
-                df_mapped = df_mapped[df_mapped['Position Number'] != '']
+            elif dataset_name == 'positions' and 'Employee Number' in df_mapped.columns:
+                # Remove rows with empty Employee Number (primary key)
+                df_mapped = df_mapped[df_mapped['Employee Number'] != '']
+                # Remove duplicate Employee Numbers if they exist (each employee should appear only once)
+                initial_count = len(df_mapped)
+                df_mapped = df_mapped.drop_duplicates(subset=['Employee Number'])
+                final_count = len(df_mapped)
+                if initial_count > final_count:
+                    logger.info(f"Removed {initial_count - final_count} duplicate Employee Numbers")
             elif dataset_name == 'job_skills':
                 df_mapped = df_mapped[df_mapped['JobProfileID'] != '']
                 df_mapped = df_mapped[df_mapped['Skill_ID'] != '']
@@ -602,8 +609,15 @@ class DataLoader:
             # Clean data
             df_mapped = df_mapped.fillna('')
             
-            # Remove rows with empty Position Number
-            df_mapped = df_mapped[df_mapped['Position Number'] != '']
+            # Remove rows with empty Employee Number (primary key)
+            df_mapped = df_mapped[df_mapped['Employee Number'] != '']
+            
+            # Remove duplicate Employee Numbers if they exist (each employee should appear only once)
+            initial_count = len(df_mapped)
+            df_mapped = df_mapped.drop_duplicates(subset=['Employee Number'])
+            final_count = len(df_mapped)
+            if initial_count > final_count:
+                logger.info(f"Removed {initial_count - final_count} duplicate Employee Numbers")
             
             # Load into database
             with sqlite3.connect(self.db_path) as conn:
@@ -710,6 +724,25 @@ class DataLoader:
                 """)
                 orphaned_positions = cursor.fetchone()[0]
                 results['positions_jobs'] = orphaned_positions == 0
+                
+                if orphaned_positions > 0:
+                    logger.warning(f"Found {orphaned_positions} positions with invalid JobProfileID references")
+                
+                # Log position statistics for monitoring
+                cursor = conn.execute("SELECT COUNT(*) FROM positions")
+                total_employees = cursor.fetchone()[0]
+                
+                cursor = conn.execute("SELECT COUNT(DISTINCT \"Position Number\") FROM positions")
+                unique_positions = cursor.fetchone()[0]
+                
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM positions 
+                    WHERE JobProfileID IS NOT NULL AND JobProfileID != ''
+                """)
+                positions_with_jobs = cursor.fetchone()[0]
+                
+                logger.info(f"Position statistics: {total_employees:,} employees in {unique_positions:,} unique positions")
+                logger.info(f"Job mapping: {positions_with_jobs:,} employees have JobProfileID assignments")
                 
                 # Check job_skills foreign keys
                 cursor = conn.execute("""

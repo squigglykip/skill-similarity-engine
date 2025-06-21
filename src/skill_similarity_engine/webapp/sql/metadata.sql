@@ -296,7 +296,7 @@ FROM job_skills
 UNION ALL
 SELECT 
     'positions_count',
-    COUNT(*)
+    COUNT(DISTINCT "Position Number")
 FROM positions
 UNION ALL
 SELECT 
@@ -312,7 +312,8 @@ UNION ALL
 SELECT 
     'divisions_count',
     COUNT(DISTINCT Division)
-FROM positions;
+FROM positions
+WHERE Division IS NOT NULL AND Division != '';
 
 -- query_name: get_top_job_functions
 -- Get top job functions with counts for homepage dashboard

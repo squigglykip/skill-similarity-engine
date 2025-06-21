@@ -354,17 +354,30 @@ class DatabaseValidator:
                 if invalid_skill_names > 0:
                     rule_violations.append(f"Invalid skill names: {invalid_skill_names} records with missing/short names")
                 
-                # Rule 4: Position numbers should be unique
+                # Rule 4: Employee numbers should be unique (primary key constraint)
                 cursor = conn.execute("""
-                    SELECT COUNT(*) - COUNT(DISTINCT "Position Number") as duplicates
+                    SELECT COUNT(*) - COUNT(DISTINCT "Employee Number") as duplicates
+                    FROM positions 
+                    WHERE "Employee Number" IS NOT NULL AND "Employee Number" != ''
+                """)
+                duplicate_employees = cursor.fetchone()[0]
+                if duplicate_employees > 0:
+                    rule_violations.append(f"Duplicate employee numbers: {duplicate_employees} duplicates found")
+                
+                # Rule 5: Position numbers can be shared (multiple employees per position is valid)
+                cursor = conn.execute("""
+                    SELECT 
+                        COUNT(*) as total_employees,
+                        COUNT(DISTINCT "Position Number") as unique_positions
                     FROM positions 
                     WHERE "Position Number" IS NOT NULL AND "Position Number" != ''
                 """)
-                duplicate_positions = cursor.fetchone()[0]
-                if duplicate_positions > 0:
-                    rule_violations.append(f"Duplicate position numbers: {duplicate_positions} duplicates found")
+                total_employees, unique_positions = cursor.fetchone()
+                if total_employees > 0 and unique_positions > 0:
+                    avg_employees_per_position = total_employees / unique_positions
+                    logger.info(f"Position sharing statistics: {total_employees:,} employees in {unique_positions:,} positions (avg {avg_employees_per_position:.1f} employees/position)")
                 
-                # Rule 5: Salary grades should follow expected patterns (if present) - LENIENT MODE
+                # Rule 6: Salary grades should follow expected patterns (if present) - LENIENT MODE
                 cursor = conn.execute("""
                     SELECT COUNT(*) FROM positions 
                     WHERE "Salary Group" IS NOT NULL AND "Salary Group" != '' 
