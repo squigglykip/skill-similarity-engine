@@ -223,6 +223,124 @@ class SimilarityMatrixPrecomputer:
         
         return pd.DataFrame(results)
     
+    def _process_chunk_parallel(self, chunk: MatrixChunk, job_architecture: JobArchitecture) -> pd.DataFrame:
+        """
+        Process a single matrix chunk to calculate similarities (parallel-safe version).
+        
+        This method is designed to be called by parallel workers and includes
+        the job architecture as a parameter since parallel workers need their own copy.
+        
+        Args:
+            chunk: Matrix chunk defining the region to process
+            job_architecture: Job architecture containing all jobs (passed for parallel safety)
+            
+        Returns:
+            DataFrame with job_from, job_to, similarity columns
+        """
+        from .asymmetric import AsymmetricCoverageCalculator
+        
+        # Create calculator instance for this worker
+        calculator = AsymmetricCoverageCalculator(job_architecture)
+        
+        # Get job IDs
+        job_ids = list(job_architecture.jobs.keys())
+        
+        results = []
+        
+        # Get job ID ranges for this chunk
+        job_from_ids = job_ids[chunk.row_start:chunk.row_end]
+        job_to_ids = job_ids[chunk.col_start:chunk.col_end]
+        
+        # Calculate similarities for all pairs in this chunk
+        for i, job_from in enumerate(job_from_ids):
+            for j, job_to in enumerate(job_to_ids):
+                # Skip self-comparisons
+                if job_from == job_to:
+                    continue
+                
+                # Calculate base similarity (unweighted skill coverage)
+                similarity = calculator.calculate_job_coverage(job_from, job_to)
+                
+                results.append({
+                    'job_from': job_from,
+                    'job_to': job_to,
+                    'similarity': similarity
+                })
+        
+        return pd.DataFrame(results)
+
+    def _process_career_pathways_chunk(self, task: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Process a single chunk of career pathways generation (parallel-safe).
+        
+        Args:
+            task: Dictionary containing task-specific data
+            
+        Returns:
+            List of pathway records for this chunk
+        """
+        chunk_idx = task['chunk_idx']
+        job_ids = task['job_ids']
+        similarity_df = task['similarity_df']
+        job_families = task['job_families']
+        top_n_pathways = task['top_n_pathways']
+        min_similarity_threshold = task['min_similarity_threshold']
+        
+        pathway_records = []
+        
+        for source_job_id in job_ids:
+            # Get similarities for this source job
+            job_similarities = similarity_df[
+                (similarity_df['job_from'] == source_job_id) &
+                (similarity_df['job_to'] != source_job_id) &
+                (similarity_df['similarity'] >= min_similarity_threshold)
+            ].copy()
+            
+            # Sort by similarity score and take top N
+            job_similarities = job_similarities.sort_values('similarity', ascending=False).head(top_n_pathways)
+            
+            # Generate pathway records with ranking and metadata
+            for rank, (_, row) in enumerate(job_similarities.iterrows(), 1):
+                target_job_id = row['job_to']
+                similarity_score = row['similarity']
+                
+                # Get job families
+                source_family = job_families.get(source_job_id, 'Unknown')
+                target_family = job_families.get(target_job_id, 'Unknown')
+                
+                # Determine career move type
+                if source_family == target_family:
+                    if similarity_score >= 0.8:
+                        move_type = 'lateral'  # Very similar role in same family
+                    else:
+                        move_type = 'progression'  # Different seniority/specialization
+                else:
+                    move_type = 'cross_family'  # Career change to different family
+                
+                # Calculate difficulty score (inverse of similarity + cross-family penalty)
+                difficulty = 1.0 - similarity_score
+                if move_type == 'cross_family':
+                    difficulty *= 1.2  # 20% penalty for cross-family moves
+                difficulty = min(1.0, difficulty)  # Cap at 1.0
+                
+                # Estimate shared skills count (simplified calculation)
+                shared_skills_count = int(similarity_score * 20)  # Approximate based on similarity
+                
+                pathway_record = {
+                    'source_job_id': source_job_id,
+                    'target_job_id': target_job_id,
+                    'similarity_rank': rank,
+                    'similarity_score': similarity_score,
+                    'skill_overlap_score': similarity_score,  # Use same as similarity for now
+                    'shared_skills_count': shared_skills_count,
+                    'career_move_type': move_type,
+                    'difficulty_score': difficulty
+                }
+                
+                pathway_records.append(pathway_record)
+        
+        return pathway_records
+    
     def _save_chunk_results(self, chunk_results: List[pd.DataFrame], output_path: Path) -> None:
         """
         Save chunk results to the final output file.
@@ -253,7 +371,7 @@ class SimilarityMatrixPrecomputer:
     
     def precompute_similarity_matrix(self, run_name: Optional[str] = None) -> Path:
         """
-        Precompute the full job-to-job similarity matrix using chunked processing.
+        Precompute the full job-to-job similarity matrix using parallel chunked processing.
         
         Args:
             run_name: Optional name for this precomputation run
@@ -261,72 +379,64 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the output directory containing results
         """
-        logger.info("Starting similarity matrix precomputation...")
+        logger.info("Starting parallel similarity matrix precomputation...")
         
         # Setup output directory
         output_path = self._setup_output_directory(run_name)
         logger.info(f"Output directory: {output_path}")
         
         # Track overall progress and memory
-        chunk_results = []
         total_chunks = self.matrix_chunker.estimate_num_chunks()
+        logger.info(f"Processing {total_chunks} chunks using {self.parallel_processor.max_workers} parallel workers")
         
         try:
-            # Use the full ProgressTracker with beautiful tqdm progress bars
-            with ProgressTracker(
-                total=total_chunks,
-                desc="Processing similarity chunks",
-                memory_tracking=True,
-                show_tqdm=True
-            ) as progress:
+            # Use parallel processing for matrix chunks
+            logger.info("Starting parallel chunk processing...")
+            
+            # Process all chunks in parallel
+            chunk_results_dict = self.parallel_processor.process_matrix_chunks(
+                self._process_chunk_parallel,
+                self.matrix_chunker.matrix_chunks(),
+                self.job_architecture  # Pass job architecture as additional argument
+            )
+            
+            # Convert results dict to list of DataFrames
+            chunk_results = []
+            processed_chunks = 0
+            
+            # Process results in order (though order doesn't matter for final concatenation)
+            for chunk_key, chunk_df in chunk_results_dict.items():
+                chunk_results.append(chunk_df)
+                processed_chunks += 1
                 
-                chunk_count = 0
+                # Log progress periodically
+                if processed_chunks % 10 == 0:
+                    logger.info(f"Processed {processed_chunks}/{len(chunk_results_dict)} chunks")
                 
-                # Process chunks
-                for chunk in self.matrix_chunker.matrix_chunks():
-                    chunk_count += 1
+                # Checkpoint periodically
+                if (self.config.enable_checkpointing and 
+                    self.checkpoint_manager and 
+                    processed_chunks % self.config.checkpoint_interval == 0):
                     
-                    logger.debug(f"Processing chunk {chunk_count}/{total_chunks}: {chunk}")
+                    checkpoint_data = {
+                        'chunk_count': processed_chunks,
+                        'total_chunks': len(chunk_results_dict),
+                        'chunks_completed': processed_chunks,
+                        'output_path': str(output_path)
+                    }
+                    self.checkpoint_manager.save_checkpoint(checkpoint_data)
+                    logger.info(f"Checkpoint saved at chunk {processed_chunks}")
                     
-                    # Process the chunk
-                    start_time = time.time()
-                    chunk_df = self._process_chunk(chunk)
-                    chunk_duration = time.time() - start_time
-                    
-                    logger.debug(f"Chunk {chunk_count} processed in {chunk_duration:.2f}s, "
-                               f"generated {len(chunk_df)} comparisons")
-                    
-                    chunk_results.append(chunk_df)
-                    
-                    # Update progress bar (with memory tracking)
-                    progress.update(1)
-                    
-                    # Checkpoint periodically (also record legacy progress for file-based tracking)
-                    if (self.config.enable_checkpointing and 
-                        self.checkpoint_manager and 
-                        chunk_count % self.config.checkpoint_interval == 0):
-                        
-                        checkpoint_data = {
-                            'chunk_count': chunk_count,
-                            'total_chunks': total_chunks,
-                            'chunks_completed': chunk_count,
-                            'output_path': str(output_path)
-                        }
-                        self.checkpoint_manager.save_checkpoint(checkpoint_data)
-                        logger.info(f"Checkpoint saved at chunk {chunk_count}")
-                        
-                        # Also record progress for file-based tracking
-                        if self.progress_tracker:
-                            self.progress_tracker.record_progress(
-                                items_processed=chunk_count,
-                                total_items=total_chunks,
-                                current_item=f"Chunk {chunk_count}",
-                                memory_usage_mb=get_memory_usage().current_process_usage_mb
-                            )
-                    
-                    # Trigger garbage collection to manage memory
-                    if chunk_count % 5 == 0:  # Every 5 chunks
-                        trigger_garbage_collection(full=True)
+                    # Also record progress for file-based tracking
+                    if self.progress_tracker:
+                        self.progress_tracker.record_progress(
+                            items_processed=processed_chunks,
+                            total_items=len(chunk_results_dict),
+                            current_item=f"Chunk {processed_chunks}",
+                            memory_usage_mb=get_memory_usage().current_process_usage_mb
+                        )
+            
+            logger.info(f"Parallel processing complete! Processed {len(chunk_results)} chunks")
             
             # Save final results
             self._save_chunk_results(chunk_results, output_path)
@@ -335,20 +445,16 @@ class SimilarityMatrixPrecomputer:
             if self.progress_tracker:
                 self.progress_tracker.record_completion()
             
-            logger.info("Similarity matrix precomputation completed successfully!")
+            logger.info("Parallel similarity matrix precomputation completed successfully!")
             return output_path
             
         except Exception as e:
-            logger.error(f"Error during precomputation: {e}")
-            # Save partial results if any were generated
-            if chunk_results:
-                logger.info("Saving partial results...")
-                self._save_chunk_results(chunk_results, output_path)
-            raise EngineError(f"Precomputation failed: {e}") from e
+            logger.error(f"Error during parallel precomputation: {e}")
+            raise EngineError(f"Parallel precomputation failed: {e}") from e
     
     def precompute_career_pathways(self, similarity_df: pd.DataFrame, output_path: Path) -> Path:
         """
-        Precompute career pathways from similarity matrix using chunked processing.
+        Precompute career pathways from similarity matrix using parallel chunked processing.
         
         Args:
             similarity_df: DataFrame with job similarities (job_from, job_to, similarity)
@@ -357,7 +463,7 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the career pathways parquet file
         """
-        logger.info("🚀 Starting career pathways precomputation...")
+        logger.info("🚀 Starting parallel career pathways precomputation...")
         
         # Configuration
         TOP_N_PATHWAYS = 12  # Top N most similar jobs per source job
@@ -368,9 +474,10 @@ class SimilarityMatrixPrecomputer:
         all_job_ids = list(job_families.keys())
         
         logger.info(f"📊 Generating pathways for {len(all_job_ids)} jobs (top {TOP_N_PATHWAYS} per job)")
+        logger.info(f"🔧 Using {self.parallel_processor.max_workers} parallel workers")
         
         try:
-            # Use chunking to process jobs in batches for memory efficiency
+            # Create job chunks for parallel processing
             from ..utils.chunking import AdaptiveChunker
             
             job_chunker = AdaptiveChunker(
@@ -378,80 +485,44 @@ class SimilarityMatrixPrecomputer:
                 strategy=self.chunking_strategy
             )
             
+            # Convert chunks to list for parallel processing
+            job_chunks = list(job_chunker.chunks())
+            logger.info(f"📦 Created {len(job_chunks)} job chunks for parallel processing")
+            
+            # Prepare data for parallel workers
+            chunk_tasks = []
+            for chunk_idx, job_chunk in enumerate(job_chunks):
+                chunk_task = {
+                    'chunk_idx': chunk_idx,
+                    'job_ids': job_chunk,
+                    'similarity_df': similarity_df,
+                    'job_families': job_families,
+                    'top_n_pathways': TOP_N_PATHWAYS,
+                    'min_similarity_threshold': MIN_SIMILARITY_THRESHOLD
+                }
+                chunk_tasks.append(chunk_task)
+            
+            # Process chunks in parallel
+            logger.info("🚀 Starting parallel chunk processing...")
+            chunk_results = self.parallel_processor.map(
+                func=self._process_career_pathways_chunk,
+                items=chunk_tasks,
+                chunksize=1  # Each task is already a chunk
+            )
+            
+            # Combine all pathway records
             pathway_records = []
             total_processed = 0
             
-            # Process jobs in chunks
-            with ProgressTracker(
-                total=len(all_job_ids),
-                desc="Generating career pathways",
-                memory_tracking=True,
-                show_tqdm=True
-            ) as progress:
+            for chunk_pathways in chunk_results:
+                pathway_records.extend(chunk_pathways)
+                total_processed += len(chunk_pathways)
                 
-                for job_chunk in job_chunker.chunks():
-                    chunk_pathways = []
-                    
-                    for source_job_id in job_chunk:
-                        # Get similarities for this source job
-                        job_similarities = similarity_df[
-                            (similarity_df['job_from'] == source_job_id) &
-                            (similarity_df['job_to'] != source_job_id) &
-                            (similarity_df['similarity'] >= MIN_SIMILARITY_THRESHOLD)
-                        ].copy()
-                        
-                        # Sort by similarity score and take top N
-                        job_similarities = job_similarities.sort_values('similarity', ascending=False).head(TOP_N_PATHWAYS)
-                        
-                        # Generate pathway records with ranking and metadata
-                        for rank, (_, row) in enumerate(job_similarities.iterrows(), 1):
-                            target_job_id = row['job_to']
-                            similarity_score = row['similarity']
-                            
-                            # Get job families
-                            source_family = job_families.get(source_job_id, 'Unknown')
-                            target_family = job_families.get(target_job_id, 'Unknown')
-                            
-                            # Determine career move type
-                            if source_family == target_family:
-                                if similarity_score >= 0.8:
-                                    move_type = 'lateral'  # Very similar role in same family
-                                else:
-                                    move_type = 'progression'  # Different seniority/specialization
-                            else:
-                                move_type = 'cross_family'  # Career change to different family
-                            
-                            # Calculate difficulty score (inverse of similarity + cross-family penalty)
-                            difficulty = 1.0 - similarity_score
-                            if move_type == 'cross_family':
-                                difficulty *= 1.2  # 20% penalty for cross-family moves
-                            difficulty = min(1.0, difficulty)  # Cap at 1.0
-                            
-                            # Estimate shared skills count (simplified calculation)
-                            shared_skills_count = int(similarity_score * 20)  # Approximate based on similarity
-                            
-                            pathway_record = {
-                                'source_job_id': source_job_id,
-                                'target_job_id': target_job_id,
-                                'similarity_rank': rank,
-                                'similarity_score': similarity_score,
-                                'skill_overlap_score': similarity_score,  # Use same as similarity for now
-                                'shared_skills_count': shared_skills_count,
-                                'career_move_type': move_type,
-                                'difficulty_score': difficulty
-                            }
-                            
-                            chunk_pathways.append(pathway_record)
-                        
-                        total_processed += 1
-                        progress.update(1)
-                    
-                    # Add chunk pathways to main list
-                    pathway_records.extend(chunk_pathways)
-                    
-                    # Trigger garbage collection every few chunks
-                    if len(pathway_records) % (self.config.initial_chunk_size * 5) == 0:
-                        trigger_garbage_collection(full=True)
+                # Log progress periodically
+                if len(pathway_records) % (self.config.initial_chunk_size * 2) == 0:
+                    logger.info(f"🔄 Combined {len(pathway_records):,} pathway records so far...")
+            
+            logger.info(f"✅ Parallel processing complete! Generated {len(pathway_records):,} pathway records")
             
             # Convert to DataFrame with proper column structure
             if pathway_records:
@@ -479,8 +550,8 @@ class SimilarityMatrixPrecomputer:
             return pathways_file
             
         except Exception as e:
-            logger.error(f"Error during career pathways precomputation: {e}")
-            raise EngineError(f"Career pathways precomputation failed: {e}") from e
+            logger.error(f"Error during parallel career pathways precomputation: {e}")
+            raise EngineError(f"Parallel career pathways precomputation failed: {e}") from e
     
     def precompute_all(self, run_name: Optional[str] = None) -> Path:
         """

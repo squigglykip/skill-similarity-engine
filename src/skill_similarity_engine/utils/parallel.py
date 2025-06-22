@@ -23,6 +23,7 @@ import numpy as np
 
 from .performance import get_memory_usage, trigger_garbage_collection
 from .matrix_chunking import MatrixChunk
+from .progress import ProgressTracker
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class ParallelProcessor:
             items: List[T], 
             chunksize: int = 1) -> List[R]:
         """
-        Apply a function to each item in parallel.
+        Apply a function to each item in parallel with progress tracking.
         
         Args:
             func: Function to apply to each item
@@ -141,22 +142,37 @@ class ParallelProcessor:
         for i, item in enumerate(items):
             worker_id = i % self.max_workers
             worker_args.append((worker_id, item, func))
-        # Create a pool with the calculated number of workers
-        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-            # Initialize worker stats
-            self.worker_stats = {
-                i: WorkerStats(worker_id=i)
-                for i in range(self.max_workers)
-            }
-            # Submit tasks
-            futures = [executor.submit(parallel_map_worker, arg) for arg in worker_args]
-            # Collect results as they complete
-            for future in as_completed(futures):
-                worker_id, result = future.result()
-                results.append(result)
-                # Mark worker as idle
-                if worker_id in self.worker_stats:
-                    self.worker_stats[worker_id].status = "idle"
+        
+        # Use progress tracking for visual feedback
+        with ProgressTracker(
+            total=len(items),
+            desc=f"Parallel processing ({self.max_workers} workers)",
+            memory_tracking=True,
+            show_tqdm=True
+        ) as progress:
+            # Create a pool with the calculated number of workers
+            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                # Initialize worker stats
+                self.worker_stats = {
+                    i: WorkerStats(worker_id=i)
+                    for i in range(self.max_workers)
+                }
+                
+                # Submit tasks
+                futures = [executor.submit(parallel_map_worker, arg) for arg in worker_args]
+                
+                # Collect results as they complete with progress updates
+                for future in as_completed(futures):
+                    worker_id, result = future.result()
+                    results.append(result)
+                    
+                    # Update progress
+                    progress.update(1)
+                    
+                    # Mark worker as idle
+                    if worker_id in self.worker_stats:
+                        self.worker_stats[worker_id].status = "idle"
+        
         return results
     
     def process_matrix_chunks(self,
@@ -164,7 +180,7 @@ class ParallelProcessor:
                              chunks: Iterator[MatrixChunk],
                              *args) -> Dict[Tuple[int, int, int, int], Any]:
         """
-        Process matrix chunks in parallel.
+        Process matrix chunks in parallel with progress tracking.
         
         Args:
             func: Function to apply to each chunk (func(chunk, *args))
@@ -176,25 +192,38 @@ class ParallelProcessor:
         """
         results = {}
         
-        # Use a ProcessPoolExecutor for parallel processing
-        with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit all chunks for processing
-            futures = {}
-            for chunk in chunks:
-                # Use the top-level process_chunk function
-                future = executor.submit(process_chunk, func, chunk, args)
-                futures[future] = chunk
-            
-            # Collect results as they complete
-            for future in as_completed(futures):
-                chunk, result = future.result()
-                key = (chunk.row_start, chunk.row_end, chunk.col_start, chunk.col_end)
-                results[key] = result
+        # Convert iterator to list to get count for progress tracking
+        chunk_list = list(chunks)
+        
+        # Use progress tracking for visual feedback
+        with ProgressTracker(
+            total=len(chunk_list),
+            desc=f"Matrix chunks ({self.max_workers} workers)",
+            memory_tracking=True,
+            show_tqdm=True
+        ) as progress:
+            # Use a ProcessPoolExecutor for parallel processing
+            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
+                # Submit all chunks for processing
+                futures = {}
+                for chunk in chunk_list:
+                    # Use the top-level process_chunk function
+                    future = executor.submit(process_chunk, func, chunk, args)
+                    futures[future] = chunk
                 
-                # Check memory usage and trigger GC if needed
-                memory_usage = get_memory_usage()
-                if memory_usage.current_process_usage_mb > self.memory_limit_mb * 0.9:
-                    trigger_garbage_collection(full=True)
+                # Collect results as they complete with progress updates
+                for future in as_completed(futures):
+                    chunk, result = future.result()
+                    key = (chunk.row_start, chunk.row_end, chunk.col_start, chunk.col_end)
+                    results[key] = result
+                    
+                    # Update progress
+                    progress.update(1)
+                    
+                    # Check memory usage and trigger GC if needed
+                    memory_usage = get_memory_usage()
+                    if memory_usage.current_process_usage_mb > self.memory_limit_mb * 0.9:
+                        trigger_garbage_collection(full=True)
         
         return results
 
