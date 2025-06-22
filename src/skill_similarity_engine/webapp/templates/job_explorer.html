@@ -5,6 +5,8 @@
 {% block head %}
 <!-- Job Explorer specific styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/job-explorer.css') }}">
+<!-- Unified Search Module CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/search-module.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -36,15 +38,20 @@
                         <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
                             Search by Job Title or ID
                         </label>
-                        <div class="relative">
+                        <div class="search-input-wrapper relative">
                             <input type="text" id="job-explorer-search"
-                                class="job-search-input w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source"
-                                placeholder="e.g., Risk Analyst, R0001.5, Data Scientist..." autocomplete="off">
+                                class="search-input-with-icon w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source"
+                                placeholder="Search by job profile or ID (e.g., 'Risk Analyst' or 'R0025.1')..." autocomplete="off">
+                            <div class="search-input-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
 
-                            <!-- Search Dropdown -->
-                            <div id="job-explorer-dropdown"
-                                class="job-search-dropdown absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
-                                <!-- Results populated by JavaScript -->
+                            <!-- Hidden input to store selected JobProfileID -->
+                            <input type="hidden" id="selected-job-explorer-job" name="explorer_job_id">
+
+                            <!-- Search Results Container -->
+                            <div id="job-explorer-dropdown" class="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                                <!-- Results populated by unified search module -->
                             </div>
                         </div>
                     </div>
@@ -378,6 +385,17 @@
 
 <!-- JavaScript for Job Explorer -->
 <script>
+    // Load Unified Search Module
+    const searchModuleScript = document.createElement('script');
+    searchModuleScript.src = "{{ url_for('static', filename='js/search-module.js') }}";
+    searchModuleScript.onload = function() {
+        console.log('✅ Search module loaded successfully');
+    };
+    searchModuleScript.onerror = function() {
+        console.error('❌ Failed to load search module');
+    };
+    document.head.appendChild(searchModuleScript);
+
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('job-explorer-search');
         const searchDropdown = document.getElementById('job-explorer-dropdown');
@@ -484,70 +502,50 @@
 
 
 
-        // Search functionality
-        searchInput.addEventListener('input', function () {
-            clearTimeout(searchTimeout);
-            const query = this.value.trim();
-
-            if (query.length < 2) {
-                searchDropdown.classList.add('hidden');
+        // Initialize job explorer search with retry mechanism
+        function initializeJobExplorerSearch() {
+            // Check if SearchModule is available
+            if (typeof window.SkillEngine === 'undefined' || typeof window.SkillEngine.SearchModule === 'undefined') {
+                console.warn('🔍 SearchModule not available yet, retrying in 100ms...');
+                setTimeout(initializeJobExplorerSearch, 100);
                 return;
             }
 
-            searchTimeout = setTimeout(() => {
-                searchJobs(query);
-            }, 300);
-        });
+            // Initialize unified search module
+            SkillEngine.SearchModule.init({
+                inputId: 'job-explorer-search',
+                resultsId: 'job-explorer-dropdown',
+                hiddenInputId: 'selected-job-explorer-job',
+                onSelect: (selection) => {
+                    console.log('🔍 Job selected:', selection.jobId, selection.displayTitle);
+                    
+                    // Create job object in the format expected by existing code
+                    selectedJob = {
+                        id: selection.jobId,
+                        title: selection.displayTitle,
+                        function: selection.jobFunction || 'Unknown',
+                        function_id: selection.subFunction || 'N/A'
+                    };
 
-        // Search jobs function
-        function searchJobs(query) {
-            // Use real API endpoint instead of mock data
-            fetch(`/api/search-all-jobs?q=${encodeURIComponent(query)}&limit=20`)
-                .then(response => response.json())
-                .then(jobs => {
-                    displaySearchResults(jobs);
-                })
-                .catch(error => {
-                    console.error('Error searching jobs:', error);
-                    searchDropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error loading jobs</div>';
-                    searchDropdown.classList.remove('hidden');
-                });
+                    // Load job details
+                    loadJobDetails(selectedJob.id);
+
+                    // Show content, hide welcome, show sidebar stats
+                    welcomeState.classList.add('hidden');
+                    jobProfileContent.classList.remove('hidden');
+                    gettingStartedPanel.classList.add('hidden');
+                    document.getElementById('job-architecture-panel').classList.remove('hidden');
+                },
+                config: {
+                    showDetailedResults: true,
+                    maxResults: 20,
+                    apiEndpoint: '/api/whitepaper-jobs' // Use the enhanced API endpoint
+                }
+            });
         }
 
-        // Display search results
-        function displaySearchResults(jobs) {
-            if (jobs.length === 0) {
-                searchDropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No jobs found</div>';
-            } else {
-                searchDropdown.innerHTML = jobs.map(job => `
-                <div class="job-search-dropdown-item p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
-                     data-job='${JSON.stringify(job)}' onclick="selectJob(this)">
-                    <div class="font-medium text-sm text-gray-900">${job.title}</div>
-                    <div class="text-xs text-gray-500">${job.id} • ${job.function} • ${job.function_id || 'N/A'}</div>
-                </div>
-            `).join('');
-            }
-            searchDropdown.classList.remove('hidden');
-        }
-
-        // Select job function (global)
-        window.selectJob = function (element) {
-            const jobData = JSON.parse(element.dataset.job);
-            selectedJob = jobData;
-
-            // Update search input
-            searchInput.value = jobData.title;
-            searchDropdown.classList.add('hidden');
-
-            // Load job details
-            loadJobDetails(jobData.id);
-
-            // Show content, hide welcome, show sidebar stats
-            welcomeState.classList.add('hidden');
-            jobProfileContent.classList.remove('hidden');
-            gettingStartedPanel.classList.add('hidden');
-            document.getElementById('job-architecture-panel').classList.remove('hidden');
-        };
+        // Start the initialization
+        initializeJobExplorerSearch();
 
         // Load job details
         function loadJobDetails(jobId) {

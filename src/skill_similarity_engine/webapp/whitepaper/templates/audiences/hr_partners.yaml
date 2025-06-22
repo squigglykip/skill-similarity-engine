@@ -1,0 +1,15 @@
+# HR Partners Audience Template
+meta:
+  name: 'hr_partners'
+  description: 'Content adapted for HR partners and talent management teams'
+
+focus_areas:
+  - talent_development
+  - capability_planning
+  - learning_programs
+  - performance_management
+
+adaptations:
+  tone: 'collaborative and supportive'
+  emphasis: 'development planning and resource allocation'
+  metrics: 'learning outcomes and career progression'

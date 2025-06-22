@@ -1,0 +1,75 @@
+# Business Leaders Audience Template
+# Focus: Strategic insights, business impact, ROI, risk management
+
+meta:
+  audience: "business_leaders"
+  focus_areas: ["strategic_impact", "business_value", "risk_mitigation", "resource_planning"]
+  tone: "executive"
+  complexity_level: "high"
+
+adaptations:
+  tone:
+    style: "executive"
+    formality: "high"
+    technical_detail: "strategic_overview"
+  
+  focus_areas:
+    - "business_impact"
+    - "strategic_alignment"
+    - "resource_requirements"  
+    - "risk_assessment"
+    - "timeline_implications"
+    - "competitive_advantage"
+  
+  language_preferences:
+    - "business_value"
+    - "strategic_opportunity"
+    - "organisational_capability"
+    - "competitive_positioning"
+    - "operational_excellence"
+  
+  additional_context: |
+    This analysis supports strategic workforce planning initiatives and enables informed 
+    decision-making regarding talent deployment and organisational capability development. 
+    The insights align with broader transformation objectives and support sustainable 
+    competitive advantage through optimised human capital allocation.
+
+sections:
+  executive_summary:
+    emphasis: "strategic_outcomes"
+    length: "concise"
+    focus: "decision_points"
+  
+  business_case:
+    include_roi: true
+    include_risk_analysis: true
+    include_competitive_impact: true
+  
+  implementation:
+    focus: "resource_requirements"
+    include_timeline: true
+    include_success_metrics: true
+
+key_metrics:
+  - "business_impact_score"
+  - "resource_efficiency"
+  - "risk_level"
+  - "strategic_alignment"
+  - "competitive_advantage"
+  - "roi_projection"
+
+decision_framework:
+  high_confidence:
+    recommendation: "proceed_with_confidence"
+    timeline: "accelerated"
+    resources: "standard_allocation"
+  
+  medium_confidence:
+    recommendation: "proceed_with_monitoring"
+    timeline: "standard"
+    resources: "enhanced_support"
+  
+  low_confidence:
+    recommendation: "pilot_approach"
+    timeline: "extended"
+    resources: "intensive_support"

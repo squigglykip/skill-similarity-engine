@@ -1,0 +1,350 @@
+/* =================================================================
+   NAB Skills Intelligence Platform - Unified Search Module Styles
+   Consistent search component styling across all webapp pages
+   ================================================================= */
+
+/* =================================================================
+   Search Result Container
+   ================================================================= */
+
+.search-results-container {
+    position: absolute;
+    z-index: var(--z-dropdown);
+    width: 100%;
+    background: white;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    margin-top: var(--spacing-1);
+    max-height: 15rem;
+    overflow-y: auto;
+}
+
+.search-results-container.hidden {
+    display: none;
+}
+
+/* =================================================================
+   Search Result Items
+   ================================================================= */
+
+.search-result-item {
+    padding: var(--spacing-3) var(--spacing-4);
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-gray-100);
+    transition: background-color var(--transition-fast);
+    position: relative;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover,
+.search-result-item.search-result-selected {
+    background-color: var(--color-gray-50);
+}
+
+.search-result-item.search-result-selected {
+    background-color: var(--color-blue-50);
+    border-left: 3px solid var(--color-nab-red);
+}
+
+/* =================================================================
+   Search Result Content
+   ================================================================= */
+
+.search-result-title {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-900);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-tight);
+    margin-bottom: var(--spacing-1);
+}
+
+.search-result-meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-500);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    align-items: center;
+}
+
+.search-result-id {
+    font-family: var(--font-mono);
+    background-color: var(--color-gray-100);
+    padding: var(--spacing-1) var(--spacing-3);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.6875rem;
+}
+
+.search-result-function {
+    color: var(--color-gray-700);
+    font-weight: var(--font-weight-medium);
+}
+
+.search-result-subfunction {
+    color: var(--color-gray-500);
+}
+
+.search-result-function::before {
+    content: "•";
+    margin-right: var(--spacing-1);
+    color: var(--color-gray-300);
+}
+
+.search-result-subfunction::before {
+    content: "•";
+    margin-right: var(--spacing-1);
+    color: var(--color-gray-300);
+}
+
+/* =================================================================
+   No Results State
+   ================================================================= */
+
+.search-no-results {
+    padding: var(--spacing-6) var(--spacing-4);
+    text-align: center;
+    color: var(--color-gray-500);
+}
+
+.search-no-results-icon {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-2);
+    opacity: 0.5;
+}
+
+.search-no-results-text {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-1);
+}
+
+.search-no-results-hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-gray-400);
+}
+
+/* =================================================================
+   Error State
+   ================================================================= */
+
+.search-error {
+    padding: var(--spacing-4);
+    text-align: center;
+    color: var(--color-error);
+    background-color: #fef2f2;
+    border-left: 3px solid var(--color-error);
+}
+
+.search-error-icon {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-2);
+}
+
+.search-error-text {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+/* =================================================================
+   Search Input Enhancements
+   ================================================================= */
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.search-input-with-icon {
+    padding-right: 2.5rem;
+}
+
+.search-input-icon {
+    position: absolute;
+    right: var(--spacing-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-gray-400);
+    pointer-events: none;
+    font-size: var(--font-size-base);
+}
+
+/* Loading state for search input */
+.search-input-loading .search-input-icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: translateY(-50%) rotate(0deg);
+    }
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+/* =================================================================
+   Framework Compatibility
+   ================================================================= */
+
+/* Bootstrap compatibility */
+.search-result-item.list-group-item {
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: var(--spacing-3) var(--spacing-4);
+}
+
+.search-result-item.list-group-item:first-child {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.search-result-item.list-group-item:last-child {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+}
+
+/* Tailwind compatibility - ensure styles work with utility classes */
+.search-results-container.absolute {
+    position: absolute;
+}
+
+.search-results-container.z-50 {
+    z-index: var(--z-dropdown);
+}
+
+/* =================================================================
+   Responsive Design
+   ================================================================= */
+
+@media (max-width: 768px) {
+    .search-results-container {
+        max-height: 12rem;
+    }
+    
+    .search-result-item {
+        padding: calc(var(--spacing-3) - var(--spacing-px)) var(--spacing-3);
+    }
+    
+    .search-result-title {
+        font-size: 0.8125rem;
+    }
+    
+    .search-result-meta {
+        font-size: 0.6875rem;
+        gap: calc(var(--spacing-2) - var(--spacing-px));
+    }
+    
+    .search-result-id {
+        font-size: 0.625rem;
+        padding: var(--spacing-px) var(--spacing-1);
+    }
+}
+
+@media (max-width: 640px) {
+    .search-result-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-1);
+    }
+    
+    .search-result-function::before,
+    .search-result-subfunction::before {
+        display: none;
+    }
+}
+
+/* =================================================================
+   High Contrast Mode Support
+   ================================================================= */
+
+@media (prefers-contrast: high) {
+    .search-result-item {
+        border-bottom-color: var(--color-nab-black);
+    }
+    
+    .search-result-item:hover,
+    .search-result-item.search-result-selected {
+        background-color: var(--color-nab-black);
+        color: white;
+    }
+    
+    .search-result-item.search-result-selected {
+        border-left-color: white;
+    }
+    
+    .search-result-id {
+        background-color: var(--color-nab-black);
+        color: white;
+    }
+}
+
+/* =================================================================
+   Print Styles
+   ================================================================= */
+
+@media print {
+    .search-results-container {
+        display: none !important;
+    }
+}
+
+/* =================================================================
+   Dark Mode Support (Future Enhancement)
+   ================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .search-results-container {
+        background: var(--color-gray-800);
+        border-color: var(--color-gray-700);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    }
+    
+    .search-result-item {
+        border-bottom-color: var(--color-gray-700);
+    }
+    
+    .search-result-item:hover {
+        background-color: var(--color-gray-700);
+    }
+    
+    .search-result-item.search-result-selected {
+        background-color: var(--color-blue-800);
+        border-left-color: var(--color-nab-red);
+    }
+    
+    .search-result-title {
+        color: var(--color-gray-50);
+    }
+    
+    .search-result-meta {
+        color: var(--color-gray-300);
+    }
+    
+    .search-result-function {
+        color: var(--color-gray-200);
+    }
+    
+    .search-result-id {
+        background-color: var(--color-gray-700);
+        color: var(--color-gray-50);
+    }
+    
+    .search-no-results {
+        color: var(--color-gray-400);
+    }
+    
+    .search-no-results-text {
+        color: var(--color-gray-300);
+    }
+    
+    .search-error {
+        background-color: var(--color-error-dark);
+        color: var(--color-error-light);
+    }
+} 

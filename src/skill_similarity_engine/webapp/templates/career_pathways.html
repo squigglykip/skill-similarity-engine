@@ -5,6 +5,8 @@
 {% block head %}
 <!-- Career Pathways specific styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/career-pathways.css') }}">
+<!-- Unified Search Module CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/search-module.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -36,17 +38,33 @@
                     <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
                         Search Job Profiles
                     </label>
-                    <div class="relative">
-                        <input type="text" 
-                               id="pathway-job-search"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 font-source"
-                               placeholder="e.g., Risk Analyst, Data Scientist..."
-                               autocomplete="off">
+                    <div class="search-input-wrapper relative">
+                        <!-- Multi-select search container with pills -->
+                        <div class="flex flex-wrap items-center gap-2 w-full px-3 py-2 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-red-500 focus-within:border-red-500 bg-white min-h-[2.5rem]">
+                            <!-- Selected job pills container -->
+                            <div id="selected-job-pills" class="flex flex-wrap items-center gap-2">
+                                <!-- Pills will be inserted here dynamically -->
+                            </div>
+                            
+                            <!-- Search input -->
+                            <input type="text" 
+                                   id="pathway-job-search"
+                                   class="flex-1 min-w-[200px] border-0 outline-none focus:ring-0 font-source placeholder-gray-400"
+                                   placeholder="Search by job profile or ID (e.g., 'Risk Analyst' or 'R0025.1')..."
+                                   autocomplete="off">
+                            
+                            <!-- Search icon -->
+                            <div class="flex-shrink-0 text-gray-400">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
                         
-                        <!-- Search Dropdown -->
-                        <div id="pathway-job-dropdown" 
-                             class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
-                            <!-- Results populated by JavaScript -->
+                        <!-- Hidden input to store selected JobProfileIDs -->
+                        <input type="hidden" id="selected-pathway-jobs" name="pathway_job_ids">
+                        
+                        <!-- Search Results Container -->
+                        <div id="pathway-job-dropdown" class="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                            <!-- Results populated by unified search module -->
                         </div>
                     </div>
                 </div>
@@ -67,20 +85,14 @@
                 </div>
             </div>
             
-            <!-- Selected Jobs Display -->
-            <div class="mt-4">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">Selected Starting Role(s):</label>
-                    <button id="clear-pathway-jobs" class="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 border border-red-300 hover:border-red-400">
-                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Reset All
-                    </button>
-                </div>
-                <div id="pathway-selected-jobs" class="min-h-[2rem] p-3 border border-gray-200 rounded-md bg-gray-50">
-                    <span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>
-                </div>
+            <!-- Clear All Button -->
+            <div class="mt-4 flex justify-end">
+                <button id="clear-pathway-jobs" class="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 font-source font-medium px-4 py-2 rounded-md transition-colors duration-200 border border-red-300 hover:border-red-400">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Reset All
+                </button>
             </div>
         </div>
 
@@ -680,6 +692,17 @@ let lastClickedNode = null; // Track last clicked node for highlighting
 let selectedBreadcrumbIndex = null; // Track which breadcrumb is selected
 let i = 0;
 
+// Load Unified Search Module
+const searchModuleScript = document.createElement('script');
+searchModuleScript.src = "{{ url_for('static', filename='js/search-module.js') }}";
+searchModuleScript.onload = function() {
+    console.log('✅ Search module loaded successfully');
+};
+searchModuleScript.onerror = function() {
+    console.error('❌ Failed to load search module');
+};
+document.head.appendChild(searchModuleScript);
+
 // Career Pathway Explorer JavaScript
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Loading Career Pathway Explorer...');
@@ -735,39 +758,53 @@ function checkForStartParameter() {
                     selectedJobs.set(job.id, job);
                     console.log('🔍 selectedJobs after adding:', selectedJobs.size, Array.from(selectedJobs.keys()));
                     
-                    // Update the selected jobs display directly
-                    const selectedContainer = document.getElementById('pathway-selected-jobs');
-                    if (selectedContainer) {
-                        if (selectedJobs.size === 0) {
-                            selectedContainer.innerHTML = '<span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>';
+                    // Wait for the search module to be initialized, then add the pill
+                    setTimeout(() => {
+                        // Add pill to search bar (check if function exists)
+                        if (typeof window.addJobPillFromURL === 'function') {
+                            window.addJobPillFromURL(job);
                         } else {
-                            selectedContainer.innerHTML = Array.from(selectedJobs.values()).map(job => `
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source bg-red-100 text-red-800 mr-2 mb-2">
-                                    ${job.title}
-                                    <button onclick="removeJob('${job.id}')" class="ml-2 text-red-600 hover:text-red-800">×</button>
-                                </span>
-                            `).join('');
+                            // Fallback: manually add pill
+                            const pillsContainer = document.getElementById('selected-job-pills');
+                            const hiddenInput = document.getElementById('selected-pathway-jobs');
+                            const searchInput = document.getElementById('pathway-job-search');
+                            
+                            if (pillsContainer) {
+                                const pill = document.createElement('div');
+                                pill.className = 'inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full border border-red-200 transition-colors hover:bg-red-200';
+                                pill.dataset.jobId = job.id;
+                                
+                                pill.innerHTML = `
+                                    <span class="font-source">${job.title}</span>
+                                    <button type="button" 
+                                            class="flex-shrink-0 ml-1 h-4 w-4 rounded-full inline-flex items-center justify-center text-red-600 hover:bg-red-200 hover:text-red-800 focus:outline-none focus:bg-red-200 focus:text-red-800 transition-colors"
+                                            onclick="removeJobPill('${job.id}')">
+                                        <span class="sr-only">Remove ${job.title}</span>
+                                        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                `;
+                                
+                                pillsContainer.appendChild(pill);
+                                
+                                // Update hidden input and placeholder
+                                if (hiddenInput) {
+                                    hiddenInput.value = Array.from(selectedJobs.keys()).join(',');
+                                }
+                                if (searchInput) {
+                                    searchInput.placeholder = `Add another job profile... (${selectedJobs.size} selected)`;
+                                }
+                            }
                         }
-                        console.log('🔍 Updated selected jobs display directly');
-                    } else {
-                        console.warn('🔍 pathway-selected-jobs element not found');
-                    }
-                    
-                    if (typeof updateBuildTreeButton === 'function') {
-                        updateBuildTreeButton();
-                        console.log('🔍 Called updateBuildTreeButton');
-                    } else {
-                        console.warn('🔍 updateBuildTreeButton function not available');
-                    }
-                    
-                    // Update search input to show the selected job title
-                    const searchInput = document.getElementById('pathway-job-search');
-                    if (searchInput) {
-                        searchInput.placeholder = `${job.title} selected - search for more...`;
-                        console.log('🔍 Updated search input placeholder');
-                    } else {
-                        console.warn('🔍 pathway-job-search element not found');
-                    }
+                        
+                        if (typeof updateBuildTreeButton === 'function') {
+                            updateBuildTreeButton();
+                            console.log('🔍 Called updateBuildTreeButton');
+                        } else {
+                            console.warn('🔍 updateBuildTreeButton function not available');
+                        }
+                    }, 500); // Wait for search module initialization
                     
                     // Automatically build the tree after a short delay
                     console.log(`🌳 Auto-building career pathway tree for: ${job.title}`);
@@ -793,151 +830,139 @@ function checkForStartParameter() {
     }
 }
 
-// Job Search Functionality
+// Job Search Functionality - Using Unified Search Module with Pills
 function initializeJobSearch() {
+    const pillsContainer = document.getElementById('selected-job-pills');
     const searchInput = document.getElementById('pathway-job-search');
-    const dropdown = document.getElementById('pathway-job-dropdown');
-    const selectedContainer = document.getElementById('pathway-selected-jobs');
+    const hiddenInput = document.getElementById('selected-pathway-jobs');
     const buildButton = document.getElementById('build-pathway-tree');
     
-    let searchTimeout;
-    
-    // Search input handler
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        const query = this.value.trim();
-        
-        if (query.length >= 2) {
-            searchTimeout = setTimeout(() => searchJobs(query), 300);
-        } else {
-            dropdown.classList.add('hidden');
-        }
-    });
-    
-    // Focus handler - show suggestions when focused
-    searchInput.addEventListener('focus', function() {
-        const query = this.value.trim();
-        if (query.length >= 2) {
-            searchJobs(query);
-        } else {
-            loadJobSuggestions();
-        }
-    });
-    
-    // Hide dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-    
-    // Search jobs function
-    async function searchJobs(query) {
-        try {
-            const response = await fetch(`/api/search-all-jobs?q=${encodeURIComponent(query)}&limit=10`);
-            const jobs = await response.json();
-            displaySearchResults(jobs, 'Search Results');
-        } catch (error) {
-            console.error('Job search error:', error);
-            dropdown.classList.add('hidden');
-        }
+    // Check if SearchModule is available
+    if (typeof window.SkillEngine === 'undefined' || typeof window.SkillEngine.SearchModule === 'undefined') {
+        console.warn('🔍 SearchModule not available yet, retrying in 100ms...');
+        setTimeout(initializeJobSearch, 100);
+        return;
     }
     
-    // Load job suggestions for focus
-    async function loadJobSuggestions() {
-        try {
-            const response = await fetch('/api/search-all-jobs?limit=8');
-            const jobs = await response.json();
-            displaySearchResults(jobs, 'Popular Jobs');
-        } catch (error) {
-            console.error('Failed to load job suggestions:', error);
-        }
-    }
-    
-    // Display search results
-    function displaySearchResults(jobs, headerText = 'Search Results') {
-        dropdown.innerHTML = '';
-        
-        if (jobs.length === 0) {
-            dropdown.innerHTML = `
-                <div class="p-3 text-center text-gray-500 text-sm font-source">
-                    No jobs found
-                </div>
-            `;
-        } else {
-            dropdown.innerHTML = `
-                <div class="p-2 border-b border-gray-200 bg-gray-50">
-                    <span class="text-xs font-source font-medium text-gray-700 uppercase tracking-wide">${headerText}</span>
-                </div>
-                ${jobs.map(job => `
-                    <div class="job-option p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedJobs.has(job.id) ? 'bg-blue-50 text-blue-800' : ''}" 
-                         data-job-id="${job.id}"
-                         onclick="selectJob(${JSON.stringify(job).replace(/"/g, '&quot;')})">
-                        <div class="font-source font-medium text-sm">${job.title}</div>
-                        <div class="font-source text-xs text-gray-600">${job.id} • ${job.family}</div>
-                        ${selectedJobs.has(job.id) ? '<div class="text-xs text-blue-600 font-medium mt-1">✓ Selected</div>' : ''}
-                    </div>
-                `).join('')}
-            `;
-        }
-        
-        dropdown.classList.remove('hidden');
-    }
-    
-    // Select job function
-    function selectJob(job) {
-        if (!selectedJobs.has(job.id)) {
-            selectedJobs.set(job.id, job);
-            updateSelectedJobsDisplay();
-            updateBuildTreeButton();
+    // Initialize unified search module
+    SkillEngine.SearchModule.init({
+        inputId: 'pathway-job-search',
+        resultsId: 'pathway-job-dropdown',
+        hiddenInputId: 'selected-pathway-jobs',
+        onSelect: (selection) => {
+            console.log('🔍 Job selected:', selection.jobId, selection.displayTitle);
             
-            // Update URL to reflect the selection (for bookmarking/sharing)
-            updateURLWithSelectedJob(job.id);
+            // Create job object in the format expected by existing code
+            const job = {
+                id: selection.jobId,
+                title: selection.displayTitle,
+                family: selection.jobFunction || 'Unknown'
+            };
+            
+            // Add to selected jobs if not already selected
+            if (!selectedJobs.has(job.id)) {
+                selectedJobs.set(job.id, job);
+                addJobPill(job);
+                updateSelectedJobsData();
+                updateBuildTreeButton();
+                
+                // Clear search input after selection
+                searchInput.value = '';
+                
+                // Update URL to reflect the selection (for bookmarking/sharing)
+                updateURLWithSelectedJob(job.id);
+            }
+        },
+        config: {
+            showDetailedResults: true,
+            maxResults: 10,
+            apiEndpoint: '/api/whitepaper-jobs' // Use the enhanced API endpoint
         }
+    });
+    
+    // Add job pill to the search bar
+    function addJobPill(job) {
+        const pill = document.createElement('div');
+        pill.className = 'inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full border border-red-200 transition-colors hover:bg-red-200';
+        pill.dataset.jobId = job.id;
         
-        searchInput.value = '';
-        dropdown.classList.add('hidden');
+        pill.innerHTML = `
+            <span class="font-source">${job.title}</span>
+            <button type="button" 
+                    class="flex-shrink-0 ml-1 h-4 w-4 rounded-full inline-flex items-center justify-center text-red-600 hover:bg-red-200 hover:text-red-800 focus:outline-none focus:bg-red-200 focus:text-red-800 transition-colors"
+                    onclick="removeJobPill('${job.id}')">
+                <span class="sr-only">Remove ${job.title}</span>
+                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        `;
+        
+        pillsContainer.appendChild(pill);
     }
     
-    // Make selectJob available globally for onclick handlers
-    window.selectJob = selectJob;
-    
-    // Removed duplicate updateSelectedJobsDisplay function - using the one below
-    
-    // Remove job function
-    window.removeJob = function(jobId) {
+    // Remove job pill and update data
+    window.removeJobPill = function(jobId) {
+        // Remove from selected jobs
         selectedJobs.delete(jobId);
-        updateSelectedJobsDisplay();
+        
+        // Remove pill from DOM
+        const pill = pillsContainer.querySelector(`[data-job-id="${jobId}"]`);
+        if (pill) {
+            pill.remove();
+        }
+        
+        // Update data and UI
+        updateSelectedJobsData();
         updateBuildTreeButton();
         updateRefreshTreeButton();
         
+        // Clear tree if no jobs selected
         if (selectedJobs.size === 0) {
             clearCareerTree();
         }
     };
     
+    // Update hidden input with selected job IDs
+    function updateSelectedJobsData() {
+        const jobIds = Array.from(selectedJobs.keys());
+        hiddenInput.value = jobIds.join(',');
+        
+        // Update search input placeholder based on selection count
+        if (selectedJobs.size === 0) {
+            searchInput.placeholder = "Search by job profile or ID (e.g., 'Risk Analyst' or 'R0025.1')...";
+        } else {
+            searchInput.placeholder = `Add another job profile... (${selectedJobs.size} selected)`;
+        }
+    }
+    
     // Reset page to initial state
     document.getElementById('clear-pathway-jobs').addEventListener('click', function() {
-        // Simple page refresh to reset everything back to initial load
-        window.location.reload();
+        // Clear all selected jobs
+        selectedJobs.clear();
+        
+        // Clear all pills
+        pillsContainer.innerHTML = '';
+        
+        // Clear search input
+        searchInput.value = '';
+        
+        // Update data and UI
+        updateSelectedJobsData();
+        updateBuildTreeButton();
+        updateRefreshTreeButton();
+        
+        // Clear the tree
+        clearCareerTree();
+        
+        // Reset URL
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete('start');
+        window.history.replaceState({}, '', newUrl.pathname);
     });
     
     // Build tree button
     buildButton.addEventListener('click', buildCareerPathwayTree);
-    
-    // Update selected jobs display
-    function updateSelectedJobsDisplay() {
-        if (selectedJobs.size === 0) {
-            selectedContainer.innerHTML = '<span class="text-gray-500 text-sm font-source">No role selected - search and select a starting role above</span>';
-        } else {
-            selectedContainer.innerHTML = Array.from(selectedJobs.values()).map(job => `
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source bg-red-100 text-red-800 mr-2 mb-2">
-                    ${job.title}
-                    <button onclick="removeJob('${job.id}')" class="ml-2 text-red-600 hover:text-red-800">×</button>
-                </span>
-            `).join('');
-        }
-    }
     
     // Store selected jobs globally for tree building
     window.getSelectedJobs = () => Array.from(selectedJobs.values());

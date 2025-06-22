@@ -1,0 +1,59 @@
+# Enhanced Opportunity Description Template
+# Provides role-specific opportunity analysis using real data variables
+
+meta:
+  name: "opportunity_description"
+  type: "enhanced_content"
+  purpose: "Role-specific opportunity analysis with organizational context"
+
+content: |
+  **Role Architecture**: {target_role_architecture}
+  
+  **Organizational Scope**: {target_total_positions} positions across {target_division_count} divisions with {target_skills_count} defined skill requirements
+  
+  **Career Impact**: This transition provides access to {target_job_function} expertise within {target_job_family} career progression pathway.
+  
+  **Skills Utilization**: {shared_skills_count} existing skills directly applicable, with strategic development in {development_categories_count} skill categories.
+  
+  **Transition Strength**: {similarity_score:.1%} similarity score ranking in the {percentile_rank:.0f}th percentile of analyzed pathways.
+
+variables:
+  target_role_architecture:
+    description: "Complete business communication structure for target role"
+    type: "string"
+    
+  target_total_positions:
+    description: "Total number of positions for target role"
+    type: "integer"
+    
+  target_division_count:
+    description: "Number of divisions where target role exists"
+    type: "integer"
+    
+  target_skills_count:
+    description: "Total number of skills defined for target role"
+    type: "integer"
+    
+  target_job_function:
+    description: "Job function of target role"
+    type: "string"
+    
+  target_job_family:
+    description: "Job family of target role"
+    type: "string"
+    
+  shared_skills_count:
+    description: "Number of skills shared between source and target roles"
+    type: "integer"
+    
+  development_categories_count:
+    description: "Number of skill categories requiring development"
+    type: "integer"
+    
+  similarity_score:
+    description: "Similarity score between source and target roles"
+    type: "float"
+    
+  percentile_rank:
+    description: "Percentile ranking of similarity score"
+    type: "float" 

@@ -1,10 +1,10 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Business Context Database
 
-**Generated**: 2025-06-20 08:37:43
+**Generated**: 2025-06-21 16:33:12
 **Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
-**Database Size**: 107.95 MB
-**Last Modified**: 2025-06-18T19:54:46.309947
+**Database Size**: 118.95 MB
+**Last Modified**: 2025-06-21T12:32:16.231553
 
 ---
 
@@ -22,7 +22,7 @@ to support career pathway analysis and workforce planning.
 - **`job_similarities`** (510,510 records) - job_from, job_to, similarity_score
 - **`job_skills`** (40,170 records) - JobProfileID, Skill_ID, Skill_Weight
 - **`jobs`** (715 records) - JobProfileID, JobProfile, JobFamily, JobFamilyGroup
-- **`positions`** (5,000 records) - JobProfileID, Division, Business_Unit, Location, Team
+- **`positions`** (35,000 records) - JobProfileID, Division, Business_Unit, Location, Team
 - **`skills`** (38,430 records) - Skill_ID, Skill_Name, Category, SkillType
 
 **Key Relationships:**
@@ -43,9 +43,9 @@ to support career pathway analysis and workforce planning.
 ## Database Statistics
 
 - **Total Tables**: 7
-- **Total Records**: 611,989
+- **Total Records**: 641,989
 - **Total Indexes**: 18
-- **Database Size**: 107.95 MB
+- **Database Size**: 118.95 MB
 
 ## Entity Relationship Diagram
 
@@ -98,10 +98,10 @@ erDiagram
     }
 
     POSITIONS {
-        text Position Number PK
+        text Employee Number PK
+        text Position Number
         text Position Name
         text JobProfileID FK
-        text Employee Number
         text Division
         text Business_Unit
         text Team
@@ -456,14 +456,14 @@ CREATE TABLE jobs (
 
 ---
 
-### 5. **positions** - 5,000 records
+### 5. **positions** - 35,000 records
 
 ```sql
 CREATE TABLE positions (
-    Position Number TEXT PRIMARY KEY,
+    Employee Number TEXT PRIMARY KEY,
+    Position Number TEXT NOT NULL,
     Position Name TEXT,
     JobProfileID TEXT,
-    Employee Number TEXT,
     Division TEXT,
     Business_Unit TEXT,
     Team TEXT,
@@ -488,112 +488,112 @@ CREATE TABLE positions (
 
 **Column Statistics:**
 
-- **Position Number**: 5,000 unique values (5,000 non-null), avg length 8.0
-- **Position Name**: 580 unique values (5,000 non-null), avg length 21.92
-- **JobProfileID**: 628 unique values (5,000 non-null), avg length 7.0
-- **Employee Number**: 3,501 unique values (5,000 non-null), avg length 5.6
-- **Division**: 6 unique values (5,000 non-null), avg length 20.27
-- **Business_Unit**: 10 unique values (5,000 non-null), avg length 14.4
-- **Team**: 10 unique values (5,000 non-null), avg length 24.52
-- **SubTeam**: 30 unique values (5,000 non-null), avg length 7.0
-- **Function**: 26 unique values (5,000 non-null), avg length 7.0
-- **SubFunction**: 20 unique values (5,000 non-null), avg length 5.54
-- **Org_Level_8**: 50 unique values (5,000 non-null), avg length 8.0
-- **Org_Level_9**: 30 unique values (5,000 non-null), avg length 7.0
-- **Org_Level_10**: 100 unique values (5,000 non-null), avg length 8.0
-- **Location**: 6 unique values (5,000 non-null), avg length 8.51
-- **Rg**: 5 unique values (5,000 non-null), avg length 2.66
-- **Cty**: 1 unique values (5,000 non-null), avg length 2.0
-- **Employee Group**: 5 unique values (5,000 non-null), avg length 6.15
-- **Salary Group**: 9 unique values (5,000 non-null), avg length 7.0
-- **Employee Subgroup**: 4 unique values (5,000 non-null), avg length 5.6
+- **Employee Number**: 35,000 unique values (35,000 non-null), avg length 6.0
+- **Position Number**: 4,997 unique values (35,000 non-null), avg length 8.0
+- **Position Name**: 580 unique values (35,000 non-null), avg length 21.98
+- **JobProfileID**: 628 unique values (35,000 non-null), avg length 7.0
+- **Division**: 6 unique values (35,000 non-null), avg length 20.1
+- **Business_Unit**: 10 unique values (35,000 non-null), avg length 14.34
+- **Team**: 10 unique values (35,000 non-null), avg length 24.53
+- **SubTeam**: 30 unique values (35,000 non-null), avg length 7.0
+- **Function**: 26 unique values (35,000 non-null), avg length 7.0
+- **SubFunction**: 20 unique values (35,000 non-null), avg length 5.55
+- **Org_Level_8**: 50 unique values (35,000 non-null), avg length 8.0
+- **Org_Level_9**: 30 unique values (35,000 non-null), avg length 7.0
+- **Org_Level_10**: 100 unique values (35,000 non-null), avg length 8.0
+- **Location**: 6 unique values (35,000 non-null), avg length 8.6
+- **Rg**: 5 unique values (35,000 non-null), avg length 2.67
+- **Cty**: 1 unique values (35,000 non-null), avg length 2.0
+- **Employee Group**: 4 unique values (35,000 non-null), avg length 8.77
+- **Salary Group**: 9 unique values (35,000 non-null), avg length 7.0
+- **Employee Subgroup**: 3 unique values (35,000 non-null), avg length 8.01
 
 **Sample Data by Column:**
 
-- **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
-- **Position Name**: `Data Manager`, `Risk Senior Developer`, `Technology Principal Specia...`, `Investment Senior Developer`, `Markets Principal Developer`, `Legal Executive Advisor`, `Audit Principal Consultant`, `Credit Vice President`, `Marketing Consultant`, `Treasury Engineer`
+- **Employee Number**: `100000`, `100001`, `100002`, `100003`, `100004`, `100005`, `100006`, `100007`, `100008`, `100009`
+- **Position Number**: `50003311`, `50003667`, `50000226`, `50004844`, `50003090`, `50002029`, `50001106`, `50000237`, `50002938`, `50001289`
+- **Position Name**: `Investment Principal Specia...`, `Operations Vice President`, `Audit General Manager`, `Strategy Executive Manager`, `Customer Principal Developer`, `Product Consultant`, `Markets Lead Engineer`, `Legal Executive Advisor`, `Customer Senior Engineer`, `Technology Manager`
 - **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
-- **Employee Number**: `102031.0`, `100121.0`, `100644.0`, `102831.0`, `101745.0`, `102052.0`, `101642.0`, `103249.0`, `102673.0`, `102992.0`
 - **Division**: `Business & Private Banking`, `Corporate & Institutional B...`, `Customer Banking & Wealth`, `Group Functions`, `NAB Ventures`, `Technology`
 - **Business_Unit**: `Business Banking`, `Corporate Banking`, `Finance`, `Human Resources`, `Legal & Compliance`, `NAB Ventures`, `Personal Banking`, `Risk Management`, `Technology`, `Wealth Management`
 - **Team**: `Business Banking Operations`, `Corporate Banking Operations`, `Finance Strategy`, `Human Resources Strategy`, `Legal & Compliance Strategy`, `NAB Ventures Operations`, `Personal Banking Operations`, `Risk Management Strategy`, `Technology Operations`, `Wealth Management Operations`
-- **SubTeam**: `Team 20`, `Team 02`, `Team 19`, `Team 27`, `Team 15`, `Team 22`, `Team 13`, `Team 12`, `Team 25`, `Team 05`
+- **SubTeam**: `Team 15`, `Team 05`, `Team 27`, `Team 04`, `Team 17`, `Team 18`, `Team 06`, `Team 25`, `Team 20`, `Team 30`
 - **Function**: `Squad A`, `Squad B`, `Squad C`, `Squad D`, `Squad E`, `Squad F`, `Squad G`, `Squad H`, `Squad I`, `Squad J`
-- **SubFunction**: `Pod 18`, `Pod 12`, `Pod 15`, `Pod 5`, `Pod 13`, `Pod 2`, `Pod 20`, `Pod 1`, `Pod 9`, `Pod 4`
-- **Org_Level_8**: `Unit 047`, `Unit 011`, `Unit 020`, `Unit 040`, `Unit 005`, `Unit 017`, `Unit 035`, `Unit 048`, `Unit 038`, `Unit 008`
-- **Org_Level_9**: `Cell 12`, `Cell 21`, `Cell 22`, `Cell 17`, `Cell 14`, `Cell 07`, `Cell 11`, `Cell 09`, `Cell 16`, `Cell 18`
-- **Org_Level_10**: `Node 060`, `Node 067`, `Node 023`, `Node 073`, `Node 039`, `Node 065`, `Node 078`, `Node 033`, `Node 014`, `Node 027`
+- **SubFunction**: `Pod 15`, `Pod 19`, `Pod 9`, `Pod 17`, `Pod 18`, `Pod 1`, `Pod 13`, `Pod 5`, `Pod 8`, `Pod 11`
+- **Org_Level_8**: `Unit 038`, `Unit 003`, `Unit 030`, `Unit 025`, `Unit 028`, `Unit 039`, `Unit 026`, `Unit 036`, `Unit 006`, `Unit 009`
+- **Org_Level_9**: `Cell 11`, `Cell 30`, `Cell 22`, `Cell 13`, `Cell 25`, `Cell 17`, `Cell 09`, `Cell 01`, `Cell 18`, `Cell 28`
+- **Org_Level_10**: `Node 024`, `Node 037`, `Node 092`, `Node 077`, `Node 023`, `Node 034`, `Node 010`, `Node 084`, `Node 098`, `Node 032`
 - **Location**: `Adelaide`, `Brisbane City`, `Docklands`, `Parramatta`, `Perth`, `Sydney`
 - **Rg**: `SA`, `QLD`, `VIC`, `NSW`, `WA`
 - **Cty**: `AU`
-- **Employee Group**: `Casual`, `Contractor`, `Permanent`, `Fixed Term`, ``
-- **Salary Group**: `Group 7`, `Group 1`, `Group 5`, `Group 6`, `Group 3`, `External`, `Group 4`, `Group 2`, `Casual`
-- **Employee Subgroup**: `Part Time`, `Full Time`, `Casual`, ``
+- **Employee Group**: `Fixed Term`, `Permanent`, `Casual`, `Contractor`
+- **Salary Group**: `Group 7`, `Group 2`, `Group 5`, `External`, `Group 1`, `Group 4`, `Group 6`, `Group 3`, `Casual`
+- **Employee Subgroup**: `Full Time`, `Casual`, `Part Time`
 
 **Sample Complete Records:**
 
 **Record 1:**
-  - `Position Number`: 50000000
-  - `Position Name`: Data Manager
-  - `JobProfileID`: R0453.0
-  - `Employee Number`: 102031.0
-  - `Division`: Technology
-  - `Business_Unit`: Corporate Banking
-  - `Team`: Wealth Management Operations
-  - `SubTeam`: Team 20
+  - `Employee Number`: 100000
+  - `Position Number`: 50003311
+  - `Position Name`: Investment Principal Specialist
+  - `JobProfileID`: R0242.3
+  - `Division`: Corporate & Institutional Banking
+  - `Business_Unit`: Technology
+  - `Team`: Business Banking Operations
+  - `SubTeam`: Team 15
+  - `Function`: Squad H
+  - `SubFunction`: Pod 15
+  - `Org_Level_8`: Unit 038
+  - `Org_Level_9`: Cell 11
+  - `Org_Level_10`: Node 024
+  - `Location`: Brisbane City
+  - `Rg`: QLD
+  - `Cty`: AU
+  - `Employee Group`: Fixed Term
+  - `Salary Group`: Group 7
+  - `Employee Subgroup`: Full Time
+
+**Record 2:**
+  - `Employee Number`: 100001
+  - `Position Number`: 50003667
+  - `Position Name`: Operations Vice President
+  - `JobProfileID`: R0306.0
+  - `Division`: Corporate & Institutional Banking
+  - `Business_Unit`: Human Resources
+  - `Team`: Human Resources Strategy
+  - `SubTeam`: Team 05
   - `Function`: Squad D
-  - `SubFunction`: Pod 18
-  - `Org_Level_8`: Unit 047
-  - `Org_Level_9`: Cell 12
-  - `Org_Level_10`: Node 060
+  - `SubFunction`: Pod 19
+  - `Org_Level_8`: Unit 003
+  - `Org_Level_9`: Cell 30
+  - `Org_Level_10`: Node 037
   - `Location`: Adelaide
   - `Rg`: SA
   - `Cty`: AU
-  - `Employee Group`: Casual
+  - `Employee Group`: Permanent
   - `Salary Group`: Group 7
-  - `Employee Subgroup`: Part Time
-
-**Record 2:**
-  - `Position Number`: 50000001
-  - `Position Name`: Risk Senior Developer
-  - `JobProfileID`: R0400.6
-  - `Employee Number`: 100121.0
-  - `Division`: NAB Ventures
-  - `Business_Unit`: Finance
-  - `Team`: Business Banking Operations
-  - `SubTeam`: Team 02
-  - `Function`: Squad Y
-  - `SubFunction`: Pod 12
-  - `Org_Level_8`: Unit 011
-  - `Org_Level_9`: Cell 21
-  - `Org_Level_10`: Node 067
-  - `Location`: Parramatta
-  - `Rg`: NSW
-  - `Cty`: AU
-  - `Employee Group`: Contractor
-  - `Salary Group`: Group 1
-  - `Employee Subgroup`: Part Time
+  - `Employee Subgroup`: Full Time
 
 **Record 3:**
-  - `Position Number`: 50000002
-  - `Position Name`: Technology Principal Specialist
-  - `JobProfileID`: R0465.3
-  - `Employee Number`: 100644.0
-  - `Division`: NAB Ventures
-  - `Business_Unit`: Business Banking
-  - `Team`: Legal & Compliance Strategy
-  - `SubTeam`: Team 19
-  - `Function`: Squad U
-  - `SubFunction`: Pod 18
-  - `Org_Level_8`: Unit 020
+  - `Employee Number`: 100002
+  - `Position Number`: 50000226
+  - `Position Name`: Audit General Manager
+  - `JobProfileID`: R0304.2
+  - `Division`: Technology
+  - `Business_Unit`: Human Resources
+  - `Team`: Finance Strategy
+  - `SubTeam`: Team 27
+  - `Function`: Squad H
+  - `SubFunction`: Pod 9
+  - `Org_Level_8`: Unit 030
   - `Org_Level_9`: Cell 22
-  - `Org_Level_10`: Node 023
-  - `Location`: Parramatta
+  - `Org_Level_10`: Node 092
+  - `Location`: Sydney
   - `Rg`: NSW
   - `Cty`: AU
-  - `Employee Group`: Contractor
-  - `Salary Group`: Group 5
-  - `Employee Subgroup`: Full Time
+  - `Employee Group`: Fixed Term
+  - `Salary Group`: Group 2
+  - `Employee Subgroup`: Casual
 
 ---
 
@@ -616,25 +616,25 @@ CREATE TABLE schema_metadata (
 **Sample Data by Column:**
 
 - **key**: `created_date`, `purpose`, `schema_version`, `source_document`
-- **value**: `1.0`, `2025-06-18T19:54:24.630835`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
-- **created_at**: `2025-06-18T19:54:24.630835`
+- **value**: `1.0`, `2025-06-21T12:31:51.523720`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
+- **created_at**: `2025-06-21T12:31:51.523720`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `key`: schema_version
   - `value`: 1.0
-  - `created_at`: 2025-06-18T19:54:24.630835
+  - `created_at`: 2025-06-21T12:31:51.523720
 
 **Record 2:**
   - `key`: created_date
-  - `value`: 2025-06-18T19:54:24.630835
-  - `created_at`: 2025-06-18T19:54:24.630835
+  - `value`: 2025-06-21T12:31:51.523720
+  - `created_at`: 2025-06-21T12:31:51.523720
 
 **Record 3:**
   - `key`: source_document
   - `value`: docs/sqlite_schema_design.md
-  - `created_at`: 2025-06-18T19:54:24.630835
+  - `created_at`: 2025-06-21T12:31:51.523720
 
 ---
 
@@ -761,34 +761,34 @@ Top values for important categorical columns:
 
 ### positions.Division
 
-- **Business & Private Banking**: 876 records
-- **Group Functions**: 854 records
-- **Customer Banking & Wealth**: 832 records
-- **Corporate & Institutional Banking**: 825 records
-- **NAB Ventures**: 813 records
-- **Technology**: 800 records
+- **Technology**: 6,144 records
+- **Customer Banking & Wealth**: 5,913 records
+- **Corporate & Institutional Banking**: 5,835 records
+- **Group Functions**: 5,798 records
+- **NAB Ventures**: 5,677 records
+- **Business & Private Banking**: 5,633 records
 
 ### positions.Business_Unit
 
-- **Legal & Compliance**: 536 records
-- **Human Resources**: 521 records
-- **NAB Ventures**: 512 records
-- **Business Banking**: 506 records
-- **Corporate Banking**: 505 records
-- **Personal Banking**: 499 records
-- **Risk Management**: 496 records
-- **Wealth Management**: 489 records
-- **Technology**: 474 records
-- **Finance**: 462 records
+- **Personal Banking**: 3,724 records
+- **Corporate Banking**: 3,645 records
+- **NAB Ventures**: 3,597 records
+- **Technology**: 3,553 records
+- **Legal & Compliance**: 3,531 records
+- **Wealth Management**: 3,528 records
+- **Human Resources**: 3,508 records
+- **Business Banking**: 3,322 records
+- **Finance**: 3,322 records
+- **Risk Management**: 3,270 records
 
 ### positions.Location
 
-- **Perth**: 896 records
-- **Brisbane City**: 863 records
-- **Parramatta**: 826 records
-- **Docklands**: 819 records
-- **Adelaide**: 811 records
-- **Sydney**: 785 records
+- **Brisbane City**: 6,261 records
+- **Adelaide**: 6,115 records
+- **Parramatta**: 5,942 records
+- **Docklands**: 5,608 records
+- **Sydney**: 5,542 records
+- **Perth**: 5,532 records
 
 ### skills.Category
 
@@ -954,7 +954,7 @@ ORDER BY s.Category, s.Skill_Name;
 ### 3. Organizational Context
 ```sql
 -- Find roles in specific business units
-SELECT DISTINCT j.JobProfile, j.JobFamily, COUNT(p."Position Number") as position_count
+SELECT DISTINCT j.JobProfile, j.JobFamily, COUNT(DISTINCT p."Position Number") as position_count
 FROM jobs j
 JOIN positions p ON j.JobProfileID = p.JobProfileID
 WHERE p.Business_Unit = 'Technology'
@@ -991,4 +991,4 @@ This schema documentation should be used to:
 3. **Validate data integrity** during pipeline updates
 4. **Plan schema evolution** for future requirements
 
-**Last Updated**: 2025-06-20 08:37:43
+**Last Updated**: 2025-06-21 16:33:12

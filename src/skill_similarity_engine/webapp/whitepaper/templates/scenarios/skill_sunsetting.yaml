@@ -1,0 +1,15 @@
+# Skill Sunsetting Scenario Template
+meta:
+  name: 'skill_sunsetting'
+  description: 'Analysis for skills becoming obsolete or less relevant'
+
+scenario_context:
+  focus: 'skill_obsolescence_analysis'
+  timeframe: 'future_planning'
+  urgency: 'proactive_preparation'
+
+key_considerations:
+  - emerging_technology_impact
+  - market_demand_shifts
+  - alternative_career_paths
+  - retraining_opportunities

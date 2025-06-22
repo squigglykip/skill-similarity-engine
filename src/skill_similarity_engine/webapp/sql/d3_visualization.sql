@@ -261,7 +261,7 @@ WITH RECURSIVE job_tree AS (
         j.JobProfile as name,
         NULL as parent_id,
         0 as level,
-        j.JobFamily as category,
+        j.JobFunction as category,
         0.0 as similarity_score,
         CAST(j.JobProfileID AS TEXT) as path,
         j.JobProfileID as unique_id  -- Same as ID for root nodes
@@ -277,7 +277,7 @@ WITH RECURSIVE job_tree AS (
         similar_job.JobProfile as name,
         jt.unique_id as parent_id,  -- Use unique parent ID
         jt.level + 1 as level,
-        similar_job.JobFamily as category,
+        similar_job.JobFunction as category,
         js.similarity_score,
         jt.path || ' -> ' || js.job_to as path,
         jt.unique_id || '_' || js.job_to as unique_id  -- Create unique ID for each occurrence

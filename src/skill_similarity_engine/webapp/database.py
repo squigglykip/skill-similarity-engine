@@ -57,23 +57,23 @@ class DatabaseManager:
     # ================================================================
     
     def get_job_families(self) -> List[Dict[str, Any]]:
-        """Get all job families with job counts."""
+        """Get all job functions with job counts."""
         query = """
-            SELECT JobFamily as name, COUNT(*) as job_count
+            SELECT JobFunction as name, COUNT(*) as job_count
             FROM jobs 
-            WHERE JobFamily IS NOT NULL
-            GROUP BY JobFamily
+            WHERE JobFunction IS NOT NULL
+            GROUP BY JobFunction
             ORDER BY job_count DESC
         """
         rows = self.execute_query(query)
         return [dict(row) for row in rows]
     
     def get_jobs_in_family(self, family_name: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """Get jobs within a specific job family."""
+        """Get jobs within a specific job function."""
         query = """
-            SELECT JobProfileID, JobProfile, JobFamily, JobID, Job
+            SELECT JobProfileID, JobProfile, JobFunction, JobID, Job
             FROM jobs 
-            WHERE JobFamily = ?
+            WHERE JobFunction = ?
             ORDER BY JobProfile
             LIMIT ?
         """
@@ -328,11 +328,11 @@ class DatabaseManager:
         """
         divisions = [dict(row) for row in self.execute_query(division_query)]
         
-        # Job family distribution
+        # Job function distribution
         family_query = """
-            SELECT JobFamily, COUNT(*) as count 
+            SELECT JobFunction, COUNT(*) as count 
             FROM jobs 
-            GROUP BY JobFamily 
+            GROUP BY JobFunction 
             ORDER BY count DESC 
             LIMIT 10
         """

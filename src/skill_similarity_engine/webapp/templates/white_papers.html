@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}White Paper Generation - NAB Skills Intelligence Platform{% endblock %}
+
+{% block extra_head %}
+<!-- White Papers specific styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/white-papers.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="bg-white min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
+                <i class="fas fa-file-alt text-red-600 mr-2"></i>
+                White Paper Generation
+            </h1>
+            <p class="text-lg font-source text-gray-600">
+                Generate professional white papers for workforce transition analysis and strategic planning
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Configuration Panel -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-epilogue font-semibold text-gray-900">
+                            <i class="fas fa-cogs text-red-600 mr-2"></i>
+                            Configuration
+                        </h2>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-red-100 text-red-800">
+                            Strategic Intelligence Tool
+                        </span>
+                    </div>
+                    
+                    <form id="whitepaperForm" class="space-y-6">
+                        <!-- Job Selection -->
+                        <div>
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                                <i class="fas fa-briefcase text-gray-500 mr-1"></i>
+                                Source Job *
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    id="jobFromSearch" 
+                                    name="job_from_search" 
+                                    required
+                                    class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source" 
+                                    placeholder="Search by job profile or profile ID (e.g., 'Data Scientist' or 'R0025.1')..."
+                                    autocomplete="off"
+                                >
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <!-- Hidden input to store selected job ID -->
+                                <input type="hidden" id="jobFrom" name="job_from">
+                                <!-- Search results dropdown -->
+                                <div id="jobFromResults" class="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                                    <!-- Results populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Mode -->
+                        <div>
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">
+                                <i class="fas fa-route text-gray-500 mr-1"></i>
+                                Analysis Mode
+                            </label>
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <input id="modeTopMatches" name="analysis_mode" type="radio" value="top_matches" checked class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300">
+                                    <label for="modeTopMatches" class="ml-3 text-sm font-source text-gray-700">
+                                        Top 3 Matched Jobs (Discovery Mode)
+                                    </label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="modeSpecific" name="analysis_mode" type="radio" value="specific" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300">
+                                    <label for="modeSpecific" class="ml-3 text-sm font-source text-gray-700">
+                                        Specific Job Transition
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Job (conditional) -->
+                        <div id="targetJobSection" class="hidden">
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                                <i class="fas fa-target text-gray-500 mr-1"></i>
+                                Target Job
+                            </label>
+                            <select id="jobTo" name="job_to" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source">
+                                <option value="">Select target job...</option>
+                                {% for job in sample_jobs %}
+                                <option value="{{ job.id }}">{{ job.job_title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Scenario Selection -->
+                        <div>
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                                <i class="fas fa-sitemap text-gray-500 mr-1"></i>
+                                Business Scenario
+                            </label>
+                            <select id="scenario" name="scenario" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source">
+                                <option value="skills_gap_analysis">Skills Gap Analysis</option>
+                                <option value="skill_sunsetting">Skill Sunsetting</option>
+                                <option value="division_restructure">Division Restructure</option>
+                            </select>
+                        </div>
+
+                        <!-- Audience Selection -->
+                        <div>
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
+                                <i class="fas fa-users text-gray-500 mr-1"></i>
+                                Target Audience
+                            </label>
+                            <select id="audience" name="audience" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source">
+                                <option value="business_leaders">Business Leaders</option>
+                                <option value="hr_partners">HR Partners</option>
+                                <option value="affected_colleagues">Affected Colleagues</option>
+                                <option value="learning_teams">Learning Teams</option>
+                            </select>
+                        </div>
+
+                        <!-- Similarity Range Filter -->
+                        <div>
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">
+                                <i class="fas fa-chart-line text-gray-500 mr-1"></i>
+                                Similarity Range
+                            </label>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between text-sm text-gray-600">
+                                    <span>Focus on meaningful transitions</span>
+                                    <span id="similarityRangeDisplay" class="font-medium text-red-600">40% - 90%</span>
+                                </div>
+                                <div class="relative">
+                                    <!-- Min Range Slider -->
+                                    <div class="mb-3">
+                                        <label class="block text-xs text-gray-500 mb-1">Minimum Similarity</label>
+                                        <input type="range" id="similarityMin" name="similarity_min" 
+                                               min="20" max="95" value="40" step="5"
+                                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-red">
+                                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                            <span>20%</span>
+                                            <span>95%</span>
+                                        </div>
+                                    </div>
+                                    <!-- Max Range Slider -->
+                                    <div class="mb-2">
+                                        <label class="block text-xs text-gray-500 mb-1">Maximum Similarity</label>
+                                        <input type="range" id="similarityMax" name="similarity_max" 
+                                               min="25" max="100" value="90" step="5"
+                                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-red">
+                                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                            <span>25%</span>
+                                            <span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                                    Excludes exact matches (100%) and very low matches (&lt;40%) to focus on viable career transitions.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other Filters -->
+                        <div>
+                            <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-3">
+                                <i class="fas fa-filter text-gray-500 mr-1"></i>
+                                Additional Filters (Optional)
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <select id="divisionFrom" name="division_from" class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source">
+                                    <option value="">From Division...</option>
+                                    {% for division in divisions %}
+                                    <option value="{{ division }}">{{ division }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select id="divisionTo" name="division_to" class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source">
+                                    <option value="">To Division...</option>
+                                    {% for division in divisions %}
+                                    <option value="{{ division }}">{{ division }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-3 pt-4">
+                            <button type="button" id="previewBtn" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors font-source font-medium">
+                                <i class="fas fa-eye mr-2"></i>
+                                Preview Analysis
+                            </button>
+                            <button type="button" id="generateBtn" class="btn-nab w-full px-4 py-2 text-white font-source font-medium rounded-md focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                                <i class="fas fa-file-download mr-2"></i>
+                                Generate White Paper
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-epilogue font-semibold text-gray-900">
+                            <i class="fas fa-eye text-red-600 mr-2"></i>
+                            White Paper Preview
+                        </h2>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-blue-100 text-blue-800">
+                            Live Document Preview
+                        </span>
+                    </div>
+                    
+                    <div id="previewContent" class="min-h-96">
+                        <div class="text-center text-gray-500 py-12">
+                            <i class="fas fa-file-alt text-6xl mb-4 text-gray-300"></i>
+                            <p class="text-lg font-source">Configure your white paper settings and click "Preview Analysis" to see the formatted document.</p>
+                            <p class="text-sm font-source text-gray-400 mt-2">The preview will show the actual white paper content with professional formatting.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading Spinner -->
+                    <div class="loading-spinner text-center py-8 hidden" id="loadingSpinner">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                        <p class="mt-2 text-gray-600 font-source">Generating white paper content...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- White Papers specific JavaScript -->
+<script src="{{ url_for('static', filename='js/white-papers.js') }}"></script>
+{% endblock %}

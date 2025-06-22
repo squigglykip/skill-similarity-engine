@@ -1,0 +1,850 @@
+/**
+ * White Papers Module
+ * Handles white paper generation, preview, and form interactions
+ */
+
+window.SkillEngine = window.SkillEngine || {};
+
+SkillEngine.WhitePapers = {
+    // State management
+    state: {
+        isGenerating: false,
+        lastFormData: null
+    },
+
+    // Initialize the white papers module
+    init() {
+        console.log('🚀 Loading White Paper Generation Module...');
+        
+        try {
+            this.initializeEventHandlers();
+            this.initializeFormInteractions();
+            this.setupJobSearch();
+            this.loadJobOptions();
+            console.log('✅ White Paper Generation Module loaded');
+        } catch (error) {
+            console.error('❌ Error initializing White Papers:', error);
+        }
+    },
+
+    // Initialize event handlers
+    initializeEventHandlers() {
+        // Analysis mode toggle
+        document.querySelectorAll('input[name="analysis_mode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => this.handleAnalysisModeChange(e));
+        });
+
+        // Preview button
+        const previewBtn = document.getElementById('previewBtn');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', () => this.handlePreviewClick());
+        }
+
+        // Generate button
+        const generateBtn = document.getElementById('generateBtn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => this.handleGenerateClick());
+        }
+
+        // Form validation on input changes
+        const sourceJobSelect = document.getElementById('jobFrom');
+        if (sourceJobSelect) {
+            sourceJobSelect.addEventListener('change', () => this.validateForm());
+        }
+    },
+
+    // Setup job search functionality
+    setupJobSearch() {
+        const searchInput = document.getElementById('jobFromSearch');
+        const resultsDiv = document.getElementById('jobFromResults');
+        const hiddenInput = document.getElementById('jobFrom');
+        
+        if (!searchInput || !resultsDiv || !hiddenInput) {
+            console.warn('Job search elements not found');
+            return;
+        }
+
+        let searchTimeout;
+
+        // Handle search input
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                resultsDiv.classList.add('hidden');
+                // Clear hidden input if search is cleared
+                if (query.length === 0) {
+                    hiddenInput.value = '';
+                    this.validateForm();
+                }
+                return;
+            }
+
+            // Debounce search
+            searchTimeout = setTimeout(() => {
+                this.searchJobs(query, resultsDiv, hiddenInput, searchInput);
+            }, 300);
+        });
+
+        // Handle clicks outside to close dropdown
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.classList.add('hidden');
+            }
+        });
+
+        // Handle focus to show recent results
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value.trim().length >= 2) {
+                this.searchJobs(searchInput.value.trim(), resultsDiv, hiddenInput, searchInput);
+            }
+        });
+
+        // Handle keyboard navigation
+        searchInput.addEventListener('keydown', (e) => {
+            this.handleSearchKeydown(e, resultsDiv, hiddenInput, searchInput);
+        });
+    },
+
+    // Initialize form interactions
+    initializeFormInteractions() {
+        // Set initial form state
+        this.updateTargetJobVisibility();
+        this.validateForm();
+        this.initializeSimilaritySliders();
+    },
+
+    // Handle analysis mode change
+    handleAnalysisModeChange(event) {
+        console.log('📊 Analysis mode changed:', event.target.value);
+        this.updateTargetJobVisibility();
+        this.validateForm();
+    },
+
+    // Update target job section visibility
+    updateTargetJobVisibility() {
+        const analysisMode = document.querySelector('input[name="analysis_mode"]:checked')?.value;
+        const targetSection = document.getElementById('targetJobSection');
+        const jobToSelect = document.getElementById('jobTo');
+
+        if (analysisMode === 'specific') {
+            targetSection.classList.remove('hidden');
+            jobToSelect.required = true;
+        } else {
+            targetSection.classList.add('hidden');
+            jobToSelect.required = false;
+            jobToSelect.value = '';
+        }
+    },
+
+    // Validate form inputs
+    validateForm() {
+        const jobFrom = document.getElementById('jobFrom').value;
+        const analysisMode = document.querySelector('input[name="analysis_mode"]:checked')?.value;
+        const jobTo = document.getElementById('jobTo').value;
+
+        let isValid = !!jobFrom;
+
+        // Check target job requirement for specific mode
+        if (analysisMode === 'specific') {
+            isValid = isValid && !!jobTo;
+        }
+
+        // Update button states
+        this.updateButtonStates(isValid);
+        return isValid;
+    },
+
+    // Update button states based on form validation
+    updateButtonStates(isValid) {
+        const previewBtn = document.getElementById('previewBtn');
+        const generateBtn = document.getElementById('generateBtn');
+
+        if (previewBtn) {
+            previewBtn.disabled = !isValid || this.state.isGenerating;
+        }
+
+        if (generateBtn) {
+            generateBtn.disabled = !isValid || this.state.isGenerating;
+        }
+    },
+
+    // Handle preview button click
+    async handlePreviewClick() {
+        console.log('👁️ Preview button clicked');
+
+        if (!this.validateForm()) {
+            this.showAlert('Please select a source job first.', 'warning');
+            return;
+        }
+
+        try {
+            this.setLoadingState(true);
+            const formData = this.getFormData();
+            
+            const response = await fetch('/api/whitepaper-preview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.displayPreview(data);
+            } else {
+                throw new Error(data.error || 'Preview generation failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Preview error:', error);
+            this.displayError('Failed to generate preview: ' + error.message);
+        } finally {
+            this.setLoadingState(false);
+        }
+    },
+
+    // Handle generate button click
+    async handleGenerateClick() {
+        console.log('📄 Generate button clicked');
+
+        if (!this.validateForm()) {
+            this.showAlert('Please select a source job first.', 'warning');
+            return;
+        }
+
+        try {
+            this.setLoadingState(true);
+            const formData = this.getFormData();
+            formData.output_format = 'word'; // Generate Word document
+            
+            const response = await fetch('/api/generate-whitepaper', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.displayResults(data);
+            } else {
+                throw new Error(data.error || 'White paper generation failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Generation error:', error);
+            this.displayError('Failed to generate white paper: ' + error.message);
+        } finally {
+            this.setLoadingState(false);
+        }
+    },
+
+    // Initialize similarity range sliders
+    initializeSimilaritySliders() {
+        const minSlider = document.getElementById('similarityMin');
+        const maxSlider = document.getElementById('similarityMax');
+        const display = document.getElementById('similarityRangeDisplay');
+
+        if (!minSlider || !maxSlider || !display) return;
+
+        const updateDisplay = () => {
+            const minVal = parseInt(minSlider.value);
+            const maxVal = parseInt(maxSlider.value);
+            
+            // Ensure min is always less than max
+            if (minVal >= maxVal) {
+                if (minSlider === document.activeElement) {
+                    maxSlider.value = minVal + 5;
+                } else {
+                    minSlider.value = maxVal - 5;
+                }
+            }
+            
+            const finalMin = parseInt(minSlider.value);
+            const finalMax = parseInt(maxSlider.value);
+            
+            display.textContent = `${finalMin}% - ${finalMax}%`;
+            
+            // Update visual feedback based on range
+            if (finalMax >= 95) {
+                display.style.color = 'var(--color-orange-600)';
+                display.title = 'Including very high similarities (near-exact matches)';
+            } else if (finalMin <= 30) {
+                display.style.color = 'var(--color-yellow-600)';
+                display.title = 'Including low similarity matches (may require significant development)';
+            } else {
+                display.style.color = 'var(--color-nab-red)';
+                display.title = 'Optimal range for meaningful career transitions';
+            }
+        };
+
+        // Add event listeners
+        minSlider.addEventListener('input', updateDisplay);
+        maxSlider.addEventListener('input', updateDisplay);
+        
+        // Initial display update
+        updateDisplay();
+    },
+
+    // Get form data
+    getFormData() {
+        const analysisMode = document.querySelector('input[name="analysis_mode"]:checked')?.value;
+        
+        const formData = {
+            job_from: document.getElementById('jobFrom').value,
+            job_to: analysisMode === 'specific' ? document.getElementById('jobTo').value : null,
+            scenario: document.getElementById('scenario').value,
+            audience: document.getElementById('audience').value,
+            filters: {
+                division_from: document.getElementById('divisionFrom').value || null,
+                division_to: document.getElementById('divisionTo').value || null,
+                similarity_min: parseFloat(document.getElementById('similarityMin')?.value || 40) / 100,
+                similarity_max: parseFloat(document.getElementById('similarityMax')?.value || 90) / 100
+            }
+        };
+
+        // Store for potential reuse
+        this.state.lastFormData = formData;
+        return formData;
+    },
+
+    // Set loading state
+    setLoadingState(isLoading) {
+        this.state.isGenerating = isLoading;
+        
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const previewContent = document.getElementById('previewContent');
+
+        if (isLoading) {
+            loadingSpinner.classList.add('show');
+            previewContent.classList.add('hidden');
+        } else {
+            loadingSpinner.classList.remove('show');
+            previewContent.classList.remove('hidden');
+        }
+
+        // Update button states
+        this.updateButtonStates(!isLoading && this.validateForm());
+    },
+
+    // Display preview results
+    displayPreview(data) {
+        console.log('👁️ Displaying preview:', data);
+
+        // Format the content as a proper white paper preview
+        const content = `
+            <div class="whitepaper-preview max-h-96 overflow-y-auto">
+                <!-- Header -->
+                <div class="mb-6 pb-4 border-b border-gray-200">
+                    <h1 class="text-2xl font-epilogue font-bold text-gray-900 mb-2">
+                        Workforce Transition Analysis
+                    </h1>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><strong>Source Position:</strong> ${data.job_title}</p>
+                        <p><strong>Analysis Type:</strong> ${this.formatScenarioName(data.scenario)}</p>
+                        <p><strong>Target Audience:</strong> ${this.formatAudienceName(data.audience)}</p>
+                        <p><strong>Confidence Level:</strong> ${data.confidence_level}</p>
+                    </div>
+                </div>
+
+                <!-- Executive Summary -->
+                ${this.renderSection('Executive Summary', data.content.executive_summary)}
+
+                <!-- Context Analysis -->
+                ${this.renderSection('Workforce Context', data.content.context_analysis)}
+
+                <!-- Opportunity Analysis -->
+                ${this.renderSection('Transition Opportunities', data.content.opportunity_analysis)}
+
+                <!-- Skills Development -->
+                ${this.renderSection('Skills Development Plan', data.content.skills_development)}
+
+                <!-- Implementation Roadmap -->
+                ${this.renderSection('Implementation Roadmap', data.content.implementation_roadmap)}
+
+                <!-- Analysis Metrics -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-3">Analysis Metrics</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <div class="font-medium text-gray-700">Similarity Score</div>
+                            <div class="text-xl font-bold text-red-600">${(data.similarity_score * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <div class="font-medium text-gray-700">Career Pathways</div>
+                            <div class="text-xl font-bold text-red-600">${data.pathway_count}</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <div class="font-medium text-gray-700">Colleagues Affected</div>
+                            <div class="text-xl font-bold text-red-600">${data.colleague_count}</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <div class="font-medium text-gray-700">Similarity Range</div>
+                            <div class="text-sm font-medium text-gray-800">${data.similarity_range || 'N/A'}</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <div class="font-medium text-gray-700">Narrative Type</div>
+                            <div class="text-sm font-medium text-gray-800">${this.formatNarrativeType(data.narrative_type)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-700">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    This preview shows the formatted white paper content. Click "Generate White Paper" to download the complete document.
+                </p>
+            </div>
+        `;
+
+        this.updatePreviewContent(content);
+    },
+
+    // Display generation results
+    displayResults(data) {
+        console.log('📄 Displaying results:', data);
+
+        const documentInfo = data.document || {};
+        const filename = documentInfo.filename || 'whitepaper.docx';
+        const format = documentInfo.format || 'word';
+
+        const content = `
+            <div class="alert-custom bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-green-900 mb-3">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    White Paper Generated Successfully
+                </h3>
+                <div class="space-y-2 text-sm">
+                    <p><span class="font-medium">Narrative Type:</span> <span class="text-green-800">${data.narrative_type}</span></p>
+                    <p><span class="font-medium">Confidence Level:</span> <span class="text-green-800">${data.confidence_level}</span></p>
+                    <p><span class="font-medium">Document Format:</span> <span class="text-green-800">${format.toUpperCase()}</span></p>
+                    <p><span class="font-medium">Filename:</span> <span class="text-green-800">${filename}</span></p>
+                </div>
+            </div>
+            <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 class="font-semibold text-blue-900 mb-2">
+                    <i class="fas fa-download mr-2"></i>
+                    Document Ready
+                </h4>
+                <p class="text-blue-700 mb-3">Your white paper has been generated and is ready for download.</p>
+                <button onclick="SkillEngine.WhitePapers.downloadDocument('${filename}')" 
+                        class="btn-nab px-4 py-2 text-white font-source font-medium rounded-md hover:bg-red-700 transition-colors">
+                    <i class="fas fa-file-download mr-2"></i>
+                    Download ${format.toUpperCase()} Document
+                </button>
+            </div>
+            ${data.document && data.document.content ? `
+            <div class="mt-4">
+                <h4 class="font-semibold text-gray-900 mb-2">Content Preview:</h4>
+                <div class="bg-gray-100 p-4 rounded-lg text-sm max-h-96 overflow-y-auto border">
+                    ${this.formatDocumentContent(data.document.content)}
+                </div>
+            </div>
+            ` : ''}
+        `;
+
+        this.updatePreviewContent(content);
+    },
+
+    // Display error message
+    displayError(errorMessage) {
+        console.error('❌ Displaying error:', errorMessage);
+
+        const content = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-red-900 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Error
+                </h3>
+                <p class="text-red-700">${errorMessage}</p>
+            </div>
+        `;
+
+        this.updatePreviewContent(content);
+    },
+
+    // Update preview content with animation
+    updatePreviewContent(content) {
+        const previewContent = document.getElementById('previewContent');
+        if (previewContent) {
+            previewContent.innerHTML = content;
+            previewContent.classList.add('preview-content-enter');
+            
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                previewContent.classList.remove('preview-content-enter');
+            }, 300);
+        }
+    },
+
+    // Show alert notification
+    showAlert(message, type = 'info') {
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        // Add to page
+        document.body.appendChild(alertDiv);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    },
+
+    // Utility functions
+    getSelectedJobTitle(selectId) {
+        const select = document.getElementById(selectId);
+        return select ? select.options[select.selectedIndex]?.text || '' : '';
+    },
+
+    // Helper methods for preview formatting
+    renderSection(title, content) {
+        if (!content) return '';
+        
+        let sectionHtml = `
+            <div class="mb-6">
+                <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-3">${title}</h3>
+                <div class="space-y-3 text-sm text-gray-700 leading-relaxed">
+        `;
+        
+        if (typeof content === 'string') {
+            sectionHtml += `<p>${content}</p>`;
+        } else if (typeof content === 'object') {
+            for (const [key, value] of Object.entries(content)) {
+                if (value) {
+                    sectionHtml += `
+                        <div class="mb-3">
+                            <h4 class="font-medium text-gray-800 mb-1">${this.formatSubsectionTitle(key)}</h4>
+                            <p>${value}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        sectionHtml += `
+                </div>
+            </div>
+        `;
+        
+        return sectionHtml;
+    },
+
+    formatSubsectionTitle(key) {
+        return key.replace(/_/g, ' ')
+                 .replace(/\b\w/g, l => l.toUpperCase());
+    },
+
+    formatScenarioName(scenario) {
+        const scenarios = {
+            'skills_gap_analysis': 'Skills Gap Analysis',
+            'skill_sunsetting': 'Skill Sunsetting',
+            'division_restructure': 'Division Restructure'
+        };
+        return scenarios[scenario] || scenario;
+    },
+
+    formatAudienceName(audience) {
+        const audiences = {
+            'business_leaders': 'Business Leaders',
+            'hr_partners': 'HR Partners',
+            'affected_colleagues': 'Affected Colleagues',
+            'learning_teams': 'Learning Teams'
+        };
+        return audiences[audience] || audience;
+    },
+
+    formatNarrativeType(narrativeType) {
+        const types = {
+            'excellent_opportunities': 'Excellent Opportunities',
+            'development_required': 'Development Required',
+            'significant_challenges': 'Significant Challenges'
+        };
+        return types[narrativeType] || narrativeType;
+    },
+
+    // Helper method to format document content for preview
+    formatDocumentContent(content) {
+        if (typeof content === 'string') {
+            return content.replace(/\n/g, '<br>');
+        } else if (typeof content === 'object') {
+            return Object.entries(content)
+                .map(([key, value]) => `<strong>${this.formatSubsectionTitle(key)}:</strong><br>${value}<br><br>`)
+                .join('');
+        }
+        return 'Content preview not available';
+    },
+
+    // Method to handle document download
+    downloadDocument(filename) {
+        // This would typically trigger a download from the server
+        console.log('📥 Downloading document:', filename);
+        this.showAlert('Document download functionality will be implemented with actual file generation.', 'info');
+    },
+
+    // Reset form to initial state
+    resetForm() {
+        const form = document.getElementById('whitepaperForm');
+        if (form) {
+            form.reset();
+            this.updateTargetJobVisibility();
+            this.validateForm();
+        }
+    },
+
+    // Export functionality (future enhancement)
+    async exportWhitePaper(format = 'pdf') {
+        if (!this.state.lastFormData) {
+            this.showAlert('Please generate a white paper first.', 'warning');
+            return;
+        }
+
+        console.log('📤 Exporting white paper as:', format);
+        
+        try {
+            const formData = { ...this.state.lastFormData, output_format: format };
+            
+            const response = await fetch('/api/export-whitepaper', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                // Handle file download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `whitepaper_${Date.now()}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                throw new Error('Export failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Export error:', error);
+            this.showAlert('Failed to export white paper: ' + error.message, 'danger');
+        }
+    },
+
+    // Load job options from API
+    async loadJobOptions() {
+        try {
+            console.log('📋 Loading job options...');
+            
+            const response = await fetch('/api/whitepaper-jobs?limit=100');
+            const data = await response.json();
+            
+            if (data.success && data.jobs) {
+                this.populateJobDropdowns(data.jobs);
+                console.log(`✅ Loaded ${data.jobs.length} job options`);
+            } else {
+                console.warn('⚠️ No jobs data received from API');
+            }
+        } catch (error) {
+            console.error('❌ Error loading job options:', error);
+            // Keep the existing static options as fallback
+        }
+    },
+
+    // Populate job dropdown menus with real data
+    populateJobDropdowns(jobs) {
+        const jobFromSelect = document.getElementById('jobFrom');
+        const jobToSelect = document.getElementById('jobTo');
+        
+        if (jobFromSelect) {
+            // Clear existing options except the first placeholder
+            jobFromSelect.innerHTML = '<option value="">Select source job...</option>';
+            
+            // Add job options
+            jobs.forEach(job => {
+                const option = document.createElement('option');
+                option.value = job.id;
+                option.textContent = `${job.title} (${job.function})`;
+                option.dataset.function = job.function;
+                jobFromSelect.appendChild(option);
+            });
+        }
+        
+        if (jobToSelect) {
+            // Clear existing options except the first placeholder
+            jobToSelect.innerHTML = '<option value="">Select target job...</option>';
+            
+            // Add job options
+            jobs.forEach(job => {
+                const option = document.createElement('option');
+                option.value = job.id;
+                option.textContent = `${job.title} (${job.function})`;
+                option.dataset.function = job.function;
+                jobToSelect.appendChild(option);
+            });
+        }
+    },
+
+    // Search jobs via API
+    async searchJobs(query, resultsDiv, hiddenInput, searchInput) {
+        try {
+            console.log('🔍 Searching jobs for:', query);
+            
+            const response = await fetch(`/api/whitepaper-jobs?search=${encodeURIComponent(query)}&limit=10`);
+            const data = await response.json();
+
+            if (data.success && data.jobs) {
+                this.displaySearchResults(data.jobs, resultsDiv, hiddenInput, searchInput);
+            } else {
+                this.displayNoResults(resultsDiv);
+            }
+        } catch (error) {
+            console.error('❌ Error searching jobs:', error);
+            this.displayNoResults(resultsDiv);
+        }
+    },
+
+    // Display search results
+    displaySearchResults(jobs, resultsDiv, hiddenInput, searchInput) {
+        if (jobs.length === 0) {
+            this.displayNoResults(resultsDiv);
+            return;
+        }
+
+        const html = jobs.map((job, index) => {
+            // Create display title from components
+            const displayTitle = `${job.job_title} - ${job.suffix} (${job.management_level})`;
+            
+            return `
+                <div class="job-result px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                     data-job-id="${job.id}" 
+                     data-job-profile="${job.job_profile}"
+                     data-display-title="${displayTitle}"
+                     data-index="${index}">
+                    <div class="font-medium text-gray-900 text-sm">${displayTitle}</div>
+                    <div class="text-xs text-gray-500 mt-1 space-y-1">
+                        <div>Profile ID: <span class="font-mono">${job.id}</span></div>
+                        <div>Function: ${job.function || 'N/A'} ${job.sub_function ? '• ' + job.sub_function : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        resultsDiv.innerHTML = html;
+        resultsDiv.classList.remove('hidden');
+
+        // Add click handlers to results
+        resultsDiv.querySelectorAll('.job-result').forEach(item => {
+            item.addEventListener('click', () => {
+                this.selectJobFromSearch(item, hiddenInput, searchInput, resultsDiv);
+            });
+        });
+    },
+
+    // Display no results message
+    displayNoResults(resultsDiv) {
+        resultsDiv.innerHTML = `
+            <div class="px-4 py-3 text-sm text-gray-500 text-center">
+                <i class="fas fa-search text-gray-300 text-lg mb-2"></i>
+                <div>No job profiles found matching your search</div>
+                <div class="text-xs mt-1">Try searching by job profile name or profile ID (e.g., 'R0025.1')</div>
+            </div>
+        `;
+        resultsDiv.classList.remove('hidden');
+    },
+
+    // Select job from search results
+    selectJobFromSearch(item, hiddenInput, searchInput, resultsDiv) {
+        const jobId = item.dataset.jobId;
+        const displayTitle = item.dataset.displayTitle;
+        
+        console.log('✅ Selected job:', jobId, displayTitle);
+        
+        // Set values - use the formatted display title in the search input
+        searchInput.value = displayTitle;
+        hiddenInput.value = jobId;
+        
+        // Hide dropdown
+        resultsDiv.classList.add('hidden');
+        
+        // Update validation
+        this.validateForm();
+    },
+
+    // Handle keyboard navigation in search results
+    handleSearchKeydown(e, resultsDiv, hiddenInput, searchInput) {
+        const results = resultsDiv.querySelectorAll('.job-result');
+        const currentActive = resultsDiv.querySelector('.job-result.bg-blue-50');
+        let activeIndex = -1;
+
+        if (currentActive) {
+            activeIndex = parseInt(currentActive.dataset.index);
+        }
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                activeIndex = Math.min(activeIndex + 1, results.length - 1);
+                this.highlightSearchResult(results, activeIndex);
+                break;
+            
+            case 'ArrowUp':
+                e.preventDefault();
+                activeIndex = Math.max(activeIndex - 1, 0);
+                this.highlightSearchResult(results, activeIndex);
+                break;
+            
+            case 'Enter':
+                e.preventDefault();
+                if (currentActive) {
+                    this.selectJobFromSearch(currentActive, hiddenInput, searchInput, resultsDiv);
+                }
+                break;
+            
+            case 'Escape':
+                resultsDiv.classList.add('hidden');
+                break;
+        }
+    },
+
+    // Highlight search result for keyboard navigation
+    highlightSearchResult(results, activeIndex) {
+        results.forEach((result, index) => {
+            if (index === activeIndex) {
+                result.classList.add('bg-blue-50');
+            } else {
+                result.classList.remove('bg-blue-50');
+            }
+        });
+    }
+};
+
+// Auto-initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Only initialize on white papers page
+    if (document.getElementById('whitepaperForm')) {
+        SkillEngine.WhitePapers.init();
+    }
+});
+
+// Export for use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SkillEngine.WhitePapers;
+}

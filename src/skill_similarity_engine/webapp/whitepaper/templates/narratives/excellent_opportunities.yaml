@@ -1,0 +1,187 @@
+# Excellent Opportunities Narrative Template
+# Similarity Score: >0.7 (Top 10th percentile)
+
+meta:
+  name: "excellent_opportunities"
+  similarity_range: [0.7, 1.0]
+  percentile_rank: ">90th"
+  confidence_level: "High"
+
+paragraphs:
+  executive_summary:
+    opening: |
+      Analysis indicates {transition_quality} transition prospects for colleagues in the {source_job_title} 
+      job architecture, which encompasses {colleague_count} positions including {position_breakdown}. Multiple high-similarity 
+      pathways (average similarity: {avg_similarity_percent}%) provide {opportunity_descriptor} redeployment 
+      options with {disruption_level} business disruption.
+    
+    recommendation: |
+      Recommended approach: proceed with confidence through a managed {timeline_weeks} week transition process. 
+      Expected outcome: successful redeployment with {skill_retention_percent}% skill utilisation retention.
+    
+    confidence_statement: |
+      Our assessment indicates {confidence_level} confidence in successful outcomes, supported by 
+      {pathway_count} viable pathways and {success_probability_percent}% projected success rate.
+
+  context_analysis:
+    workforce_impact: |
+      Current deployment encompasses {colleague_count} colleagues within the {source_job_title} job 
+      architecture. Geographic distribution spans {location_count} major centres including {location_distribution}. 
+      Divisional representation includes {position_breakdown} across the organisation.
+    
+    business_context: |
+      The strategic initiative driving this transition creates opportunities to leverage existing talent 
+      while positioning for {business_driver}. Current skill alignment shows {transferable_skills} 
+      directly transferable competencies and {skills_shared} shared skill areas.
+
+  opportunity_analysis:
+    pathway_quality: |
+      Our comprehensive analysis identified {pathway_count} primary career transition pathways with an 
+      average similarity score of {avg_similarity_percent}% indicating {transferability_assessment} and 
+      {viability_assessment} transition prospects.
+    
+    skills_alignment: |
+      Skills analysis reveals {skills_overlap_percentage}% overlap between current and target roles, 
+      with {transferable_skills} transferable skills and {skills_to_develop} skills requiring development. 
+      This represents {skill_development_level} development requirements.
+
+  skills_development:
+    development_summary: |
+      Skill development requirements are {development_intensity} with {skills_to_develop} key areas 
+      requiring attention. Existing competencies in {transferable_skills} areas provide a strong 
+      foundation for successful transition.
+    
+    development_plan: |
+      Recommended development approach: {development_approach} over {timeline_weeks} weeks focusing on 
+      {development_priorities}. Expected development time: {development_timeline} with {support_level} 
+      organisational support required.
+
+  implementation_roadmap:
+    timeline: |
+      Transition timeline: {timeline_weeks} weeks with {implementation_phases} key phases. 
+      Critical milestones include skills assessment (week 2), development planning (week 4), 
+      and transition execution (week {timeline_weeks}).
+    
+    success_factors: |
+      Key success factors: {success_factors}. Risk mitigation includes {risk_mitigation} and 
+      continuous monitoring of {monitoring_metrics}.
+
+variables:
+  transition_quality:
+    thresholds:
+      - range: [0.9, 1.0]
+        value: "exceptional"
+      - range: [0.8, 0.9]
+        value: "excellent" 
+      - range: [0.7, 0.8]
+        value: "strong"
+  
+  opportunity_descriptor:
+    thresholds:
+      - range: [0.9, 1.0]
+        value: "outstanding"
+      - range: [0.8, 0.9]
+        value: "excellent"
+      - range: [0.7, 0.8]
+        value: "good"
+  
+  disruption_level:
+    thresholds:
+      - range: [0.9, 1.0]
+        value: "minimal"
+      - range: [0.8, 0.9]
+        value: "low"
+      - range: [0.7, 0.8]
+        value: "manageable"
+  
+  transferability_assessment:
+    thresholds:
+      - range: [0.9, 1.0]
+        value: "excellent skill transferability"
+      - range: [0.8, 0.9]
+        value: "strong skill transferability"
+      - range: [0.7, 0.8]
+        value: "good skill transferability"
+  
+  viability_assessment:
+    thresholds:
+      - range: [0.9, 1.0]
+        value: "highly viable"
+      - range: [0.8, 0.9]
+        value: "viable"
+      - range: [0.7, 0.8]
+        value: "moderately viable"
+  
+  skill_development_level:
+    thresholds:
+      - range: [0, 3]
+        value: "minimal"
+      - range: [4, 6]
+        value: "moderate"
+      - range: [7, 10]
+        value: "substantial"
+      - range: [11, 999]
+        value: "extensive"
+  
+  development_intensity:
+    thresholds:
+      - range: [0, 3]
+        value: "light"
+      - range: [4, 6]
+        value: "moderate"
+      - range: [7, 10]
+        value: "intensive"
+      - range: [11, 999]
+        value: "comprehensive"
+
+conditions:
+  # Conditional content based on data patterns
+  geographic_flexibility:
+    condition: "location_count > 1"
+    content: |
+      Geographic flexibility significantly enhances placement probability, with opportunities 
+      distributed across {location_distribution} operational centres.
+  
+  cross_division_opportunities:
+    condition: "division_count > 1"
+    content: |
+      Cross-divisional opportunities expand career horizons with pathways spanning 
+      {division_count} divisions including {position_breakdown}.
+  
+  high_confidence_accelerator:
+    condition: "avg_similarity >= 0.85"
+    content: |
+      Exceptional similarity scores enable accelerated transition timelines with reduced 
+      development requirements and enhanced success probability.
+
+computed_variables:
+  # These are handled by the ContentPersonalizer._handle_computed_variables method
+  development_approach:
+    high_similarity: "focused skill enhancement"
+    medium_similarity: "structured development program"
+    low_similarity: "comprehensive retraining"
+  
+  development_timeline:
+    high_similarity: "4-6 weeks"
+    medium_similarity: "8-12 weeks"
+    low_similarity: "12-16 weeks"
+  
+  support_level:
+    high_similarity: "minimal"
+    medium_similarity: "moderate"
+    low_similarity: "intensive"
+  
+  development_priorities:
+    default: "technical skills, process knowledge, and system familiarity"
+  
+  success_factors:
+    default: "strong skill foundation, organisational support, and structured development"
+  
+  risk_mitigation:
+    default: "phased transition, mentoring support, and regular progress reviews"
+  
+  monitoring_metrics:
+    default: "skill development progress, performance indicators, and colleague satisfaction"
+  
+  implementation_phases:
+    default: "3"
