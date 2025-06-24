@@ -7,26 +7,26 @@ executive_summary:
   strategic_context:
     title: "Strategic Context"
     content: |
-      This analysis examines career transition opportunities for colleagues currently in **{source_job_title} ({source_management_level})** positions, focusing on high-similarity pathways that leverage existing {source_job_function_lower} competencies while addressing evolving business needs across NAB's transformation initiatives.
+      This analysis examines career transition opportunities for colleagues currently in {{source_job_title}} positions, focusing on high-similarity pathways that leverage existing {{source_job_function_lower}} competencies while addressing evolving business needs across NAB's transformation initiatives.
 
   key_findings:
     title: "Key Findings"
     content: |
-      Our comprehensive analysis of NAB's {total_job_count} job profiles**(1)** identified **{pathway_count} career pathways** with similarity scores ranging from {min_similarity}% to {max_similarity}%**(2)**, representing **{opportunity_descriptor} transition opportunities****(3)** ({percentile_descriptor} percentile performance)**(4)** for {source_job_title_plural} seeking career progression or lateral expansion.
+      Our comprehensive analysis of NAB's {{total_job_count}} job profiles(1) identified {{pathway_count}} career pathways with similarity scores ranging from {{min_similarity}}% to {{max_similarity}}%(2), representing {{opportunity_descriptor}} transition opportunities(3) ({{percentile_descriptor}} percentile performance)(4) for {{source_job_title_plural}} seeking career progression or lateral expansion.
 
-      *What this means:* These similarity scores indicate how well current skills transfer to new roles. Within NAB's business context, these scores represent {contextual_performance_descriptor} opportunities - our analysis excludes 100% matches (which are essentially identical roles) and benchmarks against the actual distribution of meaningful career transitions within the organisation**(67)**. The {percentile_descriptor} percentile ranking means these are among the {ranking_quality_descriptor} career pathways available across NAB's entire job architecture, significantly {risk_cost_descriptor}**(68)**.
+      What this means: These similarity scores indicate how well current skills transfer to new roles. Within NAB's business context, these scores represent {{contextual_performance_descriptor}} opportunities - our analysis excludes 100% matches (which are essentially identical roles) and benchmarks against the actual distribution of meaningful career transitions within the organisation(67). The {{percentile_descriptor}} percentile ranking means these are among the {{ranking_quality_descriptor}} career pathways available across NAB's entire job architecture, significantly {{risk_cost_descriptor}}(68).
 
     # Dynamic content based on similarity thresholds
     opportunity_descriptors:
-      outstanding: "outstanding"  # 95th+ percentile
-      excellent: "excellent"     # 90th-95th percentile  
-      good: "good"              # 75th-90th percentile
-      development: "development-focused"  # 50th-75th percentile
-      transformation: "transformation"    # <50th percentile
+      outstanding: "outstanding"
+      excellent: "excellent"
+      good: "good"
+      development: "development-focused"
+      transformation: "transformation"
 
     percentile_descriptors:
       95: "95th"
-      90: "90th" 
+      90: "90th"
       85: "85th"
       80: "80th"
       75: "75th"
@@ -38,7 +38,7 @@ executive_summary:
 
     contextual_performance_descriptors:
       outstanding: "exceptional"
-      excellent: "excellent" 
+      excellent: "excellent"
       good: "strong"
       development: "solid"
       transformation: "challenging but viable"
@@ -61,43 +61,47 @@ executive_summary:
     title: "Primary Recommendations"
     content: |
       {% for recommendation in top_pathways %}
-      {{ loop.index }}. **{{ recommendation.target_job_title }} ({{ recommendation.target_job_id }})** - {{ recommendation.similarity_score }}% similarity**({{ recommendation.similarity_ref }})**, **Move Type: {{ recommendation.move_type }}****({{ recommendation.move_type_ref }})** ({{ recommendation.level_transition }})  
-         *Strategic Context:* {{ recommendation.strategic_context_explanation }}**(76)**.
+      {{ loop.index }}. {{ recommendation.target_logical_role }} - {{ recommendation.similarity_score }}% similarity({{ recommendation.similarity_ref }}), Move Type: {{ recommendation.move_type }}({{ recommendation.move_type_ref }}) ({{ recommendation.level_transition }})  
+      Strategic Context: {{ recommendation.strategic_context_explanation }}(76).
+      {% if recommendation.divisional_deployment %}
+      Business Context: This role is {{ recommendation.divisional_deployment.deployment_description }}(77).{% endif %}
       {% if not loop.last %}
 
       {% endif %}
       {% endfor %}
 
     strategic_context_explanations:
-      "Progression - Functional_Advancement": "Functional advancement means progressing within the same department but at a higher level. This offers the smoothest transition path with established mentorship and clear progression criteria"
-      "Progression - Cross_Functional_Advancement": "Cross-functional advancement leverages {source_function} skills in a new department. This expands career options while maintaining similar management level, ideal for broadening expertise"
-      "Lateral - Same_Level": "Lateral movement maintains current management level while expanding functional expertise. This provides career diversification with minimal structural complexity"
+      "Progression - Same_Role_Higher_Level": "Career progression within the same role type at a higher management level. This represents the most direct advancement path with established competency frameworks and clear progression criteria"
+      "Progression - Different_Role_Higher_Level": "Career progression to a different role type at a higher management level. This leverages transferable skills while expanding responsibilities and scope"
+      "Lateral - Different_Role_Same_Level": "Lateral movement to a different role type at the same management level. This provides career diversification and skill broadening while maintaining current seniority"
+      "Lateral - Same_Role_Same_Level": "Lateral movement within the same role type and management level, typically representing different pay bands or specializations. This offers variety while maintaining established competencies"
+      "Transition - Lower_Level": "Strategic transition to a different role type at a lower management level. While appearing as a step down, this often provides pathway to new career trajectories with growth potential"
       "Other": "This pathway represents a unique transition opportunity with specific strategic advantages based on skills alignment and organisational needs"
 
     level_transitions:
       "Group 1 → Group 2": "Group 1 → Group 2, same function"
-      "Group 1 → Group 3": "Group 1 → Group 3, {source_function} → {target_function}"
-      "Group 2 → Group 2": "Group 2 → Group 2, {source_function} → {target_function}"
-      "Group 2 → Group 3": "Group 2 → Group 3, {source_function} → {target_function}"
+      "Group 1 → Group 3": "Group 1 → Group 3, {{source_function}} → {{target_function}}"
+      "Group 2 → Group 2": "Group 2 → Group 2, {{source_function}} → {{target_function}}"
+      "Group 2 → Group 3": "Group 2 → Group 3, {{source_function}} → {{target_function}}"
 
   data_driven_classification:
     content: |
-      **Data-Driven Move Classification:** Using management level hierarchy analysis (Group NA=0, Group 1=1, Group 2=2, etc.)**(11)** and job function mapping from the {total_job_count} job profiles database**(1)**, each pathway is classified by both progression direction and functional alignment. This provides objective categorisation of career moves rather than subjective descriptors**(12)**.
+      Data-Driven Move Classification: Using management level hierarchy analysis (Group NA=0, Group 1=1, Group 2=2, etc.)(11) and job function mapping from the {{total_job_count}} job profiles database(1), each pathway is classified by both progression direction and functional alignment. This provides objective categorisation of career moves rather than subjective descriptors(12).
 
   similarity_benchmarking:
     content: |
-      **Similarity Benchmarking Context:** *Our analysis uses NAB-specific benchmarks rather than external industry standards. We exclude 100% similarity matches (which represent essentially identical roles by different names) and benchmark performance against the actual distribution of meaningful career transitions within NAB's job architecture. This approach ensures recommendations are contextually relevant - a {example_good_similarity}% similarity might represent an exceptional opportunity within NAB's specific role ecosystem, whereas external benchmarks might undervalue such pathways.*
+      Similarity Benchmarking Context: Our analysis uses NAB-specific benchmarks rather than external industry standards. We exclude 100% similarity matches (which represent essentially identical roles by different names) and benchmark performance against the actual distribution of meaningful career transitions within NAB's job architecture. This approach ensures recommendations are contextually relevant - a {{example_good_similarity}}% similarity might represent an exceptional opportunity within NAB's specific role ecosystem, whereas external benchmarks might undervalue such pathways.
 
   template_logic_note:
     content: |
-      **Template Logic Note:** *Divisional and geographic context sections are conditionally included based on user filter selections in the webapp interface. When users specify "From Division" or "To Division" filters, organisational deployment data is included. For pure JobProfile-to-JobProfile analysis without divisional constraints, these sections are omitted to focus on architectural skill transitions.*
+      Template Logic Note: Divisional and geographic context sections are conditionally included based on user filter selections in the webapp interface. When users specify "From Division" or "To Division" filters, organisational deployment data is included. For pure JobProfile-to-JobProfile analysis without divisional constraints, these sections are omitted to focus on architectural skill transitions.
 
   confidence_assessment:
     title: "Confidence Assessment"
     content: |
-      **{confidence_level} CONFIDENCE****(13)** - Analysis based on comprehensive skills mapping across {active_competencies_count:,} active competencies**(14)**, validated against {pathways_count:,} pre-computed career pathways**(15)**, and informed by actual position deployment data across NAB's {division_count} divisions**(16)**.
+      {{confidence_level}} CONFIDENCE(13) - Analysis based on comprehensive skills mapping across {{active_competencies_count}} active competencies(14), validated against {{pathways_count}} pre-computed career pathways(15), and informed by actual position deployment data across NAB's {{division_count}} divisions(16).
 
-      *What this means:* {confidence_level} confidence indicates our recommendations are based on {data_quality_descriptor} rather than estimates or assumptions**(13)**. This level of data coverage ({active_competencies_count:,} active skills across {total_job_count} jobs) provides the same analytical rigour used in strategic business planning, ensuring reliable foundations for workforce investment decisions**(14-16)**.
+      What this means: {{confidence_level}} confidence indicates our recommendations are based on {{data_quality_descriptor}} rather than estimates or assumptions(13). This level of data coverage ({{active_competencies_count}} active skills across {{total_job_count}} jobs) provides the same analytical rigour used in strategic business planning, ensuring reliable foundations for workforce investment decisions(14-16).
 
     confidence_explanations:
       HIGH: "extensive real data"
@@ -127,48 +131,21 @@ references:
   67: "Similarity score interpretation derived from NAB-specific distribution analysis"
   68: "Risk and cost assessment derived from percentile ranking analysis"
   76: "Strategic pathway classification derived from progression type analysis"
+  77: "Divisional deployment analysis derived from actual position data across NAB's organizational structure"
 
 # Variable definitions for template processing
-variables:
-  # Source job context
-  source_job_title: "Data Scientist Associate"  # From job profile
-  source_job_title_plural: "Data Scientist Associates"
-  source_management_level: "Group 1"
-  source_job_function: "Analytics"
-  source_job_function_lower: "analytical and technical"
-  source_function: "Analytics"
-
-  # Database-derived metrics
-  total_job_count: "{ref_1_result}"
-  pathway_count: 3  # Fixed for top 3 analysis
-  min_similarity: "{min_similarity_percent}"
-  max_similarity: "{max_similarity_percent}"
-  active_competencies_count: "{ref_14_result}"
-  pathways_count: "{ref_15_result}"
-  division_count: "{ref_16_result}"
-  confidence_level: "{ref_13_result}"
-
-  # Dynamic descriptors based on thresholds
-  opportunity_descriptor: "{dynamic_opportunity_descriptor}"
-  percentile_descriptor: "{dynamic_percentile_descriptor}"
-  contextual_performance_descriptor: "{dynamic_contextual_descriptor}"
-  ranking_quality_descriptor: "{dynamic_ranking_descriptor}"
-  risk_cost_descriptor: "{dynamic_risk_cost_descriptor}"
-  data_quality_descriptor: "{dynamic_data_quality_descriptor}"
-  example_good_similarity: "65"  # Example for benchmarking context
-
-  # Top pathways (populated dynamically)
-  top_pathways: []  # List of pathway objects with similarity_score, move_type, etc.
+# All variables are now populated dynamically from the database - no hardcoded values
+# This ensures all content reflects real NAB data from business_context.sqlite
 
 # Threshold configuration for dynamic content selection
 thresholds:
   similarity_percentiles:
-    outstanding: 95  # 95th+ percentile
-    excellent: 90    # 90th-95th percentile
-    good: 75         # 75th-90th percentile
-    development: 50  # 50th-75th percentile
-    transformation: 0 # <50th percentile
+    outstanding: 95
+    excellent: 90
+    good: 75
+    development: 50
+    transformation: 0
 
   confidence_levels:
-    high_threshold: 2000  # active_competencies for HIGH confidence
-    medium_high_threshold: 1000  # active_competencies for MEDIUM-HIGH confidence 
+    high_threshold: 2000
+    medium_high_threshold: 1000 

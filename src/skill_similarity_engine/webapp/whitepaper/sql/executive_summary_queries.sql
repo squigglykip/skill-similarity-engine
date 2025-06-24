@@ -145,6 +145,43 @@ FROM positions;
 
 -- Helper queries for dynamic threshold calculation
 
+-- Logical Role Views for Job + ManagementLevel combinations
+CREATE VIEW logical_roles AS
+SELECT 
+    MIN(JobProfileID) as representative_profile_id,
+    CASE 
+        WHEN INSTR(JobProfile, ' - ') > 0 
+        THEN SUBSTR(JobProfile, 1, INSTR(JobProfile, ' - ') - 1)
+        ELSE JobProfile 
+    END as base_job_title,
+    ManagementLevel,
+    JobFamily,
+    JobFunction,
+    COUNT(*) as pay_band_count,
+    GROUP_CONCAT(JobProfileID) as all_profiles,
+    base_job_title || ' (' || ManagementLevel || ')' as logical_display_name
+FROM jobs 
+GROUP BY base_job_title, ManagementLevel, JobFamily, JobFunction;
+
+-- Logical role skills aggregation (for future skills analysis)
+CREATE VIEW logical_role_skills AS
+SELECT 
+    lr.representative_profile_id,
+    lr.base_job_title,
+    lr.ManagementLevel,
+    lr.logical_display_name,
+    s.Skill_ID,
+    s.Skill_Name,
+    s.Category,
+    AVG(js.Skill_Weight) as avg_skill_weight,
+    COUNT(DISTINCT js.JobProfileID) as profiles_with_skill
+FROM logical_roles lr
+JOIN jobs j ON (j.JobProfile LIKE lr.base_job_title || ' - %' OR j.JobProfile = lr.base_job_title)
+    AND j.ManagementLevel = lr.ManagementLevel
+JOIN job_skills js ON j.JobProfileID = js.JobProfileID
+JOIN skills s ON js.Skill_ID = s.Skill_ID
+GROUP BY lr.representative_profile_id, s.Skill_ID;
+
 -- NAB-specific similarity distribution (excluding 100% matches)
 CREATE VIEW nab_similarity_distribution AS
 SELECT 

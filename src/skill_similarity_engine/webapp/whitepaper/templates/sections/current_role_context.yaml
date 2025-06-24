@@ -1,0 +1,185 @@
+# Current Role Context Template
+# Based on whitepaper_example_gold_standard.md lines 91-174
+
+current_role_context:
+  section_title: "Current Role Context"
+  
+  section_config:
+    title: "Current Role Context"
+    references_start: 17
+
+  profile_overview:
+    title: "{{source_job_logical_display_name}} Profile"
+    content: |
+      {% if include_organisational_deployment %}
+      **Organisational Deployment:** {{position_count}} positions across {{division_count}} divisions(17)
+      **Primary Locations:** {{primary_locations}}(18)
+      **Divisional Distribution:**
+      {% for division in divisional_distribution %}
+      - {{division.name}}: {{division.count}} positions({{division.reference}}) ({{division.business_unit}})
+      {% endfor %}
+      {% endif %}
+
+  core_competency_foundation:
+    title: "Core Competency Foundation"
+    content: |
+      The {{source_job_logical_display_name}} role encompasses **{{total_skills}} prescribed skills**(22) across {{skill_category_count}} strategic capability areas:
+
+      {% for category in skill_categories %}
+      **{{category.name}} ({{category.skill_count}} skills)({{category.reference}}):**
+      {{category.skill_list}}
+      {% if not loop.last %}
+
+      {% endif %}
+      {% endfor %}
+
+  strategic_value_proposition:
+    title: "Strategic Value Proposition (Database-Driven Analysis)"
+    content: |
+      {{source_job_logical_display_name}}s represent **{{role_capability_descriptor}} capability** within NAB's workforce structure, as evidenced by:
+
+      **Skills Portfolio Analysis (from {{total_skills_database}} skills database)(27):**
+      - **{{total_skills}} prescribed skills**(22) across {{skill_category_count}} categories: {{skill_categories_summary}}
+      - **Skills overlap with {{skills_overlap_job_count}} of {{total_job_count}} jobs**(28) indicating {{transferability_descriptor}} transferability(29) across NAB functions
+      - **{{primary_skill_category}} skills** appear in {{skill_demand_instances}} instances(30) across the organisation, demonstrating {{demand_level_descriptor}} demand(31)
+
+      **Organisational Context (from {{total_job_count}} job profiles)(1):**
+      - **{{job_function}} function:** {{function_position_count}} positions ({{function_percentage}}% of NAB roles)(32), indicating {{function_significance_descriptor}} capability area(33)
+      - **Cross-functional applications:** Skills appear in {{cross_functional_areas}}
+      - **Management level distribution:** Spans {{management_level_range}}(37), showing {{career_progression_descriptor}} progression opportunities(38) within {{functional_discipline}} disciplines
+
+      *[All metrics derived programmatically from job_skills, jobs, and skills database tables rather than manual assessment]*
+
+  strategic_intelligence_metrics:
+    title: "Strategic Intelligence Metrics (Database-Derived Assessment)"
+    content: |
+      **About Strategic Intelligence Metrics:** These quantitative measures assess workforce positioning and transition potential using algorithmic analysis of NAB's complete career pathway network. Each metric provides specific intelligence for strategic decision-making: Mobility Hub Score measures connectivity within the pathway network (0-100%), Transition Readiness indicates average skill overlap with potential career moves, Cross-Family Reach counts accessible job functions, and Strategic Value provides an overall workforce planning assessment.
+
+      **Important Context:** Our analysis excludes 100% similarity matches, which represent essentially identical roles with different titles (e.g., "Data Analyst" vs "Data Analyst - Senior Associate"). These provide no meaningful transition value as they lack skill development opportunities or career progression. All metrics are benchmarked against NAB's actual distribution of meaningful career transitions, ensuring contextually relevant recommendations.
+
+      **Interpreting the Results:** Each metric translates complex workforce data into actionable intelligence. Higher scores indicate greater strategic value and transition flexibility, while the specific percentages and counts provide benchmarks for comparing roles and prioritising development investments across the organisation.
+
+      Our comprehensive analysis of {{source_job_logical_display_name}}'s position within NAB's career pathway network reveals the following strategic intelligence metrics:
+
+      **Mobility Hub Score:** {{mobility_hub_score}}%(47) - **{{mobility_hub_assessment}}**
+      *Strategic Intelligence:* This score indicates the role's connectivity within NAB's career pathway network, measuring both the number and viability of progression opportunities available from this position(48). A {{mobility_hub_score}}% score positions {{source_job_logical_display_name}} as a **{{mobility_strategic_value}}**, with {{mobility_pathway_description}} to support effective redeployment during organisational changes.
+
+      **Transition Readiness:** {{transition_readiness}}%(49) - **{{transition_readiness_assessment}}**
+      *Strategic Intelligence:* This metric quantifies how well current role skills transfer to potential career moves, directly impacting training costs and transition timelines(50). A {{transition_readiness}}% readiness score indicates **{{transition_investment_descriptor}}**, enabling {{transition_timeline_descriptor}} and reducing the financial and time costs typically associated with career transitions.
+
+      **Cross-Family Reach:** {{cross_family_reach}} connected job functions(51) - **{{cross_family_diversity_assessment}}**
+      *Strategic Intelligence:* This measures inter-departmental mobility potential across NAB's organisational structure, spanning {{connected_functions_list}}(52). Access to {{cross_family_reach}} different job functions indicates **{{organisational_agility_descriptor}}**, enabling cross-functional capability building and reducing dependency risks in critical business areas.
+
+      **Strategic Value:** {{strategic_value_assessment}}(53) - **{{strategic_value_descriptor}}**
+      *Strategic Intelligence:* This composite assessment combines all mobility factors to determine workforce planning priority(54). A {{strategic_value_assessment}} strategic value rating identifies {{source_job_logical_display_name}} positions as **{{workforce_planning_priority}}**, offering {{investment_return_descriptor}} and {{organisational_resilience_descriptor}}.
+
+      **Strategic Context Assessment:** The combined metrics profile positions {{source_job_logical_display_name}} as a **{{workforce_architecture_significance}}**(55). The convergence of {{key_metric_convergence}} indicates **{{workforce_agility_potential}}**, making this role particularly valuable during organisational transformations, restructures, or capability realignments. This quantitative intelligence provides clear justification for prioritising these positions in **succession planning frameworks and strategic development investments**(56), where the return on investment is optimised through enhanced organisational flexibility and reduced transition risks.
+
+# Reference mapping for dynamic content (extending executive summary references)
+references:
+  # Organisational deployment references (17-21)
+  17: "SELECT COUNT(DISTINCT p.\"Employee Number\") as position_count, COUNT(DISTINCT p.Division) as division_count FROM positions p JOIN jobs j ON p.JobProfileID = j.JobProfileID WHERE j.JobProfileID = ?"
+  18: "SELECT City, COUNT(*) as count FROM positions WHERE JobProfileID = ? GROUP BY City ORDER BY count DESC"
+  19: "SELECT Division, COUNT(*) as count FROM positions WHERE JobProfileID = ? GROUP BY Division ORDER BY count DESC"
+  20: "SELECT Business_Unit, COUNT(*) as count FROM positions WHERE JobProfileID = ? AND Division = ? GROUP BY Business_Unit"
+  21: "SELECT COUNT(*) FROM positions WHERE JobProfileID = ? AND Division = ?"
+  
+  # Skills portfolio references (22-31)
+  22: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js WHERE js.JobProfileID = ?"
+  23: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
+  24: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
+  25: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
+  26: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
+  27: "SELECT COUNT(DISTINCT Skill_ID) FROM job_skills"
+  28: "SELECT COUNT(DISTINCT j.JobProfileID) FROM jobs j WHERE EXISTS (SELECT 1 FROM job_skills js1 JOIN job_skills js2 ON js1.Skill_ID = js2.Skill_ID WHERE js1.JobProfileID = ? AND js2.JobProfileID = j.JobProfileID AND js1.JobProfileID != js2.JobProfileID)"
+  29: "Transferability assessment derived from skills overlap analysis"
+  30: "SELECT COUNT(*) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE s.SkillCategory = ?"
+  31: "Demand level assessment derived from skill frequency analysis"
+  
+  # Organisational context references (32-46)
+  32: "SELECT COUNT(*) FROM jobs WHERE JobFunction = ?"
+  33: "Function significance assessment derived from position count analysis"
+  34: "SELECT COUNT(*) FROM jobs WHERE JobFunction = 'Operations & Processing'"
+  35: "SELECT COUNT(*) FROM jobs WHERE JobFunction = 'Risk Management'"
+  36: "SELECT COUNT(*) FROM jobs WHERE JobFunction = 'Finance & Treasury'"
+  37: "SELECT DISTINCT ManagementLevel FROM jobs WHERE JobFunction = ? ORDER BY ManagementLevel"
+  38: "Career progression assessment derived from management level analysis"
+  
+  # Strategic intelligence metrics references (47-56)
+  47: "Mobility Hub Score algorithmic calculation based on career pathway connectivity"
+  48: "Mobility assessment interpretation based on connectivity score"
+  49: "Transition Readiness algorithmic calculation based on skills transferability"
+  50: "Transition intelligence interpretation based on readiness score"
+  51: "Cross-Family Reach algorithmic calculation based on inter-functional pathways"
+  52: "Connected functions analysis derived from cross-functional pathway mapping"
+  53: "Strategic Value composite assessment algorithm"
+  54: "Workforce planning priority determination based on composite metrics"
+  55: "Workforce architecture significance assessment"
+  56: "Strategic development investment justification framework"
+
+# Dynamic descriptor mappings
+descriptors:
+  role_capability:
+    analytical: "analytical"
+    technical: "technical"
+    operational: "operational"
+    strategic: "strategic"
+    
+  transferability:
+    high: "broad"
+    medium: "moderate"
+    low: "limited"
+    
+  demand_level:
+    high: "high"
+    medium: "moderate"  
+    low: "limited"
+    
+  function_significance:
+    major: "specialised but significant"
+    moderate: "focused"
+    minor: "niche"
+    
+  career_progression:
+    extensive: "extensive career"
+    moderate: "clear career"
+    limited: "limited career"
+    
+  mobility_assessment:
+    high: "Medium Hub Potential"
+    medium: "Moderate Hub Potential"
+    low: "Limited Hub Potential"
+    
+  transition_readiness_assessment:
+    high: "High Readiness"
+    medium: "Medium Readiness"
+    low: "Development Required"
+    
+  cross_family_diversity:
+    excellent: "Excellent Diversity"
+    good: "Good Diversity"
+    moderate: "Moderate Diversity"
+    limited: "Limited Diversity"
+    
+  strategic_value_levels:
+    HIGH: "Key Position for Workforce Planning"
+    MEDIUM: "Valuable Position for Workforce Planning"
+    LOW: "Standard Position for Workforce Planning"
+
+# Threshold configuration for dynamic content selection
+thresholds:
+  mobility_hub:
+    high: 70
+    medium: 50
+    low: 0
+    
+  transition_readiness:
+    high: 75
+    medium: 50
+    low: 0
+    
+  cross_family_reach:
+    excellent: 5
+    good: 3
+    moderate: 2
+    limited: 0 

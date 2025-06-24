@@ -1,0 +1,554 @@
+"""
+Document styling configuration for NAB white paper generation.
+Centralizes all styling variables including colors, fonts, spacing, and style definitions.
+Based on NAB's CSS design system variables.
+"""
+
+from typing import Dict, Any, Optional
+from dataclasses import dataclass
+
+try:
+    from docx.shared import RGBColor, Pt
+    from docx.enum.style import WD_STYLE_TYPE
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    DOCX_AVAILABLE = True
+except ImportError:
+    # Fallback classes for when python-docx is not available
+    RGBColor = None
+    Pt = None
+    WD_STYLE_TYPE = None
+    WD_ALIGN_PARAGRAPH = None
+    DOCX_AVAILABLE = False
+
+
+@dataclass
+class NABColors:
+    """NAB brand colors from CSS design system."""
+    
+    # Primary NAB colors
+    NAB_BLACK = (0, 0, 0)          # --color-nab-black
+    NAB_RED = (220, 38, 38)        # --color-nab-red
+    
+    # Blue palette
+    BLUE_600 = (37, 99, 235)       # --color-blue-600
+    BLUE_700 = (29, 78, 216)       # --color-blue-700
+    
+    # Gray palette
+    GRAY_600 = (75, 85, 99)        # --color-gray-600
+    GRAY_700 = (55, 65, 81)        # --color-gray-700
+    GRAY_800 = (31, 41, 55)        # --color-gray-800
+    GRAY_900 = (17, 24, 39)        # --color-gray-900
+    
+    # White and neutral
+    WHITE = (255, 255, 255)
+    
+    @classmethod
+    def get_rgb_color(cls, color_name: str) -> Optional[Any]:
+        """Get RGBColor object for docx if available."""
+        if not RGBColor:
+            return None
+            
+        color_map = {
+            'nab_black': cls.NAB_BLACK,
+            'nab_red': cls.NAB_RED,
+            'blue_600': cls.BLUE_600,
+            'blue_700': cls.BLUE_700,
+            'gray_600': cls.GRAY_600,
+            'gray_700': cls.GRAY_700,
+            'gray_800': cls.GRAY_800,
+            'gray_900': cls.GRAY_900,
+            'white': cls.WHITE
+        }
+        
+        rgb_tuple = color_map.get(color_name.lower())
+        if rgb_tuple:
+            return RGBColor(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+        return None
+
+
+@dataclass
+class FontSettings:
+    """Font configuration from CSS design system."""
+    
+    # Font families
+    FONT_HEADING = 'Epilogue'       # --font-heading
+    FONT_PRIMARY = 'Source Sans Pro' # --font-primary
+    FONT_MONO = 'Monaco'            # --font-mono
+    
+    # Font sizes (in points)
+    SIZE_4XL = 36    # --font-size-4xl (titles)
+    SIZE_3XL = 30    # --font-size-3xl (H1)
+    SIZE_2XL = 24    # --font-size-2xl (subtitles)
+    SIZE_XL = 20     # --font-size-xl (H2)
+    SIZE_LG = 18     # --font-size-lg (H3)
+    SIZE_BASE = 16   # --font-size-base (body)
+    SIZE_SM = 14     # --font-size-sm (small text)
+    SIZE_XS = 12     # --font-size-xs (captions)
+    
+    @classmethod
+    def get_pt_size(cls, size_name: str) -> Optional[Any]:
+        """Get Pt object for docx if available."""
+        if not Pt:
+            return None
+            
+        size_map = {
+            '4xl': cls.SIZE_4XL,
+            '3xl': cls.SIZE_3XL,
+            '2xl': cls.SIZE_2XL,
+            'xl': cls.SIZE_XL,
+            'lg': cls.SIZE_LG,
+            'base': cls.SIZE_BASE,
+            'sm': cls.SIZE_SM,
+            'xs': cls.SIZE_XS
+        }
+        
+        size = size_map.get(size_name.lower())
+        if size:
+            return Pt(size)
+        return None
+
+
+@dataclass
+class SpacingSettings:
+    """Spacing configuration from CSS design system."""
+    
+    # Spacing values (in points)
+    SPACING_1 = 4    # --spacing-1
+    SPACING_2 = 8    # --spacing-2
+    SPACING_3 = 12   # --spacing-3
+    SPACING_4 = 16   # --spacing-4
+    SPACING_5 = 20   # --spacing-5
+    SPACING_6 = 24   # --spacing-6
+    SPACING_8 = 32   # --spacing-8
+    SPACING_10 = 40  # --spacing-10
+    SPACING_12 = 48  # --spacing-12
+    SPACING_16 = 64  # --spacing-16
+    
+    # Line height values
+    LINE_HEIGHT_TIGHT = 1.25  # --line-height-tight
+    LINE_HEIGHT_NORMAL = 1.5  # --line-height-normal
+    LINE_HEIGHT_RELAXED = 1.75 # --line-height-relaxed
+    
+    @classmethod
+    def get_pt_spacing(cls, spacing_name: str) -> Optional[Any]:
+        """Get Pt object for docx if available."""
+        if not Pt:
+            return None
+            
+        spacing_map = {
+            '1': cls.SPACING_1,
+            '2': cls.SPACING_2,
+            '3': cls.SPACING_3,
+            '4': cls.SPACING_4,
+            '5': cls.SPACING_5,
+            '6': cls.SPACING_6,
+            '8': cls.SPACING_8,
+            '10': cls.SPACING_10,
+            '12': cls.SPACING_12,
+            '16': cls.SPACING_16
+        }
+        
+        spacing = spacing_map.get(str(spacing_name))
+        if spacing:
+            return Pt(spacing)
+        return None
+
+
+class DocumentStyles:
+    """Main class for managing all document styling configuration."""
+    
+    def __init__(self):
+        self.colors = NABColors()
+        self.fonts = FontSettings()
+        self.spacing = SpacingSettings()
+        
+    def setup_document_styles(self, doc) -> None:
+        """Setup professional document styles based on NAB design system."""
+        
+        if not DOCX_AVAILABLE:
+            print("⚠️ python-docx not available, skipping style setup")
+            return
+            
+        styles = doc.styles
+        
+        # Main Title Style (Title Page)
+        if WD_STYLE_TYPE and 'NAB Title' not in [s.name for s in styles]:
+            title_style = styles.add_style('NAB Title', WD_STYLE_TYPE.PARAGRAPH)
+            title_font = title_style.font
+            title_font.name = self.fonts.FONT_HEADING
+            title_font.size = self.fonts.get_pt_size('4xl')
+            title_font.bold = True
+            
+            title_color = self.colors.get_rgb_color('nab_black')
+            if title_color:
+                title_font.color.rgb = title_color
+                
+            title_style.paragraph_format.space_after = self.spacing.get_pt_spacing('6')
+        
+        # Subtitle Style
+        if WD_STYLE_TYPE and 'NAB Subtitle' not in [s.name for s in styles]:
+            subtitle_style = styles.add_style('NAB Subtitle', WD_STYLE_TYPE.PARAGRAPH)
+            subtitle_font = subtitle_style.font
+            subtitle_font.name = self.fonts.FONT_HEADING
+            subtitle_font.size = self.fonts.get_pt_size('2xl')
+            
+            subtitle_color = self.colors.get_rgb_color('blue_600')
+            if subtitle_color:
+                subtitle_font.color.rgb = subtitle_color
+                
+            subtitle_style.paragraph_format.space_after = self.spacing.get_pt_spacing('4')
+        
+        # Section Heading Style (H1)
+        if WD_STYLE_TYPE and 'NAB Heading 1' not in [s.name for s in styles]:
+            h1_style = styles.add_style('NAB Heading 1', WD_STYLE_TYPE.PARAGRAPH)
+            h1_font = h1_style.font
+            h1_font.name = self.fonts.FONT_HEADING
+            h1_font.size = self.fonts.get_pt_size('3xl')
+            h1_font.bold = True
+            
+            h1_color = self.colors.get_rgb_color('nab_black')
+            if h1_color:
+                h1_font.color.rgb = h1_color
+                
+            h1_style.paragraph_format.space_before = self.spacing.get_pt_spacing('8')
+            h1_style.paragraph_format.space_after = self.spacing.get_pt_spacing('4')
+        
+        # Subsection Heading Style (H2)
+        if WD_STYLE_TYPE and 'NAB Heading 2' not in [s.name for s in styles]:
+            h2_style = styles.add_style('NAB Heading 2', WD_STYLE_TYPE.PARAGRAPH)
+            h2_font = h2_style.font
+            h2_font.name = self.fonts.FONT_HEADING
+            h2_font.size = self.fonts.get_pt_size('xl')
+            h2_font.bold = True
+            
+            h2_color = self.colors.get_rgb_color('gray_700')
+            if h2_color:
+                h2_font.color.rgb = h2_color
+                
+            h2_style.paragraph_format.space_before = self.spacing.get_pt_spacing('6')
+            h2_style.paragraph_format.space_after = self.spacing.get_pt_spacing('3')
+        
+        # Subheading Style (H3)
+        if WD_STYLE_TYPE and 'NAB Heading 3' not in [s.name for s in styles]:
+            h3_style = styles.add_style('NAB Heading 3', WD_STYLE_TYPE.PARAGRAPH)
+            h3_font = h3_style.font
+            h3_font.name = self.fonts.FONT_HEADING
+            h3_font.size = self.fonts.get_pt_size('lg')
+            h3_font.bold = True
+            
+            h3_color = self.colors.get_rgb_color('gray_600')
+            if h3_color:
+                h3_font.color.rgb = h3_color
+                
+            h3_style.paragraph_format.space_before = self.spacing.get_pt_spacing('4')
+            h3_style.paragraph_format.space_after = self.spacing.get_pt_spacing('2')
+        
+        # Body Text Style
+        if WD_STYLE_TYPE and 'NAB Body' not in [s.name for s in styles]:
+            body_style = styles.add_style('NAB Body', WD_STYLE_TYPE.PARAGRAPH)
+            body_font = body_style.font
+            body_font.name = self.fonts.FONT_PRIMARY
+            body_font.size = self.fonts.get_pt_size('base')
+            
+            body_color = self.colors.get_rgb_color('gray_700')
+            if body_color:
+                body_font.color.rgb = body_color
+                
+            body_style.paragraph_format.line_spacing = self.spacing.LINE_HEIGHT_NORMAL
+            body_style.paragraph_format.space_after = self.spacing.get_pt_spacing('3')
+    
+    def create_title_page(self, doc, analysis_data: Dict[str, Any]) -> None:
+        """Create professional title page with NAB styling."""
+        
+        try:
+            from datetime import datetime
+        except ImportError:
+            datetime = None
+        
+        job_name = analysis_data.get('source_job_logical_display_name', 'Professional Role')
+        
+        # Main title
+        title_para = doc.add_paragraph('NAB Skills Intelligence Platform')
+        title_para.style = doc.styles['NAB Title']
+        
+        # Subtitle
+        subtitle_para = doc.add_paragraph('Strategic Career Pathway Analysis')
+        subtitle_para.style = doc.styles['NAB Subtitle']
+        
+        # Add vertical spacing
+        doc.add_paragraph()
+        doc.add_paragraph()
+        
+        # Role-specific title
+        role_para = doc.add_paragraph(f'White Paper: {job_name}')
+        role_para.style = doc.styles['NAB Heading 1']
+        
+        # Add more spacing
+        doc.add_paragraph()
+        doc.add_paragraph()
+        
+        # Date
+        if datetime:
+            date_str = datetime.now().strftime("%B %d, %Y")
+        else:
+            date_str = "2025"
+            
+        date_para = doc.add_paragraph(f'Generated: {date_str}')
+        date_para.style = doc.styles['NAB Body']
+    
+    def add_table_of_contents(self, doc) -> None:
+        """Add a professional table of contents using Word TOC field."""
+        
+        if not DOCX_AVAILABLE:
+            print("⚠️ python-docx not available, skipping TOC")
+            return
+        
+        # Add TOC heading
+        toc_heading = doc.add_paragraph('Table of Contents')
+        toc_heading.style = doc.styles['NAB Heading 1']
+        
+        # Add some spacing
+        doc.add_paragraph()
+        
+                # Create TOC placeholder with instructions for Word
+        try:
+            # Add TOC instructions paragraph
+            toc_instructions = doc.add_paragraph()
+            toc_instructions.style = doc.styles['NAB Body']
+            toc_instructions.add_run("Table of Contents").bold = True
+            
+            # Add spacing
+            doc.add_paragraph()
+            
+            # Create instructions for generating TOC in Word
+            instructions = doc.add_paragraph()
+            instructions.style = doc.styles['NAB Body']
+            instructions.add_run("Instructions: ").bold = True
+            instructions.add_run("In Microsoft Word, place cursor here and go to References → Table of Contents → Automatic Table 1")
+            
+            # Add spacing for TOC area
+            doc.add_paragraph()
+            doc.add_paragraph("[Table of Contents will appear here when generated in Word]")
+            doc.add_paragraph()
+            
+            print("✅ TOC placeholder created with instructions")
+            
+        except Exception as e:
+            print(f"⚠️ TOC creation failed: {e}")
+            # Fallback: Create a manual TOC
+            self._create_manual_toc(doc)
+    
+    def _create_manual_toc(self, doc) -> None:
+        """Create a manual table of contents as fallback."""
+        
+        # Manual TOC entries - these would ideally be generated dynamically
+        toc_entries = [
+            ("Executive Summary", 1),
+            ("Current Role Context", 1),
+            ("    Job Profile Overview", 2),
+            ("    Core Competency Foundation", 2),
+            ("    Strategic Value Proposition", 2),
+            ("    Strategic Intelligence Metrics", 2),
+            ("Pathway Analysis: Top 3 Strategic Opportunities", 1),
+            ("Strategic Recommendations", 1),
+            ("    Database-Driven Decision Support", 2),
+            ("    Immediate Actions (Next 30 Days)", 2),
+            ("    Medium-Term Initiatives (Next 90 Days)", 2),
+            ("    Success Metrics & Evaluation", 2),
+            ("Conclusion", 1)
+        ]
+        
+        for entry_text, level in toc_entries:
+            toc_entry = doc.add_paragraph()
+            toc_entry.style = doc.styles['NAB Body']
+            
+            # Add indentation for sub-levels
+            if level == 2:
+                # Add indent for level 2 items
+                toc_entry.paragraph_format.left_indent = self.spacing.get_pt_spacing('4')
+            
+            # Add the entry text with dots and page number placeholder
+            dots = "." * (50 - len(entry_text))
+            toc_entry.add_run(f"{entry_text} {dots} ")
+            
+            # Page number (placeholder - would be updated by Word's TOC)
+            page_run = toc_entry.add_run("X")
+            if hasattr(page_run.font, 'color') and self.colors.get_rgb_color('gray_600'):
+                page_run.font.color.rgb = self.colors.get_rgb_color('gray_600')
+    
+    def add_section_heading(self, doc, heading_text: str, level: int = 1) -> None:
+        """Add a section heading that will appear in the TOC using Word's built-in heading styles."""
+        
+        # Use Word's built-in heading styles for TOC compatibility
+        if level == 1:
+            style_name = 'Heading 1'
+        elif level == 2:
+            style_name = 'Heading 2'
+        elif level == 3:
+            style_name = 'Heading 3'
+        else:
+            style_name = 'Heading 3'  # Default to H3 for deeper levels
+        
+        heading = doc.add_paragraph(heading_text)
+        heading.style = doc.styles[style_name]
+        
+        # Apply NAB styling to the built-in heading if we have custom fonts/colors
+        if DOCX_AVAILABLE and hasattr(heading, 'runs') and heading.runs:
+            run = heading.runs[0]
+            
+            # Apply NAB font and colors while keeping Word's outline structure
+            if level == 1:
+                run.font.name = self.fonts.FONT_HEADING
+                run.font.size = self.fonts.get_pt_size('3xl')
+                run.font.bold = True
+                if self.colors.get_rgb_color('nab_black'):
+                    run.font.color.rgb = self.colors.get_rgb_color('nab_black')
+            elif level == 2:
+                run.font.name = self.fonts.FONT_HEADING
+                run.font.size = self.fonts.get_pt_size('xl')
+                run.font.bold = True
+                if self.colors.get_rgb_color('blue_600'):
+                    run.font.color.rgb = self.colors.get_rgb_color('blue_600')
+            elif level == 3:
+                run.font.name = self.fonts.FONT_HEADING
+                run.font.size = self.fonts.get_pt_size('lg')
+                run.font.bold = True
+                if self.colors.get_rgb_color('gray_700'):
+                    run.font.color.rgb = self.colors.get_rgb_color('gray_700')
+        
+        return heading
+    
+    def add_executive_summary_page(self, doc, exec_content: Dict[str, Any]) -> None:
+        """Add Executive Summary on its own page with professional formatting."""
+        
+        # Executive Summary heading
+        exec_heading = doc.add_paragraph('Executive Summary')
+        exec_heading.style = doc.styles['NAB Heading 1']
+        
+        # Add content sections
+        if isinstance(exec_content, dict):
+            section_order = ['strategic_context', 'key_findings', 'primary_recommendations', 'confidence_assessment']
+            
+            for section_key in section_order:
+                if section_key in exec_content:
+                    section = exec_content[section_key]
+                    if isinstance(section, dict):
+                        # Add section title
+                        if 'title' in section:
+                            section_heading = doc.add_paragraph(section['title'])
+                            section_heading.style = doc.styles['NAB Heading 2']
+                        
+                        # Add content
+                        if 'content' in section:
+                            self.add_formatted_content_with_style(doc, section['content'])
+    
+    def add_formatted_content_with_style(self, doc, content: str) -> None:
+        """Add formatted content with proper NAB styling."""
+        
+        if not content:
+            return
+        
+        # Split content into paragraphs
+        paragraphs = content.split('\n\n')
+        
+        for para_text in paragraphs:
+            if para_text.strip():
+                para = doc.add_paragraph()
+                para.style = doc.styles['NAB Body']
+                
+                # Handle bold text (**text**)
+                if '**' in para_text:
+                    parts = para_text.split('**')
+                    for i, part in enumerate(parts):
+                        if i % 2 == 0:
+                            # Regular text
+                            if part:
+                                para.add_run(part)
+                        else:
+                            # Bold text
+                            if part:
+                                run = para.add_run(part)
+                                run.bold = True
+                else:
+                    # Regular paragraph
+                    para.add_run(para_text.strip())
+    
+    def add_section_content_with_styles(self, doc, section_data: Dict[str, Any]) -> None:
+        """Add section content with professional NAB styling."""
+        
+        if not isinstance(section_data, dict):
+            return
+        
+        for subsection_key, subsection in section_data.items():
+            if isinstance(subsection, dict) and 'content' in subsection:
+                # Add subsection title with H2 style
+                if 'title' in subsection:
+                    subsection_heading = doc.add_paragraph(subsection['title'])
+                    subsection_heading.style = doc.styles['NAB Heading 2']
+                
+                # Add formatted content
+                self.add_formatted_content_with_style(doc, subsection['content'])
+    
+    def get_style_config_summary(self) -> Dict[str, Any]:
+        """Get a summary of current style configuration for debugging."""
+        
+        return {
+            'colors': {
+                'nab_black': self.colors.NAB_BLACK,
+                'nab_red': self.colors.NAB_RED,
+                'blue_600': self.colors.BLUE_600,
+                'gray_700': self.colors.GRAY_700,
+                'gray_600': self.colors.GRAY_600
+            },
+            'fonts': {
+                'heading': self.fonts.FONT_HEADING,
+                'primary': self.fonts.FONT_PRIMARY,
+                'sizes': {
+                    'title': self.fonts.SIZE_4XL,
+                    'h1': self.fonts.SIZE_3XL,
+                    'h2': self.fonts.SIZE_XL,
+                    'h3': self.fonts.SIZE_LG,
+                    'body': self.fonts.SIZE_BASE
+                }
+            },
+            'spacing': {
+                'line_height': self.spacing.LINE_HEIGHT_NORMAL,
+                'spacing_values': [
+                    self.spacing.SPACING_2,
+                    self.spacing.SPACING_3,
+                    self.spacing.SPACING_4,
+                    self.spacing.SPACING_6,
+                    self.spacing.SPACING_8
+                ]
+            },
+            'docx_available': DOCX_AVAILABLE
+        }
+
+
+# Create a default instance for easy importing
+default_styles = DocumentStyles()
+
+# Export convenience functions
+def setup_document_styles(doc):
+    """Convenience function to setup document styles."""
+    return default_styles.setup_document_styles(doc)
+
+def create_title_page(doc, analysis_data):
+    """Convenience function to create title page."""
+    return default_styles.create_title_page(doc, analysis_data)
+
+def add_table_of_contents(doc):
+    """Convenience function to add table of contents."""
+    return default_styles.add_table_of_contents(doc)
+
+def add_section_heading(doc, heading_text, level=1):
+    """Convenience function to add section heading."""
+    return default_styles.add_section_heading(doc, heading_text, level)
+
+def add_executive_summary_page(doc, exec_content):
+    """Convenience function to add executive summary page."""
+    return default_styles.add_executive_summary_page(doc, exec_content)
+
+def add_section_content_with_styles(doc, section_data):
+    """Convenience function to add section content with styles."""
+    return default_styles.add_section_content_with_styles(doc, section_data) 

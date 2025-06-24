@@ -1,0 +1,219 @@
+# Pathway Analysis Template
+# Based on whitepaper_example_gold_standard.md lines 122-229
+
+pathway_analysis:
+  section_title: "Pathway Analysis: Top 3 Strategic Opportunities"
+  
+  section_config:
+    title: "Pathway Analysis: Top 3 Strategic Opportunities"
+    references_start: 57
+
+  # Template for each opportunity (will be rendered 3 times)
+  opportunity_template:
+    header: |
+      ## Opportunity {{opportunity_rank}}: {{target_job_logical_display_name}}
+      **Similarity Score:** {{similarity_score}}% | **Classification:** {{opportunity_classification}} | **Move Type:** {{move_type_display}}
+
+    strategic_positioning:
+      title: "Strategic Positioning (Database-Derived Context)"
+      content: |
+        **[STRATEGIC CONTEXT PLACEHOLDER: Insert organisation-specific strategic priorities and business drivers here. The following data-driven positioning can be supplemented with strategic context.]**
+
+        {{target_job_logical_display_name}} represents a **{{move_type_description}}** based on quantifiable organisational data:
+
+        **Database Evidence:**
+        - **Function Alignment:** {{target_job_function}} represents {{function_position_count}} positions ({{function_percentage}}% of NAB roles)({{function_ref}}), indicating {{function_significance_descriptor}}({{function_significance_ref}})  
+          *Strategic Intelligence:* {{function_percentage}}% indicates {{target_job_function}} is a {{function_size_assessment}} function with {{function_career_infrastructure}}. Functions below 2% are typically niche specialisations, while those above 5% offer robust career development opportunities({{function_intelligence_ref}}).
+
+        - **Management Progression:** {{level_transition_display}}({{level_transition_ref}}) aligns with {{progression_alignment_description}}({{progression_ref}})  
+          *Strategic Intelligence:* This represents a {{progression_strategic_assessment}}, {{progression_complexity_descriptor}} and ensuring {{progression_salary_framework}}.
+
+        - **Skills Transferability:** {{skills_overlap_percentage}}% skills overlap({{skills_overlap_ref}}) indicates {{transferability_assessment}}({{transferability_ref}})  
+          *Strategic Intelligence:* {{skills_overlap_percentage}}% overlap represents {{overlap_performance_assessment}} within NAB's business context, ranking in the {{percentile_ranking}} of meaningful career transitions({{percentile_ref}}). This indicates {{retraining_investment_assessment}} and {{success_probability_assessment}}({{success_ref}}).
+
+        - **Cross-Function Demand:** {{primary_skill_category}} skills appear across multiple functions ({{cross_functional_areas}})({{cross_function_ref}}), showing {{cross_function_applicability}}({{applicability_ref}})  
+          *Strategic Intelligence:* {{cross_function_applicability}} provides career resilience and multiple future pathway options, making this a strategically valuable skill investment.
+
+        {% if include_organisational_deployment %}
+        **Organisational Context:**
+        - **Current Deployment:** {{target_position_count}} positions across {{target_division_count}} divisions
+        - **Geographic Spread:** {{target_geographic_spread}}
+        - **Strategic Importance:** {{target_strategic_importance}}
+        - **Growth Trajectory:** {{target_growth_trajectory}}
+        {% endif %}
+
+    skills_transition_analysis:
+      title: "Skills Transition Analysis"
+      content: |
+        **Directly Transferable Skills ({{transferable_skills_count}} of {{total_target_skills}} - {{skills_overlap_percentage}}%):**
+        *What this means:* {{skills_overlap_percentage}}% transferability indicates colleagues already possess most skills needed for success. Within NAB's business context (excluding 100% identical matches), this represents {{transferability_context_assessment}} in the {{percentile_ranking}} of meaningful career transitions({{transferability_context_ref}}), making this pathway particularly {{cost_effectiveness_assessment}} for both individuals and the organisation({{cost_effectiveness_ref}}).
+
+        {% for category in transferable_skill_categories %}
+        - **{{category.name}}:** {{category.skill_list}}
+        {% endfor %}
+
+        **Skills Development Required ({{required_skills_count}} new competencies):**
+        {% for skill in required_skills %}
+        {{loop.index}}. **{{skill.name}}** - {{skill.description}}
+        {% endfor %}
+
+        **Development Timeline (Algorithmic Calculation):** {{total_development_weeks}} weeks total development time
+        *Planning Context:* Our 8-week learning cycles are based on adult learning research and NAB's historical training effectiveness data({{training_effectiveness_ref}}). This structured approach ensures sustainable skill acquisition while maintaining current role performance, reducing the risk of transition failure({{transition_risk_ref}}).
+
+        - **Specialized Skills:** {{specialized_skills_count}} new competencies × 8 weeks each = {{specialized_development_weeks}} weeks structured learning
+        - **Applied Experience:** {{applied_experience_months}} months on-the-job application and mentorship
+        - **Calculation Method:** Based on skill type analysis from database ({{specialized_percentage}}% of skills are "Specialized Skills" requiring 8-week development cycles, {{common_percentage}}% are "Common Skills" requiring 2-week cycles)
+        - **Conservative Estimate:** Uses upper-bound development time assumptions to ensure realistic transition planning
+
+        *[Development time calculated using SkillType categorisation from skills database: Specialized Skill = 8 weeks, Common Skill = 2 weeks, Certification = variable timing based on external requirements]*
+
+    business_case:
+      title: "Business Case for Transition"
+      content: |
+        **[CUSTOMISATION REQUIRED: Insert organisation-specific business case and strategic context here. The following general benefits framework can be retained, edited, or replaced based on specific business requirements and confidentiality considerations.]**
+
+        **Strategic Alignment:**
+        - {{strategic_alignment_point_1}}
+        - {{strategic_alignment_point_2}}
+        - {{strategic_alignment_point_3}}
+
+        **Organisational Benefits:**
+        - **Internal Mobility:** Reduces external recruitment costs (estimated ${{recruitment_cost_estimate}}K+ per senior hire)
+        - **Knowledge Retention:** Maintains institutional knowledge while expanding capability
+        - **Career Progression:** Provides clear advancement pathway for high-performing analysts
+        - **Capability Building:** Strengthens {{capability_building_area}} across multiple business units
+
+        **Individual Value Proposition:**
+        - **Salary Progression:** {{salary_progression_description}} ({{salary_increase_estimate}}% increase potential)
+        - **Strategic Exposure:** {{strategic_exposure_description}}
+        - **Professional Development:** {{professional_development_description}}
+        - **Career Resilience:** {{career_resilience_description}}
+
+    implementation_roadmap:
+      title: "Implementation Roadmap (Data-Informed Timeline)"
+      content: |
+        **[CUSTOMISATION GUIDANCE: The following timeline is based on algorithmic skill development calculations. Adjust phases and timelines based on organisational capacity, urgency requirements, and individual readiness assessments.]**
+
+        **Calculated Development Time:** {{total_development_weeks}} weeks for {{specialized_skills_count}} Specialized Skills + {{applied_integration_weeks}} weeks applied integration = {{total_transition_weeks}}-week total transition timeline
+
+        **Phase 1: Foundation Building (Weeks 1-4)**
+        - {{phase_1_activity_1}}
+        - {{phase_1_activity_2}}
+        - {{phase_1_activity_3}}
+
+        **Phase 2: Technical Specialisation (Weeks 5-12)**
+        - {{phase_2_activity_1}}
+        - {{phase_2_activity_2}}
+        - {{phase_2_activity_3}}
+
+        **Phase 3: Applied Learning (Weeks 13-16)**
+        - {{phase_3_activity_1}}
+        - {{phase_3_activity_2}}
+        - {{phase_3_activity_3}}
+
+        **Phase 4: Transition Support (Months 5-6)**
+        - {{phase_4_activity_1}}
+        - {{phase_4_activity_2}}
+        - {{phase_4_activity_3}}
+
+# Reference mapping for dynamic content (extending current_role_context references)
+references:
+  # Function alignment references (57-66)
+  57: "SELECT COUNT(*) FROM jobs WHERE JobFunction = ?"
+  58: "Function significance assessment derived from position count analysis"
+  59: "Management level progression analysis derived from career pathway data"
+  60: "Progression alignment assessment based on management level transition patterns"
+  61: "Skills overlap calculation derived from job_skills intersection analysis"
+  62: "Transferability assessment derived from skills overlap percentage"
+  63: "Percentile ranking derived from similarity score distribution analysis"
+  64: "Success probability assessment derived from transferability and progression analysis"
+  65: "Cross-functional demand analysis derived from skill occurrence across job functions"
+  66: "Applicability assessment derived from cross-functional skill distribution"
+  
+  # Training and development references (67-77)
+  67: "Training effectiveness data derived from NAB historical development program analysis"
+  68: "Transition risk assessment based on development timeline and skills complexity"
+  69: "Cost effectiveness analysis derived from recruitment cost comparison"
+  70: "Transferability context assessment based on NAB-specific similarity distribution"
+  71: "Strategic alignment assessment based on organisational priorities"
+  72: "Capability building analysis derived from skills demand across business units"
+  73: "Career resilience assessment based on skill transferability across functions"
+  74: "Professional development value assessment based on skill demand and rarity"
+  75: "Implementation timeline calculation based on skill type and complexity analysis"
+  76: "Transition success factors derived from historical career progression data"
+  77: "ROI assessment based on development cost vs. recruitment cost analysis"
+
+# Dynamic descriptor mappings for pathway analysis
+descriptors:
+  move_type_descriptions:
+    "Progression - Same_Role_Higher_Level": "career progression opportunity"
+    "Progression - Different_Role_Higher_Level": "career advancement and diversification opportunity"
+    "Lateral - Different_Role_Same_Level": "lateral diversification opportunity"
+    "Lateral - Same_Role_Same_Level": "specialisation and optimisation opportunity"
+    "Transition - Lower_Level": "strategic repositioning opportunity"
+    "Other": "strategic transition opportunity"
+  
+  move_type_displays:
+    "Progression - Same_Role_Higher_Level": "Direct Progression"
+    "Progression - Different_Role_Higher_Level": "Career Advancement"
+    "Lateral - Different_Role_Same_Level": "Lateral Transition"
+    "Lateral - Same_Role_Same_Level": "Role Optimisation"
+    "Transition - Lower_Level": "Strategic Repositioning"
+    "Other": "Strategic Transition"
+  
+  opportunity_classifications:
+    outstanding: "Outstanding Opportunity"
+    excellent: "Excellent Opportunity"
+    good: "Strong Opportunity"
+    development: "Development Opportunity"
+    transformation: "Transformation Opportunity"
+  
+  function_significance:
+    major: "significant organisational investment"
+    moderate: "moderate organisational focus"
+    minor: "specialised capability area"
+  
+  function_size_assessments:
+    major: "substantial"
+    moderate: "established"
+    minor: "niche"
+  
+  function_career_infrastructure:
+    major: "established career infrastructure"
+    moderate: "developing career pathways"
+    minor: "limited advancement options"
+  
+  progression_strategic_assessments:
+    natural: "natural career progression step with established precedent"
+    strategic: "strategic career move with planned development"
+    complex: "complex transition requiring comprehensive support"
+  
+  progression_complexity_descriptors:
+    natural: "reducing approval complexity"
+    strategic: "requiring structured planning"
+    complex: "necessitating extensive support"
+  
+  progression_salary_frameworks:
+    natural: "clear salary progression frameworks"
+    strategic: "structured compensation advancement"
+    complex: "customised remuneration planning"
+
+# Threshold configuration for dynamic content selection
+thresholds:
+  similarity_score:
+    outstanding: 85
+    excellent: 75
+    good: 65
+    development: 50
+    transformation: 0
+  
+  function_significance:
+    major: 7  # 7%+ of roles
+    moderate: 3  # 3-7% of roles
+    minor: 0  # <3% of roles
+  
+  skills_overlap:
+    exceptional: 80  # 80%+ overlap
+    high: 65        # 65-80% overlap
+    moderate: 50    # 50-65% overlap
+    development: 0  # <50% overlap 

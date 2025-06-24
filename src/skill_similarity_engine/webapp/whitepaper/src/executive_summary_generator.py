@@ -1,6 +1,7 @@
 """
 Executive Summary Generator
 Generates the Executive Summary section for white papers using YAML templates and database queries.
+Updated to support logical role architecture (Job + ManagementLevel combinations).
 """
 
 import sqlite3
@@ -9,13 +10,81 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 from jinja2 import Template
 
+# Import SQL query modules
+try:
+    from ..sql import query_loader, DatabaseReferenceCalculator
+except ImportError:
+    # Handle direct script execution
+    try:
+        from sql import query_loader, DatabaseReferenceCalculator
+    except ImportError:
+        query_loader = None
+        DatabaseReferenceCalculator = None
+
+class LogicalRoleManager:
+    """Manages logical role operations for Job + ManagementLevel combinations."""
+    
+    def __init__(self, db_connection):
+        self.db = db_connection
+    
+    def get_logical_role_display_name(self, job_profile_id: str) -> str:
+        """Get logical role display name: 'Job Title (Management Level)'"""
+        try:
+            query = """
+            SELECT JobProfile, ManagementLevel
+            FROM jobs 
+            WHERE JobProfileID = ?
+            """
+            result = self.db.execute(query, (job_profile_id,)).fetchone()
+            if result:
+                job_title = result[0]
+                management_level = result[1] or "Group 1"
+                
+                # Remove the " - X" suffix if present to get base job title
+                base_title = job_title.split(" - ")[0] if " - " in job_title else job_title
+                
+                return f"{base_title} ({management_level})"
+            return job_profile_id
+        except Exception as e:
+            print(f"⚠️ Error getting logical role display name: {e}")
+            return job_profile_id
+    
+    def get_representative_profile_id(self, job_profile: str, management_level: str) -> Optional[str]:
+        """Get representative JobProfileID for a logical role combination."""
+        try:
+            # Remove suffix and get base job profile name
+            base_job_profile = job_profile.split(" - ")[0] if " - " in job_profile else job_profile
+            
+            query = """
+            SELECT MIN(JobProfileID) as representative_id
+            FROM jobs 
+            WHERE (JobProfile LIKE ? OR JobProfile = ?)
+              AND ManagementLevel = ?
+            """
+            
+            like_pattern = f"{base_job_profile} - %"
+            result = self.db.execute(query, (like_pattern, base_job_profile, management_level)).fetchone()
+            return result[0] if result and result[0] else None
+        except Exception as e:
+            print(f"⚠️ Error getting representative profile: {e}")
+            return None
+
 class ExecutiveSummaryGenerator:
-    """Generates executive summary content using template-driven approach."""
+    """Generates executive summary content using template-driven approach with logical role support."""
     
     def __init__(self, db_connection):
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'executive_summary.yaml'
         self.template_data = self._load_template()
+        self.logical_role_manager = LogicalRoleManager(db_connection)
+        
+        # Initialize advanced SQL integration if available
+        if DatabaseReferenceCalculator:
+            self.ref_calc = DatabaseReferenceCalculator(db_connection)
+            self.queries = query_loader
+        else:
+            self.ref_calc = None
+            self.queries = None
         
     def _load_template(self) -> Dict:
         """Load YAML template for executive summary."""
@@ -54,89 +123,137 @@ class ExecutiveSummaryGenerator:
         }
     
     def _get_database_values(self, job_from: str) -> Dict:
-        """Execute database queries to get reference values."""
+        """Execute database queries to get reference values with logical role support."""
         
         values = {}
         
         try:
-            # Reference (1): Total job profiles
-            cursor = self.db.execute("SELECT COUNT(*) as total_job_count FROM jobs")
-            result = cursor.fetchone()
-            values['total_job_count'] = result[0] if result else 0
-            
-            # Reference (14): Active competencies
-            cursor = self.db.execute("SELECT COUNT(DISTINCT Skill_ID) as active_competencies_count FROM job_skills")
-            result = cursor.fetchone()
-            values['active_competencies_count'] = result[0] if result else 0
-            
-            # Reference (15): Pre-computed pathways
-            cursor = self.db.execute("SELECT COUNT(*) as pathways_count FROM career_pathways")
-            result = cursor.fetchone()
-            values['pathways_count'] = result[0] if result else 0
-            
-            # Reference (16): Division count
-            cursor = self.db.execute("SELECT COUNT(DISTINCT Division) as division_count FROM positions")
-            result = cursor.fetchone()
-            values['division_count'] = result[0] if result else 0
-            
-            # Reference (13): Confidence level calculation
-            values['confidence_level'] = self._calculate_confidence_level(values)
-            
-            # Get similarity distribution for thresholds
-            values['similarity_distribution'] = self._get_similarity_distribution()
-            
-            # Get source job details
-            values['source_job_details'] = self._get_source_job_details(job_from)
+            # Use advanced SQL integration if available
+            if self.ref_calc:
+                values['total_job_count'] = self.ref_calc.ref_01_total_job_profiles()
+                values['active_competencies_count'] = self.ref_calc.ref_14_active_competencies()
+                values['pathways_count'] = self.ref_calc.ref_15_precomputed_pathways()
+                values['division_count'] = self.ref_calc.ref_16_divisional_structure()
+                
+                # Get confidence factors
+                confidence_data = self.ref_calc.ref_13_confidence_factors()
+                values['confidence_level'] = confidence_data['confidence_level']
+                
+                # Get similarity distribution for thresholds
+                values['similarity_distribution'] = self.ref_calc.ref_03_similarity_percentiles()
+                
+                # Get source job details with logical role display
+                values['source_job_details'] = self.ref_calc.get_source_job_details(job_from)
+                values['source_job_details']['logical_display_name'] = self.logical_role_manager.get_logical_role_display_name(job_from)
+                
+                # Get top 3 similarities range for this specific job
+                min_sim, max_sim, pathway_count = self.ref_calc.ref_02_top_similarities_range(job_from)
+                values['top_similarities'] = {
+                    'min_similarity': min_sim,
+                    'max_similarity': max_sim,
+                    'pathway_count': pathway_count
+                }
+            else:
+                # Fallback to direct SQL queries
+                # Reference (1): Total job profiles
+                cursor = self.db.execute("SELECT COUNT(*) as total_job_count FROM jobs")
+                result = cursor.fetchone()
+                values['total_job_count'] = result[0] if result else 0
+                
+                # Reference (14): Active competencies
+                cursor = self.db.execute("SELECT COUNT(DISTINCT Skill_ID) as active_competencies_count FROM job_skills")
+                result = cursor.fetchone()
+                values['active_competencies_count'] = result[0] if result else 0
+                
+                # Reference (15): Pre-computed pathways
+                cursor = self.db.execute("SELECT COUNT(*) as pathways_count FROM career_pathways")
+                result = cursor.fetchone()
+                values['pathways_count'] = result[0] if result else 0
+                
+                # Reference (16): Division count
+                cursor = self.db.execute("SELECT COUNT(DISTINCT Division) as division_count FROM positions")
+                result = cursor.fetchone()
+                values['division_count'] = result[0] if result else 0
+                
+                # Reference (13): Confidence level calculation
+                values['confidence_level'] = self._calculate_confidence_level(values)
+                
+                # Get similarity distribution for thresholds
+                values['similarity_distribution'] = self._get_similarity_distribution()
+                
+                # Get source job details with logical role display
+                values['source_job_details'] = self._get_source_job_details(job_from)
+                values['source_job_details']['logical_display_name'] = self.logical_role_manager.get_logical_role_display_name(job_from)
             
         except Exception as e:
             print(f"⚠️ Error getting database values: {e}")
+            import traceback
+            traceback.print_exc()
             values = self._get_fallback_values()
         
         return values
     
     def _get_top_pathways(self, job_from: str, limit: int = 3) -> List[Dict]:
-        """Get top similarity pathways for source job."""
+        """Get top similarity pathways for source job with logical role support."""
         
         try:
-            # Reference (2): Top similarities with job details
-            query = """
-            SELECT 
-                js.target_job_id,
-                js.similarity_score,
-                j.JobProfile as target_job_title,
-                j.JobFunction as target_job_function,
-                j.ManagementLevel as target_management_level,
-                ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC) as rank
-            FROM job_similarities js
-            JOIN jobs j ON js.target_job_id = j.JobProfileID
-            WHERE js.source_job_id = ?
-              AND js.similarity_score < 1.0  -- Exclude 100% matches
-            ORDER BY js.similarity_score DESC
-            LIMIT ?
-            """
-            
-            cursor = self.db.execute(query, (job_from, limit))
-            results = cursor.fetchall()
-            
-            pathways = []
-            for result in results:
-                pathway = {
-                    'target_job_id': result[0],
-                    'similarity_score': round(result[1] * 100, 1),  # Convert to percentage
-                    'target_job_title': result[2],
-                    'target_job_function': result[3],
-                    'target_management_level': result[4],
-                    'rank': result[5],
-                    'similarity_ref': str(4 + result[5]),  # References 5, 7, 9
-                    'move_type_ref': str(5 + result[5])    # References 6, 8, 10
-                }
+            # Use advanced SQL integration if available
+            if self.ref_calc:
+                pathways = self.ref_calc.get_top_pathways(job_from, limit)
                 
-                # Calculate move type and level transition
-                pathway.update(self._calculate_move_type(job_from, pathway))
+                # Add logical role display names and level transition descriptions
+                for pathway in pathways:
+                    # Add logical role display name
+                    pathway['target_logical_role'] = self.logical_role_manager.get_logical_role_display_name(pathway['target_job_id'])
+                    
+                    # Add transition data
+                    transition_data = self._calculate_move_type(job_from, pathway)
+                    pathway.update(transition_data)
                 
-                pathways.append(pathway)
-            
-            return pathways
+                return pathways
+            else:
+                # Fallback to direct SQL query
+                query = """
+                SELECT 
+                    js.job_to,
+                    js.similarity_score,
+                    j.JobProfile as target_job_title,
+                    j.JobFunction as target_job_function,
+                    j.ManagementLevel as target_management_level,
+                    ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC) as rank
+                FROM job_similarities js
+                JOIN jobs j ON js.job_to = j.JobProfileID
+                WHERE js.job_from = ?
+                  AND js.similarity_score < 1.0  -- Exclude 100% matches
+                ORDER BY js.similarity_score DESC
+                LIMIT ?
+                """
+                
+                cursor = self.db.execute(query, (job_from, limit))
+                results = cursor.fetchall()
+                
+                pathways = []
+                for result in results:
+                    pathway = {
+                        'target_job_id': result[0],
+                        'similarity_score': round(result[1] * 100, 1),  # Convert to percentage
+                        'target_job_title': result[2],
+                        'target_job_function': result[3],
+                        'target_management_level': result[4],
+                        'rank': result[5],
+                        'similarity_ref': str(4 + result[5]),  # References 5, 7, 9
+                        'move_type_ref': str(5 + result[5])    # References 6, 8, 10
+                    }
+                    
+                    # Add logical role display name
+                    pathway['target_logical_role'] = self.logical_role_manager.get_logical_role_display_name(pathway['target_job_id'])
+                    
+                    # Calculate move type and level transition
+                    pathway.update(self._calculate_move_type(job_from, pathway))
+                    
+                    pathways.append(pathway)
+                
+                return pathways
             
         except Exception as e:
             print(f"⚠️ Error getting top pathways: {e}")
@@ -148,7 +265,7 @@ class ExecutiveSummaryGenerator:
         try:
             # Get source job details
             source_query = """
-            SELECT JobFunction, ManagementLevel 
+            SELECT JobProfile, ManagementLevel 
             FROM jobs 
             WHERE JobProfileID = ?
             """
@@ -161,39 +278,60 @@ class ExecutiveSummaryGenerator:
                     'strategic_context_explanation': 'Analysis not available'
                 }
             
-            source_function = source_result[0]
+            source_job_title = source_result[0]
             source_level = source_result[1]
-            target_function = pathway['target_job_function']
+            target_job_title = pathway['target_job_title']
             target_level = pathway['target_management_level']
             
             # Extract numeric levels (Group 1 = 1, Group 2 = 2, etc.)
             source_level_num = self._extract_level_number(source_level)
             target_level_num = self._extract_level_number(target_level)
             
-            # Determine move type
-            if source_function == target_function and target_level_num > source_level_num:
-                move_type = 'Progression - Functional_Advancement'
-            elif source_function != target_function and target_level_num >= source_level_num:
-                move_type = 'Progression - Cross_Functional_Advancement'
-            elif target_level_num == source_level_num:
-                move_type = 'Lateral - Same_Level'
+            # Get base role titles for comparison (remove pay band suffixes)
+            source_base_title = source_job_title.split(" - ")[0] if " - " in source_job_title else source_job_title
+            target_base_title = target_job_title.split(" - ")[0] if " - " in target_job_title else target_job_title
+            
+            # Store source base title for use in transition description
+            pathway['source_base_title'] = source_base_title
+            
+            # Determine move type based on logical role progression
+            if source_base_title == target_base_title and target_level_num > source_level_num:
+                move_type = 'Progression - Same_Role_Higher_Level'
+            elif source_base_title == target_base_title and target_level_num == source_level_num:
+                move_type = 'Lateral - Same_Role_Same_Level'  # Different pay bands
+            elif source_base_title != target_base_title and target_level_num > source_level_num:
+                move_type = 'Progression - Different_Role_Higher_Level'
+            elif source_base_title != target_base_title and target_level_num == source_level_num:
+                move_type = 'Lateral - Different_Role_Same_Level'
+            elif target_level_num < source_level_num:
+                move_type = 'Transition - Lower_Level'  # Could be strategic move
             else:
                 move_type = 'Other'
             
-            # Create level transition description
+            # Create level transition description with business context
             level_transition = f"{source_level} → {target_level}"
-            if source_function != target_function:
-                level_transition += f", {source_function} → {target_function}"
+            
+            # For logical roles, focus on the role type rather than organizational function
+            source_base_title = pathway.get('source_base_title', 'Current Role')
+            target_base_title = pathway['target_job_title'].split(" - ")[0] if " - " in pathway['target_job_title'] else pathway['target_job_title']
+            
+            if source_base_title != target_base_title:
+                level_transition += f" ({source_base_title} → {target_base_title})"
             else:
-                level_transition += ", same function"
+                level_transition += " (same role type)"
+            
+            # Add divisional deployment context
+            divisional_context = self._get_divisional_deployment_context(pathway['target_job_id'])
+            if divisional_context:
+                pathway['divisional_deployment'] = divisional_context
             
             # Get strategic context explanation
             explanations = self.template_data.get('executive_summary', {}).get('primary_recommendations', {}).get('strategic_context_explanations', {})
             strategic_context = explanations.get(move_type, 'Strategic transition opportunity')
             
-            # Replace placeholders in explanation
-            strategic_context = strategic_context.replace('{source_function}', source_function.lower())
-            strategic_context = strategic_context.replace('{target_function}', target_function.lower())
+            # Replace placeholders in explanation (using role titles instead of functions)
+            strategic_context = strategic_context.replace('{source_function}', source_base_title.lower())
+            strategic_context = strategic_context.replace('{target_function}', target_base_title.lower())
             
             return {
                 'move_type': move_type,
@@ -224,6 +362,83 @@ class ExecutiveSummaryGenerator:
             return 1
         except:
             return 1
+    
+    def _get_divisional_deployment_context(self, target_job_id: str) -> Optional[Dict]:
+        """Get divisional deployment context for a target job to show business presence."""
+        try:
+            # Get base job title for logical role grouping
+            job_query = """
+            SELECT JobProfile, ManagementLevel
+            FROM jobs 
+            WHERE JobProfileID = ?
+            """
+            job_result = self.db.execute(job_query, (target_job_id,)).fetchone()
+            
+            if not job_result:
+                return None
+            
+            job_title = job_result[0]
+            management_level = job_result[1]
+            
+            # Remove pay band suffix to get base role
+            base_job_title = job_title.split(" - ")[0] if " - " in job_title else job_title
+            
+            # Get divisional deployment for this logical role (base title + management level)
+            deployment_query = """
+            SELECT 
+                p.Division,
+                COUNT(DISTINCT p."Employee Number") as position_count,
+                COUNT(DISTINCT p.Business_Unit) as business_unit_count
+            FROM positions p
+            JOIN jobs j ON p.JobProfileID = j.JobProfileID
+            WHERE (j.JobProfile LIKE ? OR j.JobProfile = ?)
+              AND j.ManagementLevel = ?
+              AND p.Division IS NOT NULL
+              AND p.Division != ''
+            GROUP BY p.Division
+            ORDER BY position_count DESC
+            """
+            
+            like_pattern = f"{base_job_title} - %"
+            results = self.db.execute(deployment_query, (like_pattern, base_job_title, management_level)).fetchall()
+            
+            if not results:
+                return None
+            
+            # Format divisional deployment data
+            divisions = []
+            total_positions = 0
+            total_business_units = 0
+            
+            for division, pos_count, bu_count in results:
+                divisions.append({
+                    'division': division,
+                    'position_count': pos_count,
+                    'business_unit_count': bu_count
+                })
+                total_positions += pos_count
+                total_business_units += bu_count
+            
+            # Create deployment summary
+            division_names = [d['division'] for d in divisions[:4]]  # Top 4 divisions
+            division_summary = ", ".join(division_names[:3])
+            if len(division_names) > 3:
+                division_summary += f", and {len(division_names) - 3} other{'s' if len(division_names) > 4 else ''}"
+            
+            return {
+                'base_role_title': base_job_title,
+                'management_level': management_level,
+                'divisions': divisions,
+                'division_count': len(divisions),
+                'total_positions': total_positions,
+                'total_business_units': total_business_units,
+                'division_summary': division_summary,
+                'deployment_description': f"Found across {len(divisions)} division{'s' if len(divisions) != 1 else ''} ({division_summary}) with {total_positions} positions in {total_business_units} business units"
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Error getting divisional deployment context: {e}")
+            return None
     
     def _calculate_confidence_level(self, values: Dict) -> str:
         """Calculate confidence level based on data volume."""
@@ -397,13 +612,13 @@ class ExecutiveSummaryGenerator:
             min_similarity = max_similarity = 0
         
         variables = {
-            # Source job context
-            'source_job_title': source_job['job_title'],
-            'source_job_title_plural': source_job['job_title'] + 's',  # Simple pluralization
+            # Source job context (with logical role support)
+            'source_job_title': source_job.get('logical_display_name', source_job['title']),
+            'source_job_title_plural': source_job.get('logical_display_name', source_job['title']) + 's',  # Simple pluralization
             'source_management_level': source_job['management_level'],
-            'source_job_function': source_job['job_function'],
-            'source_job_function_lower': source_job['job_function'].lower() + ' and technical',
-            'source_function': source_job['job_function'],
+            'source_job_function': source_job['function'],
+            'source_job_function_lower': source_job['function'].lower() + ' and technical',
+            'source_function': source_job['function'],
             
             # Database metrics
             'total_job_count': f"{db_values['total_job_count']:,}",
@@ -496,7 +711,7 @@ class ExecutiveSummaryGenerator:
         for pathway in top_pathways:
             ref_num = pathway.get('similarity_ref')
             if ref_num:
-                job_specific_refs[ref_num] = f"SELECT similarity_score FROM job_similarities WHERE source_job_id = '{job_from}' AND target_job_id = '{pathway['target_job_id']}'"
+                job_specific_refs[ref_num] = f"SELECT similarity_score FROM job_similarities WHERE job_from = '{job_from}' AND job_to = '{pathway['target_job_id']}'"
         
         return {**references, **job_specific_refs}
     
