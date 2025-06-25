@@ -14,15 +14,18 @@ from jinja2 import Template
 try:
     from ..sql import query_loader, DatabaseReferenceCalculator
     from .executive_summary_generator import LogicalRoleManager
+    from ..formatter import ContentFormatter
 except ImportError:
     # Handle direct script execution
     try:
         from sql import query_loader, DatabaseReferenceCalculator
         from executive_summary_generator import LogicalRoleManager
+        from formatter import ContentFormatter
     except ImportError:
         query_loader = None
         DatabaseReferenceCalculator = None
         LogicalRoleManager = None
+        ContentFormatter = None
 
 class CurrentRoleContextGenerator:
     """Generates current role context content using template-driven approach with logical role support."""
@@ -416,39 +419,46 @@ class CurrentRoleContextGenerator:
     def _get_strategic_intelligence_metrics(self, job_from: str) -> Dict:
         """Calculate strategic intelligence metrics from actual database career pathways."""
         try:
-            # Get mobility hub score - count of career pathways from this job
+            # Use job_similarities table instead of career_pathways (which may not exist yet)
+            # Get mobility hub score - count of similar jobs
             mobility_query = """
             SELECT COUNT(*) as pathway_count
-            FROM career_pathways 
-            WHERE source_job_id = ?
+            FROM job_similarities 
+            WHERE job_from = ?
+            AND similarity_score >= 0.4
             """
             pathway_count = self.db.execute(mobility_query, (job_from,)).fetchone()[0]
             mobility_hub_score = min(100, (pathway_count * 100) // 12)  # Scale to 0-100
             
-            # Get transition readiness - average similarity score of pathways
+            # Get transition readiness - average similarity score of top pathways
             readiness_query = """
             SELECT AVG(similarity_score) as avg_similarity
-            FROM career_pathways 
-            WHERE source_job_id = ?
+            FROM job_similarities 
+            WHERE job_from = ?
+            AND similarity_score >= 0.4
             """
-            avg_similarity = self.db.execute(readiness_query, (job_from,)).fetchone()[0]
+            result = self.db.execute(readiness_query, (job_from,)).fetchone()
+            avg_similarity = result[0] if result and result[0] else 0.5
             transition_readiness = round(avg_similarity * 100) if avg_similarity else 50
             
-            # Get cross-family reach - count distinct job functions in pathways
+            # Get cross-family reach - count distinct job functions in similar jobs
             reach_query = """
             SELECT COUNT(DISTINCT j.JobFunction) as function_count
-            FROM career_pathways cp
-            JOIN jobs j ON cp.target_job_id = j.JobProfileID
-            WHERE cp.source_job_id = ?
+            FROM job_similarities js
+            JOIN jobs j ON js.job_to = j.JobProfileID
+            WHERE js.job_from = ?
+            AND js.similarity_score >= 0.4
             """
-            cross_family_reach = self.db.execute(reach_query, (job_from,)).fetchone()[0]
+            reach_result = self.db.execute(reach_query, (job_from,)).fetchone()
+            cross_family_reach = reach_result[0] if reach_result else 3
             
             # Get connected functions list
             functions_query = """
             SELECT DISTINCT j.JobFunction
-            FROM career_pathways cp
-            JOIN jobs j ON cp.target_job_id = j.JobProfileID
-            WHERE cp.source_job_id = ?
+            FROM job_similarities js
+            JOIN jobs j ON js.job_to = j.JobProfileID
+            WHERE js.job_from = ?
+            AND js.similarity_score >= 0.4
             AND j.JobFunction IS NOT NULL AND j.JobFunction != ''
             LIMIT 5
             """
@@ -520,45 +530,215 @@ class CurrentRoleContextGenerator:
         return variables
     
     def _generate_content_sections(self, variables: Dict) -> Dict:
-        """Generate content for each section using Jinja2 templates."""
+        """Generate content for each section using structured content approach."""
         
         template_sections = self.template_data.get('current_role_context', {})
         content = {}
         
         try:
-            # Profile Overview
-            profile_overview = template_sections.get('profile_overview', {})
-            content['profile_overview'] = {
-                'title': Template(profile_overview.get('title', '')).render(**variables),
-                'content': Template(profile_overview.get('content', '')).render(**variables)
-            }
+            # Profile Overview - Structured bullet list
+            content['profile_overview'] = self._generate_profile_overview(template_sections.get('profile_overview', {}), variables)
             
-            # Core Competency Foundation
-            core_competency = template_sections.get('core_competency_foundation', {})
-            content['core_competency_foundation'] = {
-                'title': core_competency.get('title', 'Core Competency Foundation'),
-                'content': Template(core_competency.get('content', '')).render(**variables)
-            }
+            # Core Competency Foundation - Mixed content with paragraphs and skill categories
+            content['core_competency_foundation'] = self._generate_core_competency_foundation(template_sections.get('core_competency_foundation', {}), variables)
             
-            # Strategic Value Proposition
-            strategic_value = template_sections.get('strategic_value_proposition', {})
-            content['strategic_value_proposition'] = {
-                'title': strategic_value.get('title', 'Strategic Value Proposition'),
-                'content': Template(strategic_value.get('content', '')).render(**variables)
-            }
+            # Strategic Value Proposition - Mixed content with sections and bullet points
+            content['strategic_value_proposition'] = self._generate_strategic_value_proposition(template_sections.get('strategic_value_proposition', {}), variables)
             
-            # Strategic Intelligence Metrics
-            strategic_metrics = template_sections.get('strategic_intelligence_metrics', {})
-            content['strategic_intelligence_metrics'] = {
-                'title': strategic_metrics.get('title', 'Strategic Intelligence Metrics'),
-                'content': Template(strategic_metrics.get('content', '')).render(**variables)
-            }
+            # Strategic Intelligence Metrics - Complex structured content
+            content['strategic_intelligence_metrics'] = self._generate_strategic_intelligence_metrics(template_sections.get('strategic_intelligence_metrics', {}), variables)
             
         except Exception as e:
             print(f"⚠️ Error generating content sections: {e}")
+            import traceback
+            traceback.print_exc()
             content = {'error': f'Content generation failed: {e}'}
         
         return content
+    
+    def _generate_profile_overview(self, profile_config: Dict, variables: Dict) -> Dict:
+        """Generate structured profile overview content."""
+        
+        if not ContentFormatter:
+            # Fallback to legacy approach if ContentFormatter not available
+            return {
+                'title': Template(profile_config.get('title', '')).render(**variables),
+                'content': Template(profile_config.get('content', '')).render(**variables)
+            }
+        
+        title = Template(profile_config.get('title', '')).render(**variables)
+        
+        # Only include content if organisational deployment is enabled
+        if variables.get('include_organisational_deployment', False):
+            content_template = Template(profile_config.get('content', '')).render(**variables)
+            bold_labels = profile_config.get('bold_labels', [])
+            
+            return {
+                'title': title,
+                'content': ContentFormatter.create_formatted_content(
+                    text=content_template,
+                    formatting={
+                        'content_type': 'bullet_list',
+                        'bold_labels': bold_labels
+                    }
+                )
+            }
+        else:
+            # Return empty structured content when deployment not included
+            return {
+                'title': title,
+                'content': ContentFormatter.create_paragraph("", [])
+            }
+    
+    def _generate_core_competency_foundation(self, core_config: Dict, variables: Dict) -> Dict:
+        """Generate structured core competency foundation content."""
+        
+        if not ContentFormatter:
+            # Fallback to legacy approach
+            return {
+                'title': core_config.get('title', 'Core Competency Foundation'),
+                'content': Template(core_config.get('content', '')).render(**variables)
+            }
+        
+        title = core_config.get('title', 'Core Competency Foundation')
+        
+        # Generate intro paragraph
+        intro_text = Template(core_config.get('paragraph_intro', '')).render(**variables)
+        
+        # Generate skill categories with formatting
+        skill_categories = variables.get('skill_categories', [])
+        if skill_categories:
+            # Create formatted skill categories text
+            categories_text = ""
+            for category in skill_categories:
+                categories_text += f"{category['name']} ({category['skill_count']} skills): {category['skill_list']}\n"
+            
+            # Combine intro and categories
+            full_text = f"{intro_text}\n\n{categories_text.strip()}"
+            
+            # Create bold labels from category names
+            bold_labels = [f"{cat['name']} ({cat['skill_count']} skills):" for cat in skill_categories]
+            
+            return {
+                'title': title,
+                'content': ContentFormatter.create_formatted_content(
+                    text=full_text,
+                    formatting={
+                        'content_type': 'mixed',
+                        'bold_labels': bold_labels
+                    }
+                )
+            }
+        else:
+            # No skill categories available
+            return {
+                'title': title,
+                'content': ContentFormatter.create_paragraph(intro_text, [])
+            }
+    
+    def _generate_strategic_value_proposition(self, strategic_config: Dict, variables: Dict) -> Dict:
+        """Generate structured strategic value proposition content."""
+        
+        if not ContentFormatter:
+            # Fallback to legacy approach
+            return {
+                'title': strategic_config.get('title', 'Strategic Value Proposition'),
+                'content': Template(strategic_config.get('content', '')).render(**variables)
+            }
+        
+        title = strategic_config.get('title', 'Strategic Value Proposition')
+        
+        # Generate intro paragraph
+        intro_text = Template(strategic_config.get('intro_paragraph', '')).render(**variables)
+        
+        # Generate main content
+        content_text = Template(strategic_config.get('content', '')).render(**variables)
+        
+        # Combine intro and content
+        full_text = f"{intro_text}\n\n{content_text}"
+        
+        # Get bold labels from config
+        bold_labels = strategic_config.get('bold_labels', [])
+        bold_sub_labels = strategic_config.get('bold_sub_labels', [])
+        
+        # Combine all bold labels
+        all_bold_labels = bold_labels + bold_sub_labels
+        
+        return {
+            'title': title,
+            'content': ContentFormatter.create_formatted_content(
+                text=full_text,
+                formatting={
+                    'content_type': 'mixed',
+                    'bold_labels': all_bold_labels
+                }
+            )
+        }
+    
+    def _generate_strategic_intelligence_metrics(self, metrics_config: Dict, variables: Dict) -> Dict:
+        """Generate structured strategic intelligence metrics content."""
+        
+        if not ContentFormatter:
+            # Fallback to legacy approach
+            return {
+                'title': metrics_config.get('title', 'Strategic Intelligence Metrics'),
+                'content': Template(metrics_config.get('content', '')).render(**variables)
+            }
+        
+        title = metrics_config.get('title', 'Strategic Intelligence Metrics')
+        sections = metrics_config.get('sections', {})
+        bold_labels = metrics_config.get('bold_labels', [])
+        
+        # Build the complete content by combining all sections
+        content_parts = []
+        
+        # Overview intro
+        if 'overview_intro' in sections:
+            intro_content = Template(sections['overview_intro']['content']).render(**variables)
+            content_parts.append(intro_content)
+        
+        # Metrics overview bullet list
+        if 'metrics_overview' in sections:
+            metrics_list = Template(sections['metrics_overview']['content']).render(**variables)
+            content_parts.append(metrics_list)
+        
+        # Context paragraph
+        if 'context_paragraph' in sections:
+            context_content = Template(sections['context_paragraph']['content']).render(**variables)
+            content_parts.append(context_content)
+        
+        # Results header
+        if 'results_header' in sections:
+            results_header = Template(sections['results_header']['content']).render(**variables)
+            content_parts.append(results_header)
+        
+        # Individual metric sections
+        metric_sections = ['mobility_section', 'readiness_section', 'reach_section', 'value_section']
+        for section_key in metric_sections:
+            if section_key in sections:
+                section_data = sections[section_key]
+                header = Template(section_data['header']).render(**variables)
+                content = Template(section_data['content']).render(**variables)
+                content_parts.append(f"{header}\n{content}")
+        
+        # Conclusion paragraph
+        if 'conclusion_paragraph' in sections:
+            conclusion_content = Template(sections['conclusion_paragraph']['content']).render(**variables)
+            content_parts.append(conclusion_content)
+        
+        # Combine all parts
+        full_content = '\n\n'.join(content_parts)
+        
+        return {
+            'title': title,
+            'content': ContentFormatter.create_formatted_content(
+                text=full_content,
+                formatting={
+                    'content_type': 'mixed',
+                    'bold_labels': bold_labels
+                }
+            )
+        }
     
     def _generate_references(self, job_from: str) -> Dict:
         """Generate reference mappings for the current role context."""

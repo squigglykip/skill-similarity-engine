@@ -6,24 +6,28 @@ conclusion:
   section_config:
     title: "Conclusion"
     references_start: 78
-    description: "Strategic synthesis and recommended approach based on database analysis"
+    description: "Strategic synthesis and recommended approach"
   
   content_sections:
     opportunity_summary:
+      content_type: "paragraph"
+      bold_labels: ["Bottom Line:"]
       content: |
-        The {{analysis_scope_description}} demonstrates **{{transition_quality_assessment}}** for {{source_job_logical_display_name}}, with {{pathway_count}} pathways offering {{similarity_range_description}} skill similarity and {{progression_value_description}}.
+        Bottom Line: We've identified {{pathway_count}} viable career paths for {{source_job_logical_display_name}} professionals, with {{similarity_range_description}} skill compatibility. These represent practical opportunities that benefit both individuals and the business.
     
     strategic_alignment:
       content: |
-        These transitions align with {{strategic_alignment_description}} while providing {{value_proposition_summary}}.
+        These moves support NAB's talent strategy while offering genuine career growth. The skill overlaps make transitions realistic and cost-effective.
     
     recommended_approach:
+      content_type: "paragraph"
+      bold_labels: ["Next Steps:"]
       content: |
-        **Recommended Approach:** Implement {{implementation_approach}} with {{pilot_size}} {{pilot_scale_descriptor}} across different pathways, using {{scaling_approach}}.
+        Next Steps: Start with a pilot programme involving {{pilot_size}} high-potential candidates. Use their experience to refine the approach before broader rollout.
     
     foundation_value:
       content: |
-        This analysis provides the foundation for {{foundation_description}}, supporting {{dual_benefit_description}}.
+        This analysis gives you the data needed for talent conversations and workforce planning decisions. Both managers and individuals can use these insights to make informed career choices.
 
 # References section for conclusion
 references:

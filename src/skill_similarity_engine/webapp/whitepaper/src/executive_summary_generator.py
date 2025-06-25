@@ -21,6 +21,16 @@ except ImportError:
         query_loader = None
         DatabaseReferenceCalculator = None
 
+# Import ContentFormatter for structured content generation
+try:
+    from ..formatter import ContentFormatter
+except ImportError:
+    # Handle direct script execution or missing formatter
+    try:
+        from formatter import ContentFormatter
+    except ImportError:
+        ContentFormatter = None
+
 class LogicalRoleManager:
     """Manages logical role operations for Job + ManagementLevel combinations."""
     
@@ -433,7 +443,7 @@ class ExecutiveSummaryGenerator:
                 'total_positions': total_positions,
                 'total_business_units': total_business_units,
                 'division_summary': division_summary,
-                'deployment_description': f"Found across {len(divisions)} division{'s' if len(divisions) != 1 else ''} ({division_summary}) with {total_positions} positions in {total_business_units} business units"
+                'deployment_description': f"found across {len(divisions)} division{'s' if len(divisions) != 1 else ''} ({division_summary}) with {total_positions} positions in {total_business_units} business units"
             }
             
         except Exception as e:
@@ -450,13 +460,13 @@ class ExecutiveSummaryGenerator:
         if (active_competencies > 2000 and 
             pathways_count > 8000 and 
             division_count >= 6):
-            return 'HIGH'
+            return 'High'
         elif (active_competencies > 1000 and 
               pathways_count > 5000 and 
               division_count >= 4):
-            return 'MEDIUM-HIGH'
+            return 'Medium-high'
         else:
-            return 'MEDIUM'
+            return 'Medium'
     
     def _get_similarity_distribution(self) -> Dict:
         """Get NAB-specific similarity distribution for threshold calculation."""
@@ -596,7 +606,9 @@ class ExecutiveSummaryGenerator:
     def _get_data_quality_descriptor(self, confidence_level: str) -> str:
         """Get data quality descriptor based on confidence level."""
         explanations = self.template_data.get('executive_summary', {}).get('confidence_assessment', {}).get('confidence_explanations', {})
-        return explanations.get(confidence_level, 'balanced real data and validated estimates')
+        # Convert to uppercase for template lookup, but display in proper case
+        confidence_key = confidence_level.upper().replace('-', '-')
+        return explanations.get(confidence_key, 'balanced real data and validated estimates')
     
     def _populate_template_variables(self, job_from: str, db_values: Dict, 
                                    top_pathways: List[Dict], dynamic_descriptors: Dict) -> Dict:
@@ -656,50 +668,139 @@ class ExecutiveSummaryGenerator:
                 'content': Template(strategic_context.get('content', '')).render(**variables)
             }
             
-            # Key Findings
+            # Key Findings - Use structured formatting if available
             key_findings = template_sections.get('key_findings', {})
-            content['key_findings'] = {
-                'title': key_findings.get('title', 'Key Findings'),
-                'content': Template(key_findings.get('content', '')).render(**variables)
-            }
+            if key_findings.get('content_type') and ContentFormatter:
+                key_findings_text = Template(key_findings.get('content', '')).render(**variables)
+                content['key_findings'] = {
+                    'title': key_findings.get('title', 'Key Findings'),
+                    'content': ContentFormatter.create_formatted_content(
+                        key_findings_text,
+                        {
+                            'content_type': key_findings.get('content_type'),
+                            'bold_labels': key_findings.get('bold_labels', [])
+                        }
+                    )
+                }
+            else:
+                content['key_findings'] = {
+                    'title': key_findings.get('title', 'Key Findings'),
+                    'content': Template(key_findings.get('content', '')).render(**variables)
+                }
             
-            # Primary Recommendations
+            # Primary Recommendations - Use structured formatting
             primary_rec = template_sections.get('primary_recommendations', {})
             content['primary_recommendations'] = {
                 'title': primary_rec.get('title', 'Primary Recommendations'),
-                'content': Template(primary_rec.get('content', '')).render(**variables)
+                'content': self._generate_structured_recommendations(primary_rec, variables)
             }
             
-            # Data-Driven Classification
-            classification = template_sections.get('data_driven_classification', {})
-            content['data_driven_classification'] = {
-                'content': Template(classification.get('content', '')).render(**variables)
-            }
+            # Skip empty data-driven classification section
+            # classification = template_sections.get('data_driven_classification', {})
+            # content['data_driven_classification'] = {
+            #     'content': Template(classification.get('content', '')).render(**variables)
+            # }
             
-            # Similarity Benchmarking
-            benchmarking = template_sections.get('similarity_benchmarking', {})
-            content['similarity_benchmarking'] = {
-                'content': Template(benchmarking.get('content', '')).render(**variables)
-            }
+            # Skip academic sections that don't add business value
+            # benchmarking = template_sections.get('similarity_benchmarking', {})
+            # content['similarity_benchmarking'] = {
+            #     'content': Template(benchmarking.get('content', '')).render(**variables)
+            # }
             
-            # Template Logic Note
-            template_note = template_sections.get('template_logic_note', {})
-            content['template_logic_note'] = {
-                'content': Template(template_note.get('content', '')).render(**variables)
-            }
+            # template_note = template_sections.get('template_logic_note', {})
+            # content['template_logic_note'] = {
+            #     'content': Template(template_note.get('content', '')).render(**variables)
+            # }
             
-            # Confidence Assessment
+            # Confidence Assessment - Use structured formatting if available
             confidence = template_sections.get('confidence_assessment', {})
-            content['confidence_assessment'] = {
-                'title': confidence.get('title', 'Confidence Assessment'),
-                'content': Template(confidence.get('content', '')).render(**variables)
-            }
+            if confidence.get('content_type') and ContentFormatter:
+                confidence_text = Template(confidence.get('content', '')).render(**variables)
+                content['confidence_assessment'] = {
+                    'title': confidence.get('title', 'Confidence Assessment'),
+                    'content': ContentFormatter.create_formatted_content(
+                        confidence_text,
+                        {
+                            'content_type': confidence.get('content_type'),
+                            'bold_labels': confidence.get('bold_labels', [])
+                        }
+                    )
+                }
+            else:
+                content['confidence_assessment'] = {
+                    'title': confidence.get('title', 'Confidence Assessment'),
+                    'content': Template(confidence.get('content', '')).render(**variables)
+                }
             
         except Exception as e:
             print(f"⚠️ Error generating content sections: {e}")
             content = {'error': f'Content generation failed: {e}'}
         
         return content
+    
+    def _generate_structured_recommendations(self, primary_rec_config: Dict, variables: Dict) -> Dict:
+        """Generate structured recommendations content with explicit formatting metadata."""
+        
+        if not ContentFormatter:
+            # Fallback to legacy string-based content if ContentFormatter not available
+            fallback_content = Template(primary_rec_config.get('content', '')).render(**variables)
+            return {'text': fallback_content, 'formatting': {}}
+        
+        top_pathways = variables.get('top_pathways', [])
+        bold_labels = primary_rec_config.get('bold_labels', ['Move Type:', 'Strategic Context:'])
+        
+        # Generate numbered recommendation items
+        recommendation_items = []
+        
+        for i, recommendation in enumerate(top_pathways, 1):
+            # Create main recommendation header (will be bold)
+            header = f"{recommendation.get('target_logical_role', 'Unknown Role')} - {recommendation.get('similarity_score', 0)}% similarity"
+            
+            # Create detail items with labels that will be bold
+            details = []
+            if 'move_type' in recommendation:
+                details.append(f"Move Type: {recommendation['move_type']}")
+            
+            if 'strategic_context_explanation' in recommendation:
+                details.append(f"Strategic Context: {recommendation['strategic_context_explanation']}")
+            
+            # Add divisional deployment if available
+            if recommendation.get('divisional_deployment'):
+                divisional_text = f"This role is {recommendation['divisional_deployment']['deployment_description']}"
+                details.append(divisional_text)
+            
+            # Create the full recommendation text
+            recommendation_text = header
+            if details:
+                detail_bullets = '\n'.join([f"- {detail}" for detail in details])
+                recommendation_text += f"\n{detail_bullets}"
+            
+            recommendation_items.append(recommendation_text)
+        
+        # Create structured content with numbered list for headers and bullet sub-items
+        if recommendation_items:
+            # Combine all recommendations into a single text block
+            full_text = ""
+            for i, item in enumerate(recommendation_items, 1):
+                full_text += f"{i}. {item}"
+                if i < len(recommendation_items):
+                    full_text += "\n\n"
+            
+            # Return structured content with formatting metadata
+            return ContentFormatter.create_formatted_content(
+                full_text,
+                {
+                    'content_type': 'mixed',  # Contains both numbered items and bullets
+                    'bold_labels': bold_labels,
+                    'bold_numbered_headers': True  # Make numbered recommendation headers bold
+                }
+            )
+        else:
+            # Fallback if no recommendations available
+            return ContentFormatter.create_paragraph(
+                "No pathway recommendations available for this analysis.",
+                []
+            )
     
     def _generate_references(self, job_from: str, top_pathways: List[Dict]) -> Dict:
         """Generate reference mappings for the executive summary."""
@@ -722,7 +823,7 @@ class ExecutiveSummaryGenerator:
             'active_competencies_count': 2091,
             'pathways_count': 8580,
             'division_count': 6,
-            'confidence_level': 'MEDIUM',
+            'confidence_level': 'High',
             'similarity_distribution': self._get_default_distribution(),
             'source_job_details': {
                 'job_title': 'Unknown Job',

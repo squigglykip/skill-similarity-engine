@@ -310,24 +310,28 @@ class ConclusionGenerator:
             # Opportunity Summary
             opportunity_summary = content_sections.get('opportunity_summary', {})
             content['opportunity_summary'] = {
+                'title': opportunity_summary.get('title', 'Bottom Line'),
                 'content': Template(opportunity_summary.get('content', '')).render(**variables)
             }
             
             # Strategic Alignment  
             strategic_alignment = content_sections.get('strategic_alignment', {})
             content['strategic_alignment'] = {
+                'title': strategic_alignment.get('title', 'Strategic Alignment'),
                 'content': Template(strategic_alignment.get('content', '')).render(**variables)
             }
             
             # Recommended Approach
             recommended_approach = content_sections.get('recommended_approach', {})
             content['recommended_approach'] = {
+                'title': recommended_approach.get('title', 'Next Steps'),
                 'content': Template(recommended_approach.get('content', '')).render(**variables)
             }
             
             # Foundation Value
             foundation_value = content_sections.get('foundation_value', {})
             content['foundation_value'] = {
+                'title': foundation_value.get('title', 'Foundation Value'),
                 'content': Template(foundation_value.get('content', '')).render(**variables)
             }
             

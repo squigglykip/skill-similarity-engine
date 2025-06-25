@@ -3,10 +3,11 @@ Document formatting (Word, PDF, PowerPoint) for white paper generation.
 Uses pre-styled NAB Word templates for professional output.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, cast, Union, Optional
 from pathlib import Path
 import io
 import logging
+import re
 
 try:
     from docx import Document
@@ -17,6 +18,66 @@ except ImportError:
     DOCX_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+class ContentFormatter:
+    """Structured content formatting helper for document generation."""
+    
+    @staticmethod
+    def create_formatted_content(text: str, formatting: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Create structured content with formatting metadata.
+        
+        Args:
+            text: The text content
+            formatting: Dictionary with formatting options like:
+                - 'bold_labels': List of labels that should be bold
+                - 'content_type': 'bullet_list', 'numbered_list', 'paragraph'
+                - 'list_style': 'bullet', 'number', 'none'
+                - 'bold_patterns': List of regex patterns that should be bold
+                - 'indent_level': 0, 1, 2 for indentation
+        
+        Returns:
+            Dict with 'text' and 'formatting' keys
+        """
+        return {
+            'text': text,
+            'formatting': formatting or {}
+        }
+    
+    @staticmethod
+    def create_bullet_list(items: List[str], bold_labels: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Create a bullet list with optional bold labels."""
+        text = '\n'.join([f"- {item}" for item in items])
+        return ContentFormatter.create_formatted_content(
+            text,
+            {
+                'content_type': 'bullet_list',
+                'bold_labels': bold_labels or []
+            }
+        )
+    
+    @staticmethod
+    def create_numbered_list(items: List[str], bold_headers: bool = False) -> Dict[str, Any]:
+        """Create a numbered list with optional bold headers."""
+        text = '\n'.join([f"{i+1}. {item}" for i, item in enumerate(items)])
+        return ContentFormatter.create_formatted_content(
+            text,
+            {
+                'content_type': 'numbered_list',
+                'bold_numbered_headers': bold_headers
+            }
+        )
+    
+    @staticmethod
+    def create_paragraph(text: str, bold_labels: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Create a formatted paragraph with optional bold labels."""
+        return ContentFormatter.create_formatted_content(
+            text,
+            {
+                'content_type': 'paragraph',
+                'bold_labels': bold_labels or []
+            }
+        )
 
 class DocumentFormatter:
     """Formats generated content into various document formats using NAB templates."""
@@ -69,15 +130,16 @@ class DocumentFormatter:
             
             # Save to memory buffer
             buffer = io.BytesIO()
-            doc.save(buffer)
-            buffer.seek(0)
+            doc.save(buffer)  # type: ignore
+            buffer.seek(0)  # type: ignore
+            content_bytes = buffer.getvalue()  # type: ignore
             
             filename = f'whitepaper_{job_name.replace(" ", "_").replace("(", "").replace(")", "")}.docx'
             
             return {
                 'format': 'word',
                 'filename': filename,
-                'content': buffer.read(),
+                'content': content_bytes,
                 'status': 'generated',
                 'buffer': buffer
             }
@@ -225,8 +287,11 @@ class DocumentFormatter:
             ('conclusion', 'Conclusion')
         ]
         
-        for section_key, section_title in section_order:
+        for i, (section_key, section_title) in enumerate(section_order):
             if section_key in content:
+                # Add page break before each section (except the first one)
+                if i > 0:
+                    doc.add_page_break()
                 self._add_nab_section(doc, section_title, content[section_key])
     
     def _add_nab_section(self, doc, section_title: str, section_content: Dict):
@@ -276,8 +341,183 @@ class DocumentFormatter:
                 if 'content' in detail_content:
                     self._add_nab_content(doc, detail_content['content'])
     
-    def _add_nab_content(self, doc, content: str):
-        """Add content using NAB body style."""
+    def _add_nab_content(self, doc, content: Union[str, Dict]):
+        """Add content using NAB body style with structured formatting support."""
+        
+        if not content:
+            return
+        
+        # Handle both legacy string content and new structured content
+        if isinstance(content, str):
+            # Legacy string content - use basic formatting
+            self._add_legacy_string_content(doc, content)
+        elif isinstance(content, dict) and 'text' in content:
+            # New structured content with formatting metadata
+            self._add_structured_content(doc, content)
+        else:
+            # Handle other dict structures (like sections with title/content)
+            if isinstance(content, dict) and 'content' in content:
+                self._add_nab_content(doc, content['content'])
+    
+    def _add_structured_content(self, doc, structured_content: Dict):
+        """Add structured content with explicit formatting metadata."""
+        
+        text = structured_content.get('text', '')
+        formatting = structured_content.get('formatting', {})
+        content_type = formatting.get('content_type', 'paragraph')
+        
+        if content_type == 'bullet_list':
+            self._add_structured_bullet_list(doc, text, formatting)
+        elif content_type == 'numbered_list':
+            self._add_structured_numbered_list(doc, text, formatting)
+        elif content_type == 'mixed':
+            self._add_structured_mixed_content(doc, text, formatting)
+        else:
+            # Default to paragraph
+            self._add_structured_paragraph(doc, text, formatting)
+    
+    def _add_structured_bullet_list(self, doc, text: str, formatting: Dict):
+        """Add bullet list using explicit formatting metadata."""
+        
+        lines = text.strip().split('\n')
+        bold_labels = formatting.get('bold_labels', [])
+        indent_level = formatting.get('indent_level', 0.25)
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith(('- ', '• ', '* ')):
+                # Remove bullet indicator and create bullet point
+                bullet_text = line[2:].strip()
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                para.paragraph_format.left_indent = Inches(indent_level)
+                
+                # Add bullet
+                para.add_run("• ")
+                
+                # Add formatted text
+                self._add_formatted_text_with_labels(para, bullet_text, bold_labels)
+            elif line:
+                # Non-bullet line
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                self._add_formatted_text_with_labels(para, line, bold_labels)
+    
+    def _add_structured_numbered_list(self, doc, text: str, formatting: Dict):
+        """Add numbered list using explicit formatting metadata."""
+        
+        lines = text.strip().split('\n')
+        bold_headers = formatting.get('bold_numbered_headers', False)
+        bold_labels = formatting.get('bold_labels', [])
+        
+        for line in lines:
+            line = line.strip()
+            if line:
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                
+                # Check if this is a numbered header that should be bold
+                numbered_match = re.match(r'^(\d+\.\s+)(.+)', line)
+                if numbered_match and bold_headers:
+                    # Bold the entire numbered line
+                    full_run = para.add_run(line)
+                    full_run.bold = True
+                else:
+                    # Regular formatting with label bolding
+                    self._add_formatted_text_with_labels(para, line, bold_labels)
+    
+    def _add_structured_paragraph(self, doc, text: str, formatting: Dict):
+        """Add paragraph using explicit formatting metadata."""
+        
+        paragraphs = text.split('\n\n')
+        bold_labels = formatting.get('bold_labels', [])
+        
+        for para_text in paragraphs:
+            if para_text.strip():
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                self._add_formatted_text_with_labels(para, para_text.strip(), bold_labels)
+    
+    def _add_structured_mixed_content(self, doc, text: str, formatting: Dict):
+        """Add mixed content with both numbered headers and bullet sub-items."""
+        
+        paragraphs = text.strip().split('\n\n')
+        bold_labels = formatting.get('bold_labels', [])
+        bold_headers = formatting.get('bold_numbered_headers', False)
+        
+        for para_text in paragraphs:
+            if para_text.strip():
+                lines = para_text.strip().split('\n')
+                
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    para = doc.add_paragraph()
+                    para.style = 'NAB Body'
+                    
+                    # Check for numbered header
+                    numbered_match = re.match(r'^(\d+\.\s+)(.+)', line)
+                    if numbered_match and bold_headers:
+                        # This is a numbered header that should be bold
+                        full_run = para.add_run(line)
+                        full_run.bold = True
+                    elif line.startswith(('- ', '• ', '* ')):
+                        # This is a bullet item - indent and add bullet
+                        para.paragraph_format.left_indent = Inches(0.25)
+                        bullet_text = line[2:].strip()
+                        para.add_run("• ")
+                        self._add_formatted_text_with_labels(para, bullet_text, bold_labels)
+                    else:
+                        # Regular text
+                        self._add_formatted_text_with_labels(para, line, bold_labels)
+    
+    def _add_formatted_text_with_labels(self, para, text: str, bold_labels: List[str]):
+        """Add formatted text with specified labels in bold."""
+        
+        # Clean markdown bold formatting (**text**)
+        clean_text = self._clean_markdown_bold(text)
+        
+        # Find bold label at start of text
+        label_found = None
+        for label in bold_labels:
+            if clean_text.startswith(label):
+                label_found = label
+                break
+        
+        if label_found:
+            # Add label in bold
+            label_run = para.add_run(label_found)
+            label_run.bold = True
+            
+            # Add remaining text in regular format
+            remaining_text = clean_text[len(label_found):].strip()
+            if remaining_text:
+                para.add_run(f" {remaining_text}")
+        else:
+            # No label found, add text normally
+            para.add_run(clean_text)
+    
+    def _clean_markdown_bold(self, text: str) -> str:
+        """Remove markdown bold formatting (**text**)."""
+        
+        clean_text = text
+        while '**' in clean_text:
+            start = clean_text.find('**')
+            if start == -1:
+                break
+            end = clean_text.find('**', start + 2)
+            if end == -1:
+                break
+            # Extract bold text and remove asterisks
+            bold_text = clean_text[start + 2:end]
+            clean_text = clean_text[:start] + bold_text + clean_text[end + 2:]
+        
+        return clean_text
+    
+    def _add_legacy_string_content(self, doc, content: str):
+        """Handle legacy string content with basic bullet list detection."""
         
         if not content:
             return
@@ -287,25 +527,71 @@ class DocumentFormatter:
         
         for para_text in paragraphs:
             if para_text.strip():
-                para = doc.add_paragraph()
-                para.style = 'NAB Body'
-                
-                # Handle bold text (**text**)
-                if '**' in para_text:
-                    parts = para_text.split('**')
-                    for i, part in enumerate(parts):
-                        if i % 2 == 0:
-                            # Regular text
-                            if part:
-                                para.add_run(part)
-                        else:
-                            # Bold text
-                            if part:
-                                run = para.add_run(part)
-                                run.bold = True
+                # Check if this should be a bullet list
+                if self._is_legacy_bullet_list(para_text):
+                    self._add_legacy_bullet_list(doc, para_text)
                 else:
                     # Regular paragraph
-                    para.add_run(para_text.strip())
+                    para = doc.add_paragraph()
+                    para.style = 'NAB Body'
+                    
+                    # Handle bold text and formatting with legacy approach
+                    self._add_legacy_formatted_text(para, para_text.strip())
+    
+    def _is_legacy_bullet_list(self, text: str) -> bool:
+        """Legacy method to check if text should be formatted as a bullet list."""
+        lines = text.strip().split('\n')
+        
+        # Check if multiple lines start with bullet indicators
+        bullet_lines = [line for line in lines if line.strip().startswith(('- ', '• ', '* '))]
+        return len(bullet_lines) >= 2
+    
+    def _add_legacy_bullet_list(self, doc, text: str):
+        """Legacy method to add formatted bullet list to document."""
+        lines = text.strip().split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith(('- ', '• ', '* ')):
+                # Remove bullet indicator and create bullet point
+                bullet_text = line[2:].strip()
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                para.paragraph_format.left_indent = Inches(0.25)
+                
+                # Add bullet and format text
+                para.add_run("• ")
+                self._add_legacy_formatted_text(para, bullet_text)
+            elif line:
+                # Regular line within list context
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                self._add_legacy_formatted_text(para, line)
+    
+    def _add_legacy_formatted_text(self, para, text: str):
+        """Legacy method for formatting text with hardcoded labels."""
+        
+        # Define legacy key labels that should be bold
+        legacy_key_labels = [
+            'Move Type:', 'Strategic Context:', 'Business Context:',
+            'Organisational Deployment:', 'Primary Locations:', 'Divisional Distribution:',
+            'Skills Portfolio Analysis:', 'Organisational Context:', 'About Strategic Intelligence Metrics:',
+            'Important Context:', 'Results for', 'Mobility Hub Score:', 'Transition Readiness:',
+            'Cross-Family Reach:', 'Strategic Value:', 'Strategic Context Assessment:',
+            'Workforce Impact Analysis:', 'Organisational Capability Context:', 'Key Context:',
+            'Function Alignment:', 'Management Progression:', 'Skills Transferability:',
+            'Cross-Function Demand:', 'Directly Transferable Skills:', 'Skills Development Required:',
+            'Development Timeline:', 'Strategic Alignment:', 'Organisational Benefits:',
+            'Individual Value Proposition:', 'Calculated Development Time:', 'Phase 1:',
+            'Phase 2:', 'Phase 3:', 'Phase 4:', 'Quantitative Measures:', 'Strategic Impact Measures:',
+            'Organisational Resilience Indicators:', 'What this means:', 'Recommended Approach:'
+        ]
+        
+        # Remove markdown bold formatting
+        clean_text = self._clean_markdown_bold(text)
+        
+        # Use the new label-based formatting
+        self._add_formatted_text_with_labels(para, clean_text, legacy_key_labels)
     
     def _format_powerpoint_summary(self, content: Dict, analysis_data: Dict) -> Dict:
         """Format content as PowerPoint summary."""

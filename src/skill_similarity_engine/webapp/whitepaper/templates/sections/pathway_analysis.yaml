@@ -12,109 +12,103 @@ pathway_analysis:
   opportunity_template:
     header: |
       ## Opportunity {{opportunity_rank}}: {{target_job_logical_display_name}}
-      **Similarity Score:** {{similarity_score}}% | **Classification:** {{opportunity_classification}} | **Move Type:** {{move_type_display}}
+      Similarity Score: {{similarity_score}}% | Classification: {{opportunity_classification}} | Move Type: {{move_type_display}}
 
     strategic_positioning:
-      title: "Strategic Positioning (Database-Derived Context)"
+      title: "Why This Makes Sense"
+      content_type: "mixed"
+      bold_labels: ["Career Impact:", "Business Fit:", "Skills Match:", "Future Prospects:"]
       content: |
-        **[STRATEGIC CONTEXT PLACEHOLDER: Insert organisation-specific strategic priorities and business drivers here. The following data-driven positioning can be supplemented with strategic context.]**
+        Career Impact: {{target_job_logical_display_name}} offers a {{move_type_description}} with clear advancement potential.
 
-        {{target_job_logical_display_name}} represents a **{{move_type_description}}** based on quantifiable organisational data:
-
-        **Database Evidence:**
-        - **Function Alignment:** {{target_job_function}} represents {{function_position_count}} positions ({{function_percentage}}% of NAB roles)({{function_ref}}), indicating {{function_significance_descriptor}}({{function_significance_ref}})  
-          *Strategic Intelligence:* {{function_percentage}}% indicates {{target_job_function}} is a {{function_size_assessment}} function with {{function_career_infrastructure}}. Functions below 2% are typically niche specialisations, while those above 5% offer robust career development opportunities({{function_intelligence_ref}}).
-
-        - **Management Progression:** {{level_transition_display}}({{level_transition_ref}}) aligns with {{progression_alignment_description}}({{progression_ref}})  
-          *Strategic Intelligence:* This represents a {{progression_strategic_assessment}}, {{progression_complexity_descriptor}} and ensuring {{progression_salary_framework}}.
-
-        - **Skills Transferability:** {{skills_overlap_percentage}}% skills overlap({{skills_overlap_ref}}) indicates {{transferability_assessment}}({{transferability_ref}})  
-          *Strategic Intelligence:* {{skills_overlap_percentage}}% overlap represents {{overlap_performance_assessment}} within NAB's business context, ranking in the {{percentile_ranking}} of meaningful career transitions({{percentile_ref}}). This indicates {{retraining_investment_assessment}} and {{success_probability_assessment}}({{success_ref}}).
-
-        - **Cross-Function Demand:** {{primary_skill_category}} skills appear across multiple functions ({{cross_functional_areas}})({{cross_function_ref}}), showing {{cross_function_applicability}}({{applicability_ref}})  
-          *Strategic Intelligence:* {{cross_function_applicability}} provides career resilience and multiple future pathway options, making this a strategically valuable skill investment.
-
+        Business Fit:
+        - {{target_job_function}} represents {{function_percentage}}% of NAB roles - a substantial career area with growth opportunities
+        - {{level_transition_display}} progression aligns with standard career frameworks
         {% if include_organisational_deployment %}
-        **Organisational Context:**
-        - **Current Deployment:** {{target_position_count}} positions across {{target_division_count}} divisions
-        - **Geographic Spread:** {{target_geographic_spread}}
-        - **Strategic Importance:** {{target_strategic_importance}}
-        - **Growth Trajectory:** {{target_growth_trajectory}}
+        - {{target_position_count}} positions available across {{target_division_count}} divisions
         {% endif %}
 
+        Skills Match:
+        - {{skills_overlap_percentage}}% of required skills already in place
+        - Strong foundation reduces training time and transition risk
+        - Skills are in demand across multiple business areas
+
+        Future Prospects:
+        - {{primary_skill_category}} skills transfer to other opportunities
+        - Builds career resilience and opens future pathways
+        - Positions individual for continued growth within NAB
+
     skills_transition_analysis:
-      title: "Skills Transition Analysis"
+      title: "Skills & Development"
+      content_type: "mixed"
+      bold_labels: ["What They Already Have:", "What They Need to Learn:", "Development Plan:"]
       content: |
-        **Directly Transferable Skills ({{transferable_skills_count}} of {{total_target_skills}} - {{skills_overlap_percentage}}%):**
-        *What this means:* {{skills_overlap_percentage}}% transferability indicates colleagues already possess most skills needed for success. Within NAB's business context (excluding 100% identical matches), this represents {{transferability_context_assessment}} in the {{percentile_ranking}} of meaningful career transitions({{transferability_context_ref}}), making this pathway particularly {{cost_effectiveness_assessment}} for both individuals and the organisation({{cost_effectiveness_ref}}).
+        What They Already Have:
+        {{skills_overlap_percentage}}% of required skills are already in place. This strong foundation makes the transition realistic and cost-effective.
 
         {% for category in transferable_skill_categories %}
-        - **{{category.name}}:** {{category.skill_list}}
+        - {{category.name}}: {{category.skill_list}}
         {% endfor %}
 
-        **Skills Development Required ({{required_skills_count}} new competencies):**
+        What They Need to Learn:
         {% for skill in required_skills %}
-        {{loop.index}}. **{{skill.name}}** - {{skill.description}}
+        {{loop.index}}. {{skill.name}} - {{skill.description}}
         {% endfor %}
 
-        **Development Timeline (Algorithmic Calculation):** {{total_development_weeks}} weeks total development time
-        *Planning Context:* Our 8-week learning cycles are based on adult learning research and NAB's historical training effectiveness data({{training_effectiveness_ref}}). This structured approach ensures sustainable skill acquisition while maintaining current role performance, reducing the risk of transition failure({{transition_risk_ref}}).
-
-        - **Specialized Skills:** {{specialized_skills_count}} new competencies × 8 weeks each = {{specialized_development_weeks}} weeks structured learning
-        - **Applied Experience:** {{applied_experience_months}} months on-the-job application and mentorship
-        - **Calculation Method:** Based on skill type analysis from database ({{specialized_percentage}}% of skills are "Specialized Skills" requiring 8-week development cycles, {{common_percentage}}% are "Common Skills" requiring 2-week cycles)
-        - **Conservative Estimate:** Uses upper-bound development time assumptions to ensure realistic transition planning
-
-        *[Development time calculated using SkillType categorisation from skills database: Specialized Skill = 8 weeks, Common Skill = 2 weeks, Certification = variable timing based on external requirements]*
+        Development Plan:
+        - Total development time: {{total_development_weeks}} weeks
+        - Structured learning: {{specialized_development_weeks}} weeks for new technical skills
+        - Applied experience: {{applied_experience_months}} months with mentorship support
+        - Approach ensures people can learn while maintaining current role performance
 
     business_case:
       title: "Business Case for Transition"
+      content_type: "mixed"
+      bold_labels: ["Strategic Alignment:", "Organisational Benefits:", "Internal Mobility:", "Knowledge Retention:", "Career Progression:", "Capability Building:", "Individual Value Proposition:", "Salary Progression:", "Strategic Exposure:", "Professional Development:", "Career Resilience:"]
       content: |
-        **[CUSTOMISATION REQUIRED: Insert organisation-specific business case and strategic context here. The following general benefits framework can be retained, edited, or replaced based on specific business requirements and confidentiality considerations.]**
-
-        **Strategic Alignment:**
+        Strategic Alignment:
         - {{strategic_alignment_point_1}}
         - {{strategic_alignment_point_2}}
         - {{strategic_alignment_point_3}}
 
-        **Organisational Benefits:**
-        - **Internal Mobility:** Reduces external recruitment costs (estimated ${{recruitment_cost_estimate}}K+ per senior hire)
-        - **Knowledge Retention:** Maintains institutional knowledge while expanding capability
-        - **Career Progression:** Provides clear advancement pathway for high-performing analysts
-        - **Capability Building:** Strengthens {{capability_building_area}} across multiple business units
+        Organisational Benefits:
+        - Internal Mobility: Reduces external recruitment costs (estimated ${{recruitment_cost_estimate}}K+ per senior hire)
+        - Knowledge Retention: Maintains institutional knowledge while expanding capability
+        - Career Progression: Provides clear advancement pathway for high-performing analysts
+        - Capability Building: Strengthens {{capability_building_area}} across multiple business units
 
-        **Individual Value Proposition:**
-        - **Salary Progression:** {{salary_progression_description}} ({{salary_increase_estimate}}% increase potential)
-        - **Strategic Exposure:** {{strategic_exposure_description}}
-        - **Professional Development:** {{professional_development_description}}
-        - **Career Resilience:** {{career_resilience_description}}
+        Individual Value Proposition:
+        - Salary Progression: {{salary_progression_description}} ({{salary_increase_estimate}}% increase potential)
+        - Strategic Exposure: {{strategic_exposure_description}}
+        - Professional Development: {{professional_development_description}}
+        - Career Resilience: {{career_resilience_description}}
 
     implementation_roadmap:
-      title: "Implementation Roadmap (Data-Informed Timeline)"
+      title: "Making It Happen"
+      content_type: "mixed"
+      bold_labels: ["Timeline:", "Month 1-2: Getting Started", "Month 3-4: Building Skills", "Month 5-6: Applying Learning", "Month 7+: Full Transition"]
       content: |
-        **[CUSTOMISATION GUIDANCE: The following timeline is based on algorithmic skill development calculations. Adjust phases and timelines based on organisational capacity, urgency requirements, and individual readiness assessments.]**
+        Timeline: {{total_transition_weeks}} weeks total from start to full effectiveness in new role
 
-        **Calculated Development Time:** {{total_development_weeks}} weeks for {{specialized_skills_count}} Specialized Skills + {{applied_integration_weeks}} weeks applied integration = {{total_transition_weeks}}-week total transition timeline
+        Month 1-2: Getting Started
+        - Individual career conversations and pathway confirmation
+        - Skills assessment and personalised development plan
+        - Identify mentor and set up support structure
 
-        **Phase 1: Foundation Building (Weeks 1-4)**
-        - {{phase_1_activity_1}}
-        - {{phase_1_activity_2}}
-        - {{phase_1_activity_3}}
+        Month 3-4: Building Skills
+        - Focused learning on {{specialized_skills_count}} new technical competencies
+        - Structured training programmes and workshops
+        - Begin shadowing and observational learning
 
-        **Phase 2: Technical Specialisation (Weeks 5-12)**
-        - {{phase_2_activity_1}}
-        - {{phase_2_activity_2}}
-        - {{phase_2_activity_3}}
+        Month 5-6: Applying Learning
+        - Practical application in current role where possible
+        - Cross-functional projects and collaboration
+        - Regular check-ins and progress reviews
 
-        **Phase 3: Applied Learning (Weeks 13-16)**
-        - {{phase_3_activity_1}}
-        - {{phase_3_activity_2}}
-        - {{phase_3_activity_3}}
-
-        **Phase 4: Transition Support (Months 5-6)**
-        - {{phase_4_activity_1}}
-        - {{phase_4_activity_2}}
-        - {{phase_4_activity_3}}
+        Month 7+: Full Transition
+        - Formal role transition when ready
+        - Ongoing mentorship and support
+        - Performance monitoring and adjustment as needed
 
 # Reference mapping for dynamic content (extending current_role_context references)
 references:

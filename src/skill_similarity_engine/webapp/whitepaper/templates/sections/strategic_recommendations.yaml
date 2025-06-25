@@ -6,32 +6,42 @@ strategic_recommendations:
   section_config:
     title: "Strategic Recommendations"
     references_start: 57
-    description: "Database-driven strategic insights and actionable recommendations"
+    description: "Strategic insights and actionable recommendations"
   
   content_sections:
-    database_driven_decision_support:
-      title: "Database-Driven Decision Support"
+    business_case:
+      title: "Business Case"
+      content_type: "mixed"
+      bold_labels: ["Why Act Now:", "The Opportunity:", "Investment Required:", "Organisational Impact:"]
       content: |
-        **[CUSTOMISATION REQUIRED: The following data-driven insights provide the foundation for developing scenario-specific strategic recommendations. Adapt based on specific workforce transition needs, scale, and organisational priorities.]**
+        Why Act Now:
+        - Your {{source_job_logical_display_name}} professionals have {{avg_similarity}}% of skills already needed for these new roles
+        - {{target_pathway_count}} proven pathways available with realistic transition requirements
+        - Strong talent retention opportunity in competitive market
 
-        **Workforce Impact Analysis (from {{total_job_profiles}} job profiles):**
-        - **Source Role Deployment:** {{source_job_logical_display_name}} positions across organisational structure
-        - **Target Pathway Availability:** {{target_pathway_count}} primary pathways with {{min_similarity}}-{{max_similarity}}% similarity scores
-        - **Skills Portfolio Overlap:** Average {{avg_similarity}}% transferable skills across pathways
-        - **Development Investment Required:** {{development_investment_weeks}} weeks per pathway (algorithmic calculation)
-
-        **Organisational Capability Context:**
-        - **{{source_function}} Function:** {{function_position_count}} positions ({{function_percentage}}% of roles) - established career pathway
+        The Opportunity:
+        - {{source_function}} function represents {{function_percentage}}% of NAB roles with established career frameworks
         {% if cross_function_1 is defined -%}
-        - **Cross-functional Application:** Skills appear across {{cross_function_1}} ({{cross_function_1_count}} roles), {{cross_function_2}} ({{cross_function_2_count}} roles), {{cross_function_3}} ({{cross_function_3_count}} roles)
+        - Skills transfer across {{cross_function_1}}, {{cross_function_2}}, and {{cross_function_3}} functions
         {% endif -%}
-        - **Management Level Progression:** Clear advancement opportunities available
-        - **Strategic Intelligence Metrics:** High connectivity and transition readiness demonstrated
+        - Clear advancement opportunities that support business growth
+
+        Investment Required:
+        - {{development_investment_weeks}} weeks average development time per person
+        - Structured learning programmes and mentorship support
+        - Pilot approach reduces risk and enables scaling
+
+        Organisational Impact:
+        - Improved talent retention and engagement
+        - Reduced external recruitment costs
+        - Enhanced capability across multiple business areas
 
     immediate_actions:
       title: "Immediate Actions (Next 30 Days)"
+      content_type: "numbered_list"
+      bold_numbered_headers: true
       content: |
-        1. **Individual Career Conversations**
+        1. Individual Career Conversations
            {% if source_position_count > 0 -%}
            - Conduct structured career discussions with all {{source_position_count}} {{source_job_logical_display_name}} professionals
            {% else -%}
@@ -40,30 +50,32 @@ strategic_recommendations:
            - Assess individual career aspirations and pathway preferences
            - Identify high-potential candidates for each transition pathway
 
-        2. **Skills Gap Assessment**
+        2. Skills Gap Assessment
            - Complete detailed skills assessment for interested candidates
            - Identify specific learning needs and development priorities
            - Create personalised development plans aligned with chosen pathways
 
-        3. **Stakeholder Alignment**
+        3. Stakeholder Alignment
            - Engage hiring managers in target function teams
            - Confirm pathway viability and position availability
            - Establish mentorship and support structures
 
     medium_term_initiatives:
       title: "Medium-Term Initiatives (Next 90 Days)"
+      content_type: "numbered_list"
+      bold_numbered_headers: true
       content: |
-        1. **Structured Learning Programs**
+        1. Structured Learning Programs
            - Develop pathway-specific learning curricula based on {{development_investment_weeks}}-week development cycles
            - Establish partnerships with training providers for specialised skills
            - Create internal mentorship matching system
 
-        2. **Pilot Transition Program**
+        2. Pilot Transition Program
            - Select 2-3 candidates for initial pathway pilots
            - Implement structured transition support framework
            - Monitor progress and adjust approach based on learnings
 
-        3. **Cross-Functional Collaboration**
+        3. Cross-Functional Collaboration
            {% if cross_function_1 is defined -%}
            - Establish collaboration frameworks with {{cross_function_1}}, {{cross_function_2}}, and {{cross_function_3}} teams
            {% endif -%}
@@ -72,29 +84,32 @@ strategic_recommendations:
 
     success_metrics_evaluation:
       title: "Success Metrics & Evaluation"
+      content_type: "mixed"
+      bold_labels: ["Quantitative Measures:", "Transition Success Rate:", "Retention Rate:", "Time to Productivity:", "Internal Mobility Rate:", "Strategic Impact Measures:", "Cost Avoidance:", "Capability Building:", "Knowledge Retention:", "Innovation Metrics:", "Cross-Family Mobility:", "Organisational Resilience Indicators:", "Skills Diversification:", "Leadership Pipeline:", "Change Readiness:", "Employee Engagement:"]
       content: |
-        **Quantitative Measures:**
-        - **Transition Success Rate:** Target {{target_transition_success}}% successful pathway completion within 12 months  
-          *Benchmark Context:* {{target_transition_success}}% represents best-practice performance for internal career transitions. Industry averages typically range {{industry_transition_success}}-70%, making this an ambitious but achievable target based on our contextually high similarity scores.
+        Quantitative Measures:
+        
+        - Transition Success Rate: Target {{target_transition_success}}% successful pathway completion within 12 months  
+          Benchmark Context: {{target_transition_success}}% represents best-practice performance for internal career transitions. Industry averages typically range {{industry_transition_success}}-70%, making this an ambitious but achievable target based on our contextually high similarity scores.
 
-        - **Retention Rate:** Target {{target_retention}}% retention of transitioned professionals at 18 months  
-          *Benchmark Context:* {{target_retention}}% retention significantly exceeds industry standards ({{industry_retention}}-80%) for career transitions, reflecting the quality of our pathway selection and support processes.
+        - Retention Rate: Target {{target_retention}}% retention of transitioned professionals at 18 months  
+          Benchmark Context: {{target_retention}}% retention significantly exceeds industry standards ({{industry_retention}}-80%) for career transitions, reflecting the quality of our pathway selection and support processes.
 
-        - **Time to Productivity:** Target {{target_productivity_months}} months to full effectiveness in new roles  
-          *Benchmark Context:* {{target_productivity_months}} months is optimal for senior-level transitions. External hires typically require {{industry_productivity_months}}-12 months, demonstrating the efficiency advantage of internal mobility.
+        - Time to Productivity: Target {{target_productivity_months}} months to full effectiveness in new roles  
+          Benchmark Context: {{target_productivity_months}} months is optimal for senior-level transitions. External hires typically require {{industry_productivity_months}}-12 months, demonstrating the efficiency advantage of internal mobility.
 
-        - **Internal Mobility Rate:** Increase analytical professional internal mobility by 40%  
-          *Benchmark Context:* 40% increase would position the organisation as a leader in internal career development, supporting both retention and capability building objectives.
+        - Internal Mobility Rate: Increase analytical professional internal mobility by 40%  
+          Benchmark Context: 40% increase would position the organisation as a leader in internal career development, supporting both retention and capability building objectives.
 
-        **Strategic Impact Measures:**
-        - **Cost Avoidance:** Reduction in external recruitment costs for senior analytical roles
-        - **Capability Building:** Improvement in analytical capability maturity across target areas  
-        - **Knowledge Retention:** Maintenance of institutional knowledge through internal transitions
-        - **Innovation Metrics:** Contribution to business innovation and transformation initiatives
-        - **Cross-Family Mobility:** Leverage {{cross_family_mobility_count}} identified cross-functional transition opportunities
+        Strategic Impact Measures:
+        - Cost Avoidance: Reduction in external recruitment costs for senior analytical roles
+        - Capability Building: Improvement in analytical capability maturity across target areas  
+        - Knowledge Retention: Maintenance of institutional knowledge through internal transitions
+        - Innovation Metrics: Contribution to business innovation and transformation initiatives
+        - Cross-Family Mobility: Leverage {{cross_family_mobility_count}} identified cross-functional transition opportunities
 
-        **Organisational Resilience Indicators:**
-        - **Skills Diversification:** Reduced concentration risk in critical competencies
-        - **Leadership Pipeline:** Enhanced succession planning across {{function_position_count}} positions
-        - **Change Readiness:** Improved organisational agility for future restructures
-        - **Employee Engagement:** Increased career satisfaction and development opportunities 
+        Organisational Resilience Indicators:
+        - Skills Diversification: Reduced concentration risk in critical competencies
+        - Leadership Pipeline: Enhanced succession planning across {{function_position_count}} positions
+        - Change Readiness: Improved organisational agility for future restructures
+        - Employee Engagement: Increased career satisfaction and development opportunities 

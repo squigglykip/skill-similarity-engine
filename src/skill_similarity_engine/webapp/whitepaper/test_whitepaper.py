@@ -94,12 +94,20 @@ def test_executive_summary_generation():
         # Key Findings
         if 'key_findings' in content:
             print(f"\n### {content['key_findings']['title']}")
-            print(content['key_findings']['content'])
+            key_content = content['key_findings']['content']
+            if isinstance(key_content, dict) and 'text' in key_content:
+                print(key_content['text'])
+            else:
+                print(key_content)
         
         # Primary Recommendations
         if 'primary_recommendations' in content:
             print(f"\n### {content['primary_recommendations']['title']}")
-            print(content['primary_recommendations']['content'])
+            rec_content = content['primary_recommendations']['content']
+            if isinstance(rec_content, dict) and 'text' in rec_content:
+                print(rec_content['text'])
+            else:
+                print(rec_content)
         
         # Data-Driven Classification
         if 'data_driven_classification' in content:
@@ -109,7 +117,11 @@ def test_executive_summary_generation():
         # Confidence Assessment
         if 'confidence_assessment' in content:
             print(f"\n### {content['confidence_assessment']['title']}")
-            print(content['confidence_assessment']['content'])
+            conf_content = content['confidence_assessment']['content']
+            if isinstance(conf_content, dict) and 'text' in conf_content:
+                print(conf_content['text'])
+            else:
+                print(conf_content)
         
         # Show template variables for debugging
         print("\n" + "=" * 50)
@@ -247,25 +259,32 @@ def test_current_role_context_generation():
         
         content = result.get('content', {})
         
+        # Helper function to display structured content
+        def display_content(section_content):
+            if isinstance(section_content, dict) and 'text' in section_content:
+                return section_content['text']
+            else:
+                return str(section_content)
+        
         # Profile Overview
         if 'profile_overview' in content:
             print(f"\n### {content['profile_overview']['title']}")
-            print(content['profile_overview']['content'])
+            print(display_content(content['profile_overview']['content']))
         
         # Core Competency Foundation
         if 'core_competency_foundation' in content:
             print(f"\n### {content['core_competency_foundation']['title']}")
-            print(content['core_competency_foundation']['content'])
+            print(display_content(content['core_competency_foundation']['content']))
         
         # Strategic Value Proposition
         if 'strategic_value_proposition' in content:
             print(f"\n### {content['strategic_value_proposition']['title']}")
-            print(content['strategic_value_proposition']['content'])
+            print(display_content(content['strategic_value_proposition']['content']))
         
         # Strategic Intelligence Metrics
         if 'strategic_intelligence_metrics' in content:
             print(f"\n### {content['strategic_intelligence_metrics']['title']}")
-            print(content['strategic_intelligence_metrics']['content'])
+            print(display_content(content['strategic_intelligence_metrics']['content']))
         
         # Show template variables for debugging
         print("\n" + "=" * 50)
@@ -577,6 +596,127 @@ def test_conclusion_generation():
         
     except Exception as e:
         print(f"❌ Error during conclusion testing: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        if 'db' in locals():
+            db.close()
+
+def test_clean_copy_display():
+    """Display clean copy of all sections without debug information."""
+    
+    print("📄 NAB Skills Intelligence Platform")
+    print("Strategic Career Pathway Analysis")
+    print("=" * 70)
+    
+    # Connect to database
+    db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
+    
+    if not db_path.exists():
+        print(f"⚠️ Database not found at: {db_path}")
+        print("Please update the db_path in the test script to point to your database.")
+        return
+    
+    try:
+        # Connect to database (no debug output)
+        db = sqlite3.connect(str(db_path))
+        db.row_factory = sqlite3.Row
+        
+        # Initialize all generators (no debug output)
+        from executive_summary_generator import ExecutiveSummaryGenerator
+        from current_role_context_generator import CurrentRoleContextGenerator
+        from pathway_analysis_generator import PathwayAnalysisGenerator
+        from strategic_recommendations_generator import StrategicRecommendationsGenerator
+        from conclusion_generator import ConclusionGenerator
+        
+        exec_generator = ExecutiveSummaryGenerator(db)
+        context_generator = CurrentRoleContextGenerator(db)
+        pathway_generator = PathwayAnalysisGenerator(db)
+        strategic_generator = StrategicRecommendationsGenerator(db)
+        conclusion_generator = ConclusionGenerator(db)
+        
+        # Test job
+        test_job_id = "R0100.2"
+        
+        # Get job name for header
+        logical_manager = exec_generator.logical_role_manager
+        job_name = logical_manager.get_logical_role_display_name(test_job_id)
+        
+        print(f"White Paper: {job_name}")
+        print(f"Generated: {Path(__file__).parent.parent.parent.parent.parent}")
+        print("Version 1.0 - Skills Intelligence Analysis")
+        print()
+        
+        # Generate all sections (suppress logging temporarily)
+        import logging
+        logging.getLogger().setLevel(logging.ERROR)
+        
+        sections = {}
+        sections['executive_summary'] = exec_generator.generate(test_job_id)
+        sections['current_role_context'] = context_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['pathway_analysis'] = pathway_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['strategic_recommendations'] = strategic_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['conclusion'] = conclusion_generator.generate(test_job_id, include_organisational_deployment=True)
+        
+        # Restore logging
+        logging.getLogger().setLevel(logging.INFO)
+        
+        # Display sections cleanly
+        section_order = [
+            ('executive_summary', 'Executive Summary'),
+            ('current_role_context', 'Current Role Context'),
+            ('pathway_analysis', 'Pathway Analysis: Top 3 Strategic Opportunities'),
+            ('strategic_recommendations', 'Strategic Recommendations'),
+            ('conclusion', 'Conclusion')
+        ]
+        
+        for section_key, section_title in section_order:
+            if section_key in sections:
+                print(f"\n## {section_title}")
+                print()
+                
+                section_result = sections[section_key]
+                content = section_result.get('content', {})
+                
+                if section_key == 'pathway_analysis' and 'opportunities' in content:
+                    # Special handling for pathway analysis with opportunities
+                    for i, opportunity in enumerate(content['opportunities'], 1):
+                        print(f"### {opportunity['header']}")
+                        print()
+                        
+                        # Display each sub-section
+                        sub_sections = ['strategic_positioning', 'skills_transition_analysis', 'business_case', 'implementation_roadmap']
+                        for sub_key in sub_sections:
+                            if sub_key in opportunity:
+                                sub_section = opportunity[sub_key]
+                                print(f"#### {sub_section['title']}")
+                                print(sub_section['content'])
+                                print()
+                        
+                        if i < len(content['opportunities']):
+                            print("---")
+                            print()
+                else:
+                    # Standard section handling
+                    for subsection_key, subsection in content.items():
+                        if isinstance(subsection, dict) and 'content' in subsection:
+                            if 'title' in subsection:
+                                print(f"### {subsection['title']}")
+                            
+                            # Handle structured content
+                            subsection_content = subsection['content']
+                            if isinstance(subsection_content, dict) and 'text' in subsection_content:
+                                print(subsection_content['text'])
+                            else:
+                                print(subsection_content)
+                            print()
+        
+        print("=" * 70)
+        print("End of White Paper")
+        
+    except Exception as e:
+        print(f"❌ Error generating clean copy: {e}")
         import traceback
         traceback.print_exc()
     
@@ -942,12 +1082,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python test_executive_summary.py                    # Run all tests
-    python test_executive_summary.py --template         # Test template loading only
-    python test_executive_summary.py --executive        # Test executive summary only
-    python test_executive_summary.py --current          # Test current role context only
-    python test_executive_summary.py --pathway          # Test pathway analysis only
-    python test_executive_summary.py --strategic        # Test strategic recommendations only
+    python test_whitepaper.py                           # Run all tests
+    python test_whitepaper.py --copy                    # Display clean copy without debug
+    python test_whitepaper.py --template                # Test template loading only
+    python test_whitepaper.py --executive               # Test executive summary only
+    python test_whitepaper.py --current                 # Test current role context only
+    python test_whitepaper.py --pathway                 # Test pathway analysis only
+    python test_whitepaper.py --strategic               # Test strategic recommendations only
+    python test_whitepaper.py --conclusion              # Test conclusion only
+    python test_whitepaper.py --word                    # Generate full Word document
         """
     )
     
@@ -965,13 +1108,21 @@ Examples:
                        help='Test conclusion generation only')
     parser.add_argument('--word', action='store_true', 
                        help='Test full white paper generation with Word document output')
+    parser.add_argument('--copy', action='store_true', 
+                       help='Display clean copy of all sections without debug information')
     parser.add_argument('--all', action='store_true', 
                        help='Run all tests (default if no flags specified)')
     
     args = parser.parse_args()
     
     # If no specific test is requested, run all tests
-    run_all = args.all or not (args.template or args.executive or args.current or args.pathway or args.strategic or args.conclusion)
+    run_all = (not (args.template or args.executive or args.current or args.pathway or 
+                   args.strategic or args.conclusion or args.copy or args.word))
+    
+    # Handle clean copy display separately
+    if args.copy:
+        test_clean_copy_display()
+        return
     
     print("🚀 White Paper Generation Test Suite")
     print("=" * 50)
