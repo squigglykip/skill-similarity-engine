@@ -78,6 +78,140 @@ class ContentFormatter:
                 'bold_labels': bold_labels or []
             }
         )
+    
+    @staticmethod
+    def create_table(headers: List[str], rows: List[List[str]], table_style: str = 'simple') -> Dict[str, Any]:
+        """Create a table with headers and rows for Word document formatting."""
+        # Convert table data to text format for now
+        # Headers
+        table_text = " | ".join(headers) + "\n"
+        table_text += "|".join(["-" * len(header) for header in headers]) + "\n"
+        
+        # Rows
+        for row in rows:
+            table_text += " | ".join(str(cell) for cell in row) + "\n"
+        
+        return ContentFormatter.create_formatted_content(
+            table_text,
+            {
+                'content_type': 'table',
+                'table_style': table_style,
+                'headers': headers,
+                'rows': rows
+            }
+        )
+    
+    @staticmethod
+    def create_skills_analysis_table(skill_categories: List[Dict], total_skills: int, skills_overlap_job_count: int) -> Dict[str, Any]:
+        """Create a Skills Analysis Table with SkillType grouping for Current Role Context section."""
+        
+        # Headers for the Skills Analysis Table (removed Demand Level)
+        headers = ['Skill Type', 'Skill Count', 'All Skills']
+        
+        # Build rows from skill categories (now grouped by SkillType)
+        rows = []
+        for category in skill_categories:
+            skill_type = category.get('name', 'Other')
+            skill_count = category.get('skill_count', 0)
+            skill_list = category.get('skill_list', '')
+            
+            # No truncation - show ALL skills
+            rows.append([
+                skill_type,
+                str(skill_count),
+                skill_list  # Full skill list without truncation
+            ])
+        
+        return ContentFormatter.create_table(
+            headers=headers,
+            rows=rows,
+            table_style='compact'  # Use compact styling for better real estate
+        )
+
+    @staticmethod
+    def create_pathway_comparison_table(pathways: List[Dict]) -> Dict[str, Any]:
+        """Create a Career Pathway Comparison Table for Executive Summary."""
+        
+        # Headers for the Career Pathway Comparison Table
+        headers = ['Rank', 'Target Role', 'Similarity', 'Move Type', 'Management Level', 'Strategic Context']
+        
+        # Build rows from pathway data
+        rows = []
+        for i, pathway in enumerate(pathways, 1):
+            target_role = pathway.get('target_logical_role', 'Unknown Role')
+            similarity = f"{pathway.get('similarity_score', 0)}%"
+            move_type = pathway.get('move_type', 'Unknown')
+            
+            # Extract management level progression
+            source_level = pathway.get('source_management_level', 'Unknown')
+            target_level = pathway.get('target_management_level', 'Unknown')
+            if source_level != 'Unknown' and target_level != 'Unknown':
+                if source_level == target_level:
+                    level_progression = source_level
+                else:
+                    level_progression = f"{source_level} → {target_level}"
+            else:
+                level_progression = target_level
+            
+            # Get strategic context (truncate if too long for table)
+            strategic_context = pathway.get('strategic_context_explanation', 'Strategic transition opportunity')
+            if len(strategic_context) > 80:
+                strategic_context = strategic_context[:77] + '...'
+            
+            rows.append([
+                str(i),                # Rank
+                target_role,           # Target Role
+                similarity,            # Similarity %
+                move_type,            # Move Type
+                level_progression,    # Management Level
+                strategic_context     # Strategic Context
+            ])
+        
+        return ContentFormatter.create_table(
+            headers=headers,
+            rows=rows,
+            table_style='compact'  # Use compact styling for better real estate
+        )
+
+    @staticmethod
+    def create_strategic_metrics_table(metrics: Dict) -> Dict[str, Any]:
+        """Create a Strategic Intelligence Metrics Table for Current Role Context."""
+        
+        # Headers for the Strategic Intelligence Metrics Table
+        headers = ['Metric', 'Score', 'Assessment', 'Strategic Significance']
+        
+        # Build rows from metrics data
+        rows = []
+        
+        # Mobility Hub Score
+        mobility_score = f"{metrics.get('mobility_hub_score', 0)}%"
+        mobility_assessment = metrics.get('mobility_hub_assessment', 'Medium Hub Potential')
+        mobility_description = metrics.get('mobility_strategic_value', 'Medium connectivity within career pathway network')
+        rows.append(['Mobility Hub Score', mobility_score, mobility_assessment, mobility_description])
+        
+        # Transition Readiness
+        readiness_score = f"{metrics.get('transition_readiness', 0)}%"
+        readiness_assessment = metrics.get('transition_readiness_assessment', 'Medium Readiness')
+        readiness_description = metrics.get('transition_investment_descriptor', 'Moderate investment requirements for transitions')
+        rows.append(['Transition Readiness', readiness_score, readiness_assessment, readiness_description])
+        
+        # Cross-Family Reach
+        reach_count = str(metrics.get('cross_family_reach', 0))
+        reach_assessment = metrics.get('cross_family_diversity_assessment', 'Moderate Diversity')
+        reach_description = metrics.get('organisational_agility_descriptor', 'Cross-functional capability potential')
+        rows.append(['Cross-Family Reach', f"{reach_count} functions", reach_assessment, reach_description])
+        
+        # Strategic Value
+        value_score = metrics.get('strategic_value_assessment', 'MEDIUM')
+        value_assessment = metrics.get('strategic_value_descriptor', 'Valuable Position')
+        value_description = metrics.get('workforce_planning_priority', 'Strategic workforce planning asset')
+        rows.append(['Strategic Value', value_score, value_assessment, value_description])
+        
+        return ContentFormatter.create_table(
+            headers=headers,
+            rows=rows,
+            table_style='compact'  # Use compact styling for better real estate
+        )
 
 class DocumentFormatter:
     """Formats generated content into various document formats using NAB templates."""
@@ -127,6 +261,15 @@ class DocumentFormatter:
             # Setup NAB styles and create professional document
             self._setup_nab_styles(doc)
             self._create_nab_document(doc, content, analysis_data, job_name)
+            
+            # Set up page margins (Normal Word margins: 2.54cm all around)
+            from docx.shared import Inches
+            sections = doc.sections
+            for section in sections:
+                section.top_margin = Inches(1.0)      # 2.54cm = 1.0 inch
+                section.bottom_margin = Inches(1.0)   # 2.54cm = 1.0 inch  
+                section.left_margin = Inches(1.0)     # 2.54cm = 1.0 inch
+                section.right_margin = Inches(1.0)    # 2.54cm = 1.0 inch
             
             # Save to memory buffer
             buffer = io.BytesIO()
@@ -323,16 +466,53 @@ class DocumentFormatter:
             self._add_nab_content(doc, section_content)
     
     def _add_nab_opportunity(self, doc, opportunity: Dict, opportunity_num: int):
-        """Add pathway opportunity using NAB styles."""
+        """Add pathway opportunity using NAB styles with enhanced headers."""
         
-        # Opportunity heading using Word's built-in Heading 2 (modified with NAB styling)
-        opp_title = opportunity.get('title', f'Opportunity {opportunity_num}')
-        opp_heading = doc.add_paragraph(f"{opportunity_num}. {opp_title}")
-        opp_heading.style = 'Heading 2'
+        # Use the enhanced header from pathway analysis, fallback to simple title
+        if 'header' in opportunity:
+            # New enhanced header format with detailed opportunity information
+            header_content = opportunity['header']
+            # Split header into lines and format appropriately
+            header_lines = header_content.strip().split('\n')
+            
+            for i, line in enumerate(header_lines):
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                if i == 0 and line.startswith('##'):
+                    # Main opportunity heading (remove ## and use as Heading 2)
+                    heading_text = line.replace('##', '').strip()
+                    opp_heading = doc.add_paragraph(heading_text)
+                    opp_heading.style = 'Heading 2'
+                elif line.startswith('**') and line.endswith('**'):
+                    # Bold formatted line (like **Target Role**: ...)
+                    para = doc.add_paragraph()
+                    para.style = 'NAB Body'
+                    
+                    # Parse bold label and content
+                    clean_line = line.replace('**', '')
+                    if ':' in clean_line:
+                        label, content = clean_line.split(':', 1)
+                        label_run = para.add_run(f"{label.strip()}: ")
+                        label_run.bold = True
+                        para.add_run(content.strip())
+                    else:
+                        full_run = para.add_run(clean_line)
+                        full_run.bold = True
+                else:
+                    # Regular line
+                    para = doc.add_paragraph(line)
+                    para.style = 'NAB Body'
+        else:
+            # Fallback to legacy format
+            opp_title = opportunity.get('title', f'Opportunity {opportunity_num}')
+            opp_heading = doc.add_paragraph(f"{opportunity_num}. {opp_title}")
+            opp_heading.style = 'Heading 2'
         
-        # Add opportunity details
+        # Add opportunity details (skip the header field since we already processed it)
         for detail_key, detail_content in opportunity.items():
-            if detail_key != 'title' and isinstance(detail_content, dict):
+            if detail_key not in ['title', 'header'] and isinstance(detail_content, dict):
                 if 'title' in detail_content:
                     # Detail subheading using Word's built-in Heading 3 (modified with NAB styling)
                     detail_heading = doc.add_paragraph(detail_content['title'])
@@ -341,23 +521,70 @@ class DocumentFormatter:
                 if 'content' in detail_content:
                     self._add_nab_content(doc, detail_content['content'])
     
-    def _add_nab_content(self, doc, content: Union[str, Dict]):
+    def _add_nab_content(self, doc, content: Union[str, Dict, List]):
         """Add content using NAB body style with structured formatting support."""
         
         if not content:
+            return
+        
+        # Handle list of content items (new for table support)
+        if isinstance(content, list):
+            for content_item in content:
+                self._add_nab_content(doc, content_item)
             return
         
         # Handle both legacy string content and new structured content
         if isinstance(content, str):
             # Legacy string content - use basic formatting
             self._add_legacy_string_content(doc, content)
-        elif isinstance(content, dict) and 'text' in content:
-            # New structured content with formatting metadata
-            self._add_structured_content(doc, content)
-        else:
-            # Handle other dict structures (like sections with title/content)
-            if isinstance(content, dict) and 'content' in content:
-                self._add_nab_content(doc, content['content'])
+        elif isinstance(content, dict):
+            # Check for new pathway analysis table format
+            if 'content_type' in content and content.get('content_type') == 'table':
+                self._add_pathway_table(doc, content)
+            elif 'content_type' in content and content.get('content_type') == 'mixed':
+                # Mixed content with bold labels
+                table_content = content.get('content', '')
+                bold_labels = content.get('bold_labels', [])
+                self._add_structured_mixed_content(doc, table_content, {'bold_labels': bold_labels})
+            elif 'content_type' in content and content.get('content_type') == 'paragraph':
+                # Simple paragraph content
+                paragraph_content = content.get('content', '')
+                self._add_structured_paragraph(doc, paragraph_content, {})
+            elif 'text' in content:
+                # New structured content with formatting metadata
+                self._add_structured_content(doc, content)
+            else:
+                # Handle other dict structures (like sections with title/content)
+                if 'content' in content:
+                    self._add_nab_content(doc, content['content'])
+    
+    def _add_pathway_table(self, doc, table_content: Dict):
+        """Add pathway analysis table with proper structure mapping."""
+        
+        try:
+            # Fix the structure mapping issue identified in handover document
+            headers = table_content.get('table_headers', [])
+            content = table_content.get('content', [])
+            
+            if not headers or not content:
+                return
+            
+            # Map to the format expected by _add_structured_table
+            formatting = {
+                'headers': headers,      # Map table_headers -> headers
+                'rows': content,         # Map content -> rows  
+                'table_size': 'normal'
+            }
+            
+            # Use existing structured table method
+            self._add_structured_table(doc, formatting)
+            
+        except Exception as e:
+            print(f"⚠️ Error creating pathway table: {e}")
+            # Fallback to text content
+            para = doc.add_paragraph()
+            para.style = 'NAB Body'
+            para.add_run(f"Table content processing failed: {e}")
     
     def _add_structured_content(self, doc, structured_content: Dict):
         """Add structured content with explicit formatting metadata."""
@@ -372,6 +599,8 @@ class DocumentFormatter:
             self._add_structured_numbered_list(doc, text, formatting)
         elif content_type == 'mixed':
             self._add_structured_mixed_content(doc, text, formatting)
+        elif content_type == 'table':
+            self._add_structured_table(doc, formatting)
         else:
             # Default to paragraph
             self._add_structured_paragraph(doc, text, formatting)
@@ -406,25 +635,60 @@ class DocumentFormatter:
     def _add_structured_numbered_list(self, doc, text: str, formatting: Dict):
         """Add numbered list using explicit formatting metadata."""
         
-        lines = text.strip().split('\n')
+        # Split on double newlines to get individual numbered items
+        items = text.strip().split('\n\n')
         bold_headers = formatting.get('bold_numbered_headers', False)
         bold_labels = formatting.get('bold_labels', [])
+        small_italic_text = formatting.get('small_italic_text', False)
         
-        for line in lines:
-            line = line.strip()
-            if line:
+        for i, item in enumerate(items, 1):
+            if not item.strip():
+                continue
+                
+            lines = item.strip().split('\n')
+            
+            # First line is the main header for this numbered item
+            if lines:
+                main_header = lines[0].strip()
+                
+                # Add numbered header
                 para = doc.add_paragraph()
                 para.style = 'NAB Body'
                 
-                # Check if this is a numbered header that should be bold
-                numbered_match = re.match(r'^(\d+\.\s+)(.+)', line)
-                if numbered_match and bold_headers:
-                    # Bold the entire numbered line
-                    full_run = para.add_run(line)
-                    full_run.bold = True
+                # Check if this has a header:content format (e.g., "Individual Career Conversations: Conduct structured...")
+                if ':' in main_header:
+                    header_part, content_part = main_header.split(':', 1)
+                    header_part = header_part.strip()
+                    content_part = content_part.strip()
+                    
+                    # Add number and header part (bold if specified)
+                    number_header_run = para.add_run(f"{i}. {header_part}: ")
+                    if bold_headers:
+                        number_header_run.bold = True
+                    
+                    # Add content part (regular formatting)
+                    content_run = para.add_run(content_part)
+                    
+                    # Apply small italic formatting if specified (for references)
+                    if small_italic_text:
+                        number_header_run.font.size = Pt(9)
+                        number_header_run.italic = True
+                        content_run.font.size = Pt(9)
+                        content_run.italic = True
                 else:
-                    # Regular formatting with label bolding
-                    self._add_formatted_text_with_labels(para, line, bold_labels)
+                    # No colon separator, treat entire line as header
+                    if bold_headers:
+                        # Bold numbered header
+                        header_run = para.add_run(f"{i}. {main_header}")
+                        header_run.bold = True
+                    else:
+                        # Regular numbered header
+                        header_run = para.add_run(f"{i}. {main_header}")
+                    
+                    # Apply small italic formatting if specified (for references)
+                    if small_italic_text:
+                        header_run.font.size = Pt(9)
+                        header_run.italic = True
     
     def _add_structured_paragraph(self, doc, text: str, formatting: Dict):
         """Add paragraph using explicit formatting metadata."""
@@ -472,6 +736,144 @@ class DocumentFormatter:
                     else:
                         # Regular text
                         self._add_formatted_text_with_labels(para, line, bold_labels)
+    
+    def _add_structured_table(self, doc, formatting: Dict):
+        """Add a structured table to the document."""
+        
+        if not DOCX_AVAILABLE:
+            return
+        
+        try:
+            from docx.shared import Inches
+            from docx.enum.table import WD_TABLE_ALIGNMENT
+            
+            headers = formatting.get('headers', [])
+            rows = formatting.get('rows', [])
+            table_size = formatting.get('table_size', 'normal')  # 'compact' or 'normal'
+            
+            if not headers or not rows:
+                return
+            
+            # Create table
+            table = doc.add_table(rows=1 + len(rows), cols=len(headers))
+            table.alignment = WD_TABLE_ALIGNMENT.LEFT
+            
+            # Set table to use full page width
+            table.autofit = False
+            table.width = Inches(6.5)  # Page width minus margins (8.5" - 2" margins = 6.5")
+            
+            # Set column widths based on content type and number of columns
+            col_count = len(headers)
+            if col_count == 3:  # Skills Analysis Table (Skill Type, Skill Count, All Skills)
+                col_widths = [Inches(1.5), Inches(1.0), Inches(4.0)]  # Give most space to skills list
+            elif col_count == 4:  # Strategic Metrics Table (Metric, Score, Assessment, Strategic Significance)
+                col_widths = [Inches(1.5), Inches(0.8), Inches(1.2), Inches(3.0)]  # Balanced distribution
+            elif col_count == 6:  # Pathway Comparison Table
+                col_widths = [Inches(0.5), Inches(1.8), Inches(0.8), Inches(1.0), Inches(1.2), Inches(1.2)]
+            else:
+                # Default: Equal distribution
+                width_per_col = 6.5 / col_count
+                col_widths = [Inches(width_per_col) for _ in range(col_count)]
+            
+            # Apply column widths
+            for i, width in enumerate(col_widths[:col_count]):
+                for row in table.rows:
+                    row.cells[i].width = width
+            
+            # Apply Table Design 2 style - banded rows with grey shading
+            # Try different built-in styles that match Table Design 2
+            table_styles_to_try = [
+                'Medium Shading 1',           # Banded rows with grey shading
+                'Light Shading',              # Light version
+                'Medium Grid 1',              # Grid with shading
+                'Light List Accent 1',        # Fallback option
+                'Table Grid'                  # Basic fallback
+            ]
+            
+            style_applied = False
+            for style_name in table_styles_to_try:
+                try:
+                    table.style = style_name
+                    style_applied = True
+                    print(f"✅ Applied table style: {style_name}")
+                    break
+                except:
+                    continue
+            
+            if not style_applied:
+                print("⚠️ Could not apply any table style, using default")
+            
+            # Use consistent 9pt font size for all tables (headers and body)
+            header_font_size = Pt(9)  # 9pt font for all table headers
+            body_font_size = Pt(9)    # 9pt font for all table body text
+            
+            # Add headers with dark background (similar to Table Design 2)
+            header_row = table.rows[0]
+            for i, header in enumerate(headers):
+                cell = header_row.cells[i]
+                para = cell.paragraphs[0]
+                para.style = 'NAB Body'
+                run = para.add_run(header)
+                run.bold = True
+                run.font.size = header_font_size
+                
+                # Enhanced header formatting
+                try:
+                    # Make header text white for better contrast
+                    run.font.color.rgb = RGBColor(255, 255, 255)
+                except:
+                    # Fallback if color setting fails
+                    pass
+            
+            # Add data rows (banding handled by built-in table style)
+            for row_idx, row_data in enumerate(rows):
+                table_row = table.rows[row_idx + 1]
+                
+                for col_idx, cell_data in enumerate(row_data):
+                    cell = table_row.cells[col_idx]
+                    
+                    # Use hyperlink-aware cell content method
+                    self._add_cell_content_with_hyperlinks(cell, str(cell_data))
+                    
+                    # Apply compact cell margins for better space utilization
+                    if table_size == 'compact':
+                        try:
+                            # Reduce cell margins for compact tables
+                            cell.margin_top = Inches(0.02)
+                            cell.margin_bottom = Inches(0.02)
+                            cell.margin_left = Inches(0.05)
+                            cell.margin_right = Inches(0.05)
+                        except:
+                            # Fallback if margin setting fails
+                            pass
+            
+            # Add spacing after table
+            doc.add_paragraph()
+            
+        except Exception as e:
+            # Fallback to text-based table if docx table creation fails
+            print(f"⚠️ Table creation failed, using text format: {e}")
+            para = doc.add_paragraph()
+            para.style = 'NAB Body'
+            para.add_run("Table data (formatted as text due to processing limitations)")
+            
+            headers = formatting.get('headers', [])
+            rows = formatting.get('rows', [])
+            
+            # Headers
+            if headers:
+                header_para = doc.add_paragraph()
+                header_para.style = 'NAB Body'
+                header_run = header_para.add_run(" | ".join(headers))
+                header_run.bold = True
+                header_run.font.size = Pt(9)  # 9pt font for fallback table headers
+            
+            # Rows
+            for row in rows:
+                row_para = doc.add_paragraph()
+                row_para.style = 'NAB Body'
+                row_run = row_para.add_run(" | ".join(str(cell) for cell in row))
+                row_run.font.size = Pt(9)  # 9pt font for fallback table body text
     
     def _add_formatted_text_with_labels(self, para, text: str, bold_labels: List[str]):
         """Add formatted text with specified labels in bold."""
@@ -641,3 +1043,111 @@ class DocumentFormatter:
         ]
         
         return slides
+
+    def _add_cell_content_with_hyperlinks(self, cell, cell_data):
+        """Add content to a table cell, processing hyperlinks if present."""
+        if not DOCX_AVAILABLE:
+            return
+        
+        try:
+            # Convert to string and handle None/empty values
+            if cell_data is None:
+                cell_data = ""
+            elif not isinstance(cell_data, str):
+                cell_data = str(cell_data)
+            
+            # Clear existing paragraphs
+            cell.text = ""
+            para = cell.paragraphs[0]
+            para.style = 'NAB Body'
+            
+            # Handle empty content
+            if not cell_data.strip():
+                run = para.add_run("")
+                run.font.size = Pt(9)
+                return
+            
+            # Split by newlines to handle bullet points
+            lines = cell_data.split('\n')
+            
+            for line_idx, line in enumerate(lines):
+                if not line.strip():  # Skip empty lines
+                    continue
+                    
+                if line_idx > 0:
+                    # Add a new paragraph for each line after the first
+                    para = cell.add_paragraph()
+                    para.style = 'NAB Body'
+                
+                # Check if line contains hyperlink (format: text|url)
+                if '|' in line and line.count('|') == 1:
+                    text_part, url_part = line.split('|', 1)
+                    text_part = text_part.strip()
+                    url_part = url_part.strip()
+                    
+                    # Validate URL (basic check)
+                    if url_part and url_part.startswith(('http://', 'https://', 'www.')):
+                        # Create proper Word hyperlink
+                        try:
+                            self._add_hyperlink(para, text_part, url_part)
+                        except Exception as hyperlink_error:
+                            # Fallback: add text with URL in parentheses
+                            run = para.add_run(f"{text_part} ({url_part})")
+                            run.font.size = Pt(9)
+                    else:
+                        # Not a valid URL, treat as regular text
+                        run = para.add_run(line)
+                        run.font.size = Pt(9)
+                else:
+                    # Regular text without hyperlink
+                    run = para.add_run(line)
+                    run.font.size = Pt(9)
+                    
+        except Exception as e:
+            # Fallback to simple text
+            try:
+                cell.text = str(cell_data) if cell_data is not None else ""
+                para = cell.paragraphs[0]
+                para.style = 'NAB Body'
+                for run in para.runs:
+                    run.font.size = Pt(9)
+            except:
+                # Final fallback
+                pass
+
+    def _add_hyperlink(self, paragraph, text, url):
+        """Add a functional hyperlink to a paragraph using Word's relationship system."""
+        try:
+            from docx.oxml import parse_xml
+            from docx.oxml.ns import qn
+            
+            # Get the document part and create relationship
+            part = paragraph.part
+            r_id = part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink", is_external=True)
+            
+            # Create hyperlink element with 9pt font size
+            hyperlink = parse_xml(f'''
+                <w:hyperlink xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
+                             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" 
+                             r:id="{r_id}">
+                    <w:r>
+                        <w:rPr>
+                            <w:color w:val="0563C1"/>
+                            <w:u w:val="single"/>
+                            <w:sz w:val="18"/>
+                            <w:szCs w:val="18"/>
+                        </w:rPr>
+                        <w:t>{text}</w:t>
+                    </w:r>
+                </w:hyperlink>
+            ''')
+            
+            # Add hyperlink to paragraph
+            paragraph._element.append(hyperlink)
+            
+        except Exception as e:
+            # Fallback to styled text if hyperlink creation fails
+            run = paragraph.add_run(text)
+            run.font.size = Pt(9)
+            run.font.color.rgb = RGBColor(5, 99, 193)  # Blue hyperlink color
+            run.underline = True

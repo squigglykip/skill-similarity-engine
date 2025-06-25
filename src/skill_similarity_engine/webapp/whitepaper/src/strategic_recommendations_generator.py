@@ -407,6 +407,14 @@ class StrategicRecommendationsGenerator:
         try:
             from jinja2 import Template
             
+            # Import ContentFormatter for table support
+            try:
+                from formatter import ContentFormatter
+                formatter_available = True
+            except ImportError:
+                formatter_available = False
+                logger.warning("ContentFormatter not available, falling back to basic formatting")
+            
             # Get strategic recommendations configuration
             strategic_config = self.template_data.get('strategic_recommendations', {})
             content_config = strategic_config.get('content_sections', {})
@@ -416,16 +424,93 @@ class StrategicRecommendationsGenerator:
                 try:
                     title = section_config.get('title', section_key.title())
                     content_template = section_config.get('content', '')
+                    content_type = section_config.get('content_type', 'mixed')
                     
-                    # Render content with Jinja2
-                    if content_template:
-                        template = Template(content_template)
-                        rendered_content = template.render(**template_variables)
+                    # Handle table-based content with ContentFormatter
+                    if content_type == 'table' and formatter_available:
+                        # Get table configuration from new template structure
+                        headers = section_config.get('table_headers', section_config.get('headers', []))
+                        rows_template = section_config.get('content', section_config.get('rows', []))
+                        table_style = section_config.get('table_style', 'compact')
                         
+                        if not headers or not rows_template:
+                            logger.warning(f"Missing table data for section {section_key}")
+                            continue
+                        
+                        # Process each row with Jinja2 template rendering
+                        processed_rows = []
+                        for row_template in rows_template:
+                            processed_row = []
+                            for cell_template in row_template:
+                                # Render each cell with template variables
+                                if isinstance(cell_template, str):
+                                    template = Template(cell_template)
+                                    rendered_cell = template.render(**template_variables)
+                                    processed_row.append(rendered_cell)
+                                else:
+                                    processed_row.append(str(cell_template))
+                            processed_rows.append(processed_row)
+                        
+                        # Create structured table content using ContentFormatter
                         content_sections[section_key] = {
                             'title': title,
-                            'content': rendered_content.strip()
+                            'content': ContentFormatter.create_table(
+                                headers=headers,
+                                rows=processed_rows,
+                                table_style=table_style
+                            )
                         }
+                    
+                    # Handle mixed content with formatting metadata
+                    elif content_type in ['mixed', 'numbered_list'] and formatter_available:
+                        if content_template:
+                            template = Template(content_template)
+                            rendered_content = template.render(**template_variables)
+                            
+                            # Get formatting metadata
+                            bold_labels = section_config.get('bold_labels', [])
+                            bold_numbered_headers = section_config.get('bold_numbered_headers', False)
+                            small_italic_text = section_config.get('small_italic_text', False)
+                            
+                            # Create structured content with formatting
+                            if content_type == 'numbered_list':
+                                # Split content into numbered items by double newlines (paragraphs)
+                                # Each paragraph represents one numbered item
+                                numbered_items = [item.strip() for item in rendered_content.split('\n\n') if item.strip()]
+                                
+                                content_sections[section_key] = {
+                                    'title': title,
+                                    'content': ContentFormatter.create_formatted_content(
+                                        '\n\n'.join(numbered_items),
+                                        {
+                                            'content_type': 'numbered_list',
+                                            'bold_numbered_headers': bold_numbered_headers,
+                                            'small_italic_text': small_italic_text
+                                        }
+                                    )
+                                }
+                            else:  # mixed content
+                                content_sections[section_key] = {
+                                    'title': title,
+                                    'content': ContentFormatter.create_formatted_content(
+                                        rendered_content.strip(),
+                                        {
+                                            'content_type': 'mixed',
+                                            'bold_labels': bold_labels
+                                        }
+                                    )
+                                }
+                    
+                    # Fallback to basic content rendering
+                    else:
+                        if content_template:
+                            template = Template(content_template)
+                            rendered_content = template.render(**template_variables)
+                            
+                            content_sections[section_key] = {
+                                'title': title,
+                                'content': rendered_content.strip()
+                            }
                     
                 except Exception as e:
                     logger.error(f"Error generating section {section_key}: {e}")

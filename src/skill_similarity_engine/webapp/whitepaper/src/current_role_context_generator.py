@@ -6,9 +6,12 @@ Follows the proven ExecutiveSummaryGenerator pattern with logical role architect
 
 import sqlite3
 import yaml
+import logging
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 from jinja2 import Template
+
+logger = logging.getLogger(__name__)
 
 # Import SQL query modules and LogicalRoleManager from executive summary
 try:
@@ -296,7 +299,7 @@ class CurrentRoleContextGenerator:
             }
     
     def _get_skills_analysis(self, job_from: str) -> Dict:
-        """Get comprehensive skills analysis directly from database without hardcoded mappings."""
+        """Get comprehensive skills analysis grouped by SkillType from database."""
         try:
             # Get total skills for this job
             skills_count_query = """
@@ -306,56 +309,53 @@ class CurrentRoleContextGenerator:
             """
             total_skills = self.db.execute(skills_count_query, (job_from,)).fetchone()[0]
             
-            # Get skills grouped by their actual database categories
-            skills_by_category_query = """
+            # Get skills grouped by SkillType with all skill names
+            skills_by_type_query = """
             SELECT 
-                s.Category,
-                COUNT(*) as skill_count,
-                GROUP_CONCAT(s.Skill_Name, ', ') as skill_names
+                s.SkillType,
+                COUNT(DISTINCT s.Skill_ID) as skill_count,
+                GROUP_CONCAT(s.Skill_Name, ', ') as skill_list
             FROM job_skills js
             JOIN skills s ON js.Skill_ID = s.Skill_ID
             WHERE js.JobProfileID = ?
-            AND s.Category IS NOT NULL AND s.Category != ''
-            GROUP BY s.Category
-            ORDER BY skill_count DESC
+            GROUP BY s.SkillType
+            ORDER BY COUNT(DISTINCT s.Skill_ID) DESC
             """
             
-            category_results = self.db.execute(skills_by_category_query, (job_from,)).fetchall()
+            skill_type_results = self.db.execute(skills_by_type_query, (job_from,)).fetchall()
             
-            # Create skill categories list using actual database categories
+            # Build skill categories data
             skill_categories = []
-            reference_counter = 23  # Starting reference number
+            total_calculated = 0
             
-            for category, count, skill_names in category_results:
-                # Format skill names nicely
-                skills_list = [name.strip() for name in skill_names.split(',') if name.strip()]
-                skill_list_formatted = self._format_skills_list(skills_list)
-                
+            for skill_type, skill_count, skill_list in skill_type_results:
+                # No truncation or demand calculations - just store the data
                 skill_categories.append({
-                    'name': category,
-                    'skill_count': count,
-                    'reference': str(reference_counter),
-                    'skill_list': skill_list_formatted
+                    'name': skill_type if skill_type else 'Other',
+                    'skill_count': skill_count,
+                    'skill_list': skill_list  # Full skills list, no truncation
                 })
-                reference_counter += 1
+                
+                total_calculated += skill_count
             
-            # Calculate additional metrics
-            skills_overlap_count = self._get_skills_overlap_count(job_from)
-            primary_category = skill_categories[0]['name'] if skill_categories else 'Information Technology'
-            skill_demand = self._get_skill_demand_instances_real(primary_category)
+            # Get additional metrics
+            skills_overlap_job_count = self._get_skills_overlap_count(job_from)
+            
+            # Build summary strings
+            primary_skill_type = skill_categories[0]['name'] if skill_categories else 'Mixed Skills'
+            categories_summary = ', '.join([f"{cat['name']} ({cat['skill_count']})" for cat in skill_categories])
             
             return {
                 'total_skills': total_skills,
                 'skill_categories': skill_categories,
                 'skill_category_count': len(skill_categories),
-                'skills_overlap_job_count': skills_overlap_count,
-                'primary_skill_category': primary_category,
-                'skill_demand_instances': skill_demand,
-                'skill_categories_summary': ', '.join([f"{cat['name']} ({cat['skill_count']})" for cat in skill_categories])
+                'skills_overlap_job_count': skills_overlap_job_count,
+                'primary_skill_category': primary_skill_type,
+                'skill_categories_summary': categories_summary
             }
             
         except Exception as e:
-            print(f"⚠️ Error getting skills analysis: {e}")
+            logger.error(f"Error getting skills analysis for {job_from}: {e}")
             return self._get_fallback_skills_analysis()
     
     def _format_skills_list(self, skills_list):
@@ -399,22 +399,31 @@ class CurrentRoleContextGenerator:
         except:
             return 400  # Fallback
     
-    def _get_skill_demand_instances_real(self, category: str) -> int:
-        """Calculate total instances of skills in this actual database category across organisation."""
+    def _get_skill_demand_instances_real(self, skill_type: str) -> int:
+        """Calculate actual skill demand instances for a given SkillType across all jobs."""
         try:
-            # Count job-skill instances where skills are in this exact category
-            query = """
-            SELECT COUNT(*) 
-            FROM job_skills js 
-            JOIN skills s ON js.Skill_ID = s.Skill_ID 
-            WHERE s.Category = ?
+            # Count how many times skills of this SkillType appear across all jobs
+            demand_query = """
+            SELECT COUNT(DISTINCT js.JobProfileID) as job_instances
+            FROM job_skills js
+            JOIN skills s ON js.Skill_ID = s.Skill_ID
+            WHERE s.SkillType = ?
             """
             
-            result = self.db.execute(query, (category,)).fetchone()
-            return result[0] if result else 1000  # Fallback value
+            result = self.db.execute(demand_query, (skill_type,)).fetchone()
+            return result[0] if result else 0
+            
         except Exception as e:
-            print(f"⚠️ Error calculating skill demand for {category}: {e}")
-            return 1000  # Fallback
+            logger.error(f"Error calculating skill demand for SkillType '{skill_type}': {e}")
+            # Return a reasonable fallback based on SkillType
+            if skill_type == 'Specialized Skill':
+                return 2500  # High demand
+            elif skill_type == 'Common Skill':
+                return 1800  # Medium-high demand
+            elif skill_type == 'Certification':
+                return 800   # Medium demand
+            else:
+                return 1000  # Default medium
     
     def _get_strategic_intelligence_metrics(self, job_from: str) -> Dict:
         """Calculate strategic intelligence metrics from actual database career pathways."""
@@ -527,6 +536,25 @@ class CurrentRoleContextGenerator:
             'cross_functional_areas': self._get_cross_functional_areas(),
         }
         
+        # Add strategic intelligence metrics
+        variables.update(strategic_metrics)
+        
+        # Add descriptive variables for strategic metrics table
+        mobility_score = strategic_metrics.get('mobility_hub_score', 67)
+        readiness_score = strategic_metrics.get('transition_readiness', 82)
+        reach_count = strategic_metrics.get('cross_family_reach', 5)
+        
+        variables.update({
+            'mobility_strategic_value': self._get_mobility_value_description(mobility_score),
+            'transition_investment_descriptor': self._get_investment_descriptor(readiness_score),
+            'organisational_agility_descriptor': self._get_agility_descriptor(reach_count),
+            'strategic_value_descriptor': self._get_value_descriptor(strategic_metrics.get('strategic_value_assessment', 'MEDIUM')),
+            'workforce_planning_priority': self._get_planning_priority(strategic_metrics.get('strategic_value_assessment', 'MEDIUM')),
+            'workforce_architecture_significance': self._get_architecture_significance(strategic_metrics.get('strategic_value_assessment', 'MEDIUM')),
+            'key_metric_convergence': f"mobility hub potential ({mobility_score}%), transition readiness ({readiness_score}%), and cross-family reach ({reach_count} functions)",
+            'workforce_agility_potential': self._get_agility_potential(readiness_score, reach_count)
+        })
+        
         return variables
     
     def _generate_content_sections(self, variables: Dict) -> Dict:
@@ -557,7 +585,7 @@ class CurrentRoleContextGenerator:
         return content
     
     def _generate_profile_overview(self, profile_config: Dict, variables: Dict) -> Dict:
-        """Generate structured profile overview content."""
+        """Generate structured profile overview content with table for organisational deployment."""
         
         if not ContentFormatter:
             # Fallback to legacy approach if ContentFormatter not available
@@ -570,19 +598,41 @@ class CurrentRoleContextGenerator:
         
         # Only include content if organisational deployment is enabled
         if variables.get('include_organisational_deployment', False):
-            content_template = Template(profile_config.get('content', '')).render(**variables)
-            bold_labels = profile_config.get('bold_labels', [])
             
-            return {
-                'title': title,
-                'content': ContentFormatter.create_formatted_content(
-                    text=content_template,
-                    formatting={
-                        'content_type': 'bullet_list',
-                        'bold_labels': bold_labels
-                    }
-                )
-            }
+            # Create introduction paragraph
+            intro_text = f"Organisational Deployment: {variables.get('position_count', 0)} positions across {variables.get('division_count', 0)} divisions\nPrimary Locations: {variables.get('primary_locations', 'Not available')}"
+            
+            # Create divisional distribution table
+            divisional_distribution = variables.get('divisional_distribution', [])
+            if divisional_distribution:
+                # Prepare table data
+                headers = ["Division", "Positions", "Primary Business Unit"]
+                rows = []
+                
+                for division in divisional_distribution:
+                    rows.append([
+                        division.get('name', 'Unknown'),
+                        str(division.get('count', 0)),
+                        division.get('business_unit', 'Unknown')
+                    ])
+                
+                # Create table content
+                table_content = ContentFormatter.create_table(headers, rows)
+                
+                # Combine intro and table
+                return {
+                    'title': title,
+                    'content': [
+                        ContentFormatter.create_paragraph(intro_text, ["Organisational Deployment:", "Primary Locations:"]),
+                        table_content
+                    ]
+                }
+            else:
+                # No table data, just use paragraph format
+                return {
+                    'title': title,
+                    'content': ContentFormatter.create_paragraph(intro_text, ["Organisational Deployment:", "Primary Locations:"])
+                }
         else:
             # Return empty structured content when deployment not included
             return {
@@ -591,7 +641,7 @@ class CurrentRoleContextGenerator:
             }
     
     def _generate_core_competency_foundation(self, core_config: Dict, variables: Dict) -> Dict:
-        """Generate structured core competency foundation content."""
+        """Generate structured core competency foundation content with Skills Analysis Table."""
         
         if not ContentFormatter:
             # Fallback to legacy approach
@@ -605,32 +655,29 @@ class CurrentRoleContextGenerator:
         # Generate intro paragraph
         intro_text = Template(core_config.get('paragraph_intro', '')).render(**variables)
         
-        # Generate skill categories with formatting
+        # Get skill categories data
         skill_categories = variables.get('skill_categories', [])
+        total_skills = variables.get('total_skills', 0)
+        skills_overlap_job_count = variables.get('skills_overlap_job_count', 0)
+        
         if skill_categories:
-            # Create formatted skill categories text
-            categories_text = ""
-            for category in skill_categories:
-                categories_text += f"{category['name']} ({category['skill_count']} skills): {category['skill_list']}\n"
+            # Create intro paragraph
+            intro_content = ContentFormatter.create_paragraph(intro_text, [])
             
-            # Combine intro and categories
-            full_text = f"{intro_text}\n\n{categories_text.strip()}"
+            # Create Skills Analysis Table using the new method
+            skills_table = ContentFormatter.create_skills_analysis_table(
+                skill_categories, 
+                total_skills, 
+                skills_overlap_job_count
+            )
             
-            # Create bold labels from category names
-            bold_labels = [f"{cat['name']} ({cat['skill_count']} skills):" for cat in skill_categories]
-            
+            # Return both intro and table as a list
             return {
                 'title': title,
-                'content': ContentFormatter.create_formatted_content(
-                    text=full_text,
-                    formatting={
-                        'content_type': 'mixed',
-                        'bold_labels': bold_labels
-                    }
-                )
+                'content': [intro_content, skills_table]
             }
         else:
-            # No skill categories available
+            # No skill categories available, fall back to paragraph only
             return {
                 'title': title,
                 'content': ContentFormatter.create_paragraph(intro_text, [])
@@ -676,68 +723,74 @@ class CurrentRoleContextGenerator:
         }
     
     def _generate_strategic_intelligence_metrics(self, metrics_config: Dict, variables: Dict) -> Dict:
-        """Generate structured strategic intelligence metrics content."""
+        """Generate strategic intelligence metrics content with table format."""
+        
+        title = metrics_config.get('title', 'Strategic Intelligence Metrics')
+        bold_labels = metrics_config.get('bold_labels', [])
+        sections = metrics_config.get('sections', {})
         
         if not ContentFormatter:
-            # Fallback to legacy approach
+            # Fallback to legacy template approach
             return {
-                'title': metrics_config.get('title', 'Strategic Intelligence Metrics'),
+                'title': title,
                 'content': Template(metrics_config.get('content', '')).render(**variables)
             }
         
-        title = metrics_config.get('title', 'Strategic Intelligence Metrics')
-        sections = metrics_config.get('sections', {})
-        bold_labels = metrics_config.get('bold_labels', [])
+        # Create introduction paragraph
+        intro_text = """About Strategic Intelligence Metrics: These quantitative measures assess workforce positioning and transition potential using analysis of NAB's complete career pathway network. Each metric provides specific intelligence for strategic decision-making:
         
-        # Build the complete content by combining all sections
-        content_parts = []
+• Mobility Hub Score measures connectivity within the pathway network (0-100%)
+• Transition Readiness indicates average skill overlap with potential career moves  
+• Cross-Family Reach counts accessible job functions
+• Strategic Value provides an overall workforce planning assessment
+
+Important Context: Our analysis excludes 100% similarity matches, which represent essentially identical roles with different titles. These provide no meaningful transition value as they lack skill development opportunities or career progression. All metrics are benchmarked against NAB's actual distribution of meaningful career transitions."""
         
-        # Overview intro
-        if 'overview_intro' in sections:
-            intro_content = Template(sections['overview_intro']['content']).render(**variables)
-            content_parts.append(intro_content)
+        intro_content = ContentFormatter.create_formatted_content(
+            text=intro_text,
+            formatting={
+                'content_type': 'paragraph',
+                'bold_labels': ['About Strategic Intelligence Metrics:', 'Important Context:']
+            }
+        )
         
-        # Metrics overview bullet list
-        if 'metrics_overview' in sections:
-            metrics_list = Template(sections['metrics_overview']['content']).render(**variables)
-            content_parts.append(metrics_list)
+        # Extract metrics data for the table
+        metrics_data = {
+            'mobility_hub_score': variables.get('mobility_hub_score', 67),
+            'mobility_hub_assessment': variables.get('mobility_hub_assessment', 'Medium Hub Potential'),
+            'mobility_strategic_value': variables.get('mobility_strategic_value', 'Medium connectivity within career pathway network'),
+            
+            'transition_readiness': variables.get('transition_readiness', 82),
+            'transition_readiness_assessment': variables.get('transition_readiness_assessment', 'High Readiness'),
+            'transition_investment_descriptor': variables.get('transition_investment_descriptor', 'Moderate investment requirements'),
+            
+            'cross_family_reach': variables.get('cross_family_reach', 5),
+            'cross_family_diversity_assessment': variables.get('cross_family_diversity_assessment', 'Excellent Diversity'),
+            'organisational_agility_descriptor': variables.get('organisational_agility_descriptor', 'Cross-functional capability potential'),
+            
+            'strategic_value_assessment': variables.get('strategic_value_assessment', 'MEDIUM'),
+            'strategic_value_descriptor': variables.get('strategic_value_descriptor', 'Valuable Position'),
+            'workforce_planning_priority': variables.get('workforce_planning_priority', 'Strategic workforce planning asset')
+        }
         
-        # Context paragraph
-        if 'context_paragraph' in sections:
-            context_content = Template(sections['context_paragraph']['content']).render(**variables)
-            content_parts.append(context_content)
+        # Create the Strategic Intelligence Metrics Table
+        metrics_table = ContentFormatter.create_strategic_metrics_table(metrics_data)
         
-        # Results header
-        if 'results_header' in sections:
-            results_header = Template(sections['results_header']['content']).render(**variables)
-            content_parts.append(results_header)
+        # Create conclusion paragraph
+        source_job_name = variables.get('source_job_logical_display_name', 'Current Role')
+        conclusion_text = f"""Strategic Context Assessment: The combined metrics profile positions {source_job_name} as a {variables.get('workforce_architecture_significance', 'valuable workforce asset')}. The convergence of {variables.get('key_metric_convergence', 'these strategic indicators')} indicates {variables.get('workforce_agility_potential', 'strong workforce agility potential')}, making this role particularly valuable during organisational transformations, restructures, or capability realignments."""
         
-        # Individual metric sections
-        metric_sections = ['mobility_section', 'readiness_section', 'reach_section', 'value_section']
-        for section_key in metric_sections:
-            if section_key in sections:
-                section_data = sections[section_key]
-                header = Template(section_data['header']).render(**variables)
-                content = Template(section_data['content']).render(**variables)
-                content_parts.append(f"{header}\n{content}")
-        
-        # Conclusion paragraph
-        if 'conclusion_paragraph' in sections:
-            conclusion_content = Template(sections['conclusion_paragraph']['content']).render(**variables)
-            content_parts.append(conclusion_content)
-        
-        # Combine all parts
-        full_content = '\n\n'.join(content_parts)
+        conclusion_content = ContentFormatter.create_formatted_content(
+            text=conclusion_text,
+            formatting={
+                'content_type': 'paragraph',
+                'bold_labels': ['Strategic Context Assessment:']
+            }
+        )
         
         return {
             'title': title,
-            'content': ContentFormatter.create_formatted_content(
-                text=full_content,
-                formatting={
-                    'content_type': 'mixed',
-                    'bold_labels': bold_labels
-                }
-            )
+            'content': [intro_content, metrics_table, conclusion_content]
         }
     
     def _generate_references(self, job_from: str) -> Dict:
@@ -770,7 +823,6 @@ class CurrentRoleContextGenerator:
             'skill_category_count': 3,
             'skills_overlap_job_count': 400,
             'primary_skill_category': 'Technical Skills',
-            'skill_demand_instances': 1000,
             'skill_categories_summary': 'Technical Skills (8), Business Skills (6), Industry Skills (6)'
         }
     

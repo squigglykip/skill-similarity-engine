@@ -363,20 +363,35 @@ def test_pathway_analysis_generation():
                 print(opportunity['header'])
                 print()
                 
+                # Handle the opportunity overview table
+                print("### Opportunity Overview")
+                if isinstance(opportunity['opportunity_overview'], dict) and 'text' in opportunity['opportunity_overview']:
+                    print(opportunity['opportunity_overview']['text'])
+                else:
+                    print(opportunity['opportunity_overview'])
+                print()
+                
                 print(f"### {opportunity['strategic_positioning']['title']}")
                 print(opportunity['strategic_positioning']['content'])
                 print()
                 
-                print(f"### {opportunity['skills_transition_analysis']['title']}")
-                print(opportunity['skills_transition_analysis']['content'])
+                # Handle the new table structure for skills_transition_analysis and implementation_roadmap
+                print("### Skills Transition Analysis")
+                if isinstance(opportunity['skills_transition_analysis'], dict) and 'text' in opportunity['skills_transition_analysis']:
+                    print(opportunity['skills_transition_analysis']['text'])
+                else:
+                    print(opportunity['skills_transition_analysis'])
                 print()
                 
                 print(f"### {opportunity['business_case']['title']}")
                 print(opportunity['business_case']['content'])
                 print()
                 
-                print(f"### {opportunity['implementation_roadmap']['title']}")
-                print(opportunity['implementation_roadmap']['content'])
+                print("### Implementation Roadmap")
+                if isinstance(opportunity['implementation_roadmap'], dict) and 'text' in opportunity['implementation_roadmap']:
+                    print(opportunity['implementation_roadmap']['text'])
+                else:
+                    print(opportunity['implementation_roadmap'])
                 print()
                 
                 if i < len(result['content']['opportunities']):
@@ -458,16 +473,41 @@ def test_strategic_recommendations_generation():
         content = result.get('content', {})
         section_order = [
             'database_driven_decision_support',
+            'business_case',
             'immediate_actions', 
             'medium_term_initiatives',
-            'success_metrics_evaluation'
+            'success_metrics_evaluation',
+            'research_references'
         ]
         
         for section_key in section_order:
             if section_key in content:
                 section = content[section_key]
                 print(f"### {section['title']}")
-                print(section['content'])
+                
+                # Handle different content types
+                section_content = section['content']
+                if isinstance(section_content, dict) and 'text' in section_content:
+                    # Structured content with formatting metadata
+                    print(section_content['text'])
+                elif isinstance(section_content, dict) and 'formatting' in section_content:
+                    # Table or other structured content
+                    formatting = section_content['formatting']
+                    if formatting.get('content_type') == 'table':
+                        # Display table headers and rows
+                        headers = formatting.get('headers', [])
+                        rows = formatting.get('rows', [])
+                        if headers:
+                            print(" | ".join(headers))
+                            print("|".join(["-" * len(header) for header in headers]))
+                        for row in rows:
+                            print(" | ".join(str(cell) for cell in row))
+                    else:
+                        # Display the text content
+                        print(section_content.get('text', section_content))
+                else:
+                    # Basic string content
+                    print(section_content)
                 print()
         
         # Display debugging info

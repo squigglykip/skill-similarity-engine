@@ -1,5 +1,5 @@
 # Pathway Analysis Template
-# Based on whitepaper_example_gold_standard.md lines 122-229
+# Business-friendly format with strategic tables for executive consumption
 
 pathway_analysis:
   section_title: "Pathway Analysis: Top 3 Strategic Opportunities"
@@ -11,104 +11,61 @@ pathway_analysis:
   # Template for each opportunity (will be rendered 3 times)
   opportunity_template:
     header: |
-      ## Opportunity {{opportunity_rank}}: {{target_job_logical_display_name}}
-      Similarity Score: {{similarity_score}}% | Classification: {{opportunity_classification}} | Move Type: {{move_type_display}}
+      ## Strategic Opportunity {{opportunity_rank}}: {{target_job_logical_display_name}}
+      Target Role: {{target_job_title}} ({{target_job_id}}) | Similarity Score: {{similarity_score}}% | Move Type: {{move_type_display}}
+      Strategic Classification: {{opportunity_classification}}
+
+    opportunity_overview:
+      title: "Opportunity Overview"
+      content_type: "table"
+      table_headers: ["Metric", "Value", "Assessment"]
+      table_data: |
+        Role Compatibility|{{similarity_score}}%|{{compatibility_assessment}}
+        Skills Match|{{skills_overlap_percentage}}% ready|{{transferability_assessment}}
+        Position Availability|{{function_position_count}} roles|{{function_significance_descriptor}}
+        Development Time|{{total_development_weeks}} weeks|{{development_assessment}}
+        {% if include_organisational_deployment %}Career Growth|{{target_division_count}} divisions|{{strategic_importance_assessment}}{% endif %}
 
     strategic_positioning:
       title: "Why This Makes Sense"
-      content_type: "mixed"
-      bold_labels: ["Career Impact:", "Business Fit:", "Skills Match:", "Future Prospects:"]
+      content_type: "paragraph"
       content: |
-        Career Impact: {{target_job_logical_display_name}} offers a {{move_type_description}} with clear advancement potential.
+        This opportunity offers a {{move_type_description}} that builds on existing strengths while supporting NAB's strategic priorities. With {{skills_overlap_percentage}}% of required skills already in place, the transition is both realistic and cost-effective.
+        
+        {{target_job_function}} represents {{function_percentage}}% of NAB roles, providing substantial career opportunities across the organisation. The {{level_transition_display}} progression aligns with standard career frameworks, making approval and implementation straightforward.
+        
+        This pathway leverages the strong foundation in {{primary_skill_category}} skills, which transfer well to other opportunities and build long-term career resilience within NAB.
 
-        Business Fit:
-        - {{target_job_function}} represents {{function_percentage}}% of NAB roles - a substantial career area with growth opportunities
-        - {{level_transition_display}} progression aligns with standard career frameworks
-        {% if include_organisational_deployment %}
-        - {{target_position_count}} positions available across {{target_division_count}} divisions
-        {% endif %}
-
-        Skills Match:
-        - {{skills_overlap_percentage}}% of required skills already in place
-        - Strong foundation reduces training time and transition risk
-        - Skills are in demand across multiple business areas
-
-        Future Prospects:
-        - {{primary_skill_category}} skills transfer to other opportunities
-        - Builds career resilience and opens future pathways
-        - Positions individual for continued growth within NAB
-
-    skills_transition_analysis:
-      title: "Skills & Development"
-      content_type: "mixed"
-      bold_labels: ["What They Already Have:", "What They Need to Learn:", "Development Plan:"]
-      content: |
-        What They Already Have:
-        {{skills_overlap_percentage}}% of required skills are already in place. This strong foundation makes the transition realistic and cost-effective.
-
-        {% for category in transferable_skill_categories %}
-        - {{category.name}}: {{category.skill_list}}
-        {% endfor %}
-
-        What They Need to Learn:
-        {% for skill in required_skills %}
-        {{loop.index}}. {{skill.name}} - {{skill.description}}
-        {% endfor %}
-
-        Development Plan:
-        - Total development time: {{total_development_weeks}} weeks
-        - Structured learning: {{specialized_development_weeks}} weeks for new technical skills
-        - Applied experience: {{applied_experience_months}} months with mentorship support
-        - Approach ensures people can learn while maintaining current role performance
+    skills_development:
+      title: "Skills Development Requirements"
+      content_type: "table"
+      table_headers: ["Category", "Current Skills", "Development Needed"]
+      table_data: |
+        {% for category in transferable_skill_categories %}{{category.name}}|{{category.skill_list}}|Foundation complete{% if not loop.last %}
+        {% endif %}{% endfor %}
+        {% for skill in required_skills[:3] %}New Skills|{{skill.name}}|{{skill.description}}{% if not loop.last %}
+        {% endif %}{% endfor %}
 
     business_case:
-      title: "Business Case for Transition"
+      title: "Business Impact"
       content_type: "mixed"
-      bold_labels: ["Strategic Alignment:", "Organisational Benefits:", "Internal Mobility:", "Knowledge Retention:", "Career Progression:", "Capability Building:", "Individual Value Proposition:", "Salary Progression:", "Strategic Exposure:", "Professional Development:", "Career Resilience:"]
+      bold_labels: ["Cost Savings:", "Capability Building:", "Career Development:"]
       content: |
-        Strategic Alignment:
-        - {{strategic_alignment_point_1}}
-        - {{strategic_alignment_point_2}}
-        - {{strategic_alignment_point_3}}
+        Cost Savings: Internal development reduces external recruitment costs by approximately ${{recruitment_cost_estimate}}K+ per senior hire, while maintaining institutional knowledge and cultural fit.
+        
+        Capability Building: Strengthens {{capability_building_area}} capabilities across multiple business units, supporting NAB's strategic objectives and competitive positioning.
+        
+        Career Development: Provides clear advancement pathway with {{salary_increase_estimate}}% salary increase potential, supporting talent retention and employee engagement initiatives.
 
-        Organisational Benefits:
-        - Internal Mobility: Reduces external recruitment costs (estimated ${{recruitment_cost_estimate}}K+ per senior hire)
-        - Knowledge Retention: Maintains institutional knowledge while expanding capability
-        - Career Progression: Provides clear advancement pathway for high-performing analysts
-        - Capability Building: Strengthens {{capability_building_area}} across multiple business units
-
-        Individual Value Proposition:
-        - Salary Progression: {{salary_progression_description}} ({{salary_increase_estimate}}% increase potential)
-        - Strategic Exposure: {{strategic_exposure_description}}
-        - Professional Development: {{professional_development_description}}
-        - Career Resilience: {{career_resilience_description}}
-
-    implementation_roadmap:
-      title: "Making It Happen"
-      content_type: "mixed"
-      bold_labels: ["Timeline:", "Month 1-2: Getting Started", "Month 3-4: Building Skills", "Month 5-6: Applying Learning", "Month 7+: Full Transition"]
-      content: |
-        Timeline: {{total_transition_weeks}} weeks total from start to full effectiveness in new role
-
-        Month 1-2: Getting Started
-        - Individual career conversations and pathway confirmation
-        - Skills assessment and personalised development plan
-        - Identify mentor and set up support structure
-
-        Month 3-4: Building Skills
-        - Focused learning on {{specialized_skills_count}} new technical competencies
-        - Structured training programmes and workshops
-        - Begin shadowing and observational learning
-
-        Month 5-6: Applying Learning
-        - Practical application in current role where possible
-        - Cross-functional projects and collaboration
-        - Regular check-ins and progress reviews
-
-        Month 7+: Full Transition
-        - Formal role transition when ready
-        - Ongoing mentorship and support
-        - Performance monitoring and adjustment as needed
+    implementation_timeline:
+      title: "Implementation Roadmap"
+      content_type: "table"
+      table_headers: ["Phase", "Timeline", "Key Activities", "Success Measures"]
+      table_data: |
+        Getting Started|Months 1-2|Career conversations, skills assessment, mentor assignment|Development plan approved
+        Building Skills|Months 3-4|Technical training, workshops, shadowing programs|{{specialized_skills_count}} competencies acquired
+        Applying Learning|Months 5-6|Cross-functional projects, progress reviews|Practical application demonstrated
+        Full Transition|Month 7+|Role transition, ongoing mentorship|Performance targets achieved
 
 # Reference mapping for dynamic content (extending current_role_context references)
 references:
@@ -162,10 +119,27 @@ descriptors:
     development: "Development Opportunity"
     transformation: "Transformation Opportunity"
   
+  compatibility_assessments:
+    outstanding: "Excellent match"
+    excellent: "Strong match"
+    good: "Good match"
+    development: "Requires development"
+    transformation: "Significant transition"
+  
+  development_assessments:
+    short: "Quick transition"
+    moderate: "Standard timeline"
+    extended: "Extended development"
+  
+  strategic_importance_assessments:
+    high: "High growth potential"
+    medium: "Stable career path"
+    low: "Specialised opportunity"
+  
   function_significance:
-    major: "significant organisational investment"
-    moderate: "moderate organisational focus"
-    minor: "specialised capability area"
+    major: "Significant organisational investment"
+    moderate: "Moderate organisational focus"
+    minor: "Specialised capability area"
   
   function_size_assessments:
     major: "substantial"
@@ -176,21 +150,6 @@ descriptors:
     major: "established career infrastructure"
     moderate: "developing career pathways"
     minor: "limited advancement options"
-  
-  progression_strategic_assessments:
-    natural: "natural career progression step with established precedent"
-    strategic: "strategic career move with planned development"
-    complex: "complex transition requiring comprehensive support"
-  
-  progression_complexity_descriptors:
-    natural: "reducing approval complexity"
-    strategic: "requiring structured planning"
-    complex: "necessitating extensive support"
-  
-  progression_salary_frameworks:
-    natural: "clear salary progression frameworks"
-    strategic: "structured compensation advancement"
-    complex: "customised remuneration planning"
 
 # Threshold configuration for dynamic content selection
 thresholds:
@@ -201,6 +160,11 @@ thresholds:
     development: 50
     transformation: 0
   
+  development_timeline:
+    short: 32      # ≤ 32 weeks
+    moderate: 56   # 33-56 weeks
+    extended: 999  # > 56 weeks
+  
   function_significance:
     major: 7  # 7%+ of roles
     moderate: 3  # 3-7% of roles
@@ -210,4 +174,4 @@ thresholds:
     exceptional: 80  # 80%+ overlap
     high: 65        # 65-80% overlap
     moderate: 50    # 50-65% overlap
-    development: 0  # <50% overlap 
+    development: 0  # <50% overlap

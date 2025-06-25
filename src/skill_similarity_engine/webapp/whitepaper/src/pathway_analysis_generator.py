@@ -624,25 +624,23 @@ class PathwayAnalysisGenerator:
                 # Combine all data for this opportunity
                 opportunity_variables = self._populate_opportunity_variables(opportunity)
                 
-                # Generate content for this opportunity
+                # Generate content for this opportunity using Current Role Context pattern
                 opportunity_content = {
                     'header': Template(opportunity_template.get('header', '')).render(**opportunity_variables),
+                    'opportunity_overview': self._create_opportunity_overview_section(opportunity_variables),
                     'strategic_positioning': {
                         'title': opportunity_template.get('strategic_positioning', {}).get('title', ''),
+                        'content_type': opportunity_template.get('strategic_positioning', {}).get('content_type', 'paragraph'),
                         'content': Template(opportunity_template.get('strategic_positioning', {}).get('content', '')).render(**opportunity_variables)
                     },
-                    'skills_transition_analysis': {
-                        'title': opportunity_template.get('skills_transition_analysis', {}).get('title', ''),
-                        'content': Template(opportunity_template.get('skills_transition_analysis', {}).get('content', '')).render(**opportunity_variables)
-                    },
+                    'skills_transition_analysis': self._create_skills_transition_section(opportunity_variables),
                     'business_case': {
                         'title': opportunity_template.get('business_case', {}).get('title', ''),
+                        'content_type': opportunity_template.get('business_case', {}).get('content_type', 'mixed'),
+                        'bold_labels': opportunity_template.get('business_case', {}).get('bold_labels', []),
                         'content': Template(opportunity_template.get('business_case', {}).get('content', '')).render(**opportunity_variables)
                     },
-                    'implementation_roadmap': {
-                        'title': opportunity_template.get('implementation_roadmap', {}).get('title', ''),
-                        'content': Template(opportunity_template.get('implementation_roadmap', {}).get('content', '')).render(**opportunity_variables)
-                    }
+                    'implementation_roadmap': self._create_implementation_roadmap_section(opportunity_variables)
                 }
                 
                 content['opportunities'].append(opportunity_content)
@@ -652,6 +650,258 @@ class PathwayAnalysisGenerator:
             content = {'error': f'Content generation failed: {e}'}
         
         return content
+    
+    def _create_opportunity_overview_section(self, variables: Dict) -> Dict:
+        """Create opportunity overview section with table following Current Role Context pattern."""
+        try:
+            # Try relative import first, then absolute import
+            try:
+                from ..formatter import ContentFormatter
+            except ImportError:
+                from formatter import ContentFormatter
+            
+            # Create the table content
+            table_content = self._create_opportunity_overview_table(variables)
+            
+            return {
+                'title': 'Opportunity Overview',
+                'content': table_content
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Error creating opportunity overview section: {e}")
+            return {
+                'title': 'Opportunity Overview',
+                'content': "Table generation failed"
+            }
+
+    def _create_skills_transition_section(self, variables: Dict) -> Dict:
+        """Create skills transition section with table following Current Role Context pattern."""
+        try:
+            # Try relative import first, then absolute import
+            try:
+                from ..formatter import ContentFormatter
+            except ImportError:
+                from formatter import ContentFormatter
+            
+            # Create the table content
+            table_content = self._create_skills_development_table(variables)
+            
+            return {
+                'title': 'Skills Transition Analysis',
+                'content': table_content
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Error creating skills transition section: {e}")
+            return {
+                'title': 'Skills Transition Analysis',
+                'content': "Table generation failed"
+            }
+
+    def _create_implementation_roadmap_section(self, variables: Dict) -> Dict:
+        """Create implementation roadmap section with table following Current Role Context pattern."""
+        try:
+            # Try relative import first, then absolute import
+            try:
+                from ..formatter import ContentFormatter
+            except ImportError:
+                from formatter import ContentFormatter
+            
+            # Create the table content
+            table_content = self._create_implementation_timeline_table(variables)
+            
+            return {
+                'title': 'Implementation Roadmap',
+                'content': table_content
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Error creating implementation roadmap section: {e}")
+            return {
+                'title': 'Implementation Roadmap',
+                'content': "Table generation failed"
+            }
+
+    def _create_opportunity_overview_table(self, variables: Dict):
+        """Create opportunity overview table using the exact pattern from Current Role Context."""
+        try:
+            # Try relative import first, then absolute import
+            try:
+                from ..formatter import ContentFormatter
+            except ImportError:
+                from formatter import ContentFormatter
+            
+            headers = ["Metric", "Value", "Assessment"]
+            
+            rows = [
+                ["Role Compatibility", f"{variables.get('similarity_score', 0)}%", variables.get('compatibility_assessment', 'Unknown')],
+                ["Skills Match", f"{variables.get('skills_overlap_percentage', 0)}% ready", variables.get('transferability_assessment', 'Unknown')],
+                ["Position Availability", f"{variables.get('function_position_count', 0)} roles", variables.get('function_significance_descriptor', 'Unknown')],
+                ["Development Time", f"{variables.get('total_development_weeks', 0)} weeks", variables.get('development_assessment', 'Unknown')]
+            ]
+            
+            # Add career growth row if organisational deployment is available
+            if variables.get('include_organisational_deployment', False):
+                rows.append(["Career Growth", f"{variables.get('target_division_count', 0)} divisions", variables.get('strategic_importance_assessment', 'Unknown')])
+            
+            # Use exact same pattern as ContentFormatter.create_skills_analysis_table
+            return ContentFormatter.create_table(headers, rows, 'compact')
+            
+        except ImportError:
+            # Fallback - return text representation
+            return "Table creation failed - ContentFormatter not available"
+    
+    def _create_skills_development_table(self, variables: Dict):
+        """Create skills gap analysis table using actual database taxonomy."""
+        try:
+            # Try relative import first, then absolute import
+            try:
+                from ..formatter import ContentFormatter
+            except ImportError:
+                from formatter import ContentFormatter
+            
+            headers = ["Category", "Current Skills", "Required Skills", "Gap Assessment"]
+            rows = []
+            
+            # Group transferable and required skills by domain/category
+            transferable_categories = variables.get('transferable_skill_categories', [])
+            required_skills = variables.get('required_skills', [])
+            
+            # Create a map of domains we need to show
+            domains_to_show = {}
+            
+            # Add transferable skill categories (what they have)
+            for category in transferable_categories[:4]:  # Top 4 transferable categories
+                domain_name = category.get('name', 'Unknown Category')
+                skill_list = category.get('skill_list', '')
+                
+                # Format skills with hyperlinks
+                formatted_skills = self._format_skills_with_hyperlinks(skill_list)
+                
+                domains_to_show[domain_name] = {
+                    'current_skills': formatted_skills,
+                    'required_skills': '',
+                    'gap_assessment': 'Transferable skills available' if formatted_skills else 'Skills assessment needed'
+                }
+            
+            # Add required skills (what they need) - map to domains where possible
+            for skill in required_skills[:3]:  # Top 3 required skills
+                skill_name = skill.get('skill_name', skill.get('name', ''))
+                
+                if not skill_name:  # Skip if no skill name
+                    continue
+                
+                # Try to find matching domain or create new one
+                matched_domain = None
+                for domain in domains_to_show.keys():
+                    if any(keyword in domain.lower() and keyword in skill_name.lower() 
+                           for keyword in ['business', 'data', 'analytics', 'customer', 'finance']):
+                        matched_domain = domain
+                        break
+                
+                if matched_domain:
+                    # Add to existing domain as bullet point with hyperlink if available
+                    skill_urls = self._get_skills_with_urls([skill_name])
+                    if skill_name in skill_urls:
+                        skill_formatted = f"• {skill_name}|{skill_urls[skill_name]}"
+                    else:
+                        skill_formatted = f"• {skill_name}"
+                    
+                    current_requirements = domains_to_show[matched_domain]['required_skills']
+                    if current_requirements:
+                        domains_to_show[matched_domain]['required_skills'] = f"{current_requirements}\n{skill_formatted}"
+                    else:
+                        domains_to_show[matched_domain]['required_skills'] = skill_formatted
+                    
+                    # Update gap analysis for domains with both current and required skills
+                    if domains_to_show[matched_domain]['current_skills']:
+                        domains_to_show[matched_domain]['gap_assessment'] = 'Additional skills required'
+                else:
+                    # Create new domain for unmatched skills
+                    # Determine domain based on skill type
+                    if any(keyword in skill_name.lower() for keyword in ['data', 'analytics', 'modelling', 'bi']):
+                        domain_name = 'Data & Analytics'
+                    elif any(keyword in skill_name.lower() for keyword in ['customer', 'centricity', 'service']):
+                        domain_name = 'Customer Focus'
+                    elif any(keyword in skill_name.lower() for keyword in ['business', 'analysis', 'strategy']):
+                        domain_name = 'Business Analysis'
+                    else:
+                        domain_name = 'Technical Skills'
+                    
+                    # Format skill with hyperlink if available
+                    skill_urls = self._get_skills_with_urls([skill_name])
+                    if skill_name in skill_urls:
+                        skill_formatted = f"• {skill_name}|{skill_urls[skill_name]}"
+                    else:
+                        skill_formatted = f"• {skill_name}"
+                    
+                    domains_to_show[domain_name] = {
+                        'current_skills': '',
+                        'required_skills': skill_formatted,
+                        'gap_assessment': 'New skills needed'
+                    }
+            
+            # Build table rows from domains
+            for domain_name, domain_data in domains_to_show.items():
+                current_skills = domain_data['current_skills']  # Show actual skills or empty
+                required_skills = domain_data['required_skills']  # Show actual skills or empty
+                gap_assessment = domain_data['gap_assessment']
+                
+                rows.append([
+                    domain_name,
+                    current_skills,
+                    required_skills,
+                    gap_assessment
+                ])
+            
+            # Add summary row if we have multiple domains
+            if len(rows) > 1:
+                transferable_count = len([d for d in domains_to_show.values() if d['current_skills']])
+                required_count = len([d for d in domains_to_show.values() if d['required_skills']])
+                total_domains = len(rows)
+                
+                rows.append([
+                    f"Skills Summary ({total_domains} categories)",
+                    f"{transferable_count} skill areas with current capabilities",
+                    f"{required_count} skill areas requiring development",
+                    f"Skills foundation: {transferable_count}/{total_domains} categories"
+                ])
+            
+            # Use exact same pattern as ContentFormatter.create_skills_analysis_table
+            return ContentFormatter.create_table(headers, rows, 'compact')
+            
+        except Exception as e:
+            print(f"⚠️ Skills development table generation failed: {e}")
+            return {
+                'text': 'Skills development table generation failed',
+                'formatting': {}
+            }
+    
+    def _create_implementation_timeline_table(self, variables: Dict):
+        """Create implementation timeline table using the exact pattern from Current Role Context."""
+        try:
+            # Try relative import first, then absolute import
+            try:
+                from ..formatter import ContentFormatter
+            except ImportError:
+                from formatter import ContentFormatter
+            
+            headers = ["Phase", "Timeline", "Key Activities", "Success Measures"]
+            
+            rows = [
+                ["Getting Started", "Months 1-2", "Career conversations, skills assessment, mentor assignment", "Development plan approved"],
+                ["Building Skills", "Months 3-4", "Technical training, workshops, shadowing programs", f"{variables.get('specialized_skills_count', 'N/A')} competencies acquired"],
+                ["Applying Learning", "Months 5-6", "Cross-functional projects, progress reviews", "Practical application demonstrated"],
+                ["Full Transition", "Month 7+", "Role transition, ongoing mentorship", "Performance targets achieved"]
+            ]
+            
+            # Use exact same pattern as ContentFormatter.create_skills_analysis_table
+            return ContentFormatter.create_table(headers, rows, 'compact')
+            
+        except ImportError:
+            # Fallback - return text representation
+            return "Table creation failed - ContentFormatter not available"
     
     def _populate_opportunity_variables(self, opportunity: Dict) -> Dict:
         """Populate all template variables for a single opportunity."""
@@ -665,6 +915,18 @@ class PathwayAnalysisGenerator:
         variables = {
             # Basic opportunity data
             'opportunity_rank': opportunity['opportunity_rank'],
+            'target_job_title': pathway.get('target_job_title', 'Unknown Role'),
+            'target_job_id': pathway.get('target_job_id', 'Unknown ID'),
+            'target_job_logical_display_name': pathway.get('target_logical_role', pathway.get('target_job_title', 'Unknown Role')),
+            'similarity_score': pathway.get('similarity_score', 0),
+            'move_type_display': self._get_move_type_display(pathway.get('move_type', 'Other')),
+            'opportunity_classification': self._get_opportunity_classification(pathway.get('similarity_score', 0)),
+            
+            # New assessment variables for tables
+            'compatibility_assessment': self._get_compatibility_assessment(pathway.get('similarity_score', 0)),
+            'development_assessment': self._get_development_assessment(skills['development_timeline'].get('total_development_weeks', 64)),
+            'strategic_importance_assessment': self._get_strategic_importance_assessment(opportunity.get('organisational_deployment', {})),
+            
             **strategic,
             
             # Skills analysis data
@@ -792,6 +1054,43 @@ class PathwayAnalysisGenerator:
         elif 'Lateral' in move_type: return 8
         else: return 5
     
+    def _get_compatibility_assessment(self, similarity_score: float) -> str:
+        """Get compatibility assessment based on similarity score."""
+        assessments = self.template_data.get('descriptors', {}).get('compatibility_assessments', {})
+        if similarity_score >= 85: return assessments.get('outstanding', 'Excellent match')
+        elif similarity_score >= 75: return assessments.get('excellent', 'Strong match')
+        elif similarity_score >= 65: return assessments.get('good', 'Good match')
+        elif similarity_score >= 50: return assessments.get('development', 'Requires development')
+        else: return assessments.get('transformation', 'Significant transition')
+    
+    def _get_development_assessment(self, total_weeks: int) -> str:
+        """Get development assessment based on total development weeks."""
+        assessments = self.template_data.get('descriptors', {}).get('development_assessments', {})
+        thresholds = self.template_data.get('thresholds', {}).get('development_timeline', {})
+        
+        if total_weeks <= thresholds.get('short', 32): 
+            return assessments.get('short', 'Quick transition')
+        elif total_weeks <= thresholds.get('moderate', 56): 
+            return assessments.get('moderate', 'Standard timeline')
+        else: 
+            return assessments.get('extended', 'Extended development')
+    
+    def _get_strategic_importance_assessment(self, deployment_data: Dict) -> str:
+        """Get strategic importance assessment based on organisational deployment."""
+        assessments = self.template_data.get('descriptors', {}).get('strategic_importance_assessments', {})
+        
+        position_count = deployment_data.get('target_position_count', 0)
+        division_count = deployment_data.get('target_division_count', 0)
+        
+        # High importance: Many positions across multiple divisions
+        if position_count > 50 and division_count > 3:
+            return assessments.get('high', 'High growth potential')
+        # Medium importance: Moderate positions or divisions
+        elif position_count > 20 or division_count > 2:
+            return assessments.get('medium', 'Stable career path')
+        else:
+            return assessments.get('low', 'Specialised opportunity')
+    
     def _get_fallback_skills_transition(self) -> Dict:
         """Fallback skills transition analysis."""
         return {
@@ -806,3 +1105,55 @@ class PathwayAnalysisGenerator:
             'required_skills_count': 2,
             'development_timeline': self._calculate_development_timeline(2)
         } 
+
+    def _get_skills_with_urls(self, skill_names_list: List[str]) -> Dict[str, str]:
+        """Get URLs for skill names from the database."""
+        if not skill_names_list:
+            return {}
+        
+        try:
+            # Create placeholders for the IN clause
+            placeholders = ','.join(['?' for _ in skill_names_list])
+            query = f"""
+            SELECT DISTINCT s.Skill_Name, s.Info_URL
+            FROM skills s 
+            WHERE s.Skill_Name IN ({placeholders})
+              AND s.Info_URL IS NOT NULL 
+              AND s.Info_URL != ''
+            """
+            
+            cursor = self.db.execute(query, skill_names_list)
+            results = cursor.fetchall()
+            
+            # Return dictionary mapping skill name to URL
+            return {skill_name: url for skill_name, url in results if url}
+            
+        except Exception as e:
+            print(f"⚠️ Error fetching skill URLs: {e}")
+            return {}
+
+    def _format_skills_with_hyperlinks(self, skill_list: str) -> str:
+        """Format comma-separated skills as bullet points with hyperlinks."""
+        if not skill_list or not skill_list.strip():
+            return ''
+        
+        # Split on commas and clean up skill names
+        skills = [skill.strip() for skill in skill_list.split(',') if skill.strip()]
+        
+        if not skills:
+            return ''
+        
+        # Get URLs for these skills
+        skill_urls = self._get_skills_with_urls(skills)
+        
+        # Format as bullet points with hyperlinks where available
+        formatted_skills = []
+        for skill in skills:
+            if skill in skill_urls:
+                # Create hyperlink format: skill_name|url
+                formatted_skills.append(f"• {skill}|{skill_urls[skill]}")
+            else:
+                # Plain text skill
+                formatted_skills.append(f"• {skill}")
+        
+        return '\n'.join(formatted_skills) 
