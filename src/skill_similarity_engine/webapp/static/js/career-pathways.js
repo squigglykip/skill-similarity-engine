@@ -266,7 +266,7 @@ SkillEngine.CareerPathways = {
             .attr('text-anchor', 'middle')
             .style('font-size', '12px')
             .style('font-weight', 'bold')
-            .text(d => this.truncateText(d.data.name || d.data.job_title || 'Unknown', 20));
+            .text(d => this.truncateText(d.data.display_name_compact || d.data.name || d.data.job_title || 'Unknown', 20));
 
         // Add similarity scores
         nodes.append('text')
@@ -348,7 +348,7 @@ SkillEngine.CareerPathways = {
             return `
                 <div class="job-breadcrumb ${isSelected ? 'selected' : ''}" 
                      onclick="SkillEngine.CareerPathways.selectBreadcrumbStep(${index})">
-                    <div class="job-title">${data.name || data.job_title || 'Unknown Role'}</div>
+                    <div class="job-title">${data.display_name_compact || data.name || data.job_title || 'Unknown Role'}</div>
                     <div class="job-similarity">${similarity}</div>
                     <div class="job-level">Level ${index}</div>
                 </div>
@@ -434,8 +434,8 @@ SkillEngine.CareerPathways = {
 
     // Update comparison header
     updateComparisonHeader(startData, endData, selectedStepIndex, contextText) {
-        const headerStartRole = startData.name || startData.job_title || 'Starting Role';
-        const headerEndRole = endData.name || endData.job_title || 'Target Role';
+        const headerStartRole = startData.display_name_standard || startData.name || startData.job_title || 'Starting Role';
+        const headerEndRole = endData.display_name_standard || endData.name || endData.job_title || 'Target Role';
         const headerElement = document.getElementById('skills-comparison-header');
         
         if (headerElement) {
@@ -757,7 +757,7 @@ SkillEngine.CareerPathways = {
             return `
                 <tr class="hover:bg-gray-50 ${isCurrentStep ? 'ring-2 ring-purple-300' : ''}">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-source font-medium text-gray-900">${job.job_title}</div>
+                        <div class="text-sm font-source font-medium text-gray-900">${job.display_name_compact || job.job_title}</div>
                         <div class="text-xs font-source text-gray-500">${jobId}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-source text-gray-900">
@@ -918,8 +918,8 @@ window.showJourneyStep = function(stepIndex) {
             
             const startData = startNode.data || startNode;
             const endData = endNode.data || endNode;
-            const headerStartRole = startData.name || startData.job_title || 'Starting Role';
-            const headerEndRole = endData.name || endData.job_title || 'Target Role';
+            const headerStartRole = startData.display_name_standard || startData.name || startData.job_title || 'Starting Role';
+            const headerEndRole = endData.display_name_standard || endData.name || endData.job_title || 'Target Role';
             const headerElement = document.getElementById('skills-comparison-header');
             
             if (headerElement) {

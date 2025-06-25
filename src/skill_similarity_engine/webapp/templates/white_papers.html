@@ -5,6 +5,8 @@
 {% block extra_head %}
 <!-- White Papers specific styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/white-papers.css') }}">
+<!-- Unified Search Module CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/search-module.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -43,24 +45,24 @@
                                 <i class="fas fa-briefcase text-gray-500 mr-1"></i>
                                 Source Job *
                             </label>
-                            <div class="relative">
+                            <div class="search-input-wrapper relative">
                                 <input 
                                     type="text" 
                                     id="jobFromSearch" 
                                     name="job_from_search" 
                                     required
-                                    class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source" 
+                                    class="search-input-with-icon w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source" 
                                     placeholder="Search by job profile or profile ID (e.g., 'Data Scientist' or 'R0025.1')..."
                                     autocomplete="off"
                                 >
-                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
+                                <div class="search-input-icon">
+                                    <i class="fas fa-search"></i>
                                 </div>
                                 <!-- Hidden input to store selected job ID -->
                                 <input type="hidden" id="jobFrom" name="job_from">
-                                <!-- Search results dropdown -->
-                                <div id="jobFromResults" class="absolute z-50 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
-                                    <!-- Results populated by JavaScript -->
+                                <!-- Search results dropdown - unified format -->
+                                <div id="jobFromResults" class="search-results-container absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
+                                    <!-- Results populated by unified search module -->
                                 </div>
                             </div>
                         </div>
@@ -96,7 +98,7 @@
                             <select id="jobTo" name="job_to" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source">
                                 <option value="">Select target job...</option>
                                 {% for job in sample_jobs %}
-                                <option value="{{ job.id }}">{{ job.job_title }}</option>
+                                <option value="{{ job.id }}" data-job-profile-id="{{ job.id }}">{{ job.display_name_dropdown or job.display_name_standard or job.job_title }} ({{ job.job_function }})</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -241,6 +243,42 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- Load Unified Search Module -->
+<script>
+    const searchModuleScript = document.createElement('script');
+    searchModuleScript.src = "{{ url_for('static', filename='js/search-module.js') }}";
+    searchModuleScript.onload = function() {
+        // Wait for SkillEngine.SearchModule to be available
+        function initializeSearch() {
+            if (typeof window.SkillEngine === 'undefined' || typeof window.SkillEngine.SearchModule === 'undefined') {
+                console.warn('🔍 SearchModule not available yet, retrying in 100ms...');
+                setTimeout(initializeSearch, 100);
+                return;
+            }
+            
+            // Initialize unified search module for White Papers
+            window.SkillEngine.SearchModule.init({
+                inputId: 'jobFromSearch',
+                resultsId: 'jobFromResults', 
+                hiddenInputId: 'jobFrom',
+                onSelect: (selection) => {
+                    console.log('🔍 Job selected:', selection.jobId, selection.displayTitle);
+                    // The search module already handles updating the input and hidden field
+                },
+                config: {
+                    showDetailedResults: true,
+                    maxResults: 10,
+                    apiEndpoint: '/api/whitepaper-jobs' // Use the enhanced API endpoint
+                }
+            });
+            
+            console.log('✅ Unified Search Module initialized for White Papers');
+        }
+        
+        initializeSearch();
+    };
+    document.head.appendChild(searchModuleScript);
+</script>
 <!-- White Papers specific JavaScript -->
 <script src="{{ url_for('static', filename='js/white-papers.js') }}"></script>
 {% endblock %}

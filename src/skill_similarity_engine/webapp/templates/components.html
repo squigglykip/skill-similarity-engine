@@ -1680,8 +1680,9 @@
     async function testJobSimilarities() {
         try {
             // Use a sample JobProfileID from your database
-            const response = await fetch('/api/search-jobs?q=analyst');
-            const jobs = await response.json();
+            const response = await fetch('/api/whitepaper-jobs?search=analyst');
+            const data = await response.json();
+            const jobs = data.jobs || [];
             if (jobs.length > 0) {
                 const firstJob = jobs[0];
                 const similaritiesResponse = await fetch(`/api/job-similarities/${firstJob.id}`);

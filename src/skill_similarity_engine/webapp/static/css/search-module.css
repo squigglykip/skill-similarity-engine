@@ -34,6 +34,9 @@
     border-bottom: 1px solid var(--color-gray-100);
     transition: background-color var(--transition-fast);
     position: relative;
+    background-color: white !important; /* Force white background */
+    outline: none !important; /* Remove any outline */
+    -webkit-tap-highlight-color: transparent !important; /* Remove tap highlight */
 }
 
 .search-result-item:last-child {
@@ -42,33 +45,63 @@
 
 .search-result-item:hover,
 .search-result-item.search-result-selected {
-    background-color: var(--color-gray-50);
+    background-color: var(--color-gray-50) !important;
+    outline: none !important;
 }
 
 .search-result-item.search-result-selected {
-    background-color: var(--color-blue-50);
+    background-color: var(--color-blue-50) !important;
     border-left: 3px solid var(--color-nab-red);
+}
+
+/* Remove any browser default selection highlighting */
+.search-result-item:focus,
+.search-result-item:active {
+    background-color: var(--color-gray-50) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Ensure styles apply to all search result containers */
+#pathway-job-dropdown .search-result-item,
+#search-results-container .search-result-item,
+.search-results-container .search-result-item {
+    padding: var(--spacing-3) var(--spacing-4);
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-gray-100);
+    transition: background-color var(--transition-fast);
+    position: relative;
 }
 
 /* =================================================================
    Search Result Content
    ================================================================= */
 
-.search-result-title {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-gray-900);
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-tight);
-    margin-bottom: var(--spacing-1);
+.search-result-title,
+#pathway-job-dropdown .search-result-title,
+#jobFromResults .search-result-title,
+.search-results-container .search-result-title {
+    font-weight: 600 !important;
+    color: var(--color-gray-900) !important;
+    font-size: 0.95rem !important;
+    line-height: var(--line-height-tight) !important;
+    margin-bottom: 6px !important;
 }
 
-.search-result-meta {
-    font-size: var(--font-size-xs);
-    color: var(--color-gray-500);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-2);
-    align-items: center;
+.search-result-meta,
+#pathway-job-dropdown .search-result-meta,
+#jobFromResults .search-result-meta,
+.search-results-container .search-result-meta {
+    font-size: var(--font-size-xs) !important;
+    color: var(--color-gray-500) !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: var(--spacing-2) !important;
+    align-items: center !important;
+    line-height: 1.2 !important;
+    padding-left: 4px !important;
+    border-left: 2px solid var(--color-gray-200) !important;
+    margin-left: 2px !important;
 }
 
 .search-result-id {
@@ -79,25 +112,71 @@
     font-size: 0.6875rem;
 }
 
-.search-result-function {
-    color: var(--color-gray-700);
-    font-weight: var(--font-weight-medium);
+.search-result-function,
+#pathway-job-dropdown .search-result-function,
+#jobFromResults .search-result-function,
+.search-results-container .search-result-function {
+    color: var(--color-gray-500) !important;
+    font-weight: var(--font-weight-normal) !important;
+    font-size: var(--font-size-xs) !important;
+}
+
+.search-result-function strong,
+#pathway-job-dropdown .search-result-function strong,
+#jobFromResults .search-result-function strong,
+.search-results-container .search-result-function strong {
+    color: var(--color-gray-600) !important;
+    font-weight: var(--font-weight-medium) !important;
 }
 
 .search-result-subfunction {
     color: var(--color-gray-500);
 }
 
-.search-result-function::before {
-    content: "•";
-    margin-right: var(--spacing-1);
-    color: var(--color-gray-300);
+/* Removed bullet points since we're showing "Function: xxx" format directly */
+
+/* =================================================================
+   FORCE STYLING - Career Pathways Specific Override
+   ================================================================= */
+
+/* Force styling on career pathways dropdown specifically */
+div#pathway-job-dropdown div.search-result-item div.search-result-meta,
+div#pathway-job-dropdown .search-result-item .search-result-meta {
+    font-size: 0.75rem !important; /* 12px */
+    color: #6b7280 !important; /* gray-500 */
+    font-weight: 400 !important;
 }
 
-.search-result-subfunction::before {
-    content: "•";
-    margin-right: var(--spacing-1);
-    color: var(--color-gray-300);
+div#pathway-job-dropdown div.search-result-item div.search-result-meta span,
+div#pathway-job-dropdown .search-result-item .search-result-meta span,
+div#pathway-job-dropdown div.search-result-item div.search-result-meta span.search-result-function,
+div#pathway-job-dropdown .search-result-item .search-result-meta span.search-result-function {
+    font-size: 0.7rem !important; /* Even smaller - 11.2px */
+    color: #6b7280 !important; /* gray-500 */
+    font-weight: 400 !important;
+}
+
+div#pathway-job-dropdown div.search-result-item div.search-result-meta span strong,
+div#pathway-job-dropdown .search-result-item .search-result-meta span strong,
+div#pathway-job-dropdown div.search-result-item div.search-result-meta span.search-result-function strong,
+div#pathway-job-dropdown .search-result-item .search-result-meta span.search-result-function strong {
+    color: #4b5563 !important; /* gray-600 */
+    font-weight: 500 !important;
+    font-size: 0.7rem !important; /* Ensure strong text is also small */
+}
+
+/* Additional ultra-specific targeting */
+#pathway-job-dropdown [data-job-id] .search-result-meta span.search-result-function {
+    font-size: 0.65rem !important; /* Even smaller - 10.4px */
+    color: #6b7280 !important; /* gray-500 */
+    font-weight: 400 !important;
+    line-height: 1.2 !important;
+}
+
+#pathway-job-dropdown [data-job-id] .search-result-meta span.search-result-function strong {
+    color: #4b5563 !important; /* gray-600 */
+    font-weight: 500 !important;
+    font-size: 0.65rem !important; /* Match parent */
 }
 
 /* =================================================================
@@ -228,21 +307,15 @@
     }
     
     .search-result-item {
-        padding: calc(var(--spacing-3) - var(--spacing-px)) var(--spacing-3);
+        padding: var(--spacing-2) var(--spacing-3);
     }
     
     .search-result-title {
-        font-size: 0.8125rem;
+        font-size: var(--font-size-sm) !important;
     }
     
     .search-result-meta {
-        font-size: 0.6875rem;
-        gap: calc(var(--spacing-2) - var(--spacing-px));
-    }
-    
-    .search-result-id {
-        font-size: 0.625rem;
-        padding: var(--spacing-px) var(--spacing-1);
+        font-size: 0.7rem !important;
     }
 }
 
@@ -253,10 +326,7 @@
         gap: var(--spacing-1);
     }
     
-    .search-result-function::before,
-    .search-result-subfunction::before {
-        display: none;
-    }
+    /* No bullet points to hide since we removed them */
 }
 
 /* =================================================================
@@ -347,4 +417,52 @@
         background-color: var(--color-error-dark);
         color: var(--color-error-light);
     }
+}
+
+/* =================================================================
+   Force Override - Fix Selection Artifacts
+   ================================================================= */
+
+/* Ultra-specific selectors to override any highlighting */
+div#pathway-job-dropdown .search-result-item,
+div#jobFromResults .search-result-item {
+    background-color: white !important;
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+}
+
+div#pathway-job-dropdown .search-result-item:hover,
+div#jobFromResults .search-result-item:hover {
+    background-color: var(--color-gray-50) !important;
+}
+
+div#pathway-job-dropdown .search-result-item:focus,
+div#pathway-job-dropdown .search-result-item:active,
+div#jobFromResults .search-result-item:focus,
+div#jobFromResults .search-result-item:active {
+    background-color: var(--color-gray-50) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Fix selection artifacts on meta content */
+div#pathway-job-dropdown .search-result-meta,
+div#jobFromResults .search-result-meta {
+    background-color: transparent !important;
+    outline: none !important;
+}
+
+div#pathway-job-dropdown .search-result-meta span,
+div#jobFromResults .search-result-meta span {
+    font-size: var(--font-size-xs) !important;
+    color: var(--color-gray-500) !important;
+    background-color: transparent !important;
+}
+
+div#pathway-job-dropdown .search-result-meta span strong,
+div#jobFromResults .search-result-meta span strong {
+    color: var(--color-gray-600) !important;
+    font-weight: var(--font-weight-medium) !important;
+    background-color: transparent !important;
 } 

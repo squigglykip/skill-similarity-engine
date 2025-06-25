@@ -13,21 +13,30 @@ from jinja2 import Template
 
 logger = logging.getLogger(__name__)
 
-# Import SQL query modules and LogicalRoleManager from executive summary
+# Import SQL query modules and JobDisplayManager from utilities
 try:
     from ..sql import query_loader, DatabaseReferenceCalculator
-    from .executive_summary_generator import LogicalRoleManager
     from ..formatter import ContentFormatter
+    from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 except ImportError:
     # Handle direct script execution
     try:
         from sql import query_loader, DatabaseReferenceCalculator
-        from executive_summary_generator import LogicalRoleManager
         from formatter import ContentFormatter
+        # Try importing JobDisplayManager with path adjustment
+        try:
+            from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
+        except ImportError:
+            import sys
+            from pathlib import Path
+            src_path = Path(__file__).parent.parent.parent.parent.parent
+            sys.path.insert(0, str(src_path))
+            from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
     except ImportError:
         query_loader = None
         DatabaseReferenceCalculator = None
-        LogicalRoleManager = None
+        JobDisplayManager = None
+        DisplayFormat = None
         ContentFormatter = None
 
 class CurrentRoleContextGenerator:
@@ -38,11 +47,11 @@ class CurrentRoleContextGenerator:
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'current_role_context.yaml'
         self.template_data = self._load_template()
         
-        # Initialize logical role manager if available
-        if LogicalRoleManager:
-            self.logical_role_manager = LogicalRoleManager(db_connection)
+        # Initialize display manager for job name formatting
+        if JobDisplayManager:
+            self.display_manager = JobDisplayManager(db_connection)
         else:
-            self.logical_role_manager = None
+            self.display_manager = None
         
         # Initialize advanced SQL integration if available
         if DatabaseReferenceCalculator:
@@ -95,8 +104,8 @@ class CurrentRoleContextGenerator:
         
         try:
             # Get source job details with logical role display
-            if self.logical_role_manager:
-                values['source_job_logical_display_name'] = self.logical_role_manager.get_logical_role_display_name(job_from)
+            if self.display_manager and DisplayFormat:
+                values['source_job_logical_display_name'] = self.display_manager.get_display_name(job_from, DisplayFormat.STANDARD)
             else:
                 values['source_job_logical_display_name'] = self._get_job_title_fallback(job_from)
             

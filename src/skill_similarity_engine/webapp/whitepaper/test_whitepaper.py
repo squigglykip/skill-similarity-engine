@@ -23,7 +23,8 @@ from pathlib import Path
 src_path = Path(__file__).parent / 'src'
 sys.path.insert(0, str(src_path))
 
-from executive_summary_generator import ExecutiveSummaryGenerator, LogicalRoleManager
+from executive_summary_generator import ExecutiveSummaryGenerator
+from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 from current_role_context_generator import CurrentRoleContextGenerator
 
 def test_executive_summary_generation():
@@ -46,10 +47,10 @@ def test_executive_summary_generation():
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row  # Enable column access by name
         
-        # Initialize generator and logical role manager
-        print("🏗️ Initializing Executive Summary Generator with Logical Role Support...")
+        # Initialize generator and display manager
+        print("🏗️ Initializing Executive Summary Generator with JobDisplayManager...")
         generator = ExecutiveSummaryGenerator(db)
-        logical_manager = LogicalRoleManager(db)
+        display_manager = JobDisplayManager(db)
         
         # Show logical role architecture improvements
         total_profiles = db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
@@ -71,7 +72,7 @@ def test_executive_summary_generation():
         
         # Test with a sample job (you can change this)
         test_job_id = "R0100.2"  # Data Scientist Associate from gold standard
-        logical_name = logical_manager.get_logical_role_display_name(test_job_id)
+        logical_name = display_manager.get_display_name(test_job_id, DisplayFormat.LOGICAL)
         print(f"\n🎯 Generating executive summary for:")
         print(f"   JobProfileID: {test_job_id}")
         print(f"   Logical Role: {logical_name}")

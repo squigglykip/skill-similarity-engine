@@ -168,11 +168,11 @@ SkillEngine.SearchModule = {
         let html;
         
         if (instance.config.showDetailedResults) {
-            // Detailed results (like white papers)
+            // Detailed results (like white papers) - use standardised display names
             html = jobs.map((job, index) => {
-                const displayTitle = job.job_title 
-                    ? `${job.job_title} - ${job.suffix} (${job.management_level})`
-                    : job.name || job.title || 'Unknown Job';
+                // Prefer standardised display names from JobDisplayManager
+                const displayTitle = job.display_name_search || job.display_name_standard || 
+                    job.name || job.title || job.job_title || 'Unknown Job';
                 
                 return `
                     <div class="search-result-item" 
@@ -181,17 +181,17 @@ SkillEngine.SearchModule = {
                          data-display-title="${displayTitle}">
                         <div class="search-result-title">${displayTitle}</div>
                         <div class="search-result-meta">
-                            <span class="search-result-id">ID: ${job.id}</span>
-                            <span class="search-result-function">${job.function || 'N/A'}</span>
-                            ${job.sub_function ? `<span class="search-result-subfunction">${job.sub_function}</span>` : ''}
+                            <span class="search-result-function"><strong>Function:</strong> ${job.function || 'N/A'}</span>
                         </div>
                     </div>
                 `;
             }).join('');
         } else {
-            // Simple results (legacy compatibility)
+            // Simple results (legacy compatibility) - use compact display names
             html = jobs.map((job, index) => {
-                const title = job.name || job.title || job.job_title || 'Unknown Job';
+                // Prefer compact display names for simple results
+                const title = job.display_name_compact || job.display_name_standard || 
+                    job.name || job.title || job.job_title || 'Unknown Job';
                 return `
                     <div class="search-result-item" 
                          data-index="${index}"
@@ -199,7 +199,7 @@ SkillEngine.SearchModule = {
                          data-display-title="${title}">
                         <div class="search-result-title">${title}</div>
                         <div class="search-result-meta">
-                            ${job.function || job.job_function || 'N/A'}
+                            <strong>Function:</strong> ${job.function || job.job_function || 'N/A'}
                         </div>
                     </div>
                 `;

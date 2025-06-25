@@ -27,43 +27,17 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class LogicalRoleManager:
-    """Manages logical role display names for cleaner presentation."""
-    
-    def __init__(self, db_connection):
-        self.db = db_connection
-    
-    def get_logical_role_display_name(self, job_profile_id: str) -> str:
-        """Convert JobProfileID to logical role display name."""
-        try:
-            query = """
-            SELECT JobProfile, ManagementLevel 
-            FROM jobs 
-            WHERE JobProfileID = ?
-            """
-            result = self.db.execute(query, (job_profile_id,)).fetchone()
-            
-            if not result:
-                return f"Unknown Role ({job_profile_id})"
-            
-            job_profile = result['JobProfile']
-            management_level = result['ManagementLevel']
-            
-            # Extract base role name (remove "- Associate", "- Senior", etc.)
-            if ' - ' in job_profile:
-                base_name = job_profile.split(' - ')[0]
-            else:
-                base_name = job_profile
-            
-            # Format with management level
-            if management_level and management_level != 'NA':
-                return f"{base_name} ({management_level})"
-            else:
-                return base_name
-                
-        except Exception as e:
-            logger.error(f"Error getting logical role name for {job_profile_id}: {e}")
-            return f"Unknown Role ({job_profile_id})"
+# LogicalRoleManager has been replaced by JobDisplayManager
+# Import the centralized display utility
+try:
+    from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
+except ImportError:
+    # Handle relative imports when running from within the whitepaper directory
+    import sys
+    from pathlib import Path
+    src_path = Path(__file__).parent.parent.parent.parent.parent
+    sys.path.insert(0, str(src_path))
+    from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 
 class DatabaseReferenceCalculator:
     """Handles database-driven reference calculations for strategic recommendations."""
@@ -277,7 +251,7 @@ class StrategicRecommendationsGenerator:
         """Initialize the generator with database connection."""
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'strategic_recommendations.yaml'
-        self.logical_role_manager = LogicalRoleManager(db_connection) if db_connection else None
+        self.display_manager = JobDisplayManager(db_connection) if db_connection else None
         self.ref_calc = DatabaseReferenceCalculator(db_connection) if db_connection else None
         
         # Load YAML template
@@ -343,8 +317,8 @@ class StrategicRecommendationsGenerator:
             # Source job information
             variables['source_job_id'] = job_from
             variables['source_job_logical_display_name'] = (
-                self.logical_role_manager.get_logical_role_display_name(job_from) 
-                if self.logical_role_manager else job_from
+                self.display_manager.get_display_name(job_from, DisplayFormat.STANDARD) 
+                if self.display_manager else job_from
             )
             
             # Database-driven decision support variables

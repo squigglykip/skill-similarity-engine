@@ -63,8 +63,9 @@ window.SkillEngine = {
                 }
                 
                 try {
-                    const response = await fetch(`/api/search-jobs?q=${encodeURIComponent(query)}`);
-                    const jobs = await response.json();
+                    const response = await fetch(`/api/whitepaper-jobs?search=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    const jobs = data.jobs || [];
                     
                     SkillEngine.search.displayResults(jobs, resultsElement);
                 } catch (error) {

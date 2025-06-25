@@ -31,53 +31,17 @@ except ImportError:
     except ImportError:
         ContentFormatter = None
 
-class LogicalRoleManager:
-    """Manages logical role operations for Job + ManagementLevel combinations."""
-    
-    def __init__(self, db_connection):
-        self.db = db_connection
-    
-    def get_logical_role_display_name(self, job_profile_id: str) -> str:
-        """Get logical role display name: 'Job Title (Management Level)'"""
-        try:
-            query = """
-            SELECT JobProfile, ManagementLevel
-            FROM jobs 
-            WHERE JobProfileID = ?
-            """
-            result = self.db.execute(query, (job_profile_id,)).fetchone()
-            if result:
-                job_title = result[0]
-                management_level = result[1] or "Group 1"
-                
-                # Remove the " - X" suffix if present to get base job title
-                base_title = job_title.split(" - ")[0] if " - " in job_title else job_title
-                
-                return f"{base_title} ({management_level})"
-            return job_profile_id
-        except Exception as e:
-            print(f"⚠️ Error getting logical role display name: {e}")
-            return job_profile_id
-    
-    def get_representative_profile_id(self, job_profile: str, management_level: str) -> Optional[str]:
-        """Get representative JobProfileID for a logical role combination."""
-        try:
-            # Remove suffix and get base job profile name
-            base_job_profile = job_profile.split(" - ")[0] if " - " in job_profile else job_profile
-            
-            query = """
-            SELECT MIN(JobProfileID) as representative_id
-            FROM jobs 
-            WHERE (JobProfile LIKE ? OR JobProfile = ?)
-              AND ManagementLevel = ?
-            """
-            
-            like_pattern = f"{base_job_profile} - %"
-            result = self.db.execute(query, (like_pattern, base_job_profile, management_level)).fetchone()
-            return result[0] if result and result[0] else None
-        except Exception as e:
-            print(f"⚠️ Error getting representative profile: {e}")
-            return None
+# LogicalRoleManager has been replaced by JobDisplayManager
+# Import the new centralized display utility
+try:
+    from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
+except ImportError:
+    # Handle relative imports when running from within the whitepaper directory
+    import sys
+    from pathlib import Path
+    src_path = Path(__file__).parent.parent.parent.parent.parent
+    sys.path.insert(0, str(src_path))
+    from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 
 class ExecutiveSummaryGenerator:
     """Generates executive summary content using template-driven approach with logical role support."""
@@ -86,7 +50,7 @@ class ExecutiveSummaryGenerator:
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'executive_summary.yaml'
         self.template_data = self._load_template()
-        self.logical_role_manager = LogicalRoleManager(db_connection)
+        self.display_manager = JobDisplayManager(db_connection)
         
         # Initialize advanced SQL integration if available
         if DatabaseReferenceCalculator:
@@ -154,7 +118,7 @@ class ExecutiveSummaryGenerator:
                 
                 # Get source job details with logical role display
                 values['source_job_details'] = self.ref_calc.get_source_job_details(job_from)
-                values['source_job_details']['logical_display_name'] = self.logical_role_manager.get_logical_role_display_name(job_from)
+                values['source_job_details']['logical_display_name'] = self.display_manager.get_display_name(job_from, DisplayFormat.STANDARD)
                 
                 # Get top 3 similarities range for this specific job
                 min_sim, max_sim, pathway_count = self.ref_calc.ref_02_top_similarities_range(job_from)
@@ -193,7 +157,7 @@ class ExecutiveSummaryGenerator:
                 
                 # Get source job details with logical role display
                 values['source_job_details'] = self._get_source_job_details(job_from)
-                values['source_job_details']['logical_display_name'] = self.logical_role_manager.get_logical_role_display_name(job_from)
+                values['source_job_details']['logical_display_name'] = self.display_manager.get_display_name(job_from, DisplayFormat.STANDARD)
             
         except Exception as e:
             print(f"⚠️ Error getting database values: {e}")
@@ -214,7 +178,7 @@ class ExecutiveSummaryGenerator:
                 # Add logical role display names and level transition descriptions
                 for pathway in pathways:
                     # Add logical role display name
-                    pathway['target_logical_role'] = self.logical_role_manager.get_logical_role_display_name(pathway['target_job_id'])
+                    pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
                     
                     # Add transition data
                     transition_data = self._calculate_move_type(job_from, pathway)
@@ -256,7 +220,7 @@ class ExecutiveSummaryGenerator:
                     }
                     
                     # Add logical role display name
-                    pathway['target_logical_role'] = self.logical_role_manager.get_logical_role_display_name(pathway['target_job_id'])
+                    pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
                     
                     # Calculate move type and level transition
                     pathway.update(self._calculate_move_type(job_from, pathway))

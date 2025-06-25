@@ -55,56 +55,23 @@ SkillEngine.WhitePapers = {
 
     // Setup job search functionality
     setupJobSearch() {
+        console.log('✅ Job search now handled by Unified Search Module');
+        
+        // Setup integration with unified search module events
+        this.setupUnifiedSearchIntegration();
+        
+        // Clear hidden input when search input is manually cleared
         const searchInput = document.getElementById('jobFromSearch');
-        const resultsDiv = document.getElementById('jobFromResults');
         const hiddenInput = document.getElementById('jobFrom');
         
-        if (!searchInput || !resultsDiv || !hiddenInput) {
-            console.warn('Job search elements not found');
-            return;
-        }
-
-        let searchTimeout;
-
-        // Handle search input
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim();
-            
-            if (query.length < 2) {
-                resultsDiv.classList.add('hidden');
-                // Clear hidden input if search is cleared
-                if (query.length === 0) {
+        if (searchInput && hiddenInput) {
+            searchInput.addEventListener('input', (e) => {
+                if (e.target.value.trim() === '') {
                     hiddenInput.value = '';
                     this.validateForm();
                 }
-                return;
-            }
-
-            // Debounce search
-            searchTimeout = setTimeout(() => {
-                this.searchJobs(query, resultsDiv, hiddenInput, searchInput);
-            }, 300);
-        });
-
-        // Handle clicks outside to close dropdown
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-                resultsDiv.classList.add('hidden');
-            }
-        });
-
-        // Handle focus to show recent results
-        searchInput.addEventListener('focus', () => {
-            if (searchInput.value.trim().length >= 2) {
-                this.searchJobs(searchInput.value.trim(), resultsDiv, hiddenInput, searchInput);
-            }
-        });
-
-        // Handle keyboard navigation
-        searchInput.addEventListener('keydown', (e) => {
-            this.handleSearchKeydown(e, resultsDiv, hiddenInput, searchInput);
-        });
+            });
+        }
     },
 
     // Initialize form interactions
@@ -681,8 +648,11 @@ SkillEngine.WhitePapers = {
             jobs.forEach(job => {
                 const option = document.createElement('option');
                 option.value = job.id;
-                option.textContent = `${job.title} (${job.function})`;
+                // Use standardised dropdown display name with function context
+                const displayText = job.display_name_dropdown || job.display_name_standard || job.job_title || 'Unknown Job';
+                option.textContent = `${displayText} (${job.function || 'Unknown Function'})`;
                 option.dataset.function = job.function;
+                option.dataset.jobProfileId = job.id; // Always include JobProfileID for reference
                 jobFromSelect.appendChild(option);
             });
         }
@@ -695,143 +665,25 @@ SkillEngine.WhitePapers = {
             jobs.forEach(job => {
                 const option = document.createElement('option');
                 option.value = job.id;
-                option.textContent = `${job.title} (${job.function})`;
+                // Use standardised dropdown display name with function context
+                const displayText = job.display_name_dropdown || job.display_name_standard || job.job_title || 'Unknown Job';
+                option.textContent = `${displayText} (${job.function || 'Unknown Function'})`;
                 option.dataset.function = job.function;
+                option.dataset.jobProfileId = job.id; // Always include JobProfileID for reference
                 jobToSelect.appendChild(option);
             });
         }
     },
 
-    // Search jobs via API
-    async searchJobs(query, resultsDiv, hiddenInput, searchInput) {
-        try {
-            console.log('🔍 Searching jobs for:', query);
+    // Search functionality now handled by Unified Search Module
+    // Listen for job selection events from the unified search module
+    setupUnifiedSearchIntegration() {
+        document.addEventListener('jobSelected', (event) => {
+            const { jobId, jobName } = event.detail;
+            console.log('✅ Job selected via unified search:', jobId, jobName);
             
-            const response = await fetch(`/api/whitepaper-jobs?search=${encodeURIComponent(query)}&limit=10`);
-            const data = await response.json();
-
-            if (data.success && data.jobs) {
-                this.displaySearchResults(data.jobs, resultsDiv, hiddenInput, searchInput);
-            } else {
-                this.displayNoResults(resultsDiv);
-            }
-        } catch (error) {
-            console.error('❌ Error searching jobs:', error);
-            this.displayNoResults(resultsDiv);
-        }
-    },
-
-    // Display search results
-    displaySearchResults(jobs, resultsDiv, hiddenInput, searchInput) {
-        if (jobs.length === 0) {
-            this.displayNoResults(resultsDiv);
-            return;
-        }
-
-        const html = jobs.map((job, index) => {
-            // Create display title from components
-            const displayTitle = `${job.job_title} - ${job.suffix} (${job.management_level})`;
-            
-            return `
-                <div class="job-result px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
-                     data-job-id="${job.id}" 
-                     data-job-profile="${job.job_profile}"
-                     data-display-title="${displayTitle}"
-                     data-index="${index}">
-                    <div class="font-medium text-gray-900 text-sm">${displayTitle}</div>
-                    <div class="text-xs text-gray-500 mt-1 space-y-1">
-                        <div>Profile ID: <span class="font-mono">${job.id}</span></div>
-                        <div>Function: ${job.function || 'N/A'} ${job.sub_function ? '• ' + job.sub_function : ''}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        resultsDiv.innerHTML = html;
-        resultsDiv.classList.remove('hidden');
-
-        // Add click handlers to results
-        resultsDiv.querySelectorAll('.job-result').forEach(item => {
-            item.addEventListener('click', () => {
-                this.selectJobFromSearch(item, hiddenInput, searchInput, resultsDiv);
-            });
-        });
-    },
-
-    // Display no results message
-    displayNoResults(resultsDiv) {
-        resultsDiv.innerHTML = `
-            <div class="px-4 py-3 text-sm text-gray-500 text-center">
-                <i class="fas fa-search text-gray-300 text-lg mb-2"></i>
-                <div>No job profiles found matching your search</div>
-                <div class="text-xs mt-1">Try searching by job profile name or profile ID (e.g., 'R0025.1')</div>
-            </div>
-        `;
-        resultsDiv.classList.remove('hidden');
-    },
-
-    // Select job from search results
-    selectJobFromSearch(item, hiddenInput, searchInput, resultsDiv) {
-        const jobId = item.dataset.jobId;
-        const displayTitle = item.dataset.displayTitle;
-        
-        console.log('✅ Selected job:', jobId, displayTitle);
-        
-        // Set values - use the formatted display title in the search input
-        searchInput.value = displayTitle;
-        hiddenInput.value = jobId;
-        
-        // Hide dropdown
-        resultsDiv.classList.add('hidden');
-        
-        // Update validation
-        this.validateForm();
-    },
-
-    // Handle keyboard navigation in search results
-    handleSearchKeydown(e, resultsDiv, hiddenInput, searchInput) {
-        const results = resultsDiv.querySelectorAll('.job-result');
-        const currentActive = resultsDiv.querySelector('.job-result.bg-blue-50');
-        let activeIndex = -1;
-
-        if (currentActive) {
-            activeIndex = parseInt(currentActive.dataset.index);
-        }
-
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                activeIndex = Math.min(activeIndex + 1, results.length - 1);
-                this.highlightSearchResult(results, activeIndex);
-                break;
-            
-            case 'ArrowUp':
-                e.preventDefault();
-                activeIndex = Math.max(activeIndex - 1, 0);
-                this.highlightSearchResult(results, activeIndex);
-                break;
-            
-            case 'Enter':
-                e.preventDefault();
-                if (currentActive) {
-                    this.selectJobFromSearch(currentActive, hiddenInput, searchInput, resultsDiv);
-                }
-                break;
-            
-            case 'Escape':
-                resultsDiv.classList.add('hidden');
-                break;
-        }
-    },
-
-    // Highlight search result for keyboard navigation
-    highlightSearchResult(results, activeIndex) {
-        results.forEach((result, index) => {
-            if (index === activeIndex) {
-                result.classList.add('bg-blue-50');
-            } else {
-                result.classList.remove('bg-blue-50');
-            }
+            // Update validation when job is selected
+            this.validateForm();
         });
     }
 };

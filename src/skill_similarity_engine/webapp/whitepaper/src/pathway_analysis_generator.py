@@ -10,19 +10,28 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 from jinja2 import Template
 
-# Import SQL query modules and LogicalRoleManager from executive summary
+# Import SQL query modules and JobDisplayManager from utilities
 try:
     from ..sql import query_loader, DatabaseReferenceCalculator
-    from .executive_summary_generator import LogicalRoleManager
+    from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 except ImportError:
     # Handle direct script execution
     try:
         from sql import query_loader, DatabaseReferenceCalculator
-        from executive_summary_generator import LogicalRoleManager
+        # Try importing JobDisplayManager with path adjustment
+        try:
+            from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
+        except ImportError:
+            import sys
+            from pathlib import Path
+            src_path = Path(__file__).parent.parent.parent.parent.parent
+            sys.path.insert(0, str(src_path))
+            from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
     except ImportError:
         query_loader = None
         DatabaseReferenceCalculator = None
-        LogicalRoleManager = None
+        JobDisplayManager = None
+        DisplayFormat = None
 
 class PathwayAnalysisGenerator:
     """Generates pathway analysis content using template-driven approach with logical role support."""
@@ -32,11 +41,11 @@ class PathwayAnalysisGenerator:
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'pathway_analysis.yaml'
         self.template_data = self._load_template()
         
-        # Initialize logical role manager if available
-        if LogicalRoleManager:
-            self.logical_role_manager = LogicalRoleManager(db_connection)
+        # Initialize display manager for job name formatting
+        if JobDisplayManager:
+            self.display_manager = JobDisplayManager(db_connection)
         else:
-            self.logical_role_manager = None
+            self.display_manager = None
         
         # Initialize advanced SQL integration if available
         if DatabaseReferenceCalculator:
@@ -123,8 +132,8 @@ class PathwayAnalysisGenerator:
                 }
                 
                 # Add logical role display name
-                if self.logical_role_manager:
-                    pathway['target_logical_role'] = self.logical_role_manager.get_logical_role_display_name(pathway['target_job_id'])
+                if self.display_manager and DisplayFormat:
+                    pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
                 else:
                     pathway['target_logical_role'] = pathway['target_job_title']
                 

@@ -21,6 +21,14 @@ from datetime import datetime
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, g, redirect, Response
 
+# Import JobDisplayManager for standardised job display names
+try:
+    from ..utils.display import JobDisplayManager, DisplayFormat
+    DISPLAY_MANAGER_AVAILABLE = True
+except ImportError:
+    print("⚠️ JobDisplayManager not available - using fallback job titles")
+    DISPLAY_MANAGER_AVAILABLE = False
+
 def create_app(config=None):
     """Create and configure Flask application."""
     app = Flask(__name__)
@@ -51,9 +59,32 @@ def create_app(config=None):
     def close_db_handler(error):
         close_db()
 
+    # Initialize JobDisplayManager
+    def get_display_manager():
+        """Get JobDisplayManager instance for consistent job naming."""
+        if DISPLAY_MANAGER_AVAILABLE:
+            db = get_db()
+            return JobDisplayManager(db)
+        return None
+
+    def add_display_names_to_job(job_data, display_manager=None):
+        """Add standardised display names to job data."""
+        if not display_manager:
+            display_manager = get_display_manager()
+        
+        if display_manager and job_data:
+            job_id = job_data.get('id') or job_data.get('job_id') or job_data.get('JobProfileID')
+            if job_id:
+                job_data['display_name_standard'] = display_manager.get_display_name(job_id, DisplayFormat.STANDARD)
+                job_data['display_name_search'] = display_manager.get_display_name(job_id, DisplayFormat.SEARCH) 
+                job_data['display_name_dropdown'] = display_manager.get_display_name(job_id, DisplayFormat.DROPDOWN)
+                job_data['display_name_compact'] = display_manager.get_display_name(job_id, DisplayFormat.COMPACT)
+        
+        return job_data
+
     # Helper functions using organised SQL queries
     def get_sample_jobs(limit=20):
-        """Get sample jobs for testing using organised SQL."""
+        """Get sample jobs for testing using organised SQL with enhanced display names."""
         from .sql import queries
         db = get_db()
         
@@ -64,7 +95,17 @@ def create_app(config=None):
             ORDER BY JobProfile 
             LIMIT ?
         """, (limit,))
-        return cursor.fetchall()
+        jobs = cursor.fetchall()
+        
+        # Enhance jobs with standardised display names
+        display_manager = get_display_manager()
+        enhanced_jobs = []
+        for job in jobs:
+            job_dict = dict(job)
+            enhanced_job = add_display_names_to_job(job_dict, display_manager)
+            enhanced_jobs.append(enhanced_job)
+        
+        return enhanced_jobs
 
     def search_jobs(query, limit=10):
         """Search jobs by name using organised SQL."""
@@ -302,12 +343,21 @@ def create_app(config=None):
             return jsonify([])
         
         jobs = search_jobs(query, 10)
-        return jsonify([{
-            'id': job['id'],
-            'title': job['job_title'],
-            'function': job['job_function'],
-            'function_id': job['job_function_id']
-        } for job in jobs])
+        display_manager = get_display_manager()
+        
+        result = []
+        for job in jobs:
+            job_data = {
+                'id': job['id'],
+                'title': job['job_title'],
+                'function': job['job_function'],
+                'function_id': job['job_function_id']
+            }
+            # Add standardised display names
+            add_display_names_to_job(job_data, display_manager)
+            result.append(job_data)
+        
+        return jsonify(result)
 
     @app.route('/api/job-details/<job_id>')
     def api_job_details(job_id):
@@ -357,25 +407,32 @@ def create_app(config=None):
             """
             pathway_count = db.execute(pathways_query, (job_id,)).fetchone()
             
+            # Prepare job data with display names
+            job_data = {
+                'id': job['JobProfileID'],
+                'title': job['JobProfile'],
+                'function': job['JobFunction'],
+                'function_id': job['JobFunctionID'],
+                'job_id': job['JobID'],
+                'job_name': job['Job'],
+                'profile_title_suffix': job['ProfileTitleSuffix'],
+                'management_level': job['ManagementLevel'],
+                'job_subfunction_id': job['JobSubFunctionID'],
+                'job_subfunction': job['JobSubFunction'],
+                'job_category_id': job['JobCategoryID'],
+                'job_category': job['JobCategory'],
+                'customer_facing': job['Customer_Facing'] if job['Customer_Facing'] and job['Customer_Facing'].strip() else None,
+                'is_banker': job['is_Banker'] if job['is_Banker'] and job['is_Banker'].strip() else None,
+                'executive_leadership_group': job['Executive_Leadership_Group'] if job['Executive_Leadership_Group'] and job['Executive_Leadership_Group'].strip() else None,
+                'accountability_scope': job['Accountability_Scope'] if job['Accountability_Scope'] and job['Accountability_Scope'].strip() else None
+            }
+            
+            # Add standardised display names
+            display_manager = get_display_manager()
+            add_display_names_to_job(job_data, display_manager)
+
             return jsonify({
-                'job': {
-                    'id': job['JobProfileID'],
-                    'title': job['JobProfile'],
-                    'function': job['JobFunction'],
-                    'function_id': job['JobFunctionID'],
-                    'job_id': job['JobID'],
-                    'job_name': job['Job'],
-                    'profile_title_suffix': job['ProfileTitleSuffix'],
-                    'management_level': job['ManagementLevel'],
-                    'job_subfunction_id': job['JobSubFunctionID'],
-                    'job_subfunction': job['JobSubFunction'],
-                    'job_category_id': job['JobCategoryID'],
-                    'job_category': job['JobCategory'],
-                    'customer_facing': job['Customer_Facing'] if job['Customer_Facing'] and job['Customer_Facing'].strip() else None,
-                    'is_banker': job['is_Banker'] if job['is_Banker'] and job['is_Banker'].strip() else None,
-                    'executive_leadership_group': job['Executive_Leadership_Group'] if job['Executive_Leadership_Group'] and job['Executive_Leadership_Group'].strip() else None,
-                    'accountability_scope': job['Accountability_Scope'] if job['Accountability_Scope'] and job['Accountability_Scope'].strip() else None
-                },
+                'job': job_data,
                 'skills': [{
                     'id': skill['Skill_ID'],
                     'name': skill['Skill_Name'],
@@ -454,14 +511,23 @@ def create_app(config=None):
         limit = int(request.args.get('limit', 15))  # Default limit
         
         similarities = get_job_similarities_with_threshold(job_id, min_similarity, limit)
-        return jsonify([{
-            'job_id': sim['id'],
-            'job_title': sim['job_title'],
-            'job_function': sim['job_function'],
-            'job_function_id': sim['job_function_id'],
-            'similarity_score': round(sim['similarity_score'], 3),
-            'similarity_category': sim['similarity_category']
-        } for sim in similarities])
+        display_manager = get_display_manager()
+        
+        result = []
+        for sim in similarities:
+            sim_data = {
+                'job_id': sim['id'],
+                'job_title': sim['job_title'],
+                'job_function': sim['job_function'],
+                'job_function_id': sim['job_function_id'],
+                'similarity_score': round(sim['similarity_score'], 3),
+                'similarity_category': sim['similarity_category']
+            }
+            # Add standardised display names
+            add_display_names_to_job(sim_data, display_manager)
+            result.append(sim_data)
+        
+        return jsonify(result)
 
     @app.route('/api/career-pathways-distribution/<job_id>')
     def api_career_pathways_distribution(job_id):
@@ -480,11 +546,25 @@ def create_app(config=None):
             pathways = db.execute(pathways_query, (job_id,)).fetchall()
             
             # Return the raw data - exactly 12 pathways for distribution analysis
-            return jsonify([{
-                'similarity_score': round(pathway['similarity_score'], 3),
-                'job_title': pathway['job_title'],
-                'job_function': pathway['job_function']
-            } for pathway in pathways])
+            display_manager = get_display_manager()
+            result = []
+            for pathway in pathways:
+                pathway_data = {
+                    'similarity_score': round(pathway['similarity_score'], 3),
+                    'job_title': pathway['job_title'],
+                    'job_function': pathway['job_function']
+                }
+                # Add standardised display names (use job_title as id source)
+                if display_manager:
+                    # We need to find the job_id for this job_title to get display names
+                    # For now, we'll add a simple display name that matches the job_title
+                    pathway_data['display_name_standard'] = pathway['job_title']
+                    pathway_data['display_name_search'] = pathway['job_title']
+                    pathway_data['display_name_dropdown'] = pathway['job_title']
+                    pathway_data['display_name_compact'] = pathway['job_title']
+                result.append(pathway_data)
+            
+            return jsonify(result)
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -504,16 +584,31 @@ def create_app(config=None):
             pathway_query = queries.get('career_pathways', 'get_career_progression_options')
             pathways = db.execute(pathway_query, (start_job_id, start_job_id, start_job_id, min_similarity, limit)).fetchall()
             
-            return jsonify([{
-                'target_job_id': pathway['target_job_id'],
-                'target_job_title': pathway['target_job_title'],
-                'target_family': pathway['target_family'],
-                'target_level': pathway['target_level'],
-                'similarity_score': round(pathway['similarity_score'], 3),
-                'move_type': pathway['move_type'],
-                'skills_to_develop': pathway['skills_to_develop'],
-                'common_skills_count': pathway['common_skills_count']
-            } for pathway in pathways])
+            # Add display names to pathway results
+            display_manager = get_display_manager()
+            result = []
+            
+            for pathway in pathways:
+                pathway_data = {
+                    'target_job_id': pathway['target_job_id'],
+                    'target_job_title': pathway['target_job_title'],
+                    'target_family': pathway['target_family'],
+                    'target_level': pathway['target_level'],
+                    'similarity_score': round(pathway['similarity_score'], 3),
+                    'move_type': pathway['move_type'],
+                    'skills_to_develop': pathway['skills_to_develop'],
+                    'common_skills_count': pathway['common_skills_count']
+                }
+                # Add standardised display names using target_job_id
+                if display_manager:
+                    pathway_data['target_display_name_standard'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
+                    pathway_data['target_display_name_search'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.SEARCH)
+                    pathway_data['target_display_name_dropdown'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.DROPDOWN)
+                    pathway_data['target_display_name_compact'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.COMPACT)
+                
+                result.append(pathway_data)
+            
+            return jsonify(result)
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -2188,9 +2283,19 @@ def create_app(config=None):
                 """
                 jobs = db.execute(query, (limit,)).fetchall()
             
+            # Add display names to job results
+            display_manager = get_display_manager()
+            jobs_with_display_names = []
+            
+            for job in jobs:
+                job_data = dict(job)
+                # Add standardised display names
+                add_display_names_to_job(job_data, display_manager)
+                jobs_with_display_names.append(job_data)
+            
             return jsonify({
                 'success': True,
-                'jobs': [dict(row) for row in jobs]
+                'jobs': jobs_with_display_names
             })
             
         except Exception as e:
