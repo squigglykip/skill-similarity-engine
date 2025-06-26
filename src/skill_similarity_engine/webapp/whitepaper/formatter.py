@@ -390,8 +390,14 @@ class DocumentFormatter:
         subtitle_para = doc.add_paragraph(f'Strategic Career Pathway Analysis')
         subtitle_para.style = 'NAB Cover Subtitle'
         
-        job_para = doc.add_paragraph(f'White Paper: {job_name}')
+        # Remove "White Paper:" prefix and add job function
+        job_para = doc.add_paragraph(job_name)
         job_para.style = 'Heading 2'
+        
+        # Add source job function from analysis data
+        source_job_function = analysis_data.get('source_job_function', 'Professional Services')
+        function_para = doc.add_paragraph(source_job_function)
+        function_para.style = 'NAB Body'
         
         # Date and version info
         date_para = doc.add_paragraph(f'Generated: {datetime.now().strftime("%B %d, %Y")}')
@@ -421,14 +427,14 @@ class DocumentFormatter:
         
         doc.add_page_break()
         
-        # Add content sections
-        section_order = [
+        # Add content sections using dynamic titles if available
+        section_order = analysis_data.get('section_titles', [
             ('executive_summary', 'Executive Summary'),
             ('current_role_context', 'Current Role Context'),
             ('pathway_analysis', 'Pathway Analysis: Top 3 Strategic Opportunities'),
             ('strategic_recommendations', 'Strategic Recommendations'),
             ('conclusion', 'Conclusion')
-        ]
+        ])
         
         for i, (section_key, section_title) in enumerate(section_order):
             if section_key in content:

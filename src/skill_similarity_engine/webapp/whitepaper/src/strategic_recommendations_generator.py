@@ -251,20 +251,30 @@ class StrategicRecommendationsGenerator:
         """Initialize the generator with database connection."""
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'strategic_recommendations.yaml'
+        self.specific_template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'strategic_recommendations_specific.yaml'
         self.display_manager = JobDisplayManager(db_connection) if db_connection else None
         self.ref_calc = DatabaseReferenceCalculator(db_connection) if db_connection else None
         
         # Load YAML template
         self.template_data = self._load_template()
     
-    def _load_template(self) -> Dict:
-        """Load the YAML template for strategic recommendations."""
+    def _load_template(self, analysis_mode: str = 'top_matches') -> Dict:
+        """Load the YAML template for strategic recommendations based on mode."""
         try:
-            if self.template_path.exists():
-                with open(self.template_path, 'r', encoding='utf-8') as f:
+            if analysis_mode == 'specific':
+                template_path = self.specific_template_path
+            else:
+                template_path = self.template_path
+                
+            if template_path.exists():
+                with open(template_path, 'r', encoding='utf-8') as f:
                     return yaml.safe_load(f)
             else:
-                logger.warning(f"Template not found at {self.template_path}")
+                logger.warning(f"Template not found at {template_path}")
+                # Fallback to standard template
+                if template_path != self.template_path and self.template_path.exists():
+                    with open(self.template_path, 'r', encoding='utf-8') as f:
+                        return yaml.safe_load(f)
                 return {}
         except Exception as e:
             logger.error(f"Error loading template: {e}")
@@ -396,7 +406,16 @@ class StrategicRecommendationsGenerator:
             # Generate each content section
             for section_key, section_config in content_config.items():
                 try:
-                    title = section_config.get('title', section_key.title())
+                    # Render title template with Jinja2
+                    title_template = section_config.get('title', section_key.title())
+                    if isinstance(title_template, str) and ('{{' in title_template or '{%' in title_template):
+                        # Title contains Jinja2 syntax, render it
+                        title_jinja = Template(title_template)
+                        title = title_jinja.render(**template_variables)
+                    else:
+                        # Plain text title
+                        title = title_template
+                    
                     content_template = section_config.get('content', '')
                     content_type = section_config.get('content_type', 'mixed')
                     
@@ -411,19 +430,38 @@ class StrategicRecommendationsGenerator:
                             logger.warning(f"Missing table data for section {section_key}")
                             continue
                         
-                        # Process each row with Jinja2 template rendering
-                        processed_rows = []
-                        for row_template in rows_template:
-                            processed_row = []
-                            for cell_template in row_template:
-                                # Render each cell with template variables
-                                if isinstance(cell_template, str):
-                                    template = Template(cell_template)
-                                    rendered_cell = template.render(**template_variables)
-                                    processed_row.append(rendered_cell)
+                        # Handle multi-line YAML content that needs Jinja2 rendering first
+                        if isinstance(rows_template, str):
+                            # First render the Jinja2 template to resolve conditionals
+                            template = Template(rows_template)
+                            rendered_yaml_content = template.render(**template_variables)
+                            
+                            # Parse the rendered YAML content to get the actual rows
+                            try:
+                                import yaml
+                                parsed_rows = yaml.safe_load(rendered_yaml_content)
+                                if parsed_rows and isinstance(parsed_rows, list):
+                                    processed_rows = parsed_rows
                                 else:
-                                    processed_row.append(str(cell_template))
-                            processed_rows.append(processed_row)
+                                    logger.warning(f"Invalid table rows structure for {section_key}")
+                                    processed_rows = []
+                            except Exception as e:
+                                logger.error(f"Failed to parse table YAML for {section_key}: {e}")
+                                processed_rows = []
+                        else:
+                            # Handle pre-structured rows (legacy format)
+                            processed_rows = []
+                            for row_template in rows_template:
+                                processed_row = []
+                                for cell_template in row_template:
+                                    # Render each cell with template variables
+                                    if isinstance(cell_template, str):
+                                        template = Template(cell_template)
+                                        rendered_cell = template.render(**template_variables)
+                                        processed_row.append(rendered_cell)
+                                    else:
+                                        processed_row.append(str(cell_template))
+                                processed_rows.append(processed_row)
                         
                         # Create structured table content using ContentFormatter
                         content_sections[section_key] = {
@@ -500,7 +538,8 @@ class StrategicRecommendationsGenerator:
         
         return content_sections
     
-    def generate(self, job_from: str, include_organisational_deployment: bool = True) -> Dict[str, Any]:
+    def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None, 
+                 similarity_range: tuple = (0.4, 0.9), include_organisational_deployment: bool = True) -> Dict[str, Any]:
         """
         Generate the complete Strategic Recommendations section.
         
@@ -514,13 +553,74 @@ class StrategicRecommendationsGenerator:
         logger.info(f"Generating strategic recommendations for job: {job_from}")
         
         try:
-            # Get database values
-            db_values = self._get_database_values(job_from)
+            # Load appropriate template for mode
+            self.template_data = self._load_template(analysis_mode)
             
-            # Populate template variables
-            template_variables = self._populate_template_variables(
-                job_from, db_values, include_organisational_deployment
-            )
+            # Handle specific mode with SpecificTransitionAnalyzer
+            if analysis_mode == 'specific' and job_to:
+                try:
+                    from specific_transition_analyzer import SpecificTransitionAnalyzer
+                except ImportError:
+                    # Handle absolute import for test environment
+                    import sys
+                    from pathlib import Path
+                    current_dir = Path(__file__).parent
+                    sys.path.insert(0, str(current_dir))
+                    from specific_transition_analyzer import SpecificTransitionAnalyzer
+                
+                analyzer = SpecificTransitionAnalyzer(self.db)
+                
+                if isinstance(job_to, str) and ',' in job_to:
+                    # Multiple targets
+                    job_to_list = [j.strip() for j in job_to.split(',')]
+                    analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
+                else:
+                    # Single target
+                    analysis_data = analyzer.analyze_single_transition(job_from, job_to, similarity_range)
+                
+                # Get database values
+                db_values = self._get_database_values(job_from)
+                
+                # Populate template variables with specific analysis data
+                template_variables = self._populate_template_variables(
+                    job_from, db_values, include_organisational_deployment
+                )
+                
+                # Add specific analysis variables
+                template_variables['analysis_mode'] = analysis_mode
+                template_variables['specific_analysis_data'] = analysis_data
+                
+                # Extract key variables from specific analysis
+                if analysis_data['analysis_mode'] == 'specific_single':
+                    template_variables.update({
+                        'target_job_logical_name': analysis_data['target_job']['logical_display_name'],
+                        'transition_similarity': analysis_data['transition_metrics']['similarity_score'],
+                        'transition_viability': analysis_data['strategic_context']['transition_viability'],
+                        'move_classification': analysis_data['move_classification']['move_type_display'],
+                        'estimated_timeline': analysis_data['move_classification']['estimated_timeline'],
+                        'strategic_rationale': analysis_data['strategic_context']['strategic_rationale'],
+                        'development_focus': analysis_data['strategic_context']['development_focus'],
+                        'development_skills_count': analysis_data['skills_analysis']['development_skills_count'],
+                        'shared_skills_count': analysis_data['skills_analysis']['shared_skills_count']
+                    })
+                elif analysis_data['analysis_mode'] == 'specific_multiple':
+                    template_variables.update({
+                        'target_count': analysis_data['target_count'],
+                        'lowest_similarity': analysis_data['comparative_metrics']['lowest_similarity'],
+                        'highest_similarity': analysis_data['comparative_metrics']['highest_similarity'],
+                        'portfolio_strength': analysis_data['strategic_portfolio']['portfolio_strength'],
+                        'strategic_coverage': analysis_data['strategic_portfolio']['strategic_coverage'],
+                        'function_diversity_count': analysis_data['strategic_portfolio']['function_diversity_count']
+                    })
+            else:
+                # Default: Discovery mode
+                # Get database values
+                db_values = self._get_database_values(job_from)
+                
+                # Populate template variables
+                template_variables = self._populate_template_variables(
+                    job_from, db_values, include_organisational_deployment
+                )
             
             # Generate content sections
             content_sections = self._generate_content_sections(template_variables)

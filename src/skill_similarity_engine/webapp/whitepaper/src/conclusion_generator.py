@@ -50,6 +50,7 @@ class ConclusionGenerator:
     def __init__(self, db_connection):
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'conclusion.yaml'
+        self.specific_template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'conclusion_specific.yaml'
         self.template_data = self._load_template()
         
         # Initialize display manager for job name formatting
@@ -66,35 +67,108 @@ class ConclusionGenerator:
             self.ref_calc = None
             self.queries = None
         
-    def _load_template(self) -> Dict:
-        """Load YAML template for conclusion."""
+    def _load_template(self, analysis_mode: str = 'top_matches') -> Dict:
+        """Load YAML template for conclusion based on mode."""
         try:
-            with open(self.template_path, 'r', encoding='utf-8') as file:
-                return yaml.safe_load(file)
+            if analysis_mode == 'specific':
+                template_path = self.specific_template_path
+            else:
+                template_path = self.template_path
+                
+            if template_path.exists():
+                with open(template_path, 'r', encoding='utf-8') as file:
+                    return yaml.safe_load(file)
+            else:
+                logger.warning(f"Template not found at {template_path}")
+                # Fallback to standard template
+                if template_path != self.template_path and self.template_path.exists():
+                    with open(self.template_path, 'r', encoding='utf-8') as file:
+                        return yaml.safe_load(file)
+                return {}
         except Exception as e:
             logger.warning(f"Error loading conclusion template: {e}")
             return {}
     
-    def generate(self, job_from: str, include_organisational_deployment: bool = False) -> Dict:
+    def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None, 
+                 similarity_range: tuple = (0.4, 0.9), include_organisational_deployment: bool = False) -> Dict:
         """Generate conclusion content for the white paper."""
         
         logger.info(f"Generating conclusion for job: {job_from}")
         
-        # Step 1: Get database-derived analysis summary
-        db_values = self._get_database_summary(job_from)
-        logger.info(f"Retrieved database summary for conclusion: {len(db_values)} metrics")
+        # Load appropriate template for mode
+        self.template_data = self._load_template(analysis_mode)
         
-        # Step 2: Get pathway analysis summary
-        pathway_summary = self._get_pathway_analysis_summary(job_from)
-        
-        # Step 3: Get strategic context
-        strategic_context = self._get_strategic_context(job_from)
-        
-        # Step 4: Populate template variables
-        template_variables = self._populate_template_variables(
-            job_from, db_values, pathway_summary, strategic_context, include_organisational_deployment
-        )
-        logger.info(f"Populated {len(template_variables)} template variables for conclusion")
+        # Handle specific mode with SpecificTransitionAnalyzer
+        if analysis_mode == 'specific' and job_to:
+            try:
+                from specific_transition_analyzer import SpecificTransitionAnalyzer
+            except ImportError:
+                # Handle absolute import for test environment
+                import sys
+                from pathlib import Path
+                current_dir = Path(__file__).parent
+                sys.path.insert(0, str(current_dir))
+                from specific_transition_analyzer import SpecificTransitionAnalyzer
+            
+            analyzer = SpecificTransitionAnalyzer(self.db)
+            
+            if isinstance(job_to, str) and ',' in job_to:
+                # Multiple targets
+                job_to_list = [j.strip() for j in job_to.split(',')]
+                analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
+            else:
+                # Single target
+                analysis_data = analyzer.analyze_single_transition(job_from, job_to, similarity_range)
+            
+            # Get database values
+            db_values = self._get_database_summary(job_from)
+            
+            # Get pathway and strategic context (but use specific data)
+            pathway_summary = self._get_pathway_analysis_summary(job_from)
+            strategic_context = self._get_strategic_context(job_from)
+            
+            # Populate template variables with specific analysis data
+            template_variables = self._populate_template_variables(
+                job_from, db_values, pathway_summary, strategic_context, include_organisational_deployment
+            )
+            
+            # Add specific analysis variables
+            template_variables['analysis_mode'] = analysis_mode
+            template_variables['specific_analysis_data'] = analysis_data
+            
+            # Extract key variables from specific analysis
+            if analysis_data['analysis_mode'] == 'specific_single':
+                template_variables.update({
+                    'target_job_logical_name': analysis_data['target_job']['logical_display_name'],
+                    'transition_similarity': analysis_data['transition_metrics']['similarity_score'],
+                    'transition_viability': analysis_data['strategic_context']['transition_viability'],
+                    'move_classification': analysis_data['move_classification']['move_type_display'],
+                    'estimated_timeline': analysis_data['move_classification']['estimated_timeline']
+                })
+            elif analysis_data['analysis_mode'] == 'specific_multiple':
+                template_variables.update({
+                    'target_count': analysis_data['target_count'],
+                    'lowest_similarity': analysis_data['comparative_metrics']['lowest_similarity'],
+                    'highest_similarity': analysis_data['comparative_metrics']['highest_similarity'],
+                    'portfolio_strength': analysis_data['strategic_portfolio']['portfolio_strength']
+                })
+        else:
+            # Default: Discovery mode
+            # Step 1: Get database-derived analysis summary
+            db_values = self._get_database_summary(job_from)
+            logger.info(f"Retrieved database summary for conclusion: {len(db_values)} metrics")
+            
+            # Step 2: Get pathway analysis summary
+            pathway_summary = self._get_pathway_analysis_summary(job_from)
+            
+            # Step 3: Get strategic context
+            strategic_context = self._get_strategic_context(job_from)
+            
+            # Step 4: Populate template variables
+            template_variables = self._populate_template_variables(
+                job_from, db_values, pathway_summary, strategic_context, include_organisational_deployment
+            )
+            logger.info(f"Populated {len(template_variables)} template variables for conclusion")
         
         # Step 5: Generate content sections
         content = self._generate_content_sections(template_variables)

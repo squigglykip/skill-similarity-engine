@@ -1,0 +1,50 @@
+# Conclusion Template for Specific Job Transitions
+conclusion:
+  section_config:
+    title: "Conclusion"
+    description: "Strategic synthesis for targeted transitions"
+  
+  content_sections:
+    opportunity_summary:
+      content_type: "paragraph"
+      bold_labels: ["Bottom Line:"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Bottom Line: We've analysed the specific career transition from {{source_job_logical_display_name}} to {{target_job_logical_name}}, with {{transition_similarity}}% skill compatibility. This represents a {{transition_viability}} opportunity that benefits both individual growth and business capability.
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Bottom Line: We've compared {{target_count}} specific transition options for {{source_job_logical_display_name}} professionals, with similarity ranging from {{lowest_similarity}}% to {{highest_similarity}}%. This portfolio provides {{portfolio_strength}} strategic flexibility for talent development decisions.
+        {% else %}
+        Bottom Line: We've identified {{pathway_count}} viable career paths for {{source_job_logical_display_name}} professionals, with {{similarity_range_description}} skill compatibility. These represent practical opportunities that benefit both individuals and the business.
+        {% endif %}
+    
+    strategic_alignment:
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        This {{move_classification}} aligns with NAB's strategic talent development objectives while offering meaningful career progression. The {{transition_similarity}}% skill compatibility makes this transition both realistic and cost-effective.
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        This portfolio approach supports NAB's talent strategy by providing multiple viable pathways while enabling risk mitigation. The comparative analysis enables evidence-based decision making for both individuals and managers.
+        {% else %}
+        These moves support NAB's talent strategy while offering genuine career growth. The skill overlaps make transitions realistic and cost-effective.
+        {% endif %}
+    
+    recommended_approach:
+      content_type: "paragraph"
+      bold_labels: ["Next Steps:"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Next Steps: Begin with readiness assessment for interested candidates, followed by targeted {{estimated_timeline}} development programme. Use structured mentoring and skills development to ensure transition success.
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Next Steps: Start with highest compatibility option ({{highest_similarity}}% similarity) for initial pilot, then expand to additional pathways based on success metrics and business demand.
+        {% else %}
+        Next Steps: Start with a pilot programme involving {{pilot_size}} high-potential candidates. Use their experience to refine the approach before broader rollout.
+        {% endif %}
+    
+    foundation_value:
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        This targeted analysis provides the specific data needed for {{target_job_logical_name}} transition planning. Both managers and individuals can use these insights to make informed decisions about this career move.
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        This comparative analysis gives you the data needed for strategic talent conversations across {{target_count}} pathway options. The evidence-based approach supports both individual choice and business planning decisions.
+        {% else %}
+        This analysis gives you the data needed for talent conversations and workforce planning decisions. Both managers and individuals can use these insights to make informed career choices.
+        {% endif %} 

@@ -22,7 +22,7 @@ executive_summary:
     title: "Primary Recommendations"
     content_type: "structured"
     recommendations: []
-    bold_labels: ["Move Type:", "Strategic Context:"]
+    bold_labels: ["Move Type:", "Function Transition:", "Management Level:", "Strategic Context:"]
     
     recommendation_template: |
       {{ recommendation.target_logical_role }} - {{ recommendation.similarity_score }}% similarity

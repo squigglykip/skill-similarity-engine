@@ -49,7 +49,9 @@ class ExecutiveSummaryGenerator:
     def __init__(self, db_connection):
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'executive_summary.yaml'
+        self.specific_template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'executive_summary_specific.yaml'
         self.template_data = self._load_template()
+        self.specific_template_data = self._load_specific_template()
         self.display_manager = JobDisplayManager(db_connection)
         
         # Initialize advanced SQL integration if available
@@ -69,22 +71,62 @@ class ExecutiveSummaryGenerator:
             print(f"⚠️ Error loading executive summary template: {e}")
             return {}
     
-    def generate(self, job_from: str, analysis_mode: str = 'top_3') -> Dict:
-        """Generate executive summary content for a given source job."""
+    def _load_specific_template(self) -> Dict:
+        """Load YAML template for specific transition executive summary."""
+        try:
+            with open(self.specific_template_path, 'r', encoding='utf-8') as file:
+                return yaml.safe_load(file)
+        except Exception as e:
+            print(f"⚠️ Error loading specific transition template: {e}")
+            return self.template_data  # Fallback to standard template
+    
+    def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None, 
+                 similarity_range: tuple = (0.4, 0.9)) -> Dict:
+        """Generate executive summary content for a given source job with mode support."""
         
         # Step 1: Get database-derived values
         db_values = self._get_database_values(job_from)
         
-        # Step 2: Get top pathways analysis
-        top_pathways = self._get_top_pathways(job_from, limit=3)
+        # Step 2: Get analysis data based on mode
+        if analysis_mode == 'specific' and job_to:
+            # Use SpecificTransitionAnalyzer for specific transitions
+            try:
+                from specific_transition_analyzer import SpecificTransitionAnalyzer
+            except ImportError:
+                # Handle absolute import for test environment
+                import sys
+                from pathlib import Path
+                current_dir = Path(__file__).parent
+                sys.path.insert(0, str(current_dir))
+                from specific_transition_analyzer import SpecificTransitionAnalyzer
+            analyzer = SpecificTransitionAnalyzer(self.db)
+            
+            if isinstance(job_to, str) and ',' in job_to:
+                # Multiple targets
+                job_to_list = [j.strip() for j in job_to.split(',')]
+                analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
+            else:
+                # Single target
+                analysis_data = analyzer.analyze_single_transition(job_from, job_to, similarity_range)
+            
+            # Convert specific analysis to pathways format for template compatibility
+            pathways_data = self._convert_specific_to_pathways(analysis_data)
+        else:
+            # Default: Top 3 pathways analysis
+            pathways_data = self._get_top_pathways(job_from, limit=3)
+            analysis_data = None
         
         # Step 3: Calculate dynamic thresholds and descriptors
-        dynamic_descriptors = self._calculate_dynamic_descriptors(top_pathways, db_values)
+        dynamic_descriptors = self._calculate_dynamic_descriptors(pathways_data, db_values)
         
         # Step 4: Populate template variables
         template_variables = self._populate_template_variables(
-            job_from, db_values, top_pathways, dynamic_descriptors
+            job_from, db_values, pathways_data, dynamic_descriptors
         )
+        
+        # Add specific analysis context to template variables
+        if analysis_data:
+            template_variables.update(self._add_specific_analysis_context(analysis_data, analysis_mode))
         
         # Step 5: Generate content sections
         content = self._generate_content_sections(template_variables)
@@ -92,7 +134,7 @@ class ExecutiveSummaryGenerator:
         return {
             'section_title': 'Executive Summary',
             'content': content,
-            'references': self._generate_references(job_from, top_pathways),
+            'references': self._generate_references(job_from, pathways_data),
             'template_variables': template_variables  # For debugging
         }
     
@@ -168,66 +210,78 @@ class ExecutiveSummaryGenerator:
         return values
     
     def _get_top_pathways(self, job_from: str, limit: int = 3) -> List[Dict]:
-        """Get top similarity pathways for source job with logical role support."""
+        """Get top similarity pathways with consistent ordering."""
         
         try:
-            # Use advanced SQL integration if available
-            if self.ref_calc:
-                pathways = self.ref_calc.get_top_pathways(job_from, limit)
-                
-                # Add logical role display names and level transition descriptions
-                for pathway in pathways:
-                    # Add logical role display name
-                    pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
+            # Use centralized pathway ordering for consistency across all sections
+            from pathway_ordering_utils import get_consistent_pathways
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True)
+            
+        except ImportError:
+            print("⚠️ PathwayOrderingUtils not available, using fallback method")
+            # Fallback to original logic
+            try:
+                # Use advanced SQL integration if available
+                if self.ref_calc:
+                    pathways = self.ref_calc.get_top_pathways(job_from, limit)
                     
-                    # Add transition data
-                    transition_data = self._calculate_move_type(job_from, pathway)
-                    pathway.update(transition_data)
-                
-                return pathways
-            else:
-                # Fallback to direct SQL query
-                query = """
-                SELECT 
-                    js.job_to,
-                    js.similarity_score,
-                    j.JobProfile as target_job_title,
-                    j.JobFunction as target_job_function,
-                    j.ManagementLevel as target_management_level,
-                    ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC) as rank
-                FROM job_similarities js
-                JOIN jobs j ON js.job_to = j.JobProfileID
-                WHERE js.job_from = ?
-                  AND js.similarity_score < 1.0  -- Exclude 100% matches
-                ORDER BY js.similarity_score DESC
-                LIMIT ?
-                """
-                
-                cursor = self.db.execute(query, (job_from, limit))
-                results = cursor.fetchall()
-                
-                pathways = []
-                for result in results:
-                    pathway = {
-                        'target_job_id': result[0],
-                        'similarity_score': round(result[1] * 100, 1),  # Convert to percentage
-                        'target_job_title': result[2],
-                        'target_job_function': result[3],
-                        'target_management_level': result[4],
-                        'rank': result[5],
-                        'similarity_ref': str(4 + result[5]),  # References 5, 7, 9
-                        'move_type_ref': str(5 + result[5])    # References 6, 8, 10
-                    }
+                    # Add logical role display names and level transition descriptions
+                    for pathway in pathways:
+                        # Add logical role display name
+                        pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
+                        
+                        # Add transition data
+                        transition_data = self._calculate_move_type(job_from, pathway)
+                        pathway.update(transition_data)
                     
-                    # Add logical role display name
-                    pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
+                    return pathways
+                else:
+                    # Fallback to direct SQL query with deterministic ordering
+                    query = """
+                    SELECT 
+                        js.job_to,
+                        js.similarity_score,
+                        j.JobProfile as target_job_title,
+                        j.JobFunction as target_job_function,
+                        j.ManagementLevel as target_management_level,
+                        ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC, js.job_to ASC) as rank
+                    FROM job_similarities js
+                    JOIN jobs j ON js.job_to = j.JobProfileID
+                    WHERE js.job_from = ?
+                      AND js.similarity_score < 1.0  -- Exclude 100% matches
+                    ORDER BY js.similarity_score DESC, js.job_to ASC  -- Secondary sort for deterministic ordering
+                    LIMIT ?
+                    """
                     
-                    # Calculate move type and level transition
-                    pathway.update(self._calculate_move_type(job_from, pathway))
+                    cursor = self.db.execute(query, (job_from, limit))
+                    results = cursor.fetchall()
                     
-                    pathways.append(pathway)
+                    pathways = []
+                    for result in results:
+                        pathway = {
+                            'target_job_id': result[0],
+                            'similarity_score': round(result[1] * 100, 1),  # Convert to percentage
+                            'target_job_title': result[2],
+                            'target_job_function': result[3],
+                            'target_management_level': result[4],
+                            'rank': result[5],
+                            'similarity_ref': str(4 + result[5]),  # References 5, 7, 9
+                            'move_type_ref': str(5 + result[5])    # References 6, 8, 10
+                        }
+                        
+                        # Add logical role display name
+                        pathway['target_logical_role'] = self.display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
+                        
+                        # Calculate move type and level transition
+                        pathway.update(self._calculate_move_type(job_from, pathway))
+                        
+                        pathways.append(pathway)
+                    
+                    return pathways
                 
-                return pathways
+            except Exception as e:
+                print(f"⚠️ Error getting top pathways: {e}")
+                return []
             
         except Exception as e:
             print(f"⚠️ Error getting top pathways: {e}")
@@ -588,13 +642,13 @@ class ExecutiveSummaryGenerator:
             min_similarity = max_similarity = 0
         
         variables = {
-            # Source job context (with logical role support)
-            'source_job_title': source_job.get('logical_display_name', source_job['title']),
-            'source_job_title_plural': source_job.get('logical_display_name', source_job['title']) + 's',  # Simple pluralization
+            # Source job context (with logical role support) - handle both ref_calc and direct query structures
+            'source_job_title': source_job.get('logical_display_name', source_job.get('job_title', source_job.get('title', 'Unknown Job'))),
+            'source_job_title_plural': source_job.get('logical_display_name', source_job.get('job_title', source_job.get('title', 'Unknown Job'))) + 's',  # Simple pluralization
             'source_management_level': source_job['management_level'],
-            'source_job_function': source_job['function'],
-            'source_job_function_lower': source_job['function'].lower() + ' and technical',
-            'source_function': source_job['function'],
+            'source_job_function': source_job.get('job_function', source_job.get('function', 'Unknown Function')),
+            'source_job_function_lower': source_job.get('job_function', source_job.get('function', 'Unknown Function')).lower() + ' and technical',
+            'source_function': source_job.get('job_function', source_job.get('function', 'Unknown Function')),
             
             # Database metrics
             'total_job_count': f"{db_values['total_job_count']:,}",
@@ -621,7 +675,11 @@ class ExecutiveSummaryGenerator:
     def _generate_content_sections(self, variables: Dict) -> Dict:
         """Generate content for each section using Jinja2 templates."""
         
-        template_sections = self.template_data.get('executive_summary', {})
+        # Use specific template if in specific mode
+        if variables.get('analysis_mode') == 'specific':
+            template_sections = self.specific_template_data.get('executive_summary', {})
+        else:
+            template_sections = self.template_data.get('executive_summary', {})
         content = {}
         
         try:
@@ -725,6 +783,18 @@ class ExecutiveSummaryGenerator:
             if 'move_type' in recommendation:
                 details.append(f"Move Type: {recommendation['move_type']}")
             
+            # Add function transition information if available
+            source_function = variables.get('source_job_function', '')
+            target_function = recommendation.get('target_job_function', '')
+            target_level = recommendation.get('target_management_level', '')
+            source_level = variables.get('source_management_level', '')
+            
+            if source_function and target_function:
+                details.append(f"Function Transition: {source_function} → {target_function}")
+            
+            if source_level and target_level:
+                details.append(f"Management Level: {source_level} → {target_level}")
+            
             if 'strategic_context_explanation' in recommendation:
                 details.append(f"Strategic Context: {recommendation['strategic_context_explanation']}")
             
@@ -795,4 +865,63 @@ class ExecutiveSummaryGenerator:
                 'management_level': 'Group 1',
                 'job_category': 'Unknown Category'
             }
-        } 
+        }
+    
+    def _convert_specific_to_pathways(self, analysis_data: Dict) -> List[Dict]:
+        """Convert specific transition analysis to pathways format for template compatibility."""
+        if analysis_data['analysis_mode'] == 'specific_single':
+            # Single transition - create pathway-like structure
+            return [{
+                'target_job_id': analysis_data['target_job']['job_id'],
+                'target_logical_role': analysis_data['target_job']['logical_display_name'],
+                'similarity_score': analysis_data['transition_metrics']['similarity_score'],
+                'target_job_title': analysis_data['target_job']['logical_display_name'],
+                'target_job_function': analysis_data['target_job']['job_function'],
+                'target_management_level': analysis_data['target_job']['management_level'],
+                'move_type': analysis_data['move_classification']['move_type_display'],
+                'level_transition': analysis_data['move_classification']['level_transition'],
+                'rank': 1
+            }]
+        elif analysis_data['analysis_mode'] == 'specific_multiple':
+            # Multiple transitions - convert each to pathway format
+            pathways = []
+            for i, transition in enumerate(analysis_data['transitions'], 1):
+                pathways.append({
+                    'target_job_id': transition['target_job']['job_id'],
+                    'target_logical_role': transition['target_job']['logical_display_name'],
+                    'similarity_score': transition['transition_metrics']['similarity_score'],
+                    'target_job_title': transition['target_job']['logical_display_name'],
+                    'target_job_function': transition['target_job']['job_function'],
+                    'target_management_level': transition['target_job']['management_level'],
+                    'move_type': transition['move_classification']['move_type_display'],
+                    'level_transition': transition['move_classification']['level_transition'],
+                    'rank': i
+                })
+            return pathways
+        else:
+            return []
+    
+    def _add_specific_analysis_context(self, analysis_data: Dict, analysis_mode: str) -> Dict:
+        """Add specific analysis context to template variables."""
+        context = {
+            'analysis_mode': analysis_mode,
+            'specific_analysis_data': analysis_data
+        }
+        
+        if analysis_data['analysis_mode'] == 'specific_single':
+            context.update({
+                'target_job_logical_name': analysis_data['target_job']['logical_display_name'],
+                'transition_similarity': analysis_data['transition_metrics']['similarity_score'],
+                'transition_viability': analysis_data['strategic_context']['transition_viability'],
+                'move_classification': analysis_data['move_classification']['move_type_display'],
+                'estimated_timeline': analysis_data['move_classification']['estimated_timeline']
+            })
+        elif analysis_data['analysis_mode'] == 'specific_multiple':
+            context.update({
+                'target_count': analysis_data['target_count'],
+                'highest_similarity': analysis_data['comparative_metrics']['highest_similarity'],
+                'average_similarity': analysis_data['comparative_metrics']['average_similarity'],
+                'portfolio_strength': analysis_data['strategic_portfolio']['portfolio_strength']
+            })
+        
+        return context 

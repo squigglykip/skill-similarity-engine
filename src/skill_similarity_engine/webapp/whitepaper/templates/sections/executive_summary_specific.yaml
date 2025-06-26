@@ -1,0 +1,129 @@
+# Executive Summary Template - Specific Job Transition Analysis
+# Adapted for specific job-to-job transition white papers
+
+executive_summary:
+  section_title: "Executive Summary"
+  
+  strategic_context:
+    title: "Strategic Transition Context"
+    content: |
+      {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+      We've analysed the specific career transition from {{source_job_title}} to {{target_job_logical_name}} to assess viability, development requirements, and strategic value for NAB's talent management objectives.
+      {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+      We've conducted a comparative analysis of {{target_count}} strategic career transition opportunities from {{source_job_title}}, evaluating each pathway's viability, development requirements, and strategic alignment with NAB's workforce planning objectives.
+      {% else %}
+      We've identified practical career opportunities for {{source_job_title}} professionals that build on their existing strengths while supporting NAB's strategic priorities.
+      {% endif %}
+
+  key_findings:
+    title: "Transition Viability Assessment"
+    content_type: "paragraph"
+    bold_labels: ["What this means:", "Key insight:"]
+    content: |
+      {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+      The transition from {{source_job_title}} to {{target_job_logical_name}} shows {{transition_similarity}}% skill compatibility, indicating {{transition_viability}} viability with an estimated development timeline of {{estimated_timeline}}.
+
+      What this means: This {{move_classification}} represents a {{transition_viability}} transition opportunity that leverages existing capabilities while requiring focused skill development in key areas.
+      {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+      Analysis of {{target_count}} transition opportunities reveals similarity scores ranging from {{specific_analysis_data.comparative_metrics.lowest_similarity}}% to {{specific_analysis_data.comparative_metrics.highest_similarity}}%, with an average of {{specific_analysis_data.comparative_metrics.average_similarity}}%. This {{portfolio_strength}} portfolio offers diverse strategic options.
+
+      Key insight: The similarity range spread of {{specific_analysis_data.comparative_metrics.similarity_range_spread}}% provides both immediate transition opportunities and longer-term development pathways, enabling flexible workforce planning strategies.
+      {% else %}
+      We found {{pathway_count}} viable career paths for {{source_job_title_plural}}, with skill compatibility ranging from {{min_similarity}}% to {{max_similarity}}%. These represent {{opportunity_descriptor}} opportunities that balance career growth with practical transition requirements.
+
+      What this means: Your people already have most of the skills needed for these roles. The transition requirements are realistic and achievable, making these pathways viable for talent retention and development initiatives.
+      {% endif %}
+
+  primary_recommendations:
+    title: "Transition Analysis"
+    content_type: "structured"
+    recommendations: []
+    bold_labels: ["Move Type:", "Function Transition:", "Management Level:", "Strategic Context:", "Development Focus:", "Timeline:"]
+    
+    recommendation_template: |
+      {% if analysis_mode == 'specific' %}
+      {{ recommendation.target_logical_role }} - {{ recommendation.similarity_score }}% compatibility
+      - Move Type: {{ recommendation.move_type }}
+      - Strategic Context: {{ recommendation.strategic_context_explanation }}
+      {% if recommendation.divisional_deployment %}This role is {{ recommendation.divisional_deployment.deployment_description }}{% endif %}
+      {% else %}
+      {{ recommendation.target_logical_role }} - {{ recommendation.similarity_score }}% similarity
+      - Move Type: {{ recommendation.move_type }}
+      - Strategic Context: {{ recommendation.strategic_context_explanation }}
+      {% if recommendation.divisional_deployment %}This role is {{ recommendation.divisional_deployment.deployment_description }}{% endif %}
+      {% endif %}
+
+    strategic_context_explanations:
+      "Lateral Within Function": "Specialisation opportunity that deepens functional expertise while maintaining current level"
+      "Vertical Promotion": "Natural career advancement with established promotion pathways and clear success criteria"
+      "Vertical Step Back": "Strategic career pivot that opens new advancement opportunities in the same functional area"
+      "Cross Functional Lateral": "Strategic skill diversification that enhances long-term career prospects and organisational flexibility"
+      "Cross Functional Promotion": "Cross-functional promotion that expands leadership scope while building on existing strengths"
+      "Cross Functional Expansion": "Unique transition opportunity with specific business benefits and career development potential"
+      "Progression - Same_Role_Higher_Level": "Natural career advancement with established promotion pathways and clear success criteria"
+      "Progression - Different_Role_Higher_Level": "Cross-functional promotion that expands leadership scope while building on existing strengths"
+      "Lateral - Different_Role_Same_Level": "Strategic skill diversification that enhances long-term career prospects and organisational flexibility"
+      "Lateral - Same_Role_Same_Level": "Specialisation opportunity that deepens expertise while maintaining current level and responsibilities"
+      "Transition - Lower_Level": "Strategic career pivot that opens new advancement opportunities in different functional areas"
+      "Other": "Unique transition opportunity with specific business benefits and career development potential"
+
+  confidence_assessment:
+    title: "Analysis Confidence"
+    content_type: "paragraph"
+    bold_labels: ["High confidence", "Medium-high confidence", "Medium confidence", "Low confidence", "What this means:"]
+    content: |
+      {% if analysis_mode == 'specific' %}
+      High confidence - This transition analysis is built on comprehensive NAB data covering {{active_competencies_count}} skills across {{total_job_count}} job profiles, with detailed skill mapping for both source and target roles.
+      
+      What this means: You can rely on this analysis for individual career planning and strategic talent decisions. The assessment is based on actual skill requirements and compatibility data, not theoretical models.
+      {% else %}
+      High confidence - These recommendations are built on real NAB data covering {{active_competencies_count}} skills, {{pathways_count}} career pathways, and deployment across {{division_count}} divisions.
+      
+      What this means: You can rely on these insights for strategic planning. The recommendations are based on actual NAB workforce data, not theoretical models, giving you confidence to make investment decisions.
+      {% endif %}
+
+    confidence_explanations:
+      HIGH: "comprehensive transition analysis with detailed skill mapping"
+      "MEDIUM-HIGH": "substantial transition data with validated skill overlap analysis"
+      MEDIUM: "balanced transition assessment with estimated development requirements"
+      LOW: "limited transition data with significant skill gap estimates"
+
+# Dynamic content mappings for specific transitions
+specific_transition_descriptors:
+  high: "highly viable"
+  moderate: "moderately viable"
+  challenging: "challenging but achievable"
+  low: "requires significant development"
+
+transition_viability_descriptors:
+  high: "straightforward"
+  moderate: "manageable"
+  challenging: "complex"
+
+portfolio_strength_descriptors:
+  high: "comprehensive"
+  moderate: "balanced"
+  focused: "targeted"
+
+# Threshold configuration for specific transition analysis
+specific_thresholds:
+  transition_viability:
+    high: 75
+    moderate: 50
+    challenging: 30
+    low: 0
+  
+  portfolio_strength:
+    high: 3
+    moderate: 2
+    focused: 1
+
+# Reference mapping for specific transition analysis
+specific_references:
+  101: "SELECT similarity_score FROM job_similarities WHERE job_from = ? AND job_to = ?"
+  102: "Skills gap analysis derived from job_skills table comparison"
+  103: "Career move classification based on job function and management level analysis"
+  104: "Transition timeline estimation based on skill similarity and development requirements"
+  105: "Strategic context assessment derived from role progression analysis"
+  106: "Comparative transition analysis across multiple target opportunities"
+  107: "Portfolio diversity assessment based on function and level distribution" 

@@ -448,6 +448,24 @@ def add_display_names_to_job(job_data: Dict, display_manager: JobDisplayManager)
 
 ---
 
+## 🏢 **DEPLOYMENT CONTEXT**
+
+### **Local Desktop Application Environment**
+- **Single-User Local Server**: Application runs on each user's laptop as a local Flask server
+- **Corporate Network Restrictions**: Designed for environments with limited external connectivity  
+- **Desktop-Only Focus**: No mobile responsiveness or multi-device considerations required
+- **Simplified Architecture**: No caching, load balancing, security hardening, or multi-user features needed
+- **Direct Database Access**: SQLite files stored locally with direct filesystem access
+
+### **Simplified Development Requirements**
+- **No Mobile Support**: Design exclusively for desktop browser experience (1024px+ screens)
+- **No Accessibility Requirements**: Standard desktop usability is sufficient
+- **No Security Hardening**: Local-only deployment removes external threat vectors
+- **No Performance Scaling**: Single-user environment with local database access
+- **No User Onboarding**: Users are trained NAB employees with domain knowledge
+
+---
+
 ## 🎯 **USER EXPERIENCE PRINCIPLES**
 
 ### **Design Philosophy**
@@ -456,27 +474,51 @@ def add_display_names_to_job(job_data: Dict, display_manager: JobDisplayManager)
 - **Enterprise-grade credibility** with modern usability
 - **NAB heritage** through selective red accents on black foundation
 - **Sophisticated and trustworthy** with focus on clarity over decoration
-- **Accessible and inclusive** design patterns
+- **Desktop-optimised** design patterns (no mobile responsiveness required)
 
 ### **Interaction Patterns**
 - **Search-First**: Powerful search functionality as primary navigation
 - **Progressive Disclosure**: Show overview first, details on demand
 - **Context Preservation**: Always show JobProfileID for colleague reference
 - **Feedback Loops**: Clear progress indicators and success/error states
+- **Contextual Help**: '?' icons with hover tooltips for complex metrics and business concepts
 
-### **Accessibility Standards**
-- **WCAG AA Compliance**: Minimum 4.5:1 contrast ratio for text
-- **Keyboard Navigation**: Full functionality accessible via keyboard
-- **Screen Reader Support**: Semantic HTML with proper ARIA labels
-- **Focus Management**: Clear focus indicators for interactive elements
+### **Help Icon UI Pattern**
+Standard help icon implementation for providing contextual explanations:
+
+```html
+<!-- Standard help icon with tooltip -->
+<div class="relative">
+    <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+        </svg>
+        <div class="absolute left-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+            <div class="font-medium text-slate-100 mb-1">Metric Title</div>
+            <div class="text-slate-200">Detailed explanation of the metric, its calculation, and business context.</div>
+            <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
+        </div>
+    </button>
+</div>
+```
+
+**Help Icon Usage Guidelines**:
+- Use for complex business metrics requiring explanation
+- Include metric title and contextual business explanation
+- Position tooltips to avoid UI collisions
+- Keep explanations concise but comprehensive
 
 ### **Content Guidelines**
 
-**Voice & Tone**:
-- **Professional but approachable** - suitable for enterprise environment
-- **Data-focused language** - emphasise insights and evidence
-- **Action-oriented button text** - clear, specific calls-to-action
-- **Clear, concise descriptions** - avoid jargon and ambiguity
+**Language Standards**:
+- **UK English**: All content uses British spelling and terminology throughout
+  - "Analyse" not "Analyze", "Organisation" not "Organization"
+  - "Colour" not "Color", "Centre" not "Center"
+  - "Realise" not "Realize", "Optimise" not "Optimize"
+- **Professional tone**: Suitable for enterprise environment
+- **Data-focused language**: Emphasise insights and evidence
+- **Action-oriented button text**: Clear, specific calls-to-action
+- **Clear, concise descriptions**: Avoid jargon and ambiguity
 
 **Terminology Standards**:
 - Use "Skills" not "Competencies"
@@ -493,9 +535,8 @@ def add_display_names_to_job(job_data: Dict, display_manager: JobDisplayManager)
 ### **Code Quality Gates**
 1. **Functionality**: Feature works as specified
 2. **Performance**: No regression in response times
-3. **Accessibility**: Meets WCAG AA standards
-4. **Mobile Responsive**: Works on all device sizes
-5. **Cross-Browser**: Tested in Chrome, Firefox, Safari, Edge
+3. **Desktop Compatibility**: Works on standard desktop browsers (Chrome, Firefox, Safari, Edge)
+4. **UK English**: All text content uses British spelling and terminology
 
 ### **Documentation Requirements**
 - **Code Comments**: Complex business logic explained inline
@@ -510,9 +551,9 @@ def add_display_names_to_job(job_data: Dict, display_manager: JobDisplayManager)
 - **Performance Tests**: Load testing for critical paths
 
 ### **Component Development Workflow**
-1. **Design in Isolation**: Create components in `/components` page first, test with sample data, ensure responsive behaviour
+1. **Design in Isolation**: Create components in `/components` page first, test with sample data, ensure desktop usability
 2. **Integration**: Move successful components to main pages, maintain consistency across implementations, document any variations needed  
-3. **Testing**: Test with real database data, verify performance with large datasets, ensure mobile usability
+3. **Testing**: Test with real database data, verify performance with large datasets, ensure desktop browser compatibility
 
 ---
 
@@ -552,8 +593,8 @@ def add_display_names_to_job(job_data: Dict, display_manager: JobDisplayManager)
 ### **4. Error Boundaries**
 **All components handle errors gracefully with meaningful user feedback.**
 
-### **5. Mobile-First Responsive**
-**Design for mobile first, enhance for larger screens.**
+### **5. Desktop-Optimised Design**
+**Design for desktop browsers with 1024px+ screen width as primary target.**
 
 ---
 
@@ -561,13 +602,13 @@ def add_display_names_to_job(job_data: Dict, display_manager: JobDisplayManager)
 
 ### **Technical Excellence**
 - **Performance**: Sub-100ms API responses for career pathway queries
-- **Reliability**: 99.9% uptime for web application
-- **Scalability**: Handle 100+ concurrent users during peak times
+- **Reliability**: Stable local server operation for single-user sessions
 - **Maintainability**: Clear, documented, modular codebase
+- **UK English**: Consistent British spelling and terminology throughout
 
 ### **User Experience**
 - **Usability**: Intuitive navigation requiring minimal training
-- **Accessibility**: Full WCAG AA compliance
+- **Desktop Optimisation**: Optimal experience on desktop browsers
 - **Professional Quality**: Executive-ready outputs and presentation
 - **Consistency**: Unified experience across all platform components
 

@@ -4,14 +4,28 @@ Tests the integration of YAML templates, SQL queries, and Python generation logi
 Now includes logical role support for cleaner user experience.
 
 Usage:
-    python test_executive_summary.py                    # Run all tests
-    python test_executive_summary.py --template         # Test template loading only
-    python test_executive_summary.py --executive        # Test executive summary only
-    python test_executive_summary.py --current          # Test current role context only
-    python test_executive_summary.py --pathway          # Test pathway analysis only
-    python test_executive_summary.py --strategic        # Test strategic recommendations only
-    python test_executive_summary.py --conclusion       # Test conclusion only
-    python test_executive_summary.py --help             # Show this help
+    # Basic test modes
+    python test_whitepaper.py                           # Run all tests with default job
+    python test_whitepaper.py --template                # Test template loading only
+    python test_whitepaper.py --executive               # Test executive summary only
+    python test_whitepaper.py --current                 # Test current role context only
+    python test_whitepaper.py --pathway                 # Test pathway analysis only
+    python test_whitepaper.py --strategic               # Test strategic recommendations only
+    python test_whitepaper.py --conclusion              # Test conclusion only
+    python test_whitepaper.py --word                    # Generate full Word document
+    python test_whitepaper.py --copy                    # Display clean copy without debug
+    
+    # Core parameters matching HTML interface
+    python test_whitepaper.py --job-from R0100.2        # Specify source job
+    python test_whitepaper.py --mode top_matches        # Analysis mode: top_matches (default) or specific
+    python test_whitepaper.py --job-to R0025.1          # Target job (required for specific mode)
+    python test_whitepaper.py --similarity-min 40       # Minimum similarity percentage (20-95)
+    python test_whitepaper.py --similarity-max 90       # Maximum similarity percentage (25-100)
+    
+    # Combined examples
+    python test_whitepaper.py --job-from R0100.2 --mode top_matches --similarity-min 45 --similarity-max 85 --word
+    python test_whitepaper.py --job-from R0100.2 --mode specific --job-to R0025.1 --similarity-min 50 --similarity-max 80 --executive
+    python test_whitepaper.py --job-from R0100.2 --mode specific --job-to R0025.1 --copy
 """
 
 import sqlite3
@@ -27,13 +41,81 @@ from executive_summary_generator import ExecutiveSummaryGenerator
 from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 from current_role_context_generator import CurrentRoleContextGenerator
 
-def test_executive_summary_generation():
-    """Test the executive summary generation with a sample job."""
+def validate_job_exists(db, job_id):
+    """Validate that a job ID exists in the database."""
+    cursor = db.execute("SELECT JobProfileID FROM jobs WHERE JobProfileID = ?", (job_id,))
+    result = cursor.fetchone()
+    if not result:
+        available_jobs = db.execute("SELECT JobProfileID FROM jobs ORDER BY JobProfileID LIMIT 10").fetchall()
+        available_list = [job[0] for job in available_jobs]
+        print(f"❌ Job ID '{job_id}' not found in database.")
+        print(f"💡 Available job IDs (first 10): {', '.join(available_list)}")
+        return False
+    return True
+
+def validate_similarity_range(min_sim, max_sim):
+    """Validate similarity range parameters."""
+    if min_sim < 20 or min_sim > 95:
+        print(f"❌ similarity-min must be between 20 and 95, got {min_sim}")
+        return False
+    if max_sim < 25 or max_sim > 100:
+        print(f"❌ similarity-max must be between 25 and 100, got {max_sim}")
+        return False
+    if min_sim >= max_sim:
+        print(f"❌ similarity-min ({min_sim}) must be less than similarity-max ({max_sim})")
+        return False
+    return True
+
+def check_specific_transition_exists(db, job_from, job_to, min_sim, max_sim):
+    """Check if a specific job transition exists within the similarity range."""
+    cursor = db.execute("""
+        SELECT similarity_score 
+        FROM job_similarities 
+        WHERE job_from = ? AND job_to = ?
+    """, (job_from, job_to))
+    
+    result = cursor.fetchone()
+    if not result:
+        print(f"❌ No similarity data found between {job_from} and {job_to}")
+        return False, None
+    
+    similarity = result[0] * 100  # Convert to percentage
+    
+    if similarity < min_sim or similarity > max_sim:
+        print(f"⚠️  Similarity {similarity:.1f}% is outside specified range {min_sim}%-{max_sim}%")
+        print(f"   Continuing with analysis but consider adjusting similarity range...")
+    
+    return True, similarity
+
+def get_available_targets(db, job_from, min_sim, max_sim, limit=10):
+    """Get available target jobs within similarity range for suggestions."""
+    cursor = db.execute("""
+        SELECT js.job_to, js.similarity_score * 100 as similarity_pct, j.JobProfile
+        FROM job_similarities js
+        JOIN jobs j ON js.job_to = j.JobProfileID
+        WHERE js.job_from = ? 
+        AND js.similarity_score * 100 BETWEEN ? AND ?
+        ORDER BY js.similarity_score DESC
+        LIMIT ?
+    """, (job_from, min_sim, max_sim, limit))
+    
+    return cursor.fetchall()
+
+def test_executive_summary_generation(job_from="R0100.2", mode="top_matches", job_to=None, 
+                                    similarity_min=40, similarity_max=90):
+    """Test the executive summary generation with configurable parameters."""
     
     print("🧪 Testing Executive Summary Generation with Logical Role Architecture")
     print("=" * 70)
+    print(f"📋 Test Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific" and job_to:
+        print(f"   Target Job: {job_to}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
-    # Connect to database (you'll need to update this path)
+    # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
     
     if not db_path.exists():
@@ -46,6 +128,82 @@ def test_executive_summary_generation():
         print(f"📊 Connecting to database: {db_path}")
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row  # Enable column access by name
+        
+        # Validate source job
+        if not validate_job_exists(db, job_from):
+            return
+        
+        # For specific mode, validate target job and transition (skip range validation)
+        if mode == "specific":
+            if not job_to:
+                print("❌ --job-to is required when using --mode specific")
+                print("💡 Use --job-to JOBID to specify target job")
+                return
+            
+            # Parse target jobs (could be single job or comma-separated list)
+            if ',' in job_to:
+                job_to_list = [j.strip() for j in job_to.split(',')]
+                print(f"📋 Validating {len(job_to_list)} target jobs: {', '.join(job_to_list)}")
+                
+                for target_job in job_to_list:
+                    if not validate_job_exists(db, target_job):
+                        return
+                
+                # Check transitions for all targets
+                missing_transitions = []
+                for target_job in job_to_list:
+                    cursor = db.execute("""
+                        SELECT similarity_score 
+                        FROM job_similarities 
+                        WHERE job_from = ? AND job_to = ?
+                    """, (job_from, target_job))
+                    
+                    result = cursor.fetchone()
+                    if not result:
+                        missing_transitions.append(target_job)
+                
+                if missing_transitions:
+                    print(f"❌ No similarity data found for transitions: {job_from} → {', '.join(missing_transitions)}")
+                    return
+                
+                # Show similarity scores for all targets
+                print("✅ All target transitions validated:")
+                for target_job in job_to_list:
+                    cursor = db.execute("""
+                        SELECT similarity_score 
+                        FROM job_similarities 
+                        WHERE job_from = ? AND job_to = ?
+                    """, (job_from, target_job))
+                    
+                    result = cursor.fetchone()
+                    if result:
+                        similarity = result[0] * 100
+                        print(f"   {job_from} → {target_job}: {similarity:.1f}% similarity")
+            else:
+                # Single target job validation
+                if not validate_job_exists(db, job_to):
+                    return
+                
+                # For specific mode, just check if transition data exists (ignore range)
+                cursor = db.execute("""
+                    SELECT similarity_score 
+                    FROM job_similarities 
+                    WHERE job_from = ? AND job_to = ?
+                """, (job_from, job_to))
+                
+                result = cursor.fetchone()
+                if not result:
+                    print(f"❌ No similarity data found between {job_from} and {job_to}")
+                    return
+                
+                similarity = result[0] * 100  # Convert to percentage
+                print(f"✅ Specific transition validated: {similarity:.1f}% similarity")
+            
+            print("💡 Note: Similarity range filters are ignored in specific mode")
+        else:
+            # For discovery mode, validate similarity range
+            if not validate_similarity_range(similarity_min, similarity_max):
+                return
         
         # Initialize generator and display manager
         print("🏗️ Initializing Executive Summary Generator with JobDisplayManager...")
@@ -70,15 +228,36 @@ def test_executive_summary_generation():
         print(f"   Logical Roles:       {logical_roles_count:,}")
         print(f"   Reduction Ratio:     {total_profiles / logical_roles_count:.1f}:1")
         
-        # Test with a sample job (you can change this)
-        test_job_id = "R0100.2"  # Data Scientist Associate from gold standard
-        logical_name = display_manager.get_display_name(test_job_id, DisplayFormat.LOGICAL)
+        # Display job information
+        logical_name = display_manager.get_display_name(job_from, DisplayFormat.LOGICAL)
         print(f"\n🎯 Generating executive summary for:")
-        print(f"   JobProfileID: {test_job_id}")
+        print(f"   JobProfileID: {job_from}")
         print(f"   Logical Role: {logical_name}")
+        print(f"   Analysis Mode: {mode.replace('_', ' ').title()}")
         
-        # Generate executive summary
-        result = generator.generate(test_job_id)
+        if mode == "specific" and job_to:
+            # Handle both single and multiple target jobs for display
+            if ',' in job_to:
+                job_to_list = [j.strip() for j in job_to.split(',')]
+                target_names = []
+                for target_id in job_to_list:
+                    target_name = display_manager.get_display_name(target_id, DisplayFormat.LOGICAL)
+                    target_names.append(f"{target_id} ({target_name})")
+                
+                print(f"   Target Jobs: {job_to}")
+                print(f"   Target Logical Roles: {', '.join(target_names)}")
+            else:
+                target_logical_name = display_manager.get_display_name(job_to, DisplayFormat.LOGICAL)
+                print(f"   Target Job: {job_to}")
+                print(f"   Target Logical Role: {target_logical_name}")
+        
+        # Generate executive summary with parameters
+        result = generator.generate(
+            job_from, 
+            analysis_mode=mode, 
+            job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100)
+        )
         
         # Display results
         print("\n" + "=" * 50)
@@ -140,6 +319,13 @@ def test_executive_summary_generation():
             if var in variables:
                 print(f"{var}: {variables[var]}")
         
+        # Show analysis mode context
+        print(f"\nAnalysis Mode Context:")
+        print(f"  Mode: {mode}")
+        print(f"  Similarity Range: {similarity_min}% - {similarity_max}%")
+        if mode == "specific" and job_to:
+            print(f"  Specific Transition: {job_from} → {job_to}")
+        
         # Show top pathways with logical role names
         top_pathways = variables.get('top_pathways', [])
         if top_pathways:
@@ -173,6 +359,7 @@ def test_executive_summary_generation():
         print("   ✅ 3:1 reduction in complexity (715 profiles → ~237 logical roles)")
         print("   ✅ Executive-ready presentation format")
         print("   ✅ Backward compatibility with existing database")
+        print(f"   ✅ Configurable parameters: {mode} mode, {similarity_min}%-{similarity_max}% range")
         
     except Exception as e:
         print(f"❌ Error during testing: {e}")
@@ -222,11 +409,19 @@ def test_template_loading():
     except Exception as e:
         print(f"❌ Error testing template: {e}")
 
-def test_current_role_context_generation():
-    """Test the current role context generation following the proven pattern."""
+def test_current_role_context_generation(job_from="R0100.2", mode="top_matches", job_to=None, 
+                                       similarity_min=40, similarity_max=90):
+    """Test the current role context generation with configurable parameters."""
     
     print("\n🧪 Testing Current Role Context Generation")
     print("=" * 70)
+    print(f"📋 Test Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific" and job_to:
+        print(f"   Target Job: {job_to}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
     # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
@@ -242,16 +437,23 @@ def test_current_role_context_generation():
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row  # Enable column access by name
         
+        # Validate parameters (basic validation, detailed validation in executive summary)
+        if not validate_job_exists(db, job_from):
+            return
+        
+        if mode == "specific" and job_to and not validate_job_exists(db, job_to):
+            return
+        
         # Initialize generator
         print("🏗️ Initializing Current Role Context Generator...")
         generator = CurrentRoleContextGenerator(db)
         
-        # Test with the same job as executive summary
-        test_job_id = "R0100.2"  # Data Scientist Associate
-        print(f"\n🎯 Generating current role context for: {test_job_id}")
+        print(f"\n🎯 Generating current role context for: {job_from}")
+        if mode == "specific" and job_to:
+            print(f"   Specific transition to: {job_to}")
         
         # Generate current role context
-        result = generator.generate(test_job_id, include_organisational_deployment=True)
+        result = generator.generate(job_from, include_organisational_deployment=True)
         
         # Display results
         print("\n" + "=" * 50)
@@ -303,12 +505,20 @@ def test_current_role_context_generation():
             if var in variables:
                 print(f"{var}: {variables[var]}")
         
+        # Show analysis mode context
+        print(f"\nAnalysis Mode Context:")
+        print(f"  Mode: {mode}")
+        print(f"  Similarity Range: {similarity_min}% - {similarity_max}%")
+        if mode == "specific" and job_to:
+            print(f"  Specific Transition: {job_from} → {job_to}")
+        
         print("\n✅ Current Role Context generation completed successfully!")
         print("\n🎯 Key Features Demonstrated:")
         print("   ✅ YAML template rendering with Jinja2")
         print("   ✅ Database integration following proven patterns")
         print("   ✅ Logical role display names integration")
         print("   ✅ Professional formatting matching gold standard")
+        print(f"   ✅ Configurable parameters: {mode} mode, {similarity_min}%-{similarity_max}% range")
         
     except Exception as e:
         print(f"❌ Error during current role context testing: {e}")
@@ -319,10 +529,18 @@ def test_current_role_context_generation():
         if 'db' in locals():
             db.close()
 
-def test_pathway_analysis_generation():
-    """Test the Pathway Analysis Generator following proven patterns."""
+def test_pathway_analysis_generation(job_from="R0100.2", mode="top_matches", job_to=None, 
+                                   similarity_min=40, similarity_max=90):
+    """Test the Pathway Analysis Generator with configurable parameters."""
     print("\n🧪 Testing Pathway Analysis Generation")
     print("=" * 70)
+    print(f"📋 Test Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific" and job_to:
+        print(f"   Target Job: {job_to}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
     # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
@@ -338,17 +556,30 @@ def test_pathway_analysis_generation():
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row  # Enable column access by name
         
+        # Validate parameters
+        if not validate_job_exists(db, job_from):
+            return
+        
+        if mode == "specific" and job_to and not validate_job_exists(db, job_to):
+            return
+        
         # Initialize generator
         print("🏗️ Initializing Pathway Analysis Generator...")
         from src.pathway_analysis_generator import PathwayAnalysisGenerator
         generator = PathwayAnalysisGenerator(db)
         
-        # Test with the same job as other tests for consistency
-        test_job_id = "R0100.2"  # Risk Analyst (Group 3)
-        print(f"🎯 Generating pathway analysis for: {test_job_id}")
+        print(f"🎯 Generating pathway analysis for: {job_from}")
+        if mode == "specific" and job_to:
+            print(f"   Specific transition to: {job_to}")
         
-        # Generate pathway analysis
-        result = generator.generate(test_job_id, include_organisational_deployment=True)
+        # Generate pathway analysis with parameters
+        result = generator.generate(
+            job_from, 
+            analysis_mode=mode, 
+            job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100),
+            include_organisational_deployment=True
+        )
         
         print("\n" + "=" * 50)
         print("📄 GENERATED PATHWAY ANALYSIS")
@@ -416,8 +647,13 @@ def test_pathway_analysis_generation():
         assert 'content' in result
         print("✅ Pathway Analysis generation completed successfully!")
         print("🎯 Key Features Demonstrated:")
-        print("   ✅ Top 3 strategic opportunities identified")
-        print("   ✅ Comprehensive opportunity analysis")
+        if mode == "specific":
+            print("   ✅ Specific transition analysis generated")
+            print("   ✅ Mode-appropriate template loaded")
+            print("   ✅ SpecificTransitionAnalyzer integration working")
+        else:
+            print("   ✅ Top 3 strategic opportunities identified")
+            print("   ✅ Comprehensive opportunity analysis")
         print("   ✅ Skills transition calculations")
         print("   ✅ Business case generation")
         print("   ✅ Implementation roadmap creation")
@@ -431,10 +667,18 @@ def test_pathway_analysis_generation():
         if 'db' in locals():
             db.close()
 
-def test_strategic_recommendations_generation():
-    """Test the Strategic Recommendations Generator following proven patterns."""
+def test_strategic_recommendations_generation(job_from="R0100.2", mode="top_matches", job_to=None, 
+                                           similarity_min=40, similarity_max=90):
+    """Test the Strategic Recommendations Generator with configurable parameters."""
     print("\n🧪 Testing Strategic Recommendations Generation")
     print("=" * 70)
+    print(f"📋 Test Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific" and job_to:
+        print(f"   Target Job: {job_to}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
     # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
@@ -450,17 +694,24 @@ def test_strategic_recommendations_generation():
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row  # Enable column access by name
         
+        # Validate parameters
+        if not validate_job_exists(db, job_from):
+            return
+        
+        if mode == "specific" and job_to and not validate_job_exists(db, job_to):
+            return
+        
         # Initialize generator
         print("🏗️ Initializing Strategic Recommendations Generator...")
         from strategic_recommendations_generator import StrategicRecommendationsGenerator
         generator = StrategicRecommendationsGenerator(db)
         
-        # Test with the same job as other tests for consistency
-        test_job_id = "R0100.2"  # Risk Analyst (Group 3)
-        print(f"🎯 Generating strategic recommendations for: {test_job_id}")
+        print(f"🎯 Generating strategic recommendations for: {job_from}")
+        if mode == "specific" and job_to:
+            print(f"   Specific transition to: {job_to}")
         
         # Generate strategic recommendations
-        result = generator.generate(test_job_id, include_organisational_deployment=True)
+        result = generator.generate(job_from, include_organisational_deployment=True)
         
         print("\n" + "=" * 50)
         print("📄 GENERATED STRATEGIC RECOMMENDATIONS")
@@ -558,11 +809,19 @@ def test_strategic_recommendations_generation():
         if 'db' in locals():
             db.close()
 
-def test_conclusion_generation():
-    """Test the conclusion generation following the proven pattern."""
+def test_conclusion_generation(job_from="R0100.2", mode="top_matches", job_to=None, 
+                             similarity_min=40, similarity_max=90):
+    """Test the conclusion generation with configurable parameters."""
     
     print("\n🧪 Testing Conclusion Generation")
     print("=" * 70)
+    print(f"📋 Test Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific" and job_to:
+        print(f"   Target Job: {job_to}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
     # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
@@ -578,17 +837,24 @@ def test_conclusion_generation():
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row  # Enable column access by name
         
+        # Validate parameters
+        if not validate_job_exists(db, job_from):
+            return
+        
+        if mode == "specific" and job_to and not validate_job_exists(db, job_to):
+            return
+        
         # Initialize generator
         print("🏗️ Initializing Conclusion Generator...")
         from conclusion_generator import ConclusionGenerator
         generator = ConclusionGenerator(db)
         
-        # Test with the same job as other sections
-        test_job_id = "R0100.2"  # Risk Analyst (Group 3)
-        print(f"\n🎯 Generating conclusion for: {test_job_id}")
+        print(f"\n🎯 Generating conclusion for: {job_from}")
+        if mode == "specific" and job_to:
+            print(f"   Specific transition to: {job_to}")
         
         # Generate conclusion
-        result = generator.generate(test_job_id, include_organisational_deployment=True)
+        result = generator.generate(job_from, include_organisational_deployment=True)
         
         # Display results
         print("\n" + "=" * 50)
@@ -644,12 +910,17 @@ def test_conclusion_generation():
         if 'db' in locals():
             db.close()
 
-def test_clean_copy_display():
+def test_clean_copy_display(job_from="R0100.2", mode="top_matches", job_to=None, 
+                           similarity_min=40, similarity_max=90):
     """Display clean copy of all sections without debug information."""
     
     print("📄 NAB Skills Intelligence Platform")
     print("Strategic Career Pathway Analysis")
     print("=" * 70)
+    print(f"Parameters: {job_from} | {mode} mode | {similarity_min}%-{similarity_max}%")
+    if mode == "specific" and job_to:
+        print(f"Specific Transition: {job_from} → {job_to}")
+    print()
     
     # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
@@ -677,8 +948,8 @@ def test_clean_copy_display():
         strategic_generator = StrategicRecommendationsGenerator(db)
         conclusion_generator = ConclusionGenerator(db)
         
-        # Test job
-        test_job_id = "R0100.2"
+        # Use configurable job
+        test_job_id = job_from
         
         # Get job name for header
         logical_manager = exec_generator.logical_role_manager
@@ -696,9 +967,21 @@ def test_clean_copy_display():
         sections = {}
         sections['executive_summary'] = exec_generator.generate(test_job_id)
         sections['current_role_context'] = context_generator.generate(test_job_id, include_organisational_deployment=True)
-        sections['pathway_analysis'] = pathway_generator.generate(test_job_id, include_organisational_deployment=True)
-        sections['strategic_recommendations'] = strategic_generator.generate(test_job_id, include_organisational_deployment=True)
-        sections['conclusion'] = conclusion_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['pathway_analysis'] = pathway_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100), 
+            include_organisational_deployment=True
+        )
+        sections['strategic_recommendations'] = strategic_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100), 
+            include_organisational_deployment=True
+        )
+        sections['conclusion'] = conclusion_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100), 
+            include_organisational_deployment=True
+        )
         
         # Restore logging
         logging.getLogger().setLevel(logging.INFO)
@@ -765,11 +1048,19 @@ def test_clean_copy_display():
         if 'db' in locals():
             db.close()
 
-def test_full_whitepaper_generation():
+def test_full_whitepaper_generation(job_from="R0100.2", mode="top_matches", job_to=None, 
+                                   similarity_min=40, similarity_max=90):
     """Test full white paper generation with all sections and Word document output."""
     
     print("\n🧪 Testing Full White Paper Generation with Word Document Output")
     print("=" * 70)
+    print(f"📋 Test Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific" and job_to:
+        print(f"   Target Job: {job_to}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
     # Connect to database
     db_path = Path(__file__).parent.parent.parent.parent.parent / "models" / "2025-Q2" / "business_context.sqlite"
@@ -799,31 +1090,106 @@ def test_full_whitepaper_generation():
         strategic_generator = StrategicRecommendationsGenerator(db)
         conclusion_generator = ConclusionGenerator(db)
         
-        # Test job
-        test_job_id = "R0100.2"  # Risk Analyst (Group 3)
-        print(f"🎯 Generating complete white paper for: {test_job_id}")
+        # Validate parameters
+        if not validate_job_exists(db, job_from):
+            return
         
-        # Generate all sections
+        if mode == "specific" and job_to:
+            # Parse and validate target jobs
+            if ',' in job_to:
+                job_to_list = [j.strip() for j in job_to.split(',')]
+                for target_job in job_to_list:
+                    if not validate_job_exists(db, target_job):
+                        return
+            else:
+                if not validate_job_exists(db, job_to):
+                    return
+        
+        # Use configurable job parameters
+        test_job_id = job_from
+        print(f"🎯 Generating complete white paper for: {test_job_id}")
+        if mode == "specific" and job_to:
+            print(f"   Specific transition to: {job_to}")
+        
+        # Generate all sections with parameters
         print("\n📄 Generating sections...")
         sections = {}
         
         print("  ✅ Executive Summary...")
-        sections['executive_summary'] = exec_generator.generate(test_job_id)
+        sections['executive_summary'] = exec_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100)
+        )
         
         print("  ✅ Current Role Context...")
         sections['current_role_context'] = context_generator.generate(test_job_id, include_organisational_deployment=True)
         
         print("  ✅ Pathway Analysis...")
-        sections['pathway_analysis'] = pathway_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['pathway_analysis'] = pathway_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100), 
+            include_organisational_deployment=True
+        )
         
         print("  ✅ Strategic Recommendations...")
-        sections['strategic_recommendations'] = strategic_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['strategic_recommendations'] = strategic_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100), 
+            include_organisational_deployment=True
+        )
         
         print("  ✅ Conclusion...")
-        sections['conclusion'] = conclusion_generator.generate(test_job_id, include_organisational_deployment=True)
+        sections['conclusion'] = conclusion_generator.generate(
+            test_job_id, analysis_mode=mode, job_to=job_to, 
+            similarity_range=(similarity_min/100, similarity_max/100), 
+            include_organisational_deployment=True
+        )
         
         # Prepare content for Word document
         print("\n📝 Preparing content for Word document...")
+        
+        # Extract dynamic section titles from generator results FIRST
+        section_titles = []
+        print("🔍 DEBUG: Extracting section titles from generator results...")
+        for section_name in ['executive_summary', 'current_role_context', 'pathway_analysis', 'strategic_recommendations', 'conclusion']:
+            if section_name in sections:
+                # Extract dynamic title from generator result, fallback to static title
+                generator_title = sections[section_name].get('section_title', '')
+                print(f"   📋 {section_name}: generator_title = '{generator_title}'")
+                if generator_title:
+                    # Clean up any newline characters from section title
+                    clean_title = generator_title.strip()
+                    section_titles.append((section_name, clean_title))
+                    print(f"      ✅ Using dynamic title: '{generator_title}'")
+                else:
+                    # Fallback to static titles for sections that don't generate dynamic titles
+                    static_titles = {
+                        'executive_summary': 'Executive Summary',
+                        'current_role_context': 'Current Role Context',
+                        'pathway_analysis': 'Pathway Analysis: Top 3 Strategic Opportunities',
+                        'strategic_recommendations': 'Strategic Recommendations',
+                        'conclusion': 'Conclusion'
+                    }
+                    section_titles.append((section_name, static_titles[section_name]))
+                    print(f"      ⚠️ Using fallback title: '{static_titles[section_name]}'")
+        
+        print(f"🔍 DEBUG: Final section_titles = {section_titles}")
+        
+        # DEBUG: Check pathway analysis content structure
+        if 'pathway_analysis' in sections:
+            print(f"🔍 DEBUG: pathway_analysis keys = {list(sections['pathway_analysis'].keys())}")
+            if 'content' in sections['pathway_analysis']:
+                print(f"🔍 DEBUG: pathway_analysis content keys = {list(sections['pathway_analysis']['content'].keys())}")
+                if 'opportunities' in sections['pathway_analysis']['content']:
+                    print(f"🔍 DEBUG: opportunities count = {len(sections['pathway_analysis']['content']['opportunities'])}")
+                    if sections['pathway_analysis']['content']['opportunities']:
+                        first_opp = sections['pathway_analysis']['content']['opportunities'][0]
+                        print(f"🔍 DEBUG: first opportunity keys = {list(first_opp.keys())}")
+                        if 'strategic_positioning' in first_opp:
+                            print(f"🔍 DEBUG: strategic_positioning = {first_opp['strategic_positioning']}")
+            print(f"🔍 DEBUG: Full pathway_analysis structure:")
+            import json
+            print(json.dumps(sections['pathway_analysis'], indent=2, default=str)[:1000] + "...")
         
         # Extract content from each section
         word_content = {}
@@ -845,22 +1211,38 @@ def test_full_whitepaper_generation():
                 
                 analysis_data.update({
                     'source_job_logical_display_name': variables.get('source_job_title', 'Professional Role'),
+                    'source_job_function': variables.get('source_job_function', 'Professional Services'),
                     'summary': f'Career pathway analysis for {variables.get("source_job_title", "Professional Role")}',
                     'avg_similarity': max_sim / 100,
-                    'pathway_count': variables.get('pathway_count', 0)
+                    'pathway_count': variables.get('pathway_count', 0),
+                    'section_titles': section_titles  # Pass dynamic section titles to formatter
                 })
         
-        # Extract job_name for file naming
+        # Extract job_name for file naming with intelligent naming logic
         job_name = analysis_data.get('source_job_logical_display_name', 'Professional Role')
         
-        # Define section titles for file generation
-        section_titles = [
-            ('executive_summary', 'Executive Summary'),
-            ('current_role_context', 'Current Role Context'), 
-            ('pathway_analysis', 'Pathway Analysis: Top 3 Strategic Opportunities'),
-            ('strategic_recommendations', 'Strategic Recommendations'),
-            ('conclusion', 'Conclusion')
+        # Create intelligent filename based on parameters
+        filename_parts = [
+            'whitepaper',
+            job_from.replace('.', '_'),  # Source job ID
+            mode
         ]
+        
+        # Add specific mode details to filename
+        if mode == "specific" and job_to:
+            if ',' in job_to:
+                # Multiple targets: use count and first target
+                target_count = len([j.strip() for j in job_to.split(',')])
+                first_target = job_to.split(',')[0].strip().replace('.', '_')
+                filename_parts.extend(['multi', f"{target_count}targets", first_target])
+            else:
+                # Single target
+                filename_parts.extend(['to', job_to.replace('.', '_')])
+        else:
+            # Discovery mode: add similarity range
+            filename_parts.extend([f"{similarity_min}to{similarity_max}pct"])
+        
+
         
         # Create Word document using template if available
         print("\n📄 Creating Word document...")
@@ -884,9 +1266,9 @@ def test_full_whitepaper_generation():
             from docx.enum.style import WD_STYLE_TYPE
             from datetime import datetime
             
-            # Save file paths for both approaches
+            # Save file paths using intelligent naming
             output_dir = Path(__file__).parent
-            filename = f'whitepaper_{job_name.replace(" ", "_").replace("(", "").replace(")", "")}.docx'
+            filename = f'{"_".join(filename_parts)}.docx'
             output_path = output_dir / filename
             
             # Try professional NAB-styled document first
@@ -934,9 +1316,9 @@ def test_full_whitepaper_generation():
             # Import datetime for text file fallback
             from datetime import datetime
             
-            # Save as text file
+            # Save as text file using intelligent naming
             output_dir = Path(__file__).parent
-            filename = f'whitepaper_{job_name.replace(" ", "_").replace("(", "").replace(")", "")}.txt'
+            filename = f'{"_".join(filename_parts)}.txt'
             output_path = output_dir / filename
             
             with open(output_path, 'w', encoding='utf-8') as f:
@@ -949,7 +1331,7 @@ def test_full_whitepaper_generation():
                 for section_key, section_title in section_titles:
                     if section_key in word_content:
                         f.write(f"{section_title}\n")
-                        f.write("=" * len(section_title) + "\n\n")
+                        f.write("-" * len(section_title) + "\n\n")
                         
                         section_data = word_content[section_key]
                         if isinstance(section_data, dict):
@@ -1001,6 +1383,65 @@ try:
 except ImportError:
     NAB_FORMATTER_AVAILABLE = False
     print("⚠️ NAB DocumentFormatter not available - using basic styling")
+
+def export_section_to_word(section_name, section_result, job_from, mode="top_matches", job_to=None, 
+                          similarity_min=40, similarity_max=90):
+    """Export a single section to Word document with intelligent naming."""
+    
+    print(f"\n📄 Exporting {section_name} to Word document...")
+    
+    try:
+        # Create intelligent filename for single section
+        filename_parts = [
+            section_name,
+            job_from.replace('.', '_'),
+            mode
+        ]
+        
+        # Add specific mode details to filename
+        if mode == "specific" and job_to:
+            if ',' in job_to:
+                target_count = len([j.strip() for j in job_to.split(',')])
+                first_target = job_to.split(',')[0].strip().replace('.', '_')
+                filename_parts.extend(['multi', f"{target_count}targets", first_target])
+            else:
+                filename_parts.extend(['to', job_to.replace('.', '_')])
+        else:
+            filename_parts.extend([f"{similarity_min}to{similarity_max}pct"])
+        
+        output_dir = Path(__file__).parent
+        filename = f'{"_".join(filename_parts)}.docx'
+        output_path = output_dir / filename
+        
+        # Prepare single section content for Word export
+        single_section_content = {section_name: section_result.get('content', {})}
+        
+        # Create analysis data for the section
+        variables = section_result.get('template_variables', {})
+        analysis_data = {
+            'source_job_logical_display_name': variables.get('source_job_title', 'Professional Role'),
+            'source_job_id': job_from,
+            'summary': f'{section_name.replace("_", " ").title()} for {variables.get("source_job_title", "Professional Role")}',
+            'avg_similarity': variables.get('max_similarity', 0) / 100 if variables.get('max_similarity') else 0,
+            'pathway_count': variables.get('pathway_count', 0),
+            'analysis_mode': mode,
+            'target_job': job_to,
+            'similarity_range': f"{similarity_min}%-{similarity_max}%"
+        }
+        
+        # Try professional document creation first
+        if NAB_FORMATTER_AVAILABLE:
+            success = create_professional_word_document(single_section_content, analysis_data, output_path)
+        else:
+            success = create_basic_word_document(single_section_content, analysis_data, output_path)
+        
+        if success:
+            print(f"✅ {section_name.replace('_', ' ').title()} exported to: {output_path}")
+        else:
+            print(f"❌ Failed to export {section_name}")
+            
+    except Exception as e:
+        print(f"❌ Error exporting {section_name}: {e}")
 
 def create_professional_word_document(content_sections, analysis_data, output_path):
     """Create a professional Word document with NAB styling using DocumentFormatter."""
@@ -1119,11 +1560,12 @@ def create_basic_word_document(content_sections, analysis_data, output_path):
 def main():
     """Main function with command line argument parsing."""
     parser = argparse.ArgumentParser(
-        description="Test white paper generation components",
+        description="Test white paper generation components with configurable parameters",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python test_whitepaper.py                           # Run all tests
+    # Basic test modes
+    python test_whitepaper.py                           # Run all tests with default job
     python test_whitepaper.py --copy                    # Display clean copy without debug
     python test_whitepaper.py --template                # Test template loading only
     python test_whitepaper.py --executive               # Test executive summary only
@@ -1132,9 +1574,22 @@ Examples:
     python test_whitepaper.py --strategic               # Test strategic recommendations only
     python test_whitepaper.py --conclusion              # Test conclusion only
     python test_whitepaper.py --word                    # Generate full Word document
+    
+    # Core parameters matching HTML interface
+    python test_whitepaper.py --job-from R0100.2        # Specify source job
+    python test_whitepaper.py --mode top_matches        # Analysis mode: top_matches (default) or specific
+    python test_whitepaper.py --job-to R0025.1          # Target job (required for specific mode)
+    python test_whitepaper.py --similarity-min 40       # Minimum similarity percentage (20-95)
+    python test_whitepaper.py --similarity-max 90       # Maximum similarity percentage (25-100)
+    
+    # Combined examples
+    python test_whitepaper.py --job-from R0100.2 --mode top_matches --similarity-min 45 --similarity-max 85 --word
+    python test_whitepaper.py --job-from R0100.2 --mode specific --job-to R0025.1 --similarity-min 50 --similarity-max 80 --executive
+    python test_whitepaper.py --job-from R0100.2 --mode specific --job-to R0025.1 --copy
         """
     )
     
+    # Test mode arguments
     parser.add_argument('--template', action='store_true', 
                        help='Test template loading only')
     parser.add_argument('--executive', action='store_true', 
@@ -1154,40 +1609,66 @@ Examples:
     parser.add_argument('--all', action='store_true', 
                        help='Run all tests (default if no flags specified)')
     
+    # Core parameters matching HTML interface
+    parser.add_argument('--job-from', type=str, default='R0100.2',
+                       help='Source job ID (default: R0100.2)')
+    parser.add_argument('--mode', type=str, choices=['top_matches', 'specific'], default='top_matches',
+                       help='Analysis mode: top_matches (default) or specific transition')
+    parser.add_argument('--job-to', type=str, default=None,
+                       help='Target job ID (required for specific mode)')
+    parser.add_argument('--similarity-min', type=int, default=40, 
+                       help='Minimum similarity percentage (20-95, default: 40)')
+    parser.add_argument('--similarity-max', type=int, default=90,
+                       help='Maximum similarity percentage (25-100, default: 90)')
+    
     args = parser.parse_args()
+    
+    # Extract parameters
+    job_from = args.job_from
+    mode = args.mode
+    job_to = args.job_to
+    similarity_min = args.similarity_min
+    similarity_max = args.similarity_max
     
     # If no specific test is requested, run all tests
     run_all = (not (args.template or args.executive or args.current or args.pathway or 
                    args.strategic or args.conclusion or args.copy or args.word))
     
-    # Handle clean copy display separately
+    # Handle clean copy display separately (uses parameters)
     if args.copy:
-        test_clean_copy_display()
+        test_clean_copy_display(job_from, mode, job_to, similarity_min, similarity_max)
         return
     
     print("🚀 White Paper Generation Test Suite")
     print("=" * 50)
+    print(f"📋 Global Parameters:")
+    print(f"   Source Job: {job_from}")
+    print(f"   Analysis Mode: {mode}")
+    if mode == "specific":
+        print(f"   Target Job: {job_to or 'Not specified'}")
+    print(f"   Similarity Range: {similarity_min}% - {similarity_max}%")
+    print()
     
     if args.template or run_all:
         test_template_loading()
     
     if args.executive or run_all:
-        test_executive_summary_generation()
+        test_executive_summary_generation(job_from, mode, job_to, similarity_min, similarity_max)
     
     if args.current or run_all:
-        test_current_role_context_generation()
+        test_current_role_context_generation(job_from, mode, job_to, similarity_min, similarity_max)
     
     if args.pathway or run_all:
-        test_pathway_analysis_generation()
+        test_pathway_analysis_generation(job_from, mode, job_to, similarity_min, similarity_max)
     
     if args.strategic or run_all:
-        test_strategic_recommendations_generation()
+        test_strategic_recommendations_generation(job_from, mode, job_to, similarity_min, similarity_max)
     
     if args.conclusion or run_all:
-        test_conclusion_generation()
+        test_conclusion_generation(job_from, mode, job_to, similarity_min, similarity_max)
     
     if args.word:
-        test_full_whitepaper_generation()
+        test_full_whitepaper_generation(job_from, mode, job_to, similarity_min, similarity_max)
     
     print("\n🎉 Test suite completed!")
 

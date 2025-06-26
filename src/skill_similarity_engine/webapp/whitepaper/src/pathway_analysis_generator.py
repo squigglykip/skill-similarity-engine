@@ -39,6 +39,7 @@ class PathwayAnalysisGenerator:
     def __init__(self, db_connection):
         self.db = db_connection
         self.template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'pathway_analysis.yaml'
+        self.specific_template_path = Path(__file__).parent.parent / 'templates' / 'sections' / 'pathway_analysis_specific.yaml'
         self.template_data = self._load_template()
         
         # Initialize display manager for job name formatting
@@ -55,50 +56,116 @@ class PathwayAnalysisGenerator:
             self.ref_calc = None
             self.queries = None
         
-    def _load_template(self) -> Dict:
-        """Load YAML template for pathway analysis."""
+    def _load_template(self, analysis_mode: str = 'top_matches') -> Dict:
+        """Load YAML template for pathway analysis based on mode."""
         try:
-            with open(self.template_path, 'r', encoding='utf-8') as file:
+            if analysis_mode == 'specific':
+                template_path = self.specific_template_path
+            else:
+                template_path = self.template_path
+                
+            with open(template_path, 'r', encoding='utf-8') as file:
                 return yaml.safe_load(file)
         except Exception as e:
             print(f"⚠️ Error loading pathway analysis template: {e}")
-            return {}
+            # Fallback to standard template
+            try:
+                with open(self.template_path, 'r', encoding='utf-8') as file:
+                    return yaml.safe_load(file)
+            except Exception as e2:
+                print(f"⚠️ Error loading fallback template: {e2}")
+                return {}
     
-    def generate(self, job_from: str, include_organisational_deployment: bool = False) -> Dict:
-        """Generate pathway analysis content for top 3 career opportunities."""
+    def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None,
+                 similarity_range: tuple = (0.4, 0.9), include_organisational_deployment: bool = False) -> Dict:
+        """Generate pathway analysis content with mode support."""
         
-        # Step 1: Get top 3 career pathways (reusing ExecutiveSummaryGenerator logic)
-        top_pathways = self._get_top_pathways(job_from, limit=3)
+        # Load appropriate template for mode
+        self.template_data = self._load_template(analysis_mode)
         
-        if not top_pathways:
+        if analysis_mode == 'specific' and job_to:
+            # Use SpecificTransitionAnalyzer for specific transitions
+            try:
+                from specific_transition_analyzer import SpecificTransitionAnalyzer
+            except ImportError:
+                # Handle absolute import for test environment
+                import sys
+                from pathlib import Path
+                current_dir = Path(__file__).parent
+                sys.path.insert(0, str(current_dir))
+                from specific_transition_analyzer import SpecificTransitionAnalyzer
+            
+            analyzer = SpecificTransitionAnalyzer(self.db)
+            
+            if isinstance(job_to, str) and ',' in job_to:
+                # Multiple targets
+                job_to_list = [j.strip() for j in job_to.split(',')]
+                analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
+            else:
+                # Single target
+                analysis_data = analyzer.analyze_single_transition(job_from, job_to, similarity_range)
+            
+            # Use existing discovery mode pipeline with specific template variables
+            # Convert specific analysis to opportunities (handles both single and multiple)
+            if analysis_data['analysis_mode'] == 'specific_single':
+                opportunity = self._create_opportunity_from_specific_analysis(analysis_data, job_from, include_organisational_deployment)
+                opportunities = [opportunity]
+            else:
+                # Use multiple mode conversion
+                opportunities = self._convert_specific_to_opportunities(analysis_data, job_from, include_organisational_deployment)
+            
+            # Use the same rich content generation as discovery mode
+            content = self._generate_content_sections(opportunities)
+            
+            # Get section title using template rendering (like Strategic Recommendations)
+            section_title = self._get_template_section_title(analysis_data, analysis_mode)
+            
+            return {
+                'section_title': section_title,
+                'content': content,
+                'opportunities': opportunities,  # For debugging
+                'analysis_data': analysis_data,  # For debugging
+                'references': self._generate_references()
+            }
+        else:
+            # Default: Top 3 pathways analysis
+            top_pathways = self._get_top_pathways(job_from, limit=3)
+            
+            if not top_pathways:
+                return {
+                    'section_title': 'Pathway Analysis: Top 3 Strategic Opportunities',
+                    'content': {'error': 'No career pathways found'},
+                    'references': {}
+                }
+            
+            # Generate detailed analysis for each opportunity
+            opportunities = []
+            for i, pathway in enumerate(top_pathways, 1):
+                opportunity_analysis = self._generate_opportunity_analysis(
+                    job_from, pathway, i, include_organisational_deployment
+                )
+                opportunities.append(opportunity_analysis)
+            
+            # Generate content sections
+            content = self._generate_content_sections(opportunities)
+            
             return {
                 'section_title': 'Pathway Analysis: Top 3 Strategic Opportunities',
-                'content': {'error': 'No career pathways found'},
-                'references': {}
+                'content': content,
+                'opportunities': opportunities,  # For debugging
+                'references': self._generate_references()
             }
-        
-        # Step 2: Generate detailed analysis for each opportunity
-        opportunities = []
-        for i, pathway in enumerate(top_pathways, 1):
-            opportunity_analysis = self._generate_opportunity_analysis(
-                job_from, pathway, i, include_organisational_deployment
-            )
-            opportunities.append(opportunity_analysis)
-        
-        # Step 3: Generate content sections
-        content = self._generate_content_sections(opportunities)
-        
-        return {
-            'section_title': 'Pathway Analysis: Top 3 Strategic Opportunities',
-            'content': content,
-            'opportunities': opportunities,  # For debugging
-            'references': self._generate_references()
-        }
     
     def _get_top_pathways(self, job_from: str, limit: int = 3) -> List[Dict]:
-        """Get top similarity pathways - reusing ExecutiveSummaryGenerator logic."""
+        """Get top similarity pathways with consistent ordering across all white paper sections."""
         try:
-            # Use the same query pattern as ExecutiveSummaryGenerator
+            # Use centralized pathway ordering for consistency with Executive Summary
+            from pathway_ordering_utils import get_consistent_pathways
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=False)
+            
+        except ImportError:
+            print("⚠️ PathwayOrderingUtils not available, using fallback method")
+            # Fallback to original logic with deterministic ordering
             query = """
             SELECT 
                 js.job_to,
@@ -106,12 +173,12 @@ class PathwayAnalysisGenerator:
                 j.JobProfile as target_job_title,
                 j.JobFunction as target_job_function,
                 j.ManagementLevel as target_management_level,
-                ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC) as rank
+                ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC, js.job_to ASC) as rank
             FROM job_similarities js
             JOIN jobs j ON js.job_to = j.JobProfileID
             WHERE js.job_from = ?
               AND js.similarity_score < 1.0  -- Exclude 100% matches
-            ORDER BY js.similarity_score DESC
+            ORDER BY js.similarity_score DESC, js.job_to ASC  -- Secondary sort for deterministic ordering
             LIMIT ?
             """
             
@@ -993,6 +1060,256 @@ class PathwayAnalysisGenerator:
         # Add organisational deployment data if available
         if 'organisational_deployment' in opportunity:
             variables.update(opportunity['organisational_deployment'])
+        
+        # Add CRITICAL specific mode template variables for Jinja2 conditionals
+        if 'analysis_mode' in opportunity:
+            variables['analysis_mode'] = opportunity['analysis_mode']
+        if 'specific_analysis_data' in opportunity:
+            variables['specific_analysis_data'] = opportunity['specific_analysis_data']
+            
+            # Extract key variables from specific analysis for template rendering
+            if 'move_classification' in opportunity['specific_analysis_data']:
+                variables['move_classification'] = opportunity['specific_analysis_data']['move_classification'].get('move_type_display', 'Strategic Transition')
+                variables['estimated_timeline'] = opportunity['specific_analysis_data']['move_classification'].get('estimated_timeline', '12+ months')
+            
+            if 'source_job' in opportunity['specific_analysis_data']:
+                variables['source_job_function'] = opportunity['specific_analysis_data']['source_job'].get('job_function', 'Professional')
+                variables['source_job_logical_display_name'] = opportunity['specific_analysis_data']['source_job'].get('logical_display_name', 'Professional Role')
+            
+            if 'target_job' in opportunity['specific_analysis_data']:
+                variables['target_job_logical_name'] = opportunity['specific_analysis_data']['target_job'].get('logical_display_name', variables.get('target_job_logical_display_name', 'Target Role'))
+            
+            if 'transition_metrics' in opportunity['specific_analysis_data']:
+                variables['transition_similarity'] = opportunity['specific_analysis_data']['transition_metrics'].get('similarity_score', variables.get('similarity_score', 0))
+            
+            # Add placeholder for shared skills count (this would come from skills analysis)
+            variables['shared_skills_count'] = variables.get('shared_skills_count', 22)  # Default based on console output
+        
+        return variables
+
+    def _create_opportunity_from_specific_analysis(self, analysis_data: Dict, job_from: str, include_deployment: bool) -> Dict:
+        """Create opportunity data structure from specific analysis (simplified approach)."""
+        # Extract key data from specific analysis
+        target_job = analysis_data['target_job']
+        target_job_id = target_job['job_id']
+        similarity_score = analysis_data['transition_metrics']['similarity_score']
+        
+        # Create pathway dict in discovery mode format
+        pathway = {
+            'target_job_id': target_job_id,
+            'similarity_score': similarity_score,
+            'target_job_title': target_job['logical_display_name'],
+            'target_job_function': target_job['job_function'],
+            'target_management_level': target_job['management_level'],
+            'rank': 1,
+            'target_logical_role': target_job['logical_display_name'],
+            'similarity_ref': '57',
+            'move_type_ref': '58'
+        }
+        
+        # Add move type calculation
+        pathway.update(self._calculate_move_type(job_from, pathway))
+        
+        # Generate full opportunity analysis using existing discovery mode logic
+        opportunity = self._generate_opportunity_analysis(job_from, pathway, 1, include_deployment)
+        
+        # Add specific analysis data for template variables
+        opportunity['specific_analysis_data'] = analysis_data
+        opportunity['analysis_mode'] = 'specific'
+        
+        return opportunity
+
+    def _convert_specific_to_opportunities(self, analysis_data: Dict, job_from: str, include_deployment: bool) -> List[Dict]:
+        """Convert SpecificTransitionAnalyzer data to rich opportunity format for table-driven content generation."""
+        opportunities = []
+        
+        if analysis_data['analysis_mode'] == 'specific_single':
+            # Convert single transition to opportunity format
+            opportunity = self._create_specific_opportunity(analysis_data, job_from, 1, include_deployment)
+            opportunities.append(opportunity)
+            
+        elif analysis_data['analysis_mode'] == 'specific_multiple':
+            # Convert each individual analysis to opportunity format
+            individual_analyses = analysis_data.get('transitions', [])
+            for i, individual_analysis in enumerate(individual_analyses, 1):
+                # Use the full individual analysis data (already in correct format)
+                opportunity = self._create_specific_opportunity(individual_analysis, job_from, i, include_deployment)
+                opportunities.append(opportunity)
+        
+        return opportunities
+    
+    def _create_specific_opportunity(self, analysis_data: Dict, job_from: str, rank: int, include_deployment: bool) -> Dict:
+        """Create rich opportunity format from specific transition analysis data."""
+        target_job = analysis_data['target_job']
+        target_job_id = target_job['job_id']
+        similarity_score = analysis_data['transition_metrics']['similarity_score']
+        
+        # Create pathway dict in same format as discovery mode
+        pathway = {
+            'target_job_id': target_job_id,
+            'similarity_score': similarity_score,
+            'target_job_title': target_job['logical_display_name'],
+            'target_job_function': target_job['job_function'],
+            'target_management_level': target_job['management_level'],
+            'rank': rank,
+            'target_logical_role': target_job['logical_display_name'],
+            'similarity_ref': str(56 + rank),
+            'move_type_ref': str(58 + rank)
+        }
+        
+        # Add move type calculation
+        pathway.update(self._calculate_move_type(job_from, pathway))
+        
+        # Generate rich opportunity analysis using existing discovery mode logic
+        opportunity = self._generate_opportunity_analysis(job_from, pathway, rank, include_deployment)
+        
+        # Override some fields with specific transition data if available
+        if 'move_classification' in analysis_data:
+            opportunity['move_type_display'] = analysis_data['move_classification']['move_type_display']
+            opportunity['estimated_timeline'] = analysis_data['move_classification']['estimated_timeline']
+        
+        if 'strategic_context' in analysis_data:
+            opportunity['strategic_rationale'] = analysis_data['strategic_context'].get('strategic_rationale', opportunity.get('strategic_rationale', ''))
+            opportunity['transition_viability'] = analysis_data['strategic_context'].get('transition_viability', 'Challenging')
+        
+        # Add specific analysis data for template variables (CRITICAL for paragraph content)
+        opportunity['specific_analysis_data'] = analysis_data
+        opportunity['analysis_mode'] = 'specific'
+        
+        return opportunity
+
+    def _generate_specific_content(self, analysis_data: Dict, analysis_mode: str) -> Dict:
+        """Generate content for specific transition analysis."""
+        from jinja2 import Template
+        
+        # Extract template variables for specific analysis
+        template_variables = self._extract_specific_template_variables(analysis_data, analysis_mode)
+        
+        # Get pathway analysis section from template
+        pathway_section = self.template_data.get('pathway_analysis', {})
+        content = {}
+        
+        if analysis_data['analysis_mode'] == 'specific_single':
+            # Single transition analysis
+            single_analysis = pathway_section.get('single_transition_analysis', {})
+            for key, section in single_analysis.items():
+                if isinstance(section, dict) and 'content' in section:
+                    try:
+                        template = Template(section['content'])
+                        rendered_content = template.render(**template_variables)
+                        content[key] = {
+                            'title': section.get('title', ''),
+                            'content': rendered_content
+                        }
+                    except Exception as e:
+                        print(f"⚠️ Error rendering specific section {key}: {e}")
+                        content[key] = {'title': section.get('title', ''), 'content': f'Rendering error: {e}'}
+        
+        elif analysis_data['analysis_mode'] == 'specific_multiple':
+            # Multiple transition analysis
+            comparative_analysis = pathway_section.get('comparative_transition_analysis', {})
+            for key, section in comparative_analysis.items():
+                if isinstance(section, dict) and 'content' in section:
+                    try:
+                        template = Template(section['content'])
+                        rendered_content = template.render(**template_variables)
+                        content[key] = {
+                            'title': section.get('title', ''),
+                            'content': rendered_content
+                        }
+                    except Exception as e:
+                        print(f"⚠️ Error rendering specific section {key}: {e}")
+                        content[key] = {'title': section.get('title', ''), 'content': f'Rendering error: {e}'}
+        
+        return content
+    
+    def _get_template_section_title(self, analysis_data: Dict, analysis_mode: str) -> str:
+        """Get section title using template rendering (matching Strategic Recommendations pattern)."""
+        from jinja2 import Template
+        import yaml
+        
+        try:
+            # Get section title template from pathway_analysis template
+            pathway_section = self.template_data.get('pathway_analysis', {})
+            title_template = pathway_section.get('section_title', 'Pathway Analysis')
+            
+            # Prepare template variables
+            template_variables = self._extract_specific_template_variables(analysis_data, analysis_mode)
+            
+            # Handle single target logical name for template
+            if analysis_data.get('analysis_mode') == 'specific_single':
+                template_variables['target_job_logical_name'] = analysis_data['target_job']['logical_display_name']
+            
+            # Check if title is a Jinja2 template
+            if isinstance(title_template, str) and ('{{' in title_template or '{%' in title_template):
+                title_jinja = Template(title_template)
+                return title_jinja.render(**template_variables)
+            else:
+                return title_template
+                
+        except Exception as e:
+            print(f"⚠️ Error rendering section title: {e}")
+            # Fallback to simple logic
+            if analysis_data['analysis_mode'] == 'specific_single':
+                target_name = analysis_data['target_job']['logical_display_name']
+                return f"Strategic Transition Analysis: {target_name}"
+            elif analysis_data['analysis_mode'] == 'specific_multiple':
+                return "Comparative Transition Analysis"
+            else:
+                return "Pathway Analysis"
+
+    def _get_specific_section_title(self, analysis_data: Dict) -> str:
+        """Get section title for specific analysis."""
+        if analysis_data['analysis_mode'] == 'specific_single':
+            target_name = analysis_data['target_job']['logical_display_name']
+            return f"Strategic Transition Analysis: {target_name}"
+        elif analysis_data['analysis_mode'] == 'specific_multiple':
+            return "Comparative Transition Analysis"
+        else:
+            return "Pathway Analysis"
+    
+    def _extract_specific_template_variables(self, analysis_data: Dict, analysis_mode: str) -> Dict:
+        """Extract template variables from specific analysis data."""
+        variables = {
+            'analysis_mode': analysis_mode,
+            'specific_analysis_data': analysis_data
+        }
+        
+        if analysis_data['analysis_mode'] == 'specific_single':
+            # Single transition variables
+            variables.update({
+                'source_job_logical_display_name': analysis_data['source_job']['logical_display_name'],
+                'target_job_logical_name': analysis_data['target_job']['logical_display_name'],
+                'target_job_function': analysis_data['target_job']['job_function'],
+                'source_job_function': analysis_data['source_job']['job_function'],
+                'transition_similarity': analysis_data['transition_metrics']['similarity_score'],
+                'transition_viability': analysis_data['strategic_context']['transition_viability'],
+                'move_classification': analysis_data['move_classification']['move_type_display'],
+                'estimated_timeline': analysis_data['move_classification']['estimated_timeline'],
+                'business_impact': analysis_data['strategic_context']['business_impact'],
+                'development_focus': analysis_data['strategic_context']['development_focus'],
+                'strategic_rationale': analysis_data['strategic_context']['strategic_rationale'],
+                'shared_skills_count': analysis_data['skills_analysis']['shared_skills_count'],
+                'development_skills_count': analysis_data['skills_analysis']['development_skills_count'],
+                'transferable_skills_count': analysis_data['skills_analysis']['transferable_skills_count'],
+                'skills_gap_percentage': analysis_data['skills_analysis']['skills_gap_percentage']
+            })
+        
+        elif analysis_data['analysis_mode'] == 'specific_multiple':
+            # Multiple transition variables
+            variables.update({
+                'source_job_logical_display_name': analysis_data['source_job']['logical_display_name'],
+                'target_count': analysis_data['target_count'],
+                'highest_similarity': analysis_data['comparative_metrics']['highest_similarity'],
+                'lowest_similarity': analysis_data['comparative_metrics']['lowest_similarity'],
+                'average_similarity': analysis_data['comparative_metrics']['average_similarity'],
+                'similarity_range_spread': analysis_data['comparative_metrics']['similarity_range_spread'],
+                'portfolio_strength': analysis_data['strategic_portfolio']['portfolio_strength'],
+                'strategic_coverage': analysis_data['strategic_portfolio']['strategic_coverage'],
+                'function_diversity_count': analysis_data['strategic_portfolio']['function_diversity_count'],
+                'level_diversity_count': analysis_data['strategic_portfolio']['level_diversity_count'],
+                'recommendations_rank': analysis_data['recommendations_rank']
+            })
         
         return variables
     

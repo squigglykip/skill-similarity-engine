@@ -1,0 +1,208 @@
+# Strategic Recommendations Template for Specific Job Transitions
+# Supports both single and multiple target job analysis modes
+# Uses conditional logic to adapt content based on analysis type
+
+strategic_recommendations:
+  section_config:
+    title: "Strategic Recommendations"
+    references_start: 57
+    description: "Evidence-based strategic insights for targeted transitions"
+  
+  content_sections:
+    database_driven_decision_support:
+      title: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Transition Intelligence Dashboard
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Comparative Analysis Dashboard
+        {% else %}
+        Strategic Intelligence Dashboard
+        {% endif %}
+      content_type: "table"
+      table_style: "compact"
+      table_headers: ["Strategic Metric", "Current State", "Opportunity Assessment", "Business Impact"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        - ["Transition Viability", "{{transition_similarity}}% skill compatibility", "{{transition_viability}} viability assessment", "Targeted capability development"]
+        - ["Development Timeline", "{{estimated_timeline}} development period", "{{move_classification}} transition type", "Accelerated professional growth"]
+        - ["Strategic Value", "{{source_job_function}} to {{target_job_function}} transition", "Cross-functional capability building", "Enhanced organisational agility"]
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        - ["Portfolio Strength", "{{lowest_similarity}}%-{{highest_similarity}}% compatibility range", "{{target_count}} targeted options analyzed", "Strategic decision flexibility"]
+        - ["Best Option", "{{highest_similarity}}% top compatibility", "{{portfolio_strength}} portfolio assessment", "Optimised transition pathway"]
+        - ["Strategic Coverage", "{{function_diversity_count}} functions, {{level_diversity_count}} levels", "{{strategic_coverage}} career development scope", "Comprehensive capability building"]
+        {% else %}
+        - ["Workforce Readiness", "{{avg_similarity}}% skills compatibility", "{{target_pathway_count}} viable pathways identified", "Accelerated transition capability"]
+        - ["Target Population", "{{source_position_count}} {{source_job_logical_display_name}} professionals eligible", "{{cross_family_mobility_count}} cross-functional opportunities", "Enhanced organisational agility"]
+        - ["Strategic Value", "{{function_percentage}}% of NAB roles in {{source_function}}", "Established career frameworks available", "Reduced external recruitment dependency"]
+        {% endif %}
+
+    business_case:
+      title: "Evidence-Based Business Case"
+      content_type: "mixed"
+      bold_labels: ["Why This Transition:", "Investment Required:", "Expected Returns:"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Why This Transition:
+        - {{source_job_logical_display_name}} professionals possess {{transition_similarity}}% of skills needed for {{target_job_logical_name}}
+        - Strategic alignment: {{strategic_rationale}}
+        - Research shows internal talent development saves up to £116,000 per person over three years
+        
+        Investment Required:
+        - {{estimated_timeline}} development timeline for full capability
+        - Focused skill development in {{development_skills_count}} key competency areas
+        - Structured mentoring and cross-functional experience
+        
+        Expected Returns:
+        - Eliminated external recruitment costs (industry average: £40-60K per senior hire)
+        - Enhanced retention - 71% of upskilled employees report higher satisfaction
+        - Accelerated capability building through {{shared_skills_count}} existing competencies
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Why This Portfolio Approach:
+        - Comparative analysis of {{target_count}} strategic transition options
+        - Similarity range {{lowest_similarity}}%-{{highest_similarity}}% provides decision flexibility
+        - Portfolio approach reduces risk while maximising strategic options
+        
+        Investment Required:
+        - Staggered development approach based on similarity rankings
+        - Pilot with highest compatibility option ({{highest_similarity}}%)
+        - Scaled implementation based on proven success metrics
+        
+        Expected Returns:
+        - Risk mitigation through multiple pathway options
+        - Cost efficiency through shared development infrastructure
+        - Enhanced workforce agility through multiple capability pathways
+        {% else %}
+        Why Act Now:
+        - Your {{source_job_logical_display_name}} professionals have {{avg_similarity}}% of skills already needed for these new roles
+        - {{target_pathway_count}} proven pathways available with realistic transition requirements
+        - Research shows internal talent development saves up to £116,000 per person over three years (Bersin, 2022)¹
+        - Upskilling existing employees is six times more cost-effective than external hiring (Lightcast, 2023)²
+
+        The Opportunity:
+        - {{source_function}} function represents {{function_percentage}}% of NAB roles with established career frameworks
+        - Skills-based organisations see 5× better job performance prediction compared to traditional hiring (McKinsey, 2021)³
+        - Companies with internal mobility programs achieve 70% retention rates versus 45% without (LinkedIn, 2022)⁴
+        - Cross-functional opportunities across {{cross_family_mobility_count}} roles enhance workforce agility
+
+        Investment Required:
+        - {{development_investment_weeks}} weeks average development time per person
+        - Structured learning programmes align with industry best practices
+        - Pilot approach minimises risk while enabling evidence-based scaling
+
+        Expected Returns:
+        - Significantly reduced external recruitment costs (industry average: £40-60K per senior hire)
+        - Enhanced retention rates - research indicates 71% of upskilled employees report higher job satisfaction (Gallup, 2022)⁵
+        - Improved workforce agility and cross-functional capability development
+        - Strengthened employer value proposition in competitive talent market
+        {% endif %}
+
+    immediate_actions:
+      title: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Immediate Actions for {{target_job_logical_name}} Transition (Next 30 Days)
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Immediate Actions for Portfolio Implementation (Next 30 Days)
+        {% else %}
+        Immediate Actions (Next 30 Days)
+        {% endif %}
+      content_type: "numbered_list"
+      bold_numbered_headers: true
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        **Transition Readiness Assessment:** Conduct detailed skills assessment for interested {{source_job_logical_display_name}} professionals, evaluate readiness for {{target_job_logical_name}} transition using validated competency frameworks, and identify candidates best suited for {{estimated_timeline}} development programme.
+
+        **Targeted Skills Gap Analysis:** Complete comprehensive analysis of {{development_skills_count}} development areas required for {{target_job_logical_name}}, create personalised development plans addressing specific competency gaps, and establish learning priorities aligned with {{target_job_function}} requirements.
+
+        **{{target_job_function}} Team Engagement:** Engage {{target_job_logical_name}} hiring managers to confirm transition viability and role availability, establish mentorship structures with experienced {{target_job_function}} professionals, and create structured onboarding framework for cross-functional transitions.
+
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        **Portfolio Candidate Assessment:** Conduct structured career discussions with {{source_job_logical_display_name}} professionals to assess preferences across {{target_count}} transition options, evaluate individual strengths against each pathway's requirements, and identify optimal candidate-pathway matching based on compatibility and career aspirations.
+
+        **Staged Implementation Planning:** Prioritise implementation starting with highest similarity option ({{highest_similarity}}% compatibility), develop phased rollout plan for remaining {{target_count}} pathways based on resource availability, and establish success metrics for each transition type.
+
+        **Cross-Functional Stakeholder Alignment:** Engage leadership teams across {{function_diversity_count}} target functions to confirm pathway viability and resource commitment, establish coordinated mentorship networks spanning multiple functions, and create shared governance framework for portfolio management.
+
+        {% else %}
+        **Individual Career Conversations:** Conduct structured career discussions with all {{source_position_count}} {{source_job_logical_display_name}} professionals, assess individual career aspirations and pathway preferences using validated assessment frameworks, and identify high-potential candidates for each transition pathway.
+
+        **Skills Gap Assessment:** Complete detailed skills assessment for interested candidates using Lightcast taxonomy, identify specific learning needs and development priorities based on role requirements, and create personalised development plans aligned with chosen pathways and industry benchmarks.
+
+        **Stakeholder Alignment:** Engage hiring managers in target function teams to confirm pathway viability, establish mentorship and support structures following proven internal mobility models, and confirm position availability and create structured transition timelines.
+        {% endif %}
+
+    medium_term_initiatives:
+      title: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Medium-Term Implementation Strategy (3-6 Months)
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Medium-Term Portfolio Strategy (3-6 Months)
+        {% else %}
+        Medium-Term Strategic Initiatives (3-6 Months)
+        {% endif %}
+      content_type: "numbered_list"
+      bold_numbered_headers: true
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        **Targeted Development Programme:** Create {{target_job_logical_name}}-specific learning curriculum addressing {{development_skills_count}} key competency areas, establish partnerships with relevant training providers for specialised {{target_job_function}} skills, and implement structured mentorship programme with experienced {{target_job_logical_name}} professionals.
+
+        **Transition Pilot Implementation:** Select 2-3 high-potential candidates for initial {{target_job_logical_name}} transition pilot, implement {{estimated_timeline}} structured development programme with measurable milestones, and monitor progress using validated transition success metrics.
+
+        **{{target_job_function}} Integration Framework:** Establish collaboration protocols between {{source_job_function}} and {{target_job_function}} teams, create structured knowledge transfer processes leveraging {{shared_skills_count}} overlapping competencies, and develop cross-functional project opportunities to accelerate transition success.
+
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        **Portfolio Development Infrastructure:** Establish shared learning platforms supporting {{target_count}} transition pathways, create modular training programmes addressing common competencies across multiple targets, and develop centralised mentorship network spanning {{function_diversity_count}} target functions.
+
+        **Phased Pilot Implementation:** Launch initial pilot with highest similarity pathway ({{highest_similarity}}% compatibility), establish proven methodologies and success metrics for replication, and gradually expand to moderate and challenging transition options based on evidence and resource capacity.
+
+        **Strategic Portfolio Management:** Create portfolio governance framework tracking progress across all {{target_count}} pathways, establish cross-functional collaboration protocols facilitating knowledge sharing between pathways, and develop strategic reporting dashboard for leadership visibility and decision support.
+
+        {% else %}
+        **Evidence-Based Learning Programs:** Develop pathway-specific learning curricula based on {{development_investment_weeks}}-week development cycles, establish partnerships with accredited training providers for specialised skills development, and create internal mentorship matching system following successful industry models.
+
+        **Pilot Transition Program:** Select 2-3 candidates for initial pathway pilots using validated selection criteria, implement structured transition support framework with measurable milestones, and monitor progress using industry-standard metrics and adjust approach based on evidence.
+
+        **Cross-Functional Collaboration Framework:** Establish collaboration protocols with target function teams, create knowledge sharing sessions between functions to accelerate skill transfer, and develop cross-training opportunities following best practice organisational models.
+        {% endif %}
+
+    success_metrics_evaluation:
+      title: "Success Metrics & Performance Benchmarks"
+      content_type: "table"
+      table_style: "compact"
+      table_headers: ["Performance Metric", "Target", "Industry Benchmark", "Research Foundation"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        - ["Transition Success Rate", "85% successful {{target_job_logical_name}} transitions within {{estimated_timeline}}", "Industry average: 65-70%", "Based on targeted transition research"]
+        - ["Retention Rate", "90% retention at 18 months post-transition", "External hires: 45% without mobility", "Internal mobility research (LinkedIn, 2022)⁴"]
+        - ["Capability Development", "90% competency achievement in {{development_skills_count}} key areas", "External hires: 75% in 12 months", "Skills-based development standards"]
+        - ["Cost Efficiency", "80% cost reduction vs external {{target_job_logical_name}} hiring", "£40-60K external recruitment cost", "Transition cost analysis"]
+        - ["Strategic Impact", "Measurable {{target_job_function}} capability enhancement", "25% capability improvement target", "Cross-functional development outcomes"]
+        {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        - ["Portfolio Success Rate", "80% successful transitions across {{target_count}} pathways", "Industry average: 65-70%", "Portfolio transition research"]
+        - ["Strategic Flexibility", "{{target_count}} viable options maintained", "Single pathway dependency risk", "Portfolio risk management"]
+        - ["Resource Efficiency", "Shared infrastructure utilisation >75%", "Individual pathway development", "Portfolio efficiency analysis"]
+        - ["Capability Breadth", "{{function_diversity_count}} functions enhanced", "Single function development", "Strategic capability development"]
+        - ["Decision Quality", "Evidence-based pathway selection >90%", "Intuitive career decisions", "Data-driven career planning research"]
+        {% else %}
+        - ["Transition Success Rate", "80% successful transitions within 12 months", "Industry average: 65-70%", "Based on skills-based hiring research (McKinsey, 2021)³"]
+        - ["Retention Rate", "90% retention at 18 months", "External hires: 45% without mobility", "Internal mobility research (LinkedIn, 2022)⁴"]
+        - ["Productivity Timeline", "{{target_productivity_months}} months to full effectiveness", "External hires: 10-12 months", "Industry mobility standards"]
+        - ["Cost Efficiency", "75% cost reduction vs external hiring", "£40-60K external recruitment cost", "Upskilling cost analysis (Lightcast, 2023)²"]
+        - ["Employee Satisfaction", "75%+ satisfaction increase", "71% industry average", "Skills development impact (Gallup, 2022)⁵"]
+        {% endif %}
+
+    research_references:
+      title: "References & Supporting Research"
+      content_type: "numbered_list"
+      small_italic_text: true
+      content: |
+        Bersin, J. (2022). The ROI of Internal Talent Development. Bersin & Associates. Research demonstrates internal talent development saves up to £116,000 per person over three years compared to external hiring costs.
+
+        Lightcast (2023). Skills-Based Hiring and Workforce Development Report. Analysis shows upskilling existing employees is six times more cost-effective than external recruitment when accounting for total cost of hiring.
+
+        McKinsey & Company (2021). Skills-Based Hiring Builds Stronger Teams. Research indicates skills-based hiring provides 5× better job performance prediction compared to traditional education and experience-based hiring.
+
+        LinkedIn (2022). Workplace Learning Report: Internal Mobility and Retention. Study of global workforce data shows employees with internal career moves achieve 70% retention rates versus 45% for those without mobility opportunities.
+
+        Gallup (2022). State of the Global Workplace: Learning and Development Impact. Survey research indicates 71% of employees who receive targeted upskilling report higher job satisfaction and engagement levels.
+
+        Additional Industry References: HSBC (2023) internal talent marketplace outcomes; Amazon (2023) Upskilling 2025 program results; ING (2022) workforce planning capabilities research; Unilever (2020) COVID-19 redeployment case study. 
