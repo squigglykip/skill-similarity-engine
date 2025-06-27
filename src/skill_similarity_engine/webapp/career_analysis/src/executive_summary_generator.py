@@ -27,6 +27,11 @@ try:
 except ImportError:
     # Handle direct script execution or missing formatter
     try:
+        # Handle absolute import for test environment
+        import sys
+        from pathlib import Path
+        current_dir = Path(__file__).parent.parent
+        sys.path.insert(0, str(current_dir))
         from formatter import ContentFormatter
     except ImportError:
         ContentFormatter = None

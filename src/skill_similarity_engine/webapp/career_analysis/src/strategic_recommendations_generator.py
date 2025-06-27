@@ -393,11 +393,20 @@ class StrategicRecommendationsGenerator:
             
             # Import ContentFormatter for table support
             try:
-                from formatter import ContentFormatter
+                from ..formatter import ContentFormatter
                 formatter_available = True
             except ImportError:
-                formatter_available = False
-                logger.warning("ContentFormatter not available, falling back to basic formatting")
+                try:
+                    # Try absolute import as fallback
+                    import sys
+                    from pathlib import Path
+                    current_dir = Path(__file__).parent.parent
+                    sys.path.insert(0, str(current_dir))
+                    from formatter import ContentFormatter
+                    formatter_available = True
+                except ImportError:
+                    formatter_available = False
+                    logger.warning("ContentFormatter not available, falling back to basic formatting")
             
             # Get strategic recommendations configuration
             strategic_config = self.template_data.get('strategic_recommendations', {})

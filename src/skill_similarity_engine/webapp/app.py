@@ -28,7 +28,7 @@ try:
     from ..utils.display import JobDisplayManager, DisplayFormat
     DISPLAY_MANAGER_AVAILABLE = True
 except ImportError:
-    print("âš ï¸ JobDisplayManager not available - using fallback job titles")
+    print("⚠️ JobDisplayManager not available - using fallback job titles")
     DISPLAY_MANAGER_AVAILABLE = False
 
 def create_app(config=None):
@@ -765,7 +765,7 @@ def create_app(config=None):
             if region_filter: filters.append(f"region={region_filter}")
             filter_desc = f", filters=[{', '.join(filters)}]" if filters else ""
             
-            print(f"ðŸ" Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}{filter_desc}")
+            print(f"📊 Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}{filter_desc}")
             
             tree_data = db.execute(tree_query, params).fetchall()
             
@@ -784,22 +784,22 @@ def create_app(config=None):
                     if level == 0 and str(row['id']) not in root_jobs:
                         unexpected_roots.append(f"{row['id']}:{row['name'][:30]}")
                 
-                print(f"ðŸ" Results by level: {level_counts}")
+                print(f"📊 Results by level: {level_counts}")
                 
                 if unexpected_roots:
-                    print(f"âš ï¸ Found {len(unexpected_roots)} unexpected root jobs:")
+                    print(f"⚠️ Found {len(unexpected_roots)} unexpected root jobs:")
                     for job in unexpected_roots[:5]:  # Show first 5
                         print(f"   - {job}")
                     if len(unexpected_roots) > 5:
                         print(f"   ... and {len(unexpected_roots) - 5} more")
-                    print("   ðŸ" This suggests organizational filters are being additive instead of restrictive")
+                    print("   📊 This suggests organizational filters are being additive instead of restrictive")
                 else:
-                    print("âœ Organizational filters working correctly - no unexpected root jobs")
+                    print("✅ Organizational filters working correctly - no unexpected root jobs")
                 
                 # Additional validation: Check if Level 1 jobs match the organizational filter
                 if division_filter:
                     level_1_jobs = [row for row in tree_data if row['level'] == 1]
-                    print(f"ðŸ" Checking Level 1 jobs against Division filter '{division_filter}':")
+                    print(f"📊 Checking Level 1 jobs against Division filter '{division_filter}':")
                     for job in level_1_jobs[:5]:  # Show first 5
                         job_id = str(job['id'])
                         # Check if this job exists in the specified division
@@ -816,7 +816,7 @@ def create_app(config=None):
                 for row in tree_data:
                     level = row['level']
                     level_counts[level] = level_counts.get(level, 0) + 1
-                print(f"ðŸ" Results by level: {level_counts}")
+                print(f"📊 Results by level: {level_counts}")
             
             # Convert to D3.js hierarchical format - use row index for unique IDs
             nodes = []
@@ -854,7 +854,7 @@ def create_app(config=None):
             nodes_without_parents = [node for node in nodes if node['level'] > 0 and not node['parent']]
             
             if orphaned:
-                print(f"âš ï¸ Found {len(orphaned)} orphaned nodes - tree structure may be broken")
+                print(f"⚠️ Found {len(orphaned)} orphaned nodes - tree structure may be broken")
             
             if nodes_without_parents:
                 # Clean approach: Simply remove orphaned nodes instead of trying to reconnect them
@@ -1035,7 +1035,7 @@ def create_app(config=None):
             'sample_pathways': [
                 {
                     'id': 'ra_to_ds',
-                    'name': 'Risk Analyst â†' Data Scientist',
+                    'name': 'Risk Analyst → Data Scientist',
                     'steps': [
                         {'job': 'Risk Analyst', 'family': 'Risk & Compliance', 'similarity': 100, 'timeframe': 'Current'},
                         {'job': 'Business Analyst', 'family': 'Customer Service & Sales', 'similarity': 78, 'timeframe': '6-12 months'},
@@ -1171,7 +1171,7 @@ def create_app(config=None):
             # If job IDs look like node_X, they should be mapped to actual JobProfileIDs
             # but for now, log the issue and continue
             if from_job_id.startswith('node_') or to_job_id.startswith('node_'):
-                print(f"âš ï¸ Received D3 node IDs instead of JobProfileIDs: {from_job_id} â†' {to_job_id}")
+                print(f"⚠️ Received D3 node IDs instead of JobProfileIDs: {from_job_id} → {to_job_id}")
                 print(f"   This suggests the JavaScript extractJobId function needs adjustment")
             
             # Calculate SkillType breakdown for skills to develop
@@ -1232,7 +1232,7 @@ def create_app(config=None):
                     actual_job_ids.append(job_id)
             
             if node_ids:
-                print(f"âš ï¸ Filtering out D3 node IDs from workforce analysis: {node_ids}")
+                print(f"⚠️ Filtering out D3 node IDs from workforce analysis: {node_ids}")
                 print(f"   Using actual JobProfileIDs only: {actual_job_ids}")
             
             if not actual_job_ids:
@@ -1979,288 +1979,92 @@ def create_app(config=None):
                                  divisions=divisions,
                                  locations=locations)
         except Exception as e:
-            print(f"Error loading Career Transition Analysiss page: {e}")
+            print(f"Error loading Career Transition Analysis page: {e}")
             return render_template('career_analysis.html', 
                                  sample_jobs=[],
                                  divisions=[],
                                  locations=[])
 
-    @app.route('/api/generate-career-analysis', methods=['POST'])
-    def api_generate_CAREER_ANALYSIS():
-        """Generate Career Report based on user selections."""
-        try:
-            from .CAREER_ANALYSIS.generator import CareerAnalysisGenerator
-            
-            data = request.get_json()
-            if not data:
-                return jsonify({'error': 'No data provided'}), 400
-            
-            # Validate required fields
-            if 'job_from' not in data:
-                return jsonify({'error': 'job_from is required'}), 400
-            
-            # Initialize generator
-            db = get_db()
-            generator = CareerAnalysisGenerator(db)
-            
-            # Generate Career Report based on selections
-            result = generator.generate(
-                job_from=data['job_from'],
-                job_to=data.get('job_to'),  # Optional for "top 3" mode
-                scenario=data.get('scenario', 'skills_gap_analysis'),
-                audience=data.get('audience', 'business_leaders'),
-                output_format=data.get('output_format', 'word'),  # Use word format as default
-                filters=data.get('filters', {})
-            )
-            
-            return jsonify(result)
-            
-        except Exception as e:
-            print(f"Error generating Career Transition Analysis: {e}")
-            return jsonify({'error': str(e), 'details': 'Check server logs for more information'}), 500
-
     @app.route('/api/career-analysis-preview', methods=['POST'])
     def api_career_analysis_preview():
-        """Generate a preview using the proven test_career_analysis.py orchestrator."""
-        import subprocess
-        import sys
-        import os
-        import json
-        from pathlib import Path
-        
+        """Generate a preview using the new service layer architecture."""
         try:
-            print("ðŸ Starting career analysis preview using test_career_analysis.py orchestrator...")
+            # Import service classes
+            sys.path.insert(0, str(Path(__file__).parent / 'career_analysis' / 'services'))
+            from preview_service import PreviewService
+            
+            print("🎯 Starting career analysis preview using service layer...")
             
             data = request.get_json()
             if not data or 'job_from' not in data:
                 return jsonify({'error': 'job_from is required'}), 400
             
-            print(f"ðŸ“‹ Processing request for job: {data['job_from']}")
+            print(f"📋 Processing request for job: {data['job_from']}")
             
-            # Get job details for display
+            # Initialize preview service
             db = get_db()
-            job_details = db.execute("""
-                SELECT JobProfile, Job, ProfileTitleSuffix, ManagementLevel, JobFunction
-                FROM jobs WHERE JobProfileID = ?
-            """, (data['job_from'],)).fetchone()
+            preview_service = PreviewService(db)
             
-            if not job_details:
-                return jsonify({'error': f'Job not found: {data["job_from"]}'}), 404
+            # Generate preview using service layer
+            result = preview_service.generate_preview(data)
             
-            job_title = f"{job_details['Job']}"
-            if job_details['ProfileTitleSuffix']:
-                job_title += f" {job_details['ProfileTitleSuffix']}"
-            if job_details['ManagementLevel']:
-                job_title += f" ({job_details['ManagementLevel']})"
+            if not result['success']:
+                return jsonify(result), 500
             
-            print(f"âœ… Found job: {job_title}")
+            print(f"✅ Successfully generated preview with {len(result.get('content', {}))} sections")
             
-            # Build command arguments from form data - USE --copy TO GET ALL 5 SECTIONS
-            script_path = Path(__file__).parent / 'career_analysis' / 'test_career_analysis.py'
+            return jsonify(result)
             
-            cmd = [
-                sys.executable, str(script_path),
-                '--job-from', data['job_from'],
-                '--mode', data.get('analysis_mode', 'top_matches'),
-                '--similarity-min', str(data.get('similarity_min', 40)),
-                '--similarity-max', str(data.get('similarity_max', 90)),
-                '--top-n', str(data.get('top_n', 3)),
-                '--copy'  # Generate ALL 5 sections cleanly like Word document
-            ]
-            
-            # Add target job if specified
-            if data.get('job_to'):
-                cmd.extend(['--job-to', data['job_to']])
-            
-            # Add tie-breaking options
-            tie_breaking = data.get('tie_breaking_options', {})
-            if tie_breaking.get('same_function_priority'):
-                cmd.append('--same-function-priority')
-            if tie_breaking.get('career_progression_priority'):
-                cmd.append('--career-progression-priority')
-            if tie_breaking.get('minimal_level_jump'):
-                cmd.append('--minimal-level-jump')
-            if tie_breaking.get('skills_overlap_detail'):
-                cmd.append('--skills-overlap-detail')
-            
-            print(f"ðŸš€ Running command: {' '.join(cmd)}")
-            
-            # Execute the command with UTF-8 encoding support
-            env = os.environ.copy()
-            env['PYTHONIOENCODING'] = 'utf-8'
-            env['PYTHONLEGACYWINDOWSSTDIO'] = '0'  # Force UTF-8 mode on Windows
-            
-            # On Windows, also set the console code page for Unicode support
-            startup_info = None
-            if os.name == 'nt':  # Windows
-                import subprocess
-                startup_info = subprocess.STARTUPINFO()
-                startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startup_info.wShowWindow = subprocess.SW_HIDE
-                
-                # Try to set code page to UTF-8 before running the command
-                try:
-                    subprocess.run(['chcp', '65001'], shell=True, capture_output=True, check=False)
-                except:
-                    pass  # Ignore errors if chcp fails
-            
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=60,  # 60 second timeout
-                cwd=Path(__file__).parent / 'career_analysis',
-                env=env,
-                encoding='utf-8',
-                errors='replace',  # Replace problematic characters instead of failing
-                startupinfo=startup_info
-            )
-            
-            if result.returncode != 0:
-                print(f"âŒ Command failed with exit code {result.returncode}")
-                print(f"âŒ STDERR: {result.stderr}")
-                return jsonify({
-                    'error': 'Analysis generation failed',
-                    'details': result.stderr,
-                    'exit_code': result.returncode
-                }), 500
-            
-            # Parse the complete output to extract all 5 sections
-            output_lines = result.stdout.split('\n')
-            
-            # Extract key metrics from output
-            generated_count = 0
-            similarity_scores = []
-            job_opportunities = []
-            
-            for line in output_lines:
-                if "pathway analysis for" in line.lower() and "with" in line.lower() and "pathways" in line.lower():
-                    # Extract count from lines like "Analysis includes 3 career pathways"
-                    try:
-                        import re
-                        match = re.search(r'(\d+) (?:career )?pathways?', line)
-                        if match:
-                            generated_count = int(match.group(1))
-                    except:
-                        pass
-                
-                # Extract similarity scores
-                if "similarity" in line.lower() and "%" in line:
-                    try:
-                        import re
-                        score_match = re.search(r'(\d+\.?\d*)%', line)
-                        if score_match:
-                            similarity_scores.append(float(score_match.group(1)))
-                    except:
-                        pass
-            
-            # Calculate average similarity
-            avg_similarity = sum(similarity_scores) / len(similarity_scores) if similarity_scores else 50.0
-            
-            # Parse the complete output into sections matching Word document structure
-            sections = {}
-            current_section = None
-            current_content = []
-            
-            for line in output_lines:
-                # Look for section headers that match our 5 sections
-                if line.startswith('## Executive Summary'):
-                    if current_section and current_content:
-                        sections[current_section] = '\n'.join(current_content)
-                    current_section = 'executive_summary'
-                    current_content = []
-                elif line.startswith('## Current Role Context'):
-                    if current_section and current_content:
-                        sections[current_section] = '\n'.join(current_content)
-                    current_section = 'current_role_context'
-                    current_content = []
-                elif line.startswith('## Pathway Analysis'):
-                    if current_section and current_content:
-                        sections[current_section] = '\n'.join(current_content)
-                    current_section = 'pathway_analysis'
-                    current_content = []
-                elif line.startswith('## Strategic Recommendations'):
-                    if current_section and current_content:
-                        sections[current_section] = '\n'.join(current_content)
-                    current_section = 'strategic_recommendations'
-                    current_content = []
-                elif line.startswith('## Conclusion'):
-                    if current_section and current_content:
-                        sections[current_section] = '\n'.join(current_content)
-                    current_section = 'conclusion'
-                    current_content = []
-                elif current_section and line.strip() and not line.startswith('End of Career'):
-                    current_content.append(line)
-            
-            # Add final section
-            if current_section and current_content:
-                sections[current_section] = '\n'.join(current_content)
-            
-            # Create structured preview content matching Word document
-            preview_content = {}
-            
-            # Map sections to proper structure
-            if 'executive_summary' in sections:
-                preview_content['executive_summary'] = {
-                    'title': 'Executive Summary',
-                    'content': sections['executive_summary']
-                }
-            
-            if 'current_role_context' in sections:
-                preview_content['current_role_context'] = {
-                    'title': 'Current Role Context',
-                    'content': sections['current_role_context']
-                }
-            
-            if 'pathway_analysis' in sections:
-                preview_content['pathway_analysis'] = {
-                    'title': f'Pathway Analysis: Top {generated_count or 3} Strategic Opportunities',
-                    'content': sections['pathway_analysis']
-                }
-            
-            if 'strategic_recommendations' in sections:
-                preview_content['strategic_recommendations'] = {
-                    'title': 'Strategic Recommendations',
-                    'content': sections['strategic_recommendations']
-                }
-            
-            if 'conclusion' in sections:
-                preview_content['conclusion'] = {
-                    'title': 'Conclusion',
-                    'content': sections['conclusion']
-                }
-            
-            # If no sections were parsed, provide fallback
-            if not preview_content:
-                preview_content = {
-                    'complete_analysis': {
-                        'title': 'Complete Career Transition Analysis',
-                        'content': result.stdout  # Show raw output if parsing failed
-                    }
-                }
-            
-            return jsonify({
-                'success': True,
-                'job_title': job_title,
-                'analysis_mode': data.get('analysis_mode', 'top_matches'),
-                'pathway_count': generated_count or 3,
-                'similarity_score': avg_similarity / 100,
-                'similarity_range': f"{data.get('similarity_min', 40)}%-{data.get('similarity_max', 90)}%",
-                'confidence_level': 'High' if avg_similarity > 60 else 'Medium' if avg_similarity > 45 else 'Developing',
-                'content': preview_content,
-                'section_count': len(preview_content),
-                'raw_output': result.stdout,  # Include for debugging
-                'tie_breaking_applied': any(tie_breaking.values()) if tie_breaking else False
-            })
-            
-        except subprocess.TimeoutExpired:
-            print("âŒ Command timed out after 60 seconds")
-            return jsonify({'error': 'Analysis generation timed out', 'details': 'Process exceeded 60 second limit'}), 500
         except Exception as e:
-            print(f"âŒ Error in career analysis preview: {e}")
+            print(f"❌ Error in career analysis preview: {e}")
             import traceback
             traceback.print_exc()
-            return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+            return jsonify({
+                'success': False,
+                'error': 'Internal server error', 
+                'details': str(e)
+            }), 500
+
+    @app.route('/api/career-analysis-document', methods=['POST'])
+    def api_career_analysis_document():
+        """Generate a downloadable document using the new service layer architecture."""
+        try:
+            # Import service classes
+            sys.path.insert(0, str(Path(__file__).parent / 'career_analysis' / 'services'))
+            from document_service import DocumentService
+            
+            print("📄 Starting career analysis document generation using service layer...")
+            
+            data = request.get_json()
+            if not data or 'job_from' not in data:
+                return jsonify({'error': 'job_from is required'}), 400
+            
+            output_format = data.get('output_format', 'word')
+            print(f"📋 Generating {output_format} document for job: {data['job_from']}")
+            
+            # Initialize document service
+            db = get_db()
+            document_service = DocumentService(db)
+            
+            # Generate document using service layer
+            result = document_service.generate_document(data, output_format)
+            
+            if not result['success']:
+                return jsonify(result), 500
+            
+            print(f"✅ Successfully generated {output_format} document")
+            
+            return jsonify(result)
+            
+        except Exception as e:
+            print(f"❌ Error in career analysis document generation: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'error': 'Internal server error', 
+                'details': str(e)
+            }), 500
 
     @app.route('/api/career-analysis-jobs')
     def api_career_analysis_jobs():
