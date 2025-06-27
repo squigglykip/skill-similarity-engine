@@ -1,4 +1,4 @@
-"""
+﻿"""
 Integration tests for visualization components.
 
 This module tests the integration of visualization components with each other 

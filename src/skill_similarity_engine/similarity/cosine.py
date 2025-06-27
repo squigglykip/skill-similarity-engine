@@ -1,4 +1,4 @@
-"""
+﻿"""
 Implementation of cosine similarity calculations using TF-IDF vectorization.
 
 This module provides functionality for calculating similarity between skills,

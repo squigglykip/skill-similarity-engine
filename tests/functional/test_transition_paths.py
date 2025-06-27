@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Functional tests for validating job transition pathways.
 
@@ -455,7 +455,7 @@ class TestJobTransitionPathways(BaseFunctionalTest):
             
             # Log detailed gap for the first few candidates
             if len(gap_analyses) <= 3 and not needed_skills.empty:
-                logger.info(f"Skill gaps for {candidate['source_title']} → {candidate['target_title']}:")
+                logger.info(f"Skill gaps for {candidate['source_title']} â†’ {candidate['target_title']}:")
                 for _, row in needed_skills.head(5).iterrows():
                     skill_name = self.skill_taxonomy.skills[row["skill_id"]].name
                     logger.info(f"  {skill_name}: gap = {row['proficiency_gap']:.2f}")
@@ -471,7 +471,7 @@ class TestJobTransitionPathways(BaseFunctionalTest):
             plt.scatter(df["similarity"], df["total_gap"], alpha=0.7)
             
             for i, row in df.iterrows():
-                plt.annotate(f"{row['source_title']} → {row['target_title']}", 
+                plt.annotate(f"{row['source_title']} â†’ {row['target_title']}", 
                            (row["similarity"], row["total_gap"]),
                            fontsize=8, alpha=0.8)
                 

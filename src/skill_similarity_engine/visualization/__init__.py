@@ -1,4 +1,4 @@
-"""
+﻿"""
 Visualization package for generating visualizations of skill and job data.
 """
 

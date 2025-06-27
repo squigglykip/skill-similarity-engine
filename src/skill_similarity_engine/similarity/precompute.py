@@ -1,4 +1,4 @@
-"""
+﻿"""
 Precomputation Strategy for Similarity Matrix Generation
 
 This module implements the chunked and parallelized generation of base job-to-job
@@ -463,7 +463,7 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the career pathways parquet file
         """
-        logger.info("🚀 Starting parallel career pathways precomputation...")
+        logger.info("ðŸš€ Starting parallel career pathways precomputation...")
         
         # Configuration
         TOP_N_PATHWAYS = 12  # Top N most similar jobs per source job
@@ -473,8 +473,8 @@ class SimilarityMatrixPrecomputer:
         job_families = {job_id: getattr(job, 'job_family', 'Unknown') for job_id, job in self.job_architecture.jobs.items()}
         all_job_ids = list(job_families.keys())
         
-        logger.info(f"📊 Generating pathways for {len(all_job_ids)} jobs (top {TOP_N_PATHWAYS} per job)")
-        logger.info(f"🔧 Using {self.parallel_processor.max_workers} parallel workers")
+        logger.info(f"ðŸ“Š Generating pathways for {len(all_job_ids)} jobs (top {TOP_N_PATHWAYS} per job)")
+        logger.info(f"ðŸ”§ Using {self.parallel_processor.max_workers} parallel workers")
         
         try:
             # Create job chunks for parallel processing
@@ -487,7 +487,7 @@ class SimilarityMatrixPrecomputer:
             
             # Convert chunks to list for parallel processing
             job_chunks = list(job_chunker.chunks())
-            logger.info(f"📦 Created {len(job_chunks)} job chunks for parallel processing")
+            logger.info(f"ðŸ“¦ Created {len(job_chunks)} job chunks for parallel processing")
             
             # Prepare data for parallel workers
             chunk_tasks = []
@@ -503,7 +503,7 @@ class SimilarityMatrixPrecomputer:
                 chunk_tasks.append(chunk_task)
             
             # Process chunks in parallel
-            logger.info("🚀 Starting parallel chunk processing...")
+            logger.info("ðŸš€ Starting parallel chunk processing...")
             chunk_results = self.parallel_processor.map(
                 func=self._process_career_pathways_chunk,
                 items=chunk_tasks,
@@ -520,9 +520,9 @@ class SimilarityMatrixPrecomputer:
                 
                 # Log progress periodically
                 if len(pathway_records) % (self.config.initial_chunk_size * 2) == 0:
-                    logger.info(f"🔄 Combined {len(pathway_records):,} pathway records so far...")
+                    logger.info(f"ðŸ”„ Combined {len(pathway_records):,} pathway records so far...")
             
-            logger.info(f"✅ Parallel processing complete! Generated {len(pathway_records):,} pathway records")
+            logger.info(f"âœ… Parallel processing complete! Generated {len(pathway_records):,} pathway records")
             
             # Convert to DataFrame with proper column structure
             if pathway_records:
@@ -538,14 +538,14 @@ class SimilarityMatrixPrecomputer:
             pathways_file = output_path / "career_pathways.parquet"
             pathways_df.to_parquet(pathways_file, compression='snappy', index=False)
             
-            logger.info(f"✅ Career pathways saved to {pathways_file}")
-            logger.info(f"📊 Generated {len(pathways_df):,} career pathway relationships")
-            logger.info(f"📊 Average pathways per job: {len(pathways_df) / len(all_job_ids):.1f}")
+            logger.info(f"âœ… Career pathways saved to {pathways_file}")
+            logger.info(f"ðŸ“Š Generated {len(pathways_df):,} career pathway relationships")
+            logger.info(f"ðŸ“Š Average pathways per job: {len(pathways_df) / len(all_job_ids):.1f}")
             
             # Also save as CSV for compatibility
             csv_file = output_path / "career_pathways.csv"
             pathways_df.to_csv(csv_file, index=False)
-            logger.info(f"✅ Career pathways CSV saved to {csv_file}")
+            logger.info(f"âœ… Career pathways CSV saved to {csv_file}")
             
             return pathways_file
             
@@ -563,23 +563,23 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the output directory containing both results
         """
-        logger.info("🚀 Starting complete precomputation pipeline...")
+        logger.info("ðŸš€ Starting complete precomputation pipeline...")
         
         # Step 1: Precompute similarity matrix
-        logger.info("📊 Step 1: Computing job-to-job similarity matrix...")
+        logger.info("ðŸ“Š Step 1: Computing job-to-job similarity matrix...")
         output_path = self.precompute_similarity_matrix(run_name)
         
         # Step 2: Load similarity matrix and compute career pathways
-        logger.info("🔗 Step 2: Computing career pathways from similarity matrix...")
+        logger.info("ðŸ”— Step 2: Computing career pathways from similarity matrix...")
         
         # Read the similarity matrix we just created
         similarity_file = output_path / "job_similarity_matrix.csv"
         if not similarity_file.exists():
             raise EngineError(f"Similarity matrix file not found: {similarity_file}")
         
-        logger.info(f"📖 Loading similarity matrix from {similarity_file}")
+        logger.info(f"ðŸ“– Loading similarity matrix from {similarity_file}")
         similarity_df = pd.read_csv(similarity_file)
-        logger.info(f"📊 Loaded {len(similarity_df):,} similarity relationships")
+        logger.info(f"ðŸ“Š Loaded {len(similarity_df):,} similarity relationships")
         
         # Generate career pathways
         pathways_file = self.precompute_career_pathways(similarity_df, output_path)
@@ -606,10 +606,10 @@ class SimilarityMatrixPrecomputer:
         with open(str(metadata_file), 'w') as f:
             json.dump(metadata, f)
         
-        logger.info("🎯 Complete precomputation pipeline finished successfully!")
-        logger.info(f"📁 Output directory: {output_path}")
-        logger.info(f"📊 Similarity matrix: {similarity_file}")
-        logger.info(f"🔗 Career pathways: {pathways_file}")
+        logger.info("ðŸŽ¯ Complete precomputation pipeline finished successfully!")
+        logger.info(f"ðŸ“ Output directory: {output_path}")
+        logger.info(f"ðŸ“Š Similarity matrix: {similarity_file}")
+        logger.info(f"ðŸ”— Career pathways: {pathways_file}")
         
         return output_path
     

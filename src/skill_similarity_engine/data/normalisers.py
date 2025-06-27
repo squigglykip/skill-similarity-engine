@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data normalisation strategies for skill proficiency levels.
 
 This module provides various methods for normalising skill data, including

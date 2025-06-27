@@ -1,4 +1,4 @@
-"""
+﻿"""
 Similarity Data Integration Module
 
 Loads pre-computed job similarity matrices from Parquet files and integrates 
@@ -182,7 +182,7 @@ class SimilarityIntegrator:
                 logger.debug(f"Missing job IDs: {list(missing_job_ids)[:10]}...")  # Show first 10
                 return False
             
-            logger.info("✓ All job IDs in similarity data exist in jobs table")
+            logger.info("âœ“ All job IDs in similarity data exist in jobs table")
             return True
             
         except Exception as e:
@@ -222,7 +222,7 @@ class SimilarityIntegrator:
                 final_count = cursor.fetchone()[0]
                 
                 if final_count == total_rows:
-                    logger.info(f"✓ Successfully loaded {final_count:,} similarity records")
+                    logger.info(f"âœ“ Successfully loaded {final_count:,} similarity records")
                     return True
                 else:
                     logger.error(f"Row count mismatch: expected {total_rows}, got {final_count}")
@@ -262,7 +262,7 @@ class SimilarityIntegrator:
             logger.info(f"  Total similarity pairs: {stats['total_similarity_pairs']:,}")
             logger.info(f"  Unique jobs covered: {stats['unique_jobs_total']:,}")
             logger.info(f"  Average similarity: {stats['avg_similarity_score']:.3f}")
-            logger.info(f"  High similarity pairs (≥0.8): {stats['high_similarity_pairs']:,}")
+            logger.info(f"  High similarity pairs (â‰¥0.8): {stats['high_similarity_pairs']:,}")
             
         except Exception as e:
             logger.error(f"Failed to calculate integration stats: {e}")

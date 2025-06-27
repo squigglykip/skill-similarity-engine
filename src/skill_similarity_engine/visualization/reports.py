@@ -1,4 +1,4 @@
-"""
+﻿"""
 Basic reporting functionality for exporting analysis results.
 
 This module provides functionality for exporting analysis results to DataFrames,

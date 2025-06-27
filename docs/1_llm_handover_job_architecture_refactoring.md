@@ -1,4 +1,4 @@
-# LLM Handover Prompt: NAB Skills Intelligence Job Display Name Standardisation
+﻿# LLM Handover Prompt: NAB Skills Intelligence Job Display Name Standardisation
 
 ## 📊 **PROJECT PROGRESS SUMMARY**
 
@@ -6,10 +6,10 @@
 
 | Phase | Status | Progress | Key Achievement |
 |-------|--------|----------|-----------------|
-| **Phase 1** | ✅ **COMPLETE** | 100% | **Whitepaper System Integration** - All LogicalRoleManager classes replaced with JobDisplayManager |
+| **Phase 1** | ✅ **COMPLETE** | 100% | **CAREER_ANALYSIS System Integration** - All LogicalRoleManager classes replaced with JobDisplayManager |
 | **Phase 2** | ✅ **COMPLETE** | 100% | **API Endpoint Enhancement** - 6 critical endpoints enhanced with standardised display names |
 | **Phase 3** | ✅ **COMPLETE** | 100% | **Frontend JavaScript Integration** - All JS files using unified search module and display names |
-| **Phase 4** | ✅ **COMPLETE** | 100% | **HTML Templates Update** - White papers template using standardised display names |
+| **Phase 4** | ✅ **COMPLETE** | 100% | **HTML Templates Update** - Career Transition Analysiss template using standardised display names |
 | **Phase 5** | ✅ **COMPLETE** | 100% | **Unified Search Module Implementation** - Consolidated search functionality across all pages |
 | **Phase 6** | 🔄 **NEXT** | 0% | **Architecture Cleanup & CSS Standardisation** - Address technical debt and styling issues |
 
@@ -19,13 +19,13 @@
 
 You are a **Senior Software Architect** specializing in enterprise data architecture and web application design. Your task is to implement **JobDisplayManager integration** across the NAB Skills Intelligence Platform to standardise job display names and improve user experience.
 
-**CURRENT STATUS:** Phases 1-5 are complete! 🎉 The `JobDisplayManager` utility is fully integrated across the entire stack - from whitepaper generation to API endpoints to frontend JavaScript consumption. Unified search module implemented across all pages. Phase 6 focuses on architectural cleanup and CSS standardisation.
+**CURRENT STATUS:** Phases 1-5 are complete! 🎉 The `JobDisplayManager` utility is fully integrated across the entire stack - from CAREER_ANALYSIS generation to API endpoints to frontend JavaScript consumption. Unified search module implemented across all pages. Phase 6 focuses on architectural cleanup and CSS standardisation.
 
 ## 📊 **MISSION PROGRESS STATUS**
 
 | Phase | Status | Priority | Effort | Description |
 |-------|--------|----------|--------|-------------|
-| **Phase 1** | ✅ **COMPLETE** | HIGH | DONE | Whitepaper System Integration |
+| **Phase 1** | ✅ **COMPLETE** | HIGH | DONE | CAREER_ANALYSIS System Integration |
 | **Phase 2** | ✅ **COMPLETE** | HIGH | DONE | API Endpoint Enhancement |
 | **Phase 3** | ✅ **COMPLETE** | HIGH | DONE | Frontend JavaScript Integration |
 | **Phase 4** | ✅ **COMPLETE** | MEDIUM | DONE | HTML Templates Update |
@@ -58,22 +58,22 @@ DisplayFormat.DROPDOWN   → "Payment Systems Analyst - Senior Manager"
 
 **Testing Status:** ✅ Validated with real database, all formats working correctly
 
-### **Phase 1: Whitepaper System Integration** ✅ **COMPLETE**
+### **Phase 1: CAREER_ANALYSIS System Integration** ✅ **COMPLETE**
 **Status**: Successfully replaced all LogicalRoleManager implementations
 
 **Files Updated:**
-1. ✅ **`whitepaper/src/executive_summary_generator.py`** - Removed LogicalRoleManager class (lines 34-82), integrated JobDisplayManager
-2. ✅ **`whitepaper/src/current_role_context_generator.py`** - Updated imports and method calls
-3. ✅ **`whitepaper/src/conclusion_generator.py`** - Updated imports and method calls  
-4. ✅ **`whitepaper/src/pathway_analysis_generator.py`** - Updated imports and method calls
-5. ✅ **`whitepaper/src/strategic_recommendations_generator.py`** - Removed LogicalRoleManager class, integrated JobDisplayManager
+1. ✅ **`CAREER_ANALYSIS/src/executive_summary_generator.py`** - Removed LogicalRoleManager class (lines 34-82), integrated JobDisplayManager
+2. ✅ **`CAREER_ANALYSIS/src/current_role_context_generator.py`** - Updated imports and method calls
+3. ✅ **`CAREER_ANALYSIS/src/conclusion_generator.py`** - Updated imports and method calls  
+4. ✅ **`CAREER_ANALYSIS/src/pathway_analysis_generator.py`** - Updated imports and method calls
+5. ✅ **`CAREER_ANALYSIS/src/strategic_recommendations_generator.py`** - Removed LogicalRoleManager class, integrated JobDisplayManager
 
 **Key Achievements:**
 - **Import Path Resolution**: Fixed relative/absolute import handling for both webapp and test execution
 - **Display Format Upgrade**: Changed from LOGICAL to STANDARD format for better user experience
   - Before: "Risk Analyst (Group 3)"
   - After: "Risk Analyst - Associate - Group 3"
-- **Testing Validated**: All whitepaper generators working correctly with new JobDisplayManager
+- **Testing Validated**: All CAREER_ANALYSIS generators working correctly with new JobDisplayManager
 - **Template Compatibility**: All existing template variables maintained for backward compatibility
 
 ### **Phase 2: API Endpoint Enhancement** ✅ **COMPLETE**
@@ -89,7 +89,7 @@ DisplayFormat.DROPDOWN   → "Payment Systems Analyst - Senior Manager"
 ✅ /api/job-similarities/<job_id>     # Similar jobs with standardised display names
 ✅ /api/career-pathways-distribution/<job_id>  # Career pathway data with display names
 ✅ /api/career-pathway/<int:start_job_id>      # Career progression with target display names
-✅ /api/whitepaper-jobs              # Critical whitepaper dropdown with display names
+✅ /api/career-analysis-jobs              # Critical CAREER_ANALYSIS dropdown with display names
 ```
 
 **API Enhancement Pattern Applied:**
@@ -115,7 +115,7 @@ job_data = add_display_names_to_job(job_data, display_manager)
 **Status**: Successfully updated all JavaScript files to use standardised display names from enhanced APIs
 
 **Files Updated:**
-1. ✅ **`static/js/white-papers.js`** - Updated job search results and dropdown population
+1. ✅ **`static/js/career-analysis.js`** - Updated job search results and dropdown population
    - **Lines 738**: Replaced manual construction `${job.job_title} - ${job.suffix} (${job.management_level})` with `job.display_name_search || job.display_name_standard`
    - **Lines 675-701**: Updated dropdown population to use `job.display_name_dropdown` with function context
    - **Enhanced Pattern**: Graceful fallbacks from standardised to legacy display names
@@ -148,7 +148,7 @@ job_data = add_display_names_to_job(job_data, display_manager)
 **Status**: Successfully updated HTML templates to use standardised display names
 
 **Files Updated:**
-1. ✅ **`templates/white_papers.html`** - Updated sample jobs dropdown to use `job.display_name_dropdown`
+1. ✅ **`templates/career_analysis.html`** - Updated sample jobs dropdown to use `job.display_name_dropdown`
    - **Enhanced get_sample_jobs()**: Added JobDisplayManager integration to Flask app
    - **Template Update**: Changed from `{{ job.job_title }}` to `{{ job.display_name_dropdown or job.display_name_standard or job.job_title }}`
    - **User Testing**: Confirmed display shows "Budget Manager - UNGRADED" format with Profile ID context
@@ -163,14 +163,14 @@ job_data = add_display_names_to_job(job_data, display_manager)
 **Status**: Successfully consolidated all search functionality across webapp pages
 
 **Files Updated:**
-1. ✅ **`templates/white_papers.html`** - Updated search initialization to use `SkillEngine.SearchModule`
-2. ✅ **`templates/components.html`** - Updated test functions to use `/api/whitepaper-jobs` endpoint  
+1. ✅ **`templates/career_analysis.html`** - Updated search initialization to use `SkillEngine.SearchModule`
+2. ✅ **`templates/components.html`** - Updated test functions to use `/api/career-analysis-jobs` endpoint  
 3. ✅ **`static/js/main.js`** - Updated legacy search to use consistent API endpoint
 4. ✅ **`static/css/search-module.css`** - Created comprehensive styling with selection artifact fixes
 
 **Unified Search Implementation:**
 - **Consistent Namespace**: All pages use `window.SkillEngine.SearchModule.init()`
-- **Standard API Endpoint**: All search functionality uses `/api/whitepaper-jobs`
+- **Standard API Endpoint**: All search functionality uses `/api/career-analysis-jobs`
 - **Professional Styling**: Hierarchical job title and function display with proper grey scaling
 - **Selection Artifact Fixes**: Eliminated browser highlighting issues with aggressive CSS overrides
 - **Mobile Responsive**: Proper touch handling and responsive design
@@ -208,7 +208,7 @@ job_data = add_display_names_to_job(job_data, display_manager)
 **Files Requiring CSS Audit:**
 1. **`static/css/search-module.css`** - Recently created, needs integration with design system
 2. **`static/css/variables.css`** - Design system base, good foundation
-3. **`static/css/white-papers.css`** - Page-specific styles
+3. **`static/css/career-analysis.css`** - Page-specific styles
 4. **`static/css/career-pathways.css`** - Page-specific styles
 5. **`static/css/main.css`** - Global styles (if exists)
 6. **Template inline styles** - Identify and consolidate
@@ -391,18 +391,18 @@ function createJobDisplayElement(job, format = 'search') {
 
 ## 📋 **DETAILED IMPLEMENTATION CHECKLIST**
 
-### **Phase 1: Whitepaper System** ✅ **COMPLETED**
+### **Phase 1: CAREER_ANALYSIS System** ✅ **COMPLETED**
 - [x] **Executive Summary Generator**: Replace LogicalRoleManager class
 - [x] **Current Role Context Generator**: Update imports and method calls
 - [x] **Conclusion Generator**: Update imports and method calls  
 - [x] **Pathway Analysis Generator**: Update imports and method calls
 - [x] **Strategic Recommendations Generator**: Replace LogicalRoleManager class
-- [x] **Test whitepaper generation**: Validate all display names work correctly
+- [x] **Test CAREER_ANALYSIS generation**: Validate all display names work correctly
 - [x] **Import path resolution**: Handle both webapp and test execution environments
 - [x] **Display format upgrade**: Switch from LOGICAL to STANDARD format for better UX
 
 ### **Phase 2: API Endpoints** ✅ **COMPLETED**
-- [x] **`/api/whitepaper-jobs`**: Add display name fields to response
+- [x] **`/api/career-analysis-jobs`**: Add display name fields to response
 - [x] **`/api/search-jobs`**: Enhance with display names
 - [x] **`/api/job-details/<job_id>`**: Include all display formats
 - [x] **`/api/job-similarities/<job_id>`**: Add display names to similar jobs
@@ -412,19 +412,19 @@ function createJobDisplayElement(job, format = 'search') {
 - [x] **Testing validation**: Confirmed JobDisplayManager working across all endpoints
 
 ### **Phase 3: Frontend JavaScript** ✅ **COMPLETED**
-- [x] **white-papers.js**: Replace manual title construction with API display names
+- [x] **career-analysis.js**: Replace manual title construction with API display names
 - [x] **search-module.js**: Use enhanced API responses with unified search module
 - [x] **career-pathways.js**: Update job display logic to use JobDisplayManager formats
 - [x] **main.js**: Update search utilities to use consistent API endpoint
 
 ### **Phase 4: HTML Templates** ✅ **COMPLETED**
-- [x] **white_papers.html**: Update job selection dropdowns with standardised display names
+- [x] **career_analysis.html**: Update job selection dropdowns with standardised display names
 - [x] **Sample jobs integration**: Enhanced Flask route with JobDisplayManager
 - [x] **Template fallbacks**: Graceful degradation for legacy data
 
 ### **Phase 5: Unified Search Module** ✅ **COMPLETED**
 - [x] **Search consolidation**: Eliminated duplicate search implementations
-- [x] **Consistent API**: All search uses `/api/whitepaper-jobs` endpoint
+- [x] **Consistent API**: All search uses `/api/career-analysis-jobs` endpoint
 - [x] **Professional styling**: Hierarchical display with proper CSS architecture
 - [x] **Selection artifacts**: Fixed browser highlighting issues
 - [x] **Mobile responsive**: Touch-friendly search interface
@@ -511,7 +511,7 @@ div#pathway-job-dropdown .search-result-meta span strong {
 ### **Step 1: Systematic Search & Replace**
 1. Run all grep patterns to identify hardcoded job representations
 2. Document each occurrence with file path and line numbers  
-3. Prioritise by impact (whitepaper system first, then APIs, then frontend)
+3. Prioritise by impact (CAREER_ANALYSIS system first, then APIs, then frontend)
 4. Create implementation plan with specific file/line targets
 
 ### **Step 2: Pattern-Based Implementation**
@@ -521,7 +521,7 @@ div#pathway-job-dropdown .search-result-meta span strong {
 4. Validate display format appropriateness for each context
 
 ### **Step 3: Integration Testing**
-1. Test whitepaper generation with new display names
+1. Test CAREER_ANALYSIS generation with new display names
 2. Validate API responses include all required display formats
 3. Test frontend components use API display names correctly
 4. Ensure JobProfileID visibility meets colleague reference needs
@@ -544,7 +544,7 @@ div#pathway-job-dropdown .search-result-meta span strong {
 
 ### **Common Issues & Solutions**
 
-**Issue**: JobDisplayManager not found in whitepaper generators
+**Issue**: JobDisplayManager not found in CAREER_ANALYSIS generators
 **Solution**: Add import: `from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat`
 
 **Issue**: Frontend displays 'undefined' for job names  

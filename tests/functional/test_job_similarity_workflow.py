@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Functional test for the complete job similarity workflow.
 
@@ -69,7 +69,7 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
             self.assertTrue(os.path.exists(jobs_path))
             self.assertTrue(os.path.exists(skills_path))
             
-            print("✓ Successfully transformed HRIS data")
+            print("âœ“ Successfully transformed HRIS data")
         except Exception as e:
             self.fail(f"Failed to transform HRIS data: {e}")
         
@@ -89,7 +89,7 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
                     if i < 5:  # Just print first few lines
                         print(f"  {line.strip()}")
             
-            print("✓ Successfully loaded transformed data")
+            print("âœ“ Successfully loaded transformed data")
         except Exception as e:
             self.fail(f"Failed to load transformed data: {e}")
         
@@ -113,7 +113,7 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
             for i in range(len(job_ids)):
                 self.assertAlmostEqual(similarity_matrix[i, i], 1.0)
             
-            print("✓ Successfully calculated job similarity")
+            print("âœ“ Successfully calculated job similarity")
         except Exception as e:
             self.fail(f"Failed to calculate similarity: {e}")
         
@@ -144,11 +144,11 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
             report_files = list(reports_dir.glob("*.png"))
             self.assertGreater(len(report_files), 0)
             
-            print("✓ Successfully generated reports and visualizations")
+            print("âœ“ Successfully generated reports and visualizations")
         except Exception as e:
             self.fail(f"Failed to generate reports: {e}")
             
-        print("✓ All workflow steps completed successfully")
+        print("âœ“ All workflow steps completed successfully")
     
     def test_workflow_with_specific_department(self):
         """Test workflow with a specific department filter."""
@@ -207,7 +207,7 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
                 
                 # Verify the report was generated
                 self.assertTrue(os.path.exists(file_to_check), f"Output file not found at {file_to_check}")
-                print(f"✓ Successfully generated heatmap for department {test_department}")
+                print(f"âœ“ Successfully generated heatmap for department {test_department}")
             except Exception as e:
                 self.fail(f"Failed to generate visualization: {e}")
 
@@ -227,7 +227,7 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
             skill_taxonomy = SkillTaxonomy.from_file(str(skills_path))
             job_architecture = JobArchitecture.from_file(str(jobs_path))
             
-            print("✓ Successfully loaded test data directly")
+            print("âœ“ Successfully loaded test data directly")
         except Exception as e:
             self.fail(f"Failed to load test data: {e}")
         
@@ -258,7 +258,7 @@ class TestJobSimilarityWorkflow(BaseFunctionalTest):
             report_files = list(reports_dir.glob("*.png"))
             self.assertGreater(len(report_files), 0)
             
-            print("✓ Successfully generated visualisations directly")
+            print("âœ“ Successfully generated visualisations directly")
         except Exception as e:
             self.fail(f"Failed to generate visualisations: {e}")
 

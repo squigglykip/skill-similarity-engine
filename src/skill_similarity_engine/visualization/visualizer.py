@@ -1,4 +1,4 @@
-"""
+﻿"""
 Main visualisation module for the skill similarity engine.
 
 This module provides a unified interface for generating various visualisations

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Lightcast Skills API Client
 
 A comprehensive Python client for interacting with the Lightcast Skills API v2.14.0

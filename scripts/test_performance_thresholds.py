@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Performance Testing Script for Career Pathway Query Thresholds
 Tests various parameter combinations to determine when warnings should appear.
@@ -89,7 +89,7 @@ def test_query_performance():
     # Connect to database
     db_path = os.path.join('models', '2025-Q2', 'business_context.sqlite')
     if not os.path.exists(db_path):
-        print(f"❌ Database not found: {db_path}")
+        print(f"âŒ Database not found: {db_path}")
         return
     
     conn = sqlite3.connect(db_path)
@@ -130,7 +130,7 @@ def test_query_performance():
             (0.6, 7, 12, "Very high similarity + extreme params"),
         ]
         
-        print("🚀 Starting Performance Testing for Career Pathway Queries")
+        print("ðŸš€ Starting Performance Testing for Career Pathway Queries")
         print("=" * 80)
         print(f"{'Description':<35} {'Depth':<6} {'Results':<8} {'Similarity':<10} {'Time (s)':<10} {'Nodes':<8} {'Status'}")
         print("-" * 80)
@@ -152,13 +152,13 @@ def test_query_performance():
                 
                 # Determine status based on performance
                 if execution_time < 2:
-                    status = "🟢 Fast"
+                    status = "ðŸŸ¢ Fast"
                 elif execution_time < 5:
-                    status = "🟡 Moderate"
+                    status = "ðŸŸ¡ Moderate"
                 elif execution_time < 10:
-                    status = "🟠 Slow"
+                    status = "ðŸŸ  Slow"
                 else:
-                    status = "🔴 Very Slow"
+                    status = "ðŸ”´ Very Slow"
                 
                 print(f"{description:<35} {max_depth:<6} {max_results:<8} {similarity_threshold*100:>6.0f}%   {execution_time:>7.2f}   {node_count:<8} {status}")
                 
@@ -181,28 +181,28 @@ def test_query_performance():
                     'max_results': max_results,
                     'execution_time': None,
                     'node_count': None,
-                    'status': "❌ Error"
+                    'status': "âŒ Error"
                 })
         
         print("-" * 80)
         
         # Analyze results and suggest thresholds
-        print("\n📊 Performance Analysis:")
+        print("\nðŸ“Š Performance Analysis:")
         
         slow_queries = [r for r in results if r['execution_time'] and r['execution_time'] > 5]
         very_slow_queries = [r for r in results if r['execution_time'] and r['execution_time'] > 10]
         
-        print(f"   • Queries taking >5 seconds: {len(slow_queries)}")
-        print(f"   • Queries taking >10 seconds: {len(very_slow_queries)}")
+        print(f"   â€¢ Queries taking >5 seconds: {len(slow_queries)}")
+        print(f"   â€¢ Queries taking >10 seconds: {len(very_slow_queries)}")
         
         if slow_queries:
-            print(f"\n🔍 Slow Query Patterns:")
+            print(f"\nðŸ” Slow Query Patterns:")
             for query in slow_queries:
-                print(f"   • {query['description']}: {query['execution_time']:.2f}s "
+                print(f"   â€¢ {query['description']}: {query['execution_time']:.2f}s "
                       f"(depth={query['max_depth']}, results={query['max_results']})")
         
         # Suggest new thresholds
-        print(f"\n💡 Suggested Warning Thresholds (for pre-computed system):")
+        print(f"\nðŸ’¡ Suggested Warning Thresholds (for pre-computed system):")
         
         # Find the minimum parameters that cause slowdowns
         slow_depths = [q['max_depth'] for q in slow_queries if q['execution_time']]
@@ -212,16 +212,16 @@ def test_query_performance():
             min_slow_depth = min(slow_depths)
             min_slow_results = min(slow_results)
             
-            print(f"   • Warn when depth >= {min_slow_depth} (was 5)")
-            print(f"   • Warn when max_results >= {min_slow_results} (was 6)")
-            print(f"   • Consider warning for combinations of depth >= {min_slow_depth-1} AND max_results >= {min_slow_results-1}")
+            print(f"   â€¢ Warn when depth >= {min_slow_depth} (was 5)")
+            print(f"   â€¢ Warn when max_results >= {min_slow_results} (was 6)")
+            print(f"   â€¢ Consider warning for combinations of depth >= {min_slow_depth-1} AND max_results >= {min_slow_results-1}")
         else:
-            print(f"   • Current system performs well - consider raising thresholds:")
-            print(f"   • Warn when depth >= 7 (was 5)")
-            print(f"   • Warn when max_results >= 10 (was 6)")
+            print(f"   â€¢ Current system performs well - consider raising thresholds:")
+            print(f"   â€¢ Warn when depth >= 7 (was 5)")
+            print(f"   â€¢ Warn when max_results >= 10 (was 6)")
         
         # Test multiple jobs
-        print(f"\n🔄 Testing Multiple Job Performance:")
+        print(f"\nðŸ”„ Testing Multiple Job Performance:")
         multiple_job_cases = [
             ([test_job_id], "Single job"),
             ([test_job_id, 'R0001.1'], "Two jobs"),
@@ -242,15 +242,15 @@ def test_query_performance():
                 execution_time = end_time - start_time
                 node_count = len(query_results)
                 
-                print(f"   • {desc}: {execution_time:.2f}s ({node_count} nodes)")
+                print(f"   â€¢ {desc}: {execution_time:.2f}s ({node_count} nodes)")
                 
             except Exception as e:
-                print(f"   • {desc}: ERROR - {str(e)[:50]}...")
+                print(f"   â€¢ {desc}: ERROR - {str(e)[:50]}...")
         
         return results
         
     except Exception as e:
-        print(f"❌ Error during performance testing: {e}")
+        print(f"âŒ Error during performance testing: {e}")
         return None
     
     finally:
@@ -261,7 +261,7 @@ def suggest_new_thresholds(results):
     if not results:
         return
     
-    print(f"\n🎯 Recommended New Threshold Configuration:")
+    print(f"\nðŸŽ¯ Recommended New Threshold Configuration:")
     print("```javascript")
     print("// Updated thresholds for pre-computed career pathways")
     print("async function isExpensiveQuery(params) {")

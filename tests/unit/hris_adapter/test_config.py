@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for the HRIS adapter configuration module.
 
 These tests verify that the HRISConfigLoader correctly loads and processes 

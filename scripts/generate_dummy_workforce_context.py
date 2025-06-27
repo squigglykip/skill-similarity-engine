@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Generate Dummy Workforce Context Data
 
@@ -339,8 +339,8 @@ def main():
     
     # Verify alignment with job mappings
     print(f"\nAlignment Check:")
-    print(f"✅ All position numbers have corresponding job mappings")
-    print(f"✅ 100% workforce-to-job alignment achieved")
+    print(f"âœ… All position numbers have corresponding job mappings")
+    print(f"âœ… 100% workforce-to-job alignment achieved")
     
     return df
 

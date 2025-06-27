@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test data access module.
 
 This module provides helper functions to access the synthetic test data

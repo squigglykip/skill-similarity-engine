@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for the field mapping functionality.
 
 Tests the FieldMapper class and related functions to ensure proper

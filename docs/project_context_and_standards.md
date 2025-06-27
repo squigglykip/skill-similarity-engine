@@ -1,4 +1,4 @@
-# NAB Skills Intelligence Platform - Project Context & Standards
+﻿# NAB Skills Intelligence Platform - Project Context & Standards
 
 **Document Version**: 1.0  
 **Created**: 2025-01-19  
@@ -15,7 +15,7 @@ The **NAB Skills Intelligence Platform** is an enterprise-grade web application 
 - **Job Similarity Analysis**: Compare 715+ job profiles using comprehensive skills data
 - **Career Pathway Discovery**: Identify progression opportunities and skill gaps
 - **Skills Intelligence**: Analyse 38K+ skills with Lightcast integration
-- **White Paper Generation**: Professional Word documents for strategic planning
+- **Career Transition Analysis Generator**: Professional Word documents for strategic planning
 - **Workforce Analytics**: SQLite-based business context database
 
 ### **Target Users**
@@ -163,14 +163,14 @@ window.SkillEngine.SearchModule = {
 // Usage in templates
 document.addEventListener('DOMContentLoaded', function() {
     window.SkillEngine.SearchModule.init({
-        apiEndpoint: '/api/whitepaper-jobs',
+        apiEndpoint: '/api/career-analysis-jobs',
         containerId: 'search-container'
     });
 });
 ```
 
 ### **API Integration Standards**
-- **Consistent Endpoints**: All search uses `/api/whitepaper-jobs`
+- **Consistent Endpoints**: All search uses `/api/career-analysis-jobs`
 - **Error Handling**: Graceful fallbacks for API failures
 - **Loading States**: Show progress indicators for long operations
 - **Data Validation**: Validate responses before DOM updates
@@ -314,7 +314,7 @@ function handleFormSubmit(event) {
 ```
 
 ### **Multi-Step Process Indicators**
-For career pathway exploration and white paper generation workflows:
+For career pathway exploration and Career Transition Analysis Generator workflows:
 ```html
 <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 mb-6">
   <nav aria-label="Progress">
@@ -585,7 +585,7 @@ Standard help icon implementation for providing contextual explanations:
 **Always use JobDisplayManager for consistent job naming across the platform.**
 
 ### **2. Unified Search Module**
-**All pages use `window.SkillEngine.SearchModule` with `/api/whitepaper-jobs` endpoint.**
+**All pages use `window.SkillEngine.SearchModule` with `/api/career-analysis-jobs` endpoint.**
 
 ### **3. Progress Tracking**
 **Long operations use ProgressTracker with tqdm for user feedback.**

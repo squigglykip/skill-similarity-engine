@@ -1,4 +1,4 @@
-"""
+﻿"""
 Main entry point for the Skill Similarity Engine.
 
 This module is executed when the package is run with:

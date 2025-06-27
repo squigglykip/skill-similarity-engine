@@ -1,4 +1,4 @@
-"""
+﻿"""
 Command-line interface for configuration management.
 
 This module provides CLI commands for viewing and manipulating configuration.

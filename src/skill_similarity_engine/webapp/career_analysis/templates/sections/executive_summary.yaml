@@ -1,0 +1,105 @@
+﻿# Executive Summary Template
+# Based on career_analysis_example_gold_standard.md lines 12-45
+
+executive_summary:
+  section_title: "Executive Summary"
+  
+  strategic_context:
+    title: "Strategic Context"
+    content: |
+      We've identified practical career opportunities for {{source_job_title}} professionals that build on their existing strengths while supporting NAB's strategic priorities. These transitions offer clear pathways for talent retention and internal capability building.
+
+  key_findings:
+    title: "Key Findings"
+    content_type: "paragraph"
+    bold_labels: ["What this means:"]
+    content: |
+      We found {{pathway_count}} viable career paths for {{source_job_title_plural}}, with skill compatibility ranging from {{min_similarity}}% to {{max_similarity}}%. These represent {{opportunity_descriptor}} opportunities that balance career growth with practical transition requirements.
+
+      What this means: Your people already have most of the skills needed for these roles. The transition requirements are realistic and achievable, making these pathways viable for talent retention and development initiatives.
+
+  primary_recommendations:
+    title: "Primary Recommendations"
+    content_type: "structured"
+    recommendations: []
+    bold_labels: ["Move Type:", "Function Transition:", "Management Level:", "Strategic Context:"]
+    
+    recommendation_template: |
+      {{ recommendation.target_logical_role }} - {{ recommendation.similarity_score }}% similarity
+      - Move Type: {{ recommendation.move_type }}
+      - Strategic Context: {{ recommendation.strategic_context_explanation }}
+      {% if recommendation.divisional_deployment %}This role is {{ recommendation.divisional_deployment.deployment_description }}{% endif %}
+
+    strategic_context_explanations:
+      "Progression - Same_Role_Higher_Level": "Natural career advancement with established promotion pathways and clear success criteria"
+      "Progression - Different_Role_Higher_Level": "Cross-functional promotion that expands leadership scope while building on existing strengths"
+      "Lateral - Different_Role_Same_Level": "Strategic skill diversification that enhances long-term career prospects and organisational flexibility"
+      "Lateral - Same_Role_Same_Level": "Specialisation opportunity that deepens expertise while maintaining current level and responsibilities"
+      "Transition - Lower_Level": "Strategic career pivot that opens new advancement opportunities in different functional areas"
+      "Other": "Unique transition opportunity with specific business benefits and career development potential"
+
+  confidence_assessment:
+    title: "Confidence Assessment"
+    content_type: "paragraph"
+    bold_labels: ["High confidence", "Medium-high confidence", "Medium confidence", "Low confidence", "What this means:"]
+    content: |
+      High confidence - These recommendations are built on real NAB data covering {{active_competencies_count}} skills, {{pathways_count}} career pathways, and deployment across {{division_count}} divisions.
+      
+      What this means: You can rely on these insights for strategic planning. The recommendations are based on actual NAB workforce data, not theoretical models, giving you confidence to make investment decisions.
+
+    confidence_explanations:
+      HIGH: "extensive real data"
+      "MEDIUM-HIGH": "substantial real data with some estimates"
+      MEDIUM: "balanced real data and validated estimates"
+      LOW: "limited data with significant estimates"
+
+# Dynamic content mappings
+opportunity_descriptors:
+  outstanding: "outstanding"
+  excellent: "excellent"
+  good: "good"
+  development: "development-focused"
+  transformation: "transformation"
+
+contextual_performance_descriptors:
+  outstanding: "exceptional"
+  excellent: "excellent"
+  good: "strong"
+  development: "solid"
+  transformation: "challenging but viable"
+
+# Threshold configuration for dynamic content selection
+thresholds:
+  similarity_percentiles:
+    outstanding: 95
+    excellent: 90
+    good: 75
+    development: 50
+    transformation: 0
+
+  confidence_levels:
+    high_threshold: 2000
+    medium_high_threshold: 1000
+
+# Reference mapping for dynamic content
+references:
+  1: "SELECT COUNT(*) FROM jobs"
+  2: "SELECT similarity_score FROM job_similarities WHERE source_job_id = ? ORDER BY similarity_score DESC LIMIT 3"
+  3: "Qualitative assessment derived from similarity scores and percentile ranking"
+  4: "Percentile ranking derived from similarity score distribution analysis"
+  5: "SELECT similarity_score FROM job_similarities WHERE source_job_id = ? AND target_job_id = ?"
+  6: "Move type classification derived from management level progression analysis"
+  7: "SELECT similarity_score FROM job_similarities WHERE source_job_id = ? AND target_job_id = ?"
+  8: "Move type classification derived from management level progression analysis"
+  9: "SELECT similarity_score FROM job_similarities WHERE source_job_id = ? AND target_job_id = ?"
+  10: "Move type classification derived from management level progression analysis"
+  11: "Management level hierarchy mapping: Group NA=0, Group 1=1, Group 2=2, etc."
+  12: "Methodological approach ensuring objective categorisation"
+  13: "Confidence level derived from data volume assessment"
+  14: "SELECT COUNT(DISTINCT Skill_ID) FROM job_skills"
+  15: "SELECT COUNT(*) FROM career_pathways"
+  16: "SELECT COUNT(DISTINCT Division) FROM positions"
+  67: "Similarity score interpretation derived from NAB-specific distribution analysis"
+  68: "Risk and cost assessment derived from percentile ranking analysis"
+  76: "Strategic pathway classification derived from progression type analysis"
+  77: "Divisional deployment analysis derived from actual position data across NAB's organizational structure" 

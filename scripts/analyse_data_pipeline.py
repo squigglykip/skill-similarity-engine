@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Data Pipeline Analysis Script
 
@@ -340,13 +340,13 @@ class DataPipelineAnalyser:
                 sqlite_rows = results.get('sqlite_row_count', 0)
                 difference = results.get('row_count_difference', 0)
                 
-                status = "✓ OK"
+                status = "âœ“ OK"
                 if not results.get('csv_exists', False):
-                    status = "✗ No CSV"
+                    status = "âœ— No CSV"
                 elif not results.get('sqlite_exists', False):
-                    status = "✗ No Table"
+                    status = "âœ— No Table"
                 elif abs(difference) > 0:
-                    status = f"△ {difference:+d}"
+                    status = f"â–³ {difference:+d}"
                 
                 print(f"{dataset_name:<15} {csv_rows:<10,} {sqlite_rows:<12,} {difference:<12,} {status:<10}")
         
@@ -377,22 +377,22 @@ class DataPipelineAnalyser:
         for dataset_name, results in self.analysis_results.items():
             if dataset_name in ['jobs', 'skills', 'job_skills', 'positions']:
                 if not results.get('csv_exists', False):
-                    print(f"  ⚠ {dataset_name}: CSV file missing - {results.get('csv_file_path')}")
+                    print(f"  âš  {dataset_name}: CSV file missing - {results.get('csv_file_path')}")
                     issues_found = True
                 elif not results.get('sqlite_exists', False):
-                    print(f"  ⚠ {dataset_name}: SQLite table missing")
+                    print(f"  âš  {dataset_name}: SQLite table missing")
                     issues_found = True
                 elif results.get('row_count_difference', 0) != 0:
                     diff = results.get('row_count_difference', 0)
-                    print(f"  ⚠ {dataset_name}: Row count difference of {diff:+d} rows")
+                    print(f"  âš  {dataset_name}: Row count difference of {diff:+d} rows")
                     issues_found = True
                     
                 if results.get('missing_columns'):
-                    print(f"  ⚠ {dataset_name}: Missing columns from CSV: {results['missing_columns']}")
+                    print(f"  âš  {dataset_name}: Missing columns from CSV: {results['missing_columns']}")
                     issues_found = True
         
         if not issues_found:
-            print("  ✓ No major issues detected")
+            print("  âœ“ No major issues detected")
         
         print(f"\n{'='*80}")
 

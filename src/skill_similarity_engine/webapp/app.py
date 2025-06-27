@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flask Application for NAB Skills Intelligence Platform
 ======================================================
 
@@ -19,14 +19,16 @@ import csv
 import io
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, g, redirect, Response
+from flask import Flask, render_template, request, jsonify, g, redirect, url_for, Response
+import sys
+import tempfile
 
 # Import JobDisplayManager for standardised job display names
 try:
     from ..utils.display import JobDisplayManager, DisplayFormat
     DISPLAY_MANAGER_AVAILABLE = True
 except ImportError:
-    print("⚠️ JobDisplayManager not available - using fallback job titles")
+    print("âš ï¸ JobDisplayManager not available - using fallback job titles")
     DISPLAY_MANAGER_AVAILABLE = False
 
 def create_app(config=None):
@@ -713,14 +715,14 @@ def create_app(config=None):
                     'children': roots
                 }
                 tree_counts = count_tree_levels(virtual_root)
-                print(f"🌳 Tree built: {len(nodes)} total nodes, levels: {tree_counts}")
+                print(f"ðŸŒ³ Tree built: {len(nodes)} total nodes, levels: {tree_counts}")
                 return virtual_root
             elif len(roots) == 1:
                 tree_counts = count_tree_levels(roots[0])
-                print(f"🌳 Tree built: {len(nodes)} total nodes, levels: {tree_counts}")
+                print(f"ðŸŒ³ Tree built: {len(nodes)} total nodes, levels: {tree_counts}")
                 return roots[0]
             else:
-                print("❌ No valid root nodes found!")
+                print("âŒ No valid root nodes found!")
                 return None
         
         try:
@@ -763,11 +765,11 @@ def create_app(config=None):
             if region_filter: filters.append(f"region={region_filter}")
             filter_desc = f", filters=[{', '.join(filters)}]" if filters else ""
             
-            print(f"🔍 Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}{filter_desc}")
+            print(f"ðŸ" Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}{filter_desc}")
             
             tree_data = db.execute(tree_query, params).fetchall()
             
-            # 🎯 ORGANIZATIONAL FILTER DEBUGGING
+            # ðŸŽ ORGANIZATIONAL FILTER DEBUGGING
             if filters:
                 # Count results by level to detect additive behavior
                 level_counts = {}
@@ -782,29 +784,29 @@ def create_app(config=None):
                     if level == 0 and str(row['id']) not in root_jobs:
                         unexpected_roots.append(f"{row['id']}:{row['name'][:30]}")
                 
-                print(f"📊 Results by level: {level_counts}")
+                print(f"ðŸ" Results by level: {level_counts}")
                 
                 if unexpected_roots:
-                    print(f"⚠️  FILTER BUG DETECTED: Found {len(unexpected_roots)} unexpected root jobs:")
+                    print(f"âš ï¸ Found {len(unexpected_roots)} unexpected root jobs:")
                     for job in unexpected_roots[:5]:  # Show first 5
                         print(f"   - {job}")
                     if len(unexpected_roots) > 5:
                         print(f"   ... and {len(unexpected_roots) - 5} more")
-                    print("   🔧 This suggests organizational filters are being additive instead of restrictive")
+                    print("   ðŸ" This suggests organizational filters are being additive instead of restrictive")
                 else:
-                    print("✅ Organizational filters working correctly - no unexpected root jobs")
+                    print("âœ Organizational filters working correctly - no unexpected root jobs")
                 
                 # Additional validation: Check if Level 1 jobs match the organizational filter
                 if division_filter:
                     level_1_jobs = [row for row in tree_data if row['level'] == 1]
-                    print(f"🔍 Checking Level 1 jobs against Division filter '{division_filter}':")
+                    print(f"ðŸ" Checking Level 1 jobs against Division filter '{division_filter}':")
                     for job in level_1_jobs[:5]:  # Show first 5
                         job_id = str(job['id'])
                         # Check if this job exists in the specified division
                         division_check = db.execute("SELECT Division FROM positions WHERE JobProfileID = ?", (job_id,)).fetchall()
                         divisions = [d['Division'] for d in division_check] if division_check else ['No positions found']
                         matches_filter = division_filter in divisions
-                        status = "✅" if matches_filter else "❌"
+                        status = "âœ" if matches_filter else "âŒ"
                         print(f"   {status} {job_id}: {job['name'][:40]} -> Divisions: {divisions}")
                     if len(level_1_jobs) > 5:
                         print(f"   ... and {len(level_1_jobs) - 5} more Level 1 jobs")
@@ -814,7 +816,7 @@ def create_app(config=None):
                 for row in tree_data:
                     level = row['level']
                     level_counts[level] = level_counts.get(level, 0) + 1
-                print(f"📊 Results by level: {level_counts}")
+                print(f"ðŸ" Results by level: {level_counts}")
             
             # Convert to D3.js hierarchical format - use row index for unique IDs
             nodes = []
@@ -852,7 +854,7 @@ def create_app(config=None):
             nodes_without_parents = [node for node in nodes if node['level'] > 0 and not node['parent']]
             
             if orphaned:
-                print(f"⚠️  Found {len(orphaned)} orphaned nodes - tree structure may be broken")
+                print(f"âš ï¸ Found {len(orphaned)} orphaned nodes - tree structure may be broken")
             
             if nodes_without_parents:
                 # Clean approach: Simply remove orphaned nodes instead of trying to reconnect them
@@ -862,7 +864,7 @@ def create_app(config=None):
                 nodes = [node for node in nodes if node['job_id'] not in orphaned_job_ids]
                 nodes_after = len(nodes)
                 
-                print(f"🧹 Cleaned up: Removed {nodes_before - nodes_after} orphaned nodes")
+                print(f"ðŸ§¹ Cleaned up: Removed {nodes_before - nodes_after} orphaned nodes")
                 print(f"   Final result: {nodes_after} nodes (organizational filters applied cleanly)")
             
             tree_root = build_tree(nodes)
@@ -1033,7 +1035,7 @@ def create_app(config=None):
             'sample_pathways': [
                 {
                     'id': 'ra_to_ds',
-                    'name': 'Risk Analyst → Data Scientist',
+                    'name': 'Risk Analyst â†' Data Scientist',
                     'steps': [
                         {'job': 'Risk Analyst', 'family': 'Risk & Compliance', 'similarity': 100, 'timeframe': 'Current'},
                         {'job': 'Business Analyst', 'family': 'Customer Service & Sales', 'similarity': 78, 'timeframe': '6-12 months'},
@@ -1169,7 +1171,7 @@ def create_app(config=None):
             # If job IDs look like node_X, they should be mapped to actual JobProfileIDs
             # but for now, log the issue and continue
             if from_job_id.startswith('node_') or to_job_id.startswith('node_'):
-                print(f"⚠️  Received D3 node IDs instead of JobProfileIDs: {from_job_id} → {to_job_id}")
+                print(f"âš ï¸ Received D3 node IDs instead of JobProfileIDs: {from_job_id} â†' {to_job_id}")
                 print(f"   This suggests the JavaScript extractJobId function needs adjustment")
             
             # Calculate SkillType breakdown for skills to develop
@@ -1230,7 +1232,7 @@ def create_app(config=None):
                     actual_job_ids.append(job_id)
             
             if node_ids:
-                print(f"⚠️  Filtering out D3 node IDs from workforce analysis: {node_ids}")
+                print(f"âš ï¸ Filtering out D3 node IDs from workforce analysis: {node_ids}")
                 print(f"   Using actual JobProfileIDs only: {actual_job_ids}")
             
             if not actual_job_ids:
@@ -1528,11 +1530,7 @@ def create_app(config=None):
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f'NAB_Career_Pathways_{timestamp}.csv'
             
-            return Response(
-                output.getvalue(),
-                mimetype='text/csv',
-                headers={'Content-Disposition': f'attachment; filename={filename}'}
-            )
+            return url_for('static', filename=filename, _external=True)
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -1720,11 +1718,7 @@ def create_app(config=None):
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f'NAB_Skills_Analysis_{from_job_id}_to_{to_job_id}_{timestamp}.csv'
             
-            return Response(
-                output.getvalue(),
-                mimetype='text/csv',
-                headers={'Content-Disposition': f'attachment; filename={filename}'}
-            )
+            return url_for('static', filename=filename, _external=True)
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -1959,19 +1953,15 @@ def create_app(config=None):
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f'NAB_Workforce_Analysis_{timestamp}.csv'
             
-            return Response(
-                output.getvalue(),
-                mimetype='text/csv',
-                headers={'Content-Disposition': f'attachment; filename={filename}'}
-            )
+            return url_for('static', filename=filename, _external=True)
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
-    # White Paper Generation Routes
-    @app.route('/white-papers')
-    def white_papers():
-        """White paper generation interface."""
+    # Career Transition Analysis Generator Routes
+    @app.route('/career-analysis')
+    def career_analysis():
+        """Career Transition Analysis Generator interface."""
         try:
             # Get sample data for the interface
             sample_jobs = get_sample_jobs(20)
@@ -1984,22 +1974,22 @@ def create_app(config=None):
             locations_query = "SELECT DISTINCT Location FROM positions WHERE Location IS NOT NULL ORDER BY Location"
             locations = [row[0] for row in db.execute(locations_query).fetchall()]
             
-            return render_template('white_papers.html', 
+            return render_template('career_analysis.html', 
                                  sample_jobs=sample_jobs,
                                  divisions=divisions,
                                  locations=locations)
         except Exception as e:
-            print(f"Error loading white papers page: {e}")
-            return render_template('white_papers.html', 
+            print(f"Error loading Career Transition Analysiss page: {e}")
+            return render_template('career_analysis.html', 
                                  sample_jobs=[],
                                  divisions=[],
                                  locations=[])
 
-    @app.route('/api/generate-whitepaper', methods=['POST'])
-    def api_generate_whitepaper():
-        """Generate white paper based on user selections."""
+    @app.route('/api/generate-career-analysis', methods=['POST'])
+    def api_generate_CAREER_ANALYSIS():
+        """Generate Career Report based on user selections."""
         try:
-            from .whitepaper.generator import WhitePaperGenerator
+            from .CAREER_ANALYSIS.generator import CareerAnalysisGenerator
             
             data = request.get_json()
             if not data:
@@ -2011,9 +2001,9 @@ def create_app(config=None):
             
             # Initialize generator
             db = get_db()
-            generator = WhitePaperGenerator(db)
+            generator = CareerAnalysisGenerator(db)
             
-            # Generate white paper based on selections
+            # Generate Career Report based on selections
             result = generator.generate(
                 job_from=data['job_from'],
                 job_to=data.get('job_to'),  # Optional for "top 3" mode
@@ -2026,32 +2016,29 @@ def create_app(config=None):
             return jsonify(result)
             
         except Exception as e:
-            print(f"Error generating white paper: {e}")
+            print(f"Error generating Career Transition Analysis: {e}")
             return jsonify({'error': str(e), 'details': 'Check server logs for more information'}), 500
 
-    @app.route('/api/whitepaper-preview', methods=['POST'])
-    def api_whitepaper_preview():
-        """Generate a preview of white paper content with actual formatted text."""
+    @app.route('/api/career-analysis-preview', methods=['POST'])
+    def api_career_analysis_preview():
+        """Generate a preview using the proven test_career_analysis.py orchestrator."""
+        import subprocess
+        import sys
+        import os
+        import json
+        from pathlib import Path
+        
         try:
-            print("🔍 Starting whitepaper preview generation...")
-            
-            # Import with better error handling
-            try:
-                from .whitepaper.generator import WhitePaperGenerator
-                print("✅ Successfully imported WhitePaperGenerator")
-            except ImportError as e:
-                print(f"❌ Failed to import WhitePaperGenerator: {e}")
-                return jsonify({'error': 'WhitePaper module not available', 'details': str(e)}), 500
+            print("ðŸ Starting career analysis preview using test_career_analysis.py orchestrator...")
             
             data = request.get_json()
             if not data or 'job_from' not in data:
                 return jsonify({'error': 'job_from is required'}), 400
             
-            print(f"📋 Processing request for job: {data['job_from']}")
+            print(f"ðŸ“‹ Processing request for job: {data['job_from']}")
             
+            # Get job details for display
             db = get_db()
-            
-            # Get job details first for better context
             job_details = db.execute("""
                 SELECT JobProfile, Job, ProfileTitleSuffix, ManagementLevel, JobFunction
                 FROM jobs WHERE JobProfileID = ?
@@ -2066,172 +2053,218 @@ def create_app(config=None):
             if job_details['ManagementLevel']:
                 job_title += f" ({job_details['ManagementLevel']})"
             
-            print(f"✅ Found job: {job_title}")
+            print(f"âœ… Found job: {job_title}")
             
-            # Try to create generator
-            try:
-                generator = WhitePaperGenerator(db)
-                print("✅ Successfully created WhitePaperGenerator")
-            except Exception as e:
-                print(f"❌ Failed to create generator: {e}")
-                return jsonify({'error': 'Failed to initialize generator', 'details': str(e)}), 500
+            # Build command arguments from form data - USE --copy TO GET ALL 5 SECTIONS
+            script_path = Path(__file__).parent / 'career_analysis' / 'test_career_analysis.py'
             
-            # Try analysis
-            try:
-                # Extract similarity filters
-                filters = data.get('filters', {})
-                similarity_min = filters.get('similarity_min', 0.4)  # Default 40%
-                similarity_max = filters.get('similarity_max', 0.9)  # Default 90%
+            cmd = [
+                sys.executable, str(script_path),
+                '--job-from', data['job_from'],
+                '--mode', data.get('analysis_mode', 'top_matches'),
+                '--similarity-min', str(data.get('similarity_min', 40)),
+                '--similarity-max', str(data.get('similarity_max', 90)),
+                '--top-n', str(data.get('top_n', 3)),
+                '--copy'  # Generate ALL 5 sections cleanly like Word document
+            ]
+            
+            # Add target job if specified
+            if data.get('job_to'):
+                cmd.extend(['--job-to', data['job_to']])
+            
+            # Add tie-breaking options
+            tie_breaking = data.get('tie_breaking_options', {})
+            if tie_breaking.get('same_function_priority'):
+                cmd.append('--same-function-priority')
+            if tie_breaking.get('career_progression_priority'):
+                cmd.append('--career-progression-priority')
+            if tie_breaking.get('minimal_level_jump'):
+                cmd.append('--minimal-level-jump')
+            if tie_breaking.get('skills_overlap_detail'):
+                cmd.append('--skills-overlap-detail')
+            
+            print(f"ðŸš€ Running command: {' '.join(cmd)}")
+            
+            # Execute the command with UTF-8 encoding support
+            env = os.environ.copy()
+            env['PYTHONIOENCODING'] = 'utf-8'
+            env['PYTHONLEGACYWINDOWSSTDIO'] = '0'  # Force UTF-8 mode on Windows
+            
+            # On Windows, also set the console code page for Unicode support
+            startup_info = None
+            if os.name == 'nt':  # Windows
+                import subprocess
+                startup_info = subprocess.STARTUPINFO()
+                startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startup_info.wShowWindow = subprocess.SW_HIDE
                 
-                print(f"📊 Using similarity range: {similarity_min*100:.0f}% - {similarity_max*100:.0f}%")
-                
-                analysis_data = generator.analyzer.analyze_transition(
-                    job_from=data['job_from'],
-                    job_to=data.get('job_to'),
-                    scenario=data.get('scenario', 'skills_gap_analysis'),
-                    filters=filters
-                )
-                print(f"✅ Analysis completed - Similarity: {analysis_data.get('avg_similarity', 0):.2f}")
-            except Exception as e:
-                print(f"❌ Analysis failed: {e}")
-                # Return a simplified preview with mock data
-                return jsonify({
-                    'success': True,
-                    'narrative_type': 'development_required',
-                    'content': {
-                        'executive_summary': {
-                            'opening': f'Analysis for {job_title} indicates moderate transition opportunities with structured development requirements.',
-                            'recommendation': 'A comprehensive assessment and development plan is recommended for successful career transition.',
-                            'confidence_statement': 'Medium confidence level based on available data and skill transferability analysis.'
-                        },
-                        'context_analysis': {
-                            'workforce_impact': f'Current role: {job_title} within {job_details["JobFunction"]} function.',
-                            'business_context': 'Strategic career development initiative to enhance internal mobility and skill utilization.'
-                        },
-                        'opportunity_analysis': {
-                            'pathway_quality': 'Multiple career pathways identified with varying similarity scores and development requirements.',
-                            'skills_alignment': 'Skills analysis reveals transferable competencies and areas requiring focused development.'
-                        },
-                        'skills_development': {
-                            'development_summary': 'Moderate skill development requirements with emphasis on technical and functional competencies.',
-                            'development_plan': 'Structured 12-16 week development program focusing on key skill areas and practical application.'
-                        },
-                        'implementation_roadmap': {
-                            'timeline': '12-16 week transition timeline with assessment, planning, development, and validation phases.',
-                            'success_factors': 'Key success factors include manager support, structured learning, and regular progress reviews.'
-                        }
-                    },
-                    'analysis_data': {'avg_similarity': 0.5, 'confidence_level': 'Medium', 'pathway_count': 3, 'colleague_count': 1},
-                    'similarity_score': 0.5,
-                    'confidence_level': 'Medium',
-                    'pathway_count': 3,
-                    'colleague_count': 1,
-                    'job_title': job_title,
-                    'scenario': data.get('scenario', 'skills_gap_analysis'),
-                    'audience': data.get('audience', 'business_leaders')
-                })
+                # Try to set code page to UTF-8 before running the command
+                try:
+                    subprocess.run(['chcp', '65001'], shell=True, capture_output=True, check=False)
+                except:
+                    pass  # Ignore errors if chcp fails
             
-            # Determine narrative type
-            narrative_type = generator.thresholds.get_narrative_type(
-                analysis_data['avg_similarity']
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60,  # 60 second timeout
+                cwd=Path(__file__).parent / 'career_analysis',
+                env=env,
+                encoding='utf-8',
+                errors='replace',  # Replace problematic characters instead of failing
+                startupinfo=startup_info
             )
-            print(f"✅ Narrative type: {narrative_type}")
             
-            # Try to load templates and generate content
-            try:
-                narrative_template = generator._load_template(f'narratives/{narrative_type}.yaml')
-                audience_template = generator._load_template(f'audiences/{data.get("audience", "business_leaders")}.yaml')
-                scenario_template = generator._load_template(f'scenarios/{data.get("scenario", "skills_gap_analysis")}.yaml')
+            if result.returncode != 0:
+                print(f"âŒ Command failed with exit code {result.returncode}")
+                print(f"âŒ STDERR: {result.stderr}")
+                return jsonify({
+                    'error': 'Analysis generation failed',
+                    'details': result.stderr,
+                    'exit_code': result.returncode
+                }), 500
+            
+            # Parse the complete output to extract all 5 sections
+            output_lines = result.stdout.split('\n')
+            
+            # Extract key metrics from output
+            generated_count = 0
+            similarity_scores = []
+            job_opportunities = []
+            
+            for line in output_lines:
+                if "pathway analysis for" in line.lower() and "with" in line.lower() and "pathways" in line.lower():
+                    # Extract count from lines like "Analysis includes 3 career pathways"
+                    try:
+                        import re
+                        match = re.search(r'(\d+) (?:career )?pathways?', line)
+                        if match:
+                            generated_count = int(match.group(1))
+                    except:
+                        pass
                 
-                print(f"📋 Templates loaded - Narrative: {bool(narrative_template)}, Audience: {bool(audience_template)}, Scenario: {bool(scenario_template)}")
-                
-                # Generate personalized content
-                content = generator._generate_content(
-                    narrative_template, audience_template, scenario_template, analysis_data
-                )
-                
-                # If content generation succeeded but has template variables, do manual replacement
-                if content:
-                    # Check for unreplaced variables more thoroughly
-                    content_str = str(content)
-                    if '{' in content_str and '}' in content_str:
-                        print("⚠️ Content has unreplaced variables, doing manual replacement...")
-                        print(f"🔍 Sample unreplaced content: {content_str[:200]}...")
-                        content = _manual_template_replacement(content, analysis_data, job_details)
-                        print("✅ Manual replacement completed")
-                    else:
-                        print("✅ Content appears to be properly personalized")
-                
-                print("✅ Content generation completed")
-            except Exception as e:
-                print(f"⚠️ Template/content generation failed, using fallback: {e}")
-                import traceback
-                traceback.print_exc()
-                # Generate content based on analysis mode
-                is_discovery_mode = analysis_data.get('job_to') is None
-                top_matches = analysis_data.get('top_matches', [])
-                
-                if is_discovery_mode and top_matches:
-                    # Discovery mode - mention specific matched jobs
-                    matched_jobs_text = ', '.join([match.get('job_title', 'Career Opportunity') for match in top_matches[:3]])
-                    opening_text = f'Discovery analysis for {job_title} reveals {len(top_matches)} high-potential career pathways with {analysis_data.get("avg_similarity", 0)*100:.1f}% average similarity. Top matched opportunities include: {matched_jobs_text}.'
-                    context_text = f'This discovery analysis explores multiple career transition options for colleagues currently in {job_title} positions, identifying {len(top_matches)} viable pathways across different functions and divisions.'
-                    pathway_text = f'Discovery analysis identified {len(top_matches)} primary career opportunities: {matched_jobs_text}. These pathways offer {analysis_data.get("avg_similarity", 0)*100:.1f}% average skill similarity with {_get_opportunity_descriptor(analysis_data.get("avg_similarity", 0))} transition prospects.'
-                else:
-                    # Specific transition mode
-                    opening_text = f'Analysis for {job_title} indicates career transition opportunities with {analysis_data.get("avg_similarity", 0)*100:.1f}% skill similarity and {analysis_data.get("pathway_count", 1)} identified pathway(s).'
-                    context_text = f'Analysis covers {analysis_data.get("colleague_count", 1)} position(s) in {job_details["JobFunction"]} function with focus on career development opportunities.'
-                    pathway_text = f'{analysis_data.get("pathway_count", 1)} career pathway(s) identified with {analysis_data.get("avg_similarity", 0)*100:.1f}% average similarity score indicating {_get_opportunity_descriptor(analysis_data.get("avg_similarity", 0))} transition prospects.'
-                
-                # Fallback content
-                content = {
-                    'executive_summary': {
-                        'opening': opening_text,
-                        'recommendation': f'Proceed with structured transition planning over {_get_timeline_estimate(analysis_data.get("avg_similarity", 0))} weeks including skills assessment and development.',
-                        'confidence_statement': f'{analysis_data.get("confidence_level", "Medium")} confidence in successful transition outcomes based on comprehensive analysis.'
-                    },
-                    'context_analysis': {
-                        'workforce_impact': context_text,
-                        'business_context': f'Strategic workforce planning initiative for {job_title} role to optimize talent deployment and enhance internal mobility.'
-                    },
-                    'opportunity_analysis': {
-                        'pathway_quality': pathway_text,
-                        'skills_alignment': f'Skills analysis reveals {_get_skills_overlap_estimate(analysis_data.get("avg_similarity", 0))}% transferable competencies with focused development requirements in complementary skill areas.'
-                    },
-                    'skills_development': {
-                        'development_summary': f'{_get_development_intensity(analysis_data.get("avg_similarity", 0))} skill development requirements with emphasis on technical and functional competencies aligned with target roles.',
-                        'development_plan': f'Structured {_get_timeline_estimate(analysis_data.get("avg_similarity", 0))} week development program focusing on key skill gaps and practical application with {_get_support_level(analysis_data.get("avg_similarity", 0))} organisational support.'
-                    },
-                    'implementation_roadmap': {
-                        'timeline': f'{_get_timeline_estimate(analysis_data.get("avg_similarity", 0))} week transition timeline with assessment (weeks 1-2), planning (weeks 3-4), development (weeks 5-12), and validation phases.',
-                        'success_factors': 'Key success factors include strong skill foundation, manager engagement, structured learning approach, and regular progress monitoring with milestone-based assessments.'
+                # Extract similarity scores
+                if "similarity" in line.lower() and "%" in line:
+                    try:
+                        import re
+                        score_match = re.search(r'(\d+\.?\d*)%', line)
+                        if score_match:
+                            similarity_scores.append(float(score_match.group(1)))
+                    except:
+                        pass
+            
+            # Calculate average similarity
+            avg_similarity = sum(similarity_scores) / len(similarity_scores) if similarity_scores else 50.0
+            
+            # Parse the complete output into sections matching Word document structure
+            sections = {}
+            current_section = None
+            current_content = []
+            
+            for line in output_lines:
+                # Look for section headers that match our 5 sections
+                if line.startswith('## Executive Summary'):
+                    if current_section and current_content:
+                        sections[current_section] = '\n'.join(current_content)
+                    current_section = 'executive_summary'
+                    current_content = []
+                elif line.startswith('## Current Role Context'):
+                    if current_section and current_content:
+                        sections[current_section] = '\n'.join(current_content)
+                    current_section = 'current_role_context'
+                    current_content = []
+                elif line.startswith('## Pathway Analysis'):
+                    if current_section and current_content:
+                        sections[current_section] = '\n'.join(current_content)
+                    current_section = 'pathway_analysis'
+                    current_content = []
+                elif line.startswith('## Strategic Recommendations'):
+                    if current_section and current_content:
+                        sections[current_section] = '\n'.join(current_content)
+                    current_section = 'strategic_recommendations'
+                    current_content = []
+                elif line.startswith('## Conclusion'):
+                    if current_section and current_content:
+                        sections[current_section] = '\n'.join(current_content)
+                    current_section = 'conclusion'
+                    current_content = []
+                elif current_section and line.strip() and not line.startswith('End of Career'):
+                    current_content.append(line)
+            
+            # Add final section
+            if current_section and current_content:
+                sections[current_section] = '\n'.join(current_content)
+            
+            # Create structured preview content matching Word document
+            preview_content = {}
+            
+            # Map sections to proper structure
+            if 'executive_summary' in sections:
+                preview_content['executive_summary'] = {
+                    'title': 'Executive Summary',
+                    'content': sections['executive_summary']
+                }
+            
+            if 'current_role_context' in sections:
+                preview_content['current_role_context'] = {
+                    'title': 'Current Role Context',
+                    'content': sections['current_role_context']
+                }
+            
+            if 'pathway_analysis' in sections:
+                preview_content['pathway_analysis'] = {
+                    'title': f'Pathway Analysis: Top {generated_count or 3} Strategic Opportunities',
+                    'content': sections['pathway_analysis']
+                }
+            
+            if 'strategic_recommendations' in sections:
+                preview_content['strategic_recommendations'] = {
+                    'title': 'Strategic Recommendations',
+                    'content': sections['strategic_recommendations']
+                }
+            
+            if 'conclusion' in sections:
+                preview_content['conclusion'] = {
+                    'title': 'Conclusion',
+                    'content': sections['conclusion']
+                }
+            
+            # If no sections were parsed, provide fallback
+            if not preview_content:
+                preview_content = {
+                    'complete_analysis': {
+                        'title': 'Complete Career Transition Analysis',
+                        'content': result.stdout  # Show raw output if parsing failed
                     }
                 }
             
             return jsonify({
                 'success': True,
-                'narrative_type': narrative_type,
-                'content': content,
-                'analysis_data': analysis_data,
-                'similarity_score': analysis_data['avg_similarity'],
-                'confidence_level': analysis_data['confidence_level'],
-                'pathway_count': analysis_data['pathway_count'],
-                'colleague_count': analysis_data['colleague_count'],
                 'job_title': job_title,
-                'scenario': data.get('scenario', 'skills_gap_analysis'),
-                'audience': data.get('audience', 'business_leaders'),
-                'similarity_range': f"{similarity_min*100:.0f}%-{similarity_max*100:.0f}%"
+                'analysis_mode': data.get('analysis_mode', 'top_matches'),
+                'pathway_count': generated_count or 3,
+                'similarity_score': avg_similarity / 100,
+                'similarity_range': f"{data.get('similarity_min', 40)}%-{data.get('similarity_max', 90)}%",
+                'confidence_level': 'High' if avg_similarity > 60 else 'Medium' if avg_similarity > 45 else 'Developing',
+                'content': preview_content,
+                'section_count': len(preview_content),
+                'raw_output': result.stdout,  # Include for debugging
+                'tie_breaking_applied': any(tie_breaking.values()) if tie_breaking else False
             })
             
+        except subprocess.TimeoutExpired:
+            print("âŒ Command timed out after 60 seconds")
+            return jsonify({'error': 'Analysis generation timed out', 'details': 'Process exceeded 60 second limit'}), 500
         except Exception as e:
-            print(f"❌ Error generating white paper preview: {e}")
+            print(f"âŒ Error in career analysis preview: {e}")
             import traceback
             traceback.print_exc()
-            return jsonify({'error': str(e), 'details': 'Check server logs for more information'}), 500
+            return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
-    @app.route('/api/whitepaper-jobs')
-    def api_whitepaper_jobs():
-        """Get jobs for white paper dropdowns with search capability."""
+    @app.route('/api/career-analysis-jobs')
+    def api_career_analysis_jobs():
+        """Get jobs for Career Transition Analysis dropdowns with search capability."""
         try:
             search_term = request.args.get('search', '')
             limit = int(request.args.get('limit', 50))
@@ -2299,10 +2332,10 @@ def create_app(config=None):
             })
             
         except Exception as e:
-            print(f"Error getting jobs for white paper: {e}")
+            print(f"Error getting jobs for Career Transition Analysis: {e}")
             return jsonify({'error': str(e)}), 500
 
-    # Helper functions for white paper content generation
+    # Helper functions for Career Transition Analysis content generation
     def _get_timeline_estimate(similarity_score):
         """Get timeline estimate based on similarity score."""
         if similarity_score >= 0.8:
@@ -2403,12 +2436,12 @@ if __name__ == '__main__':
     
     # Check if database exists
     if not app.config['DATABASE_PATH'].exists():
-        print(f"⚠️  Database not found at: {app.config['DATABASE_PATH']}")
+        print(f"âš ï¸  Database not found at: {app.config['DATABASE_PATH']}")
         print("   Run the CLI to generate business context database first.")
         exit(1)
     
-    print(f"✅ Database found at: {app.config['DATABASE_PATH']}")
-    print("🚀 Starting Flask development server...")
+    print(f"âœ… Database found at: {app.config['DATABASE_PATH']}")
+    print("ðŸš€ Starting Flask development server...")
     print("   Available routes:")
     print("   - http://localhost:5000/ (Homepage)")
     print("   - http://localhost:5000/components (Component Library)")

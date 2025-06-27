@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Data Consolidation Test Script
 
@@ -57,13 +57,13 @@ class DataConsolidationTester:
         self.new_skill_file = self.data_root / "skills_library" / "lightcast_skills_comprehensive.csv"
         self.mapping_file = self.data_root / "input_data" / "job_skill_mapping.csv"
         
-        print(f"🔍 Data Consolidation Test Suite")
-        print(f"📁 Data root: {self.data_root}")
+        print(f"ðŸ” Data Consolidation Test Suite")
+        print(f"ðŸ“ Data root: {self.data_root}")
         print(f"=" * 60)
     
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all consolidation tests."""
-        print("\n🚀 Starting comprehensive data consolidation tests...\n")
+        print("\nðŸš€ Starting comprehensive data consolidation tests...\n")
         
         # Test 1: File existence and basic stats
         self.test_file_existence()
@@ -90,7 +90,7 @@ class DataConsolidationTester:
     
     def test_file_existence(self):
         """Test that all required files exist and are readable."""
-        print("📋 Test 1: File Existence and Basic Statistics")
+        print("ðŸ“‹ Test 1: File Existence and Basic Statistics")
         print("-" * 50)
         
         files_info = {}
@@ -112,7 +112,7 @@ class DataConsolidationTester:
                         "columns": list(df.columns),
                         "readable": True
                     }
-                    print(f"✅ {name}: {size_mb:.2f} MB, {len(df.columns)} columns")
+                    print(f"âœ… {name}: {size_mb:.2f} MB, {len(df.columns)} columns")
                 except Exception as e:
                     files_info[name] = {
                         "exists": True,
@@ -120,17 +120,17 @@ class DataConsolidationTester:
                         "readable": False,
                         "error": str(e)
                     }
-                    print(f"❌ {name}: File exists but not readable - {e}")
+                    print(f"âŒ {name}: File exists but not readable - {e}")
             else:
                 files_info[name] = {"exists": False}
-                print(f"❌ {name}: File not found at {file_path}")
+                print(f"âŒ {name}: File not found at {file_path}")
         
         self.results["file_existence"] = files_info
         print()
     
     def test_job_data_comparison(self):
         """Compare old and new job data sources."""
-        print("💼 Test 2: Job Data Comparison")
+        print("ðŸ’¼ Test 2: Job Data Comparison")
         print("-" * 50)
         
         try:
@@ -138,11 +138,11 @@ class DataConsolidationTester:
             old_jobs = pd.read_csv(self.old_job_file)
             new_jobs = pd.read_csv(self.new_job_file)
             
-            print(f"📊 Old job data: {len(old_jobs):,} rows, {len(old_jobs.columns)} columns")
-            print(f"📊 New job data: {len(new_jobs):,} rows, {len(new_jobs.columns)} columns")
+            print(f"ðŸ“Š Old job data: {len(old_jobs):,} rows, {len(old_jobs.columns)} columns")
+            print(f"ðŸ“Š New job data: {len(new_jobs):,} rows, {len(new_jobs.columns)} columns")
             
             # Schema comparison
-            print(f"\n🔍 Schema Comparison:")
+            print(f"\nðŸ” Schema Comparison:")
             print(f"Old columns: {list(old_jobs.columns)}")
             print(f"New columns: {list(new_jobs.columns)}")
             
@@ -163,7 +163,7 @@ class DataConsolidationTester:
             old_only = old_job_ids - new_job_ids
             new_only = new_job_ids - old_job_ids
             
-            print(f"\n📈 Job ID Coverage Analysis:")
+            print(f"\nðŸ“ˆ Job ID Coverage Analysis:")
             print(f"   Common job IDs: {len(common_ids):,}")
             print(f"   Only in old data: {len(old_only):,}")
             print(f"   Only in new data: {len(new_only):,}")
@@ -178,12 +178,12 @@ class DataConsolidationTester:
             old_duplicates = old_jobs.duplicated(subset=['JobProfileID']).sum() if 'JobProfileID' in old_jobs.columns else 0
             new_duplicates = new_jobs.duplicated(subset=['JobProfileID']).sum() if 'JobProfileID' in new_jobs.columns else 0
             
-            print(f"\n🔍 Duplicate Analysis:")
+            print(f"\nðŸ” Duplicate Analysis:")
             print(f"   Old data duplicates: {old_duplicates}")
             print(f"   New data duplicates: {new_duplicates}")
             
             # Null value analysis
-            print(f"\n🕳️  Null Value Analysis:")
+            print(f"\nðŸ•³ï¸  Null Value Analysis:")
             for col in ['JobProfileID', 'RoleSet', 'JobProfile', 'Job']:
                 if col in old_jobs.columns:
                     nulls = old_jobs[col].isnull().sum()
@@ -204,14 +204,14 @@ class DataConsolidationTester:
             }
             
         except Exception as e:
-            print(f"❌ Error in job data comparison: {e}")
+            print(f"âŒ Error in job data comparison: {e}")
             self.results["job_comparison"] = {"error": str(e)}
         
         print()
     
     def test_skill_data_comparison(self):
         """Compare old and new skill data sources."""
-        print("🎯 Test 3: Skill Data Comparison")
+        print("ðŸŽ¯ Test 3: Skill Data Comparison")
         print("-" * 50)
         
         try:
@@ -219,11 +219,11 @@ class DataConsolidationTester:
             old_skills = pd.read_csv(self.old_skill_file)
             new_skills = pd.read_csv(self.new_skill_file, low_memory=False)  # Large file
             
-            print(f"📊 Old skill data: {len(old_skills):,} rows, {len(old_skills.columns)} columns")
-            print(f"📊 New skill data: {len(new_skills):,} rows, {len(new_skills.columns)} columns")
+            print(f"ðŸ“Š Old skill data: {len(old_skills):,} rows, {len(old_skills.columns)} columns")
+            print(f"ðŸ“Š New skill data: {len(new_skills):,} rows, {len(new_skills.columns)} columns")
             
             # Schema comparison
-            print(f"\n🔍 Schema Comparison:")
+            print(f"\nðŸ” Schema Comparison:")
             print(f"Old columns: {list(old_skills.columns)}")
             print(f"New columns: {list(new_skills.columns)}")
             
@@ -244,7 +244,7 @@ class DataConsolidationTester:
             old_only = old_skill_ids - new_skill_ids
             new_only = new_skill_ids - old_skill_ids
             
-            print(f"\n📈 Skill ID Coverage Analysis:")
+            print(f"\nðŸ“ˆ Skill ID Coverage Analysis:")
             print(f"   Common skill IDs: {len(common_ids):,}")
             print(f"   Only in old data: {len(old_only):,}")
             print(f"   Only in new data: {len(new_only):,}")
@@ -259,12 +259,12 @@ class DataConsolidationTester:
             old_duplicates = old_skills.duplicated(subset=['Skill_ID']).sum() if 'Skill_ID' in old_skills.columns else 0
             new_duplicates = new_skills.duplicated(subset=['skill_id']).sum() if 'skill_id' in new_skills.columns else 0
             
-            print(f"\n🔍 Duplicate Analysis:")
+            print(f"\nðŸ” Duplicate Analysis:")
             print(f"   Old data duplicates: {old_duplicates}")
             print(f"   New data duplicates: {new_duplicates}")
             
             # Skill type comparison
-            print(f"\n🏷️  Skill Type Analysis:")
+            print(f"\nðŸ·ï¸  Skill Type Analysis:")
             if 'SkillType' in old_skills.columns:
                 old_types = old_skills['SkillType'].value_counts()
                 print(f"   Old skill types: {dict(old_types)}")
@@ -274,7 +274,7 @@ class DataConsolidationTester:
                 print(f"   New skill types: {dict(new_types.head(10))}")  # Top 10 due to potential size
             
             # Null value analysis
-            print(f"\n🕳️  Null Value Analysis:")
+            print(f"\nðŸ•³ï¸  Null Value Analysis:")
             for col in ['Skill_ID', 'Skill_Name', 'skill_id', 'name']:
                 if col in old_skills.columns:
                     nulls = old_skills[col].isnull().sum()
@@ -295,20 +295,20 @@ class DataConsolidationTester:
             }
             
         except Exception as e:
-            print(f"❌ Error in skill data comparison: {e}")
+            print(f"âŒ Error in skill data comparison: {e}")
             self.results["skill_comparison"] = {"error": str(e)}
         
         print()
     
     def test_mapping_validation(self):
         """Validate job-skill mapping against both old and new data sources."""
-        print("🔗 Test 4: Job-Skill Mapping Validation")
+        print("ðŸ”— Test 4: Job-Skill Mapping Validation")
         print("-" * 50)
         
         try:
             # Load mapping file
             mapping = pd.read_csv(self.mapping_file)
-            print(f"📊 Job-skill mappings: {len(mapping):,} rows")
+            print(f"ðŸ“Š Job-skill mappings: {len(mapping):,} rows")
             
             # Load data sources for validation
             old_jobs = pd.read_csv(self.old_job_file)
@@ -320,7 +320,7 @@ class DataConsolidationTester:
             mapping_job_ids = set(mapping['JobProfileID'].dropna().astype(str))
             mapping_skill_ids = set(mapping['Skill_ID'].dropna().astype(str))
             
-            print(f"📈 Mapping Coverage:")
+            print(f"ðŸ“ˆ Mapping Coverage:")
             print(f"   Unique jobs in mapping: {len(mapping_job_ids):,}")
             print(f"   Unique skills in mapping: {len(mapping_skill_ids):,}")
             
@@ -328,7 +328,7 @@ class DataConsolidationTester:
             old_job_ids = set(old_jobs['JobProfileID'].dropna().astype(str)) if 'JobProfileID' in old_jobs.columns else set()
             new_job_ids = set(new_jobs['JobProfileID'].dropna().astype(str)) if 'JobProfileID' in new_jobs.columns else set()
             
-            print(f"\n🎯 Job ID Validation:")
+            print(f"\nðŸŽ¯ Job ID Validation:")
             old_job_coverage = len(mapping_job_ids & old_job_ids) / len(mapping_job_ids) * 100 if mapping_job_ids else 0
             new_job_coverage = len(mapping_job_ids & new_job_ids) / len(mapping_job_ids) * 100 if mapping_job_ids else 0
             
@@ -350,7 +350,7 @@ class DataConsolidationTester:
             old_skill_ids = set(old_skills['Skill_ID'].dropna().astype(str)) if 'Skill_ID' in old_skills.columns else set()
             new_skill_ids = set(new_skills['skill_id'].dropna().astype(str)) if 'skill_id' in new_skills.columns else set()
             
-            print(f"\n🎯 Skill ID Validation:")
+            print(f"\nðŸŽ¯ Skill ID Validation:")
             old_skill_coverage = len(mapping_skill_ids & old_skill_ids) / len(mapping_skill_ids) * 100 if mapping_skill_ids else 0
             new_skill_coverage = len(mapping_skill_ids & new_skill_ids) / len(mapping_skill_ids) * 100 if mapping_skill_ids else 0
             
@@ -370,7 +370,7 @@ class DataConsolidationTester:
             
             # Duplicate analysis in mapping
             mapping_duplicates = mapping.duplicated(subset=['JobProfileID', 'Skill_ID']).sum()
-            print(f"\n🔍 Mapping Quality:")
+            print(f"\nðŸ” Mapping Quality:")
             print(f"   Duplicate mappings: {mapping_duplicates}")
             
             # Null analysis
@@ -393,14 +393,14 @@ class DataConsolidationTester:
             }
             
         except Exception as e:
-            print(f"❌ Error in mapping validation: {e}")
+            print(f"âŒ Error in mapping validation: {e}")
             self.results["mapping_validation"] = {"error": str(e)}
         
         print()
     
     def test_data_quality(self):
         """Test data quality issues that could affect the consolidation."""
-        print("🔬 Test 5: Data Quality Analysis")
+        print("ðŸ”¬ Test 5: Data Quality Analysis")
         print("-" * 50)
         
         quality_issues = {}
@@ -458,23 +458,23 @@ class DataConsolidationTester:
                 quality_issues[name] = issues
                 
                 if issues:
-                    print(f"⚠️  {name}: {len(issues)} quality issues found")
+                    print(f"âš ï¸  {name}: {len(issues)} quality issues found")
                     for issue in issues:
-                        print(f"     • {issue}")
+                        print(f"     â€¢ {issue}")
                 else:
-                    print(f"✅ {name}: No quality issues detected")
+                    print(f"âœ… {name}: No quality issues detected")
             
             self.results["data_quality"] = quality_issues
             
         except Exception as e:
-            print(f"❌ Error in data quality analysis: {e}")
+            print(f"âŒ Error in data quality analysis: {e}")
             self.results["data_quality"] = {"error": str(e)}
         
         print()
     
     def test_performance_implications(self):
         """Test performance implications of using larger comprehensive datasets."""
-        print("⚡ Test 6: Performance Implications")
+        print("âš¡ Test 6: Performance Implications")
         print("-" * 50)
         
         try:
@@ -503,7 +503,7 @@ class DataConsolidationTester:
                         "columns": len(df.columns)
                     }
                     
-                    print(f"📊 {name}:")
+                    print(f"ðŸ“Š {name}:")
                     print(f"     Load time: {load_time:.3f} seconds")
                     print(f"     Memory usage: {memory_usage:.2f} MB")
                     print(f"     Rows/cols: {len(df):,} / {len(df.columns)}")
@@ -518,7 +518,7 @@ class DataConsolidationTester:
                 new_memory = performance_results["new_skills"]["memory_usage_mb"]
                 memory_increase = ((new_memory - old_memory) / old_memory * 100) if old_memory > 0 else 0
                 
-                print(f"\n📈 Performance Impact (Skills):")
+                print(f"\nðŸ“ˆ Performance Impact (Skills):")
                 print(f"     Load time increase: {time_increase:+.1f}%")
                 print(f"     Memory usage increase: {memory_increase:+.1f}%")
             
@@ -531,21 +531,21 @@ class DataConsolidationTester:
                 new_memory = performance_results["new_jobs"]["memory_usage_mb"]
                 memory_increase = ((new_memory - old_memory) / old_memory * 100) if old_memory > 0 else 0
                 
-                print(f"\n📈 Performance Impact (Jobs):")
+                print(f"\nðŸ“ˆ Performance Impact (Jobs):")
                 print(f"     Load time increase: {time_increase:+.1f}%")
                 print(f"     Memory usage increase: {memory_increase:+.1f}%")
             
             self.results["performance"] = performance_results
             
         except Exception as e:
-            print(f"❌ Error in performance analysis: {e}")
+            print(f"âŒ Error in performance analysis: {e}")
             self.results["performance"] = {"error": str(e)}
         
         print()
     
     def generate_summary_report(self):
         """Generate a comprehensive summary report."""
-        print("📋 CONSOLIDATION TEST SUMMARY REPORT")
+        print("ðŸ“‹ CONSOLIDATION TEST SUMMARY REPORT")
         print("=" * 60)
         
         # Overall assessment
@@ -589,43 +589,43 @@ class DataConsolidationTester:
                     warnings.extend([f"{dataset}: {issue}" for issue in issues])
         
         # Overall recommendation
-        print(f"\n🎯 OVERALL ASSESSMENT:")
+        print(f"\nðŸŽ¯ OVERALL ASSESSMENT:")
         
         if not issues_found and not warnings:
-            print("✅ CONSOLIDATION SAFE TO PROCEED")
+            print("âœ… CONSOLIDATION SAFE TO PROCEED")
             print("   No critical issues found. Data consolidation should work smoothly.")
         elif issues_found:
-            print("⚠️  CONSOLIDATION NEEDS ATTENTION")
+            print("âš ï¸  CONSOLIDATION NEEDS ATTENTION")
             print("   Critical issues found that should be addressed:")
             for issue in issues_found:
-                print(f"   • {issue}")
+                print(f"   â€¢ {issue}")
         else:
-            print("⚠️  CONSOLIDATION PROCEED WITH CAUTION")
+            print("âš ï¸  CONSOLIDATION PROCEED WITH CAUTION")
             print("   Minor issues found but consolidation should still work:")
         
         if warnings:
-            print(f"\n⚠️  Warnings ({len(warnings)}):")
+            print(f"\nâš ï¸  Warnings ({len(warnings)}):")
             for warning in warnings:
-                print(f"   • {warning}")
+                print(f"   â€¢ {warning}")
         
         # Recommendations
-        print(f"\n💡 RECOMMENDATIONS:")
+        print(f"\nðŸ’¡ RECOMMENDATIONS:")
         
         if "skill_comparison" in self.results:
             skill_result = self.results["skill_comparison"]
             if "coverage_rate" in skill_result and skill_result["coverage_rate"] < 100:
                 missing_pct = 100 - skill_result["coverage_rate"]
-                print(f"   • {missing_pct:.1f}% of old skills not in new dataset - verify this is expected")
+                print(f"   â€¢ {missing_pct:.1f}% of old skills not in new dataset - verify this is expected")
         
         if "job_comparison" in self.results:
             job_result = self.results["job_comparison"]
             if "coverage_rate" in job_result and job_result["coverage_rate"] < 100:
                 missing_pct = 100 - job_result["coverage_rate"]
-                print(f"   • {missing_pct:.1f}% of old jobs not in new dataset - verify this is expected")
+                print(f"   â€¢ {missing_pct:.1f}% of old jobs not in new dataset - verify this is expected")
         
-        print(f"   • Test the updated loaders with a small sample before full deployment")
-        print(f"   • Monitor performance during initial runs with new data sources")
-        print(f"   • Keep backup of old data files until consolidation is confirmed working")
+        print(f"   â€¢ Test the updated loaders with a small sample before full deployment")
+        print(f"   â€¢ Monitor performance during initial runs with new data sources")
+        print(f"   â€¢ Keep backup of old data files until consolidation is confirmed working")
         
         print(f"\n" + "=" * 60)
 
@@ -649,7 +649,7 @@ def main():
                 serializable_results[key] = str(value)
         json.dump(serializable_results, f, indent=2)
     
-    print(f"\n💾 Detailed results saved to: {results_file}")
+    print(f"\nðŸ’¾ Detailed results saved to: {results_file}")
 
 
 if __name__ == "__main__":

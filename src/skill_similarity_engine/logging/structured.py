@@ -1,4 +1,4 @@
-"""
+﻿"""
 logging.structured
 
 Structured/contextual logging support for the centralised logging framework.

@@ -1,4 +1,4 @@
-# NAB Skills Intelligence Platform - Design System & Style Guide
+﻿# NAB Skills Intelligence Platform - Design System & Style Guide
 
 > **Inspired by**: Eightfold.ai, Gloat, and modern SaaS platforms  
 > **Framework**: Flask + Tailwind CSS  
@@ -414,7 +414,7 @@ This design system creates a modern, professional skills intelligence platform t
 ## Workflow Components
 
 ### Multi-Step Process Indicator
-For career pathway exploration and white paper generation workflows that require multiple steps.
+For career pathway exploration and Career Transition Analysis Generator workflows that require multiple steps.
 
 ```html
 <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 mb-6">
@@ -457,4 +457,4 @@ For career pathway exploration and white paper generation workflows that require
 </div>
 ```
 
-**Usage**: Perfect for the career pathway explorer flow (Select Role → Filter → Results) and white paper generation (Select Type → Configure → Generate). 
+**Usage**: Perfect for the career pathway explorer flow (Select Role → Filter → Results) and Career Transition Analysis Generator (Select Type → Configure → Generate). 

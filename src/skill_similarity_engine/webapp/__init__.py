@@ -1,6 +1,6 @@
-"""
+﻿"""
 Flask Webapp Module for Skill Similarity Engine
-Provides web interface for career pathway exploration and white paper generation
+Provides web interface for career pathway exploration and Career Transition Analysis Generator
 """
 
 from .app import create_app

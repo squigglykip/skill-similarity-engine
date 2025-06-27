@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for Skills Library API functionality.
 
 These tests validate the SkillsLibraryAPI class structure and basic operations
@@ -166,27 +166,27 @@ class TestSkillsLibraryAPI:
 
 def run_all_tests():
     """Run all tests manually (since we can't install pytest)."""
-    print("🧪 Running Skills Library API Tests...")
+    print("ðŸ§ª Running Skills Library API Tests...")
     print("=" * 50)
     
     # Test SkillsLibraryConfig
-    print("\n📋 Testing SkillsLibraryConfig...")
+    print("\nðŸ“‹ Testing SkillsLibraryConfig...")
     config_tests = TestSkillsLibraryConfig()
     
     try:
         config_tests.test_default_config()
-        print("✅ test_default_config")
+        print("âœ… test_default_config")
     except Exception as e:
-        print(f"❌ test_default_config: {e}")
+        print(f"âŒ test_default_config: {e}")
     
     try:
         config_tests.test_custom_config()
-        print("✅ test_custom_config")
+        print("âœ… test_custom_config")
     except Exception as e:
-        print(f"❌ test_custom_config: {e}")
+        print(f"âŒ test_custom_config: {e}")
     
     # Test SkillsLibraryAPI (basic tests only, skip mocked ones)
-    print("\n🔧 Testing SkillsLibraryAPI...")
+    print("\nðŸ”§ Testing SkillsLibraryAPI...")
     
     # Create test configuration manually (instead of using pytest fixture)
     try:
@@ -195,17 +195,17 @@ def run_all_tests():
             client_secret="test_client_secret",
             skills_library_path="test/skills_library"
         )
-        print("✅ mock_config created")
+        print("âœ… mock_config created")
     except Exception as e:
-        print(f"❌ mock_config creation: {e}")
+        print(f"âŒ mock_config creation: {e}")
         return
     
     # Create API instance manually
     try:
         api_instance = SkillsLibraryAPI(mock_config)
-        print("✅ api_instance created")
+        print("âœ… api_instance created")
     except Exception as e:
-        print(f"❌ api_instance creation: {e}")
+        print(f"âŒ api_instance creation: {e}")
         return
     
     # Test initialization
@@ -213,26 +213,26 @@ def run_all_tests():
         assert api_instance.config == mock_config
         assert api_instance.access_token is None
         assert api_instance.token_expires_at is None
-        print("✅ test_initialization")
+        print("âœ… test_initialization")
     except Exception as e:
-        print(f"❌ test_initialization: {e}")
+        print(f"âŒ test_initialization: {e}")
     
     # Test get_processed_versions when no file exists
     try:
         result = api_instance.get_processed_versions()
-        print(f"✅ test_get_processed_versions_no_file: {result}")
+        print(f"âœ… test_get_processed_versions_no_file: {result}")
     except Exception as e:
-        print(f"❌ test_get_processed_versions_no_file: {e}")
+        print(f"âŒ test_get_processed_versions_no_file: {e}")
         
     # Test get_library_status
     try:
         status = api_instance.get_library_status()
-        print(f"✅ test_get_library_status: {type(status)} with {len(status)} keys")
+        print(f"âœ… test_get_library_status: {type(status)} with {len(status)} keys")
     except Exception as e:
-        print(f"❌ test_get_library_status: {e}")
+        print(f"âŒ test_get_library_status: {e}")
     
     print("\n" + "=" * 50)
-    print("🎉 Basic tests completed!")
+    print("ðŸŽ‰ Basic tests completed!")
     print("Note: Advanced tests with mocking require pytest framework")
 
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Functional tests for the CLI interface.
 
 This module tests the command-line interface functionality to ensure that

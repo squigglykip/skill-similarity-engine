@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Generate Dummy Job Architecture Data
 
@@ -44,10 +44,10 @@ JOB_SKILL_MAPPING_FILE = Path(__file__).parent.parent / "data" / "input_data" / 
 
 def load_actual_job_profile_ids():
     """Load the actual JobProfileIDs from the job-skill mapping file"""
-    print(f"📊 Loading JobProfileIDs from job-skill mapping...")
+    print(f"ðŸ“Š Loading JobProfileIDs from job-skill mapping...")
     
     if not JOB_SKILL_MAPPING_FILE.exists():
-        print(f"❌ ERROR: Job-skill mapping file not found at {JOB_SKILL_MAPPING_FILE}")
+        print(f"âŒ ERROR: Job-skill mapping file not found at {JOB_SKILL_MAPPING_FILE}")
         print(f"   Falling back to hardcoded list...")
         return FALLBACK_JOB_PROFILE_IDS
     
@@ -56,13 +56,13 @@ def load_actual_job_profile_ids():
         df = pd.read_csv(JOB_SKILL_MAPPING_FILE)
         actual_job_profile_ids = df['JobProfileID'].unique().tolist()
         
-        print(f"✅ Successfully loaded {len(actual_job_profile_ids)} unique JobProfileIDs from mapping file")
+        print(f"âœ… Successfully loaded {len(actual_job_profile_ids)} unique JobProfileIDs from mapping file")
         print(f"   Sample IDs: {actual_job_profile_ids[:5]}")
         
         return actual_job_profile_ids
         
     except Exception as e:
-        print(f"❌ ERROR loading job-skill mapping file: {e}")
+        print(f"âŒ ERROR loading job-skill mapping file: {e}")
         print(f"   Falling back to hardcoded list...")
         return FALLBACK_JOB_PROFILE_IDS
 
@@ -699,9 +699,9 @@ def main():
     ]
     
     if list(df.columns) == expected_columns:
-        print(f"✅ Schema matches updated specification exactly!")
+        print(f"âœ… Schema matches updated specification exactly!")
     else:
-        print(f"❌ Schema mismatch detected!")
+        print(f"âŒ Schema mismatch detected!")
         print(f"Missing: {set(expected_columns) - set(df.columns)}")
         print(f"Extra: {set(df.columns) - set(expected_columns)}")
     

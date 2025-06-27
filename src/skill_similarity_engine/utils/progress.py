@@ -1,4 +1,4 @@
-"""
+﻿"""
 Progress Tracking Utilities
 
 This module provides utilities for tracking progress of long-running operations,
@@ -388,7 +388,7 @@ class RefreshableProgressDisplay:
                 time_info += f", {items_per_second:.2f}it/s"
         
         # Create a completed bar (100%)
-        bar = "█" * 50  # Fixed width bar
+        bar = "â–ˆ" * 50  # Fixed width bar
         
         # Create the chunk summary
         chunk_info = f"Chunk {chunk_number}: 100%|{bar}| {chunk_size}/{chunk_size}"
@@ -412,7 +412,7 @@ class RefreshableProgressDisplay:
         
         # Create a partial bar based on completion percentage
         filled_length = int(50 * completed_items / total_items) if total_items > 0 else 0
-        bar = "█" * filled_length + " " * (50 - filled_length)
+        bar = "â–ˆ" * filled_length + " " * (50 - filled_length)
         
         # Create the chunk summary without adding to completed_chunks
         chunk_info = f"Chunk {chunk_number}: {percent}%|{bar}| {completed_items}/{total_items}"
@@ -451,7 +451,7 @@ class RefreshableProgressDisplay:
         # Calculate and display total progress
         progress_percent = int((self.processed_items / self.total_items) * 100) if self.total_items > 0 else 0
         blocks = int(progress_percent / 2)  # 50 blocks = 100%
-        progress_bar = "█" * blocks + " " * (50 - blocks)
+        progress_bar = "â–ˆ" * blocks + " " * (50 - blocks)
         print(f"Total Progress: {progress_percent:2d}%|{progress_bar}| {self.processed_items}/{self.total_items}")
         
         # Print the chunk progress section

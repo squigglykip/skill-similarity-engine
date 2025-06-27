@@ -1,4 +1,4 @@
-# NAB Skills Intelligence Platform - Webapp Sitemap & User Stories
+﻿# NAB Skills Intelligence Platform - Webapp Sitemap & User Stories
 
 **Version**: 1.0  
 **Date**: 2025-01-08  
@@ -160,9 +160,9 @@ NAB Skills Intelligence Platform [RESTRICTED ACCESS]
 
 ---
 
-## **PHASE 3: White Paper Generator (8.2.5) - PLANNED** 📋
+## **PHASE 3: Career Transition Analysis Generator (8.2.5) - PLANNED** 📋
 
-### **3.1 Role Transition Reports** (`/white-papers/create`)
+### **3.1 Role Transition Reports** (`/career-analysis/create`)
 **User Story**: *"As an HR partner, I need professional documentation when roles are being sunset to help employees understand their options."*
 
 **Functionality**:
@@ -180,7 +180,7 @@ NAB Skills Intelligence Platform [RESTRICTED ACCESS]
 
 **Templates**: Jinja2 templates for PDF/Word generation
 
-### **3.2 Team Transition Analysis** (`/white-papers/bulk`)
+### **3.2 Team Transition Analysis** (`/career-analysis/bulk`)
 **User Story**: *"As a manager planning team restructure, I need comprehensive analysis of where my team members could be redeployed."*
 
 **Functionality**:
@@ -254,7 +254,7 @@ NAB Skills Intelligence Platform [RESTRICTED ACCESS]
 - [ ] Skills development roadmap generator
 - [ ] Pathway filtering and recommendation algorithms
 
-### **Sprint 3: White Papers (8.2.5)**
+### **Sprint 3: Career Transition Analysiss (8.2.5)**
 *Estimated: 2 weeks*
 - [ ] Jinja2 template engine for report generation
 - [ ] PDF/Word document generation system
@@ -298,7 +298,7 @@ NAB Skills Intelligence Platform [RESTRICTED ACCESS]
 ### **User Adoption Metrics**
 - Monthly active users and session engagement
 - Career pathway exploration completion rates
-- White paper generation volume and usage
+- Career Transition Analysis Generator volume and usage
 - User satisfaction and feedback scores
 
 ### **Business Impact Metrics**

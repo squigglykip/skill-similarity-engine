@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Development Server Runner for Skill Similarity Engine Webapp
 Quick way to start the Flask development server
@@ -19,27 +19,27 @@ if __name__ == '__main__':
     
     # Check if database exists
     if not app.config['DATABASE_PATH'].exists():
-        print("⚠️  Database not found!")
+        print("âš ï¸  Database not found!")
         print(f"   Expected location: {app.config['DATABASE_PATH']}")
         print("   Please run the CLI to generate business context database first:")
         print("   python main.py")
         print("   Then select option 2: 'Generate Business Context Database'")
         sys.exit(1)
     
-    print("✅ Database found!")
+    print("âœ… Database found!")
     print(f"   Location: {app.config['DATABASE_PATH']}")
     print()
-    print("🚀 Starting Flask development server...")
+    print("ðŸš€ Starting Flask development server...")
     print("   Available at: http://localhost:5000")
     print()
-    print("📋 Available pages:")
-    print("   • http://localhost:5000/                (Homepage)")
-    print("   • http://localhost:5000/components      (Component Library)")
-    print("   • http://localhost:5000/job-search      (Job Search)")
-    print("   • http://localhost:5000/similarity-results  (Similarity Results)")
-    print("   • http://localhost:5000/career-pathways (Career Pathways)")
+    print("ðŸ“‹ Available pages:")
+    print("   â€¢ http://localhost:5000/                (Homepage)")
+    print("   â€¢ http://localhost:5000/components      (Component Library)")
+    print("   â€¢ http://localhost:5000/job-search      (Job Search)")
+    print("   â€¢ http://localhost:5000/similarity-results  (Similarity Results)")
+    print("   â€¢ http://localhost:5000/career-pathways (Career Pathways)")
     print()
-    print("🔧 Development Mode: Auto-reload enabled")
+    print("ðŸ”§ Development Mode: Auto-reload enabled")
     print("   Press Ctrl+C to stop")
     print()
     

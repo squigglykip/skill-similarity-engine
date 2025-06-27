@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for the models module.
 
 This module tests the core data models for skills, jobs, and related classes.

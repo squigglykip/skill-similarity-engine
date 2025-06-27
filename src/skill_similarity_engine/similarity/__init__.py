@@ -1,1 +1,1 @@
-"""Similarity package for calculating similarity between entities."""
+﻿"""Similarity package for calculating similarity between entities."""

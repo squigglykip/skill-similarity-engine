@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for the enhanced similarity features that include seniority, role track, and location.
 """
 

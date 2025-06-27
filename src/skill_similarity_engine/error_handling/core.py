@@ -1,4 +1,4 @@
-from enum import Enum
+﻿from enum import Enum
 from skill_similarity_engine.logging.config import setup_logging
 
 logger = setup_logging()

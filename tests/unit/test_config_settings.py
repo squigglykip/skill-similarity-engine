@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for the configuration system.
 
 This module tests loading a single configuration file and accessing

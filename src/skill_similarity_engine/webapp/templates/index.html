@@ -111,7 +111,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             <!-- Job Profile Explorer Card -->
-            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-blue-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden">
+            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-blue-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
                 <!-- Background Gradient -->
                 <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
@@ -134,7 +134,7 @@
                 </div>
                 
                 <!-- Content -->
-                <div class="relative mb-8">
+                <div class="relative mb-8 flex-grow">
                     <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-3 group-hover:text-blue-900 transition-colors duration-300">Job Profile Explorer</h3>
                     <p class="text-gray-600 font-source leading-relaxed">
                         Browse detailed job profiles with skills, workforce context, and career pathways. 
@@ -153,7 +153,7 @@
                 </div>
                 
                 <!-- Action Button -->
-                <div class="relative">
+                <div class="relative mt-auto">
                     <a href="{{ url_for('job_search') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-blue-500/25">
                         <span>Browse Jobs</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +164,7 @@
             </div>
             
             <!-- Career Pathway Explorer Card -->
-            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-purple-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden">
+            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-purple-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
                 <!-- Background Gradient -->
                 <div class="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
@@ -187,7 +187,7 @@
                 </div>
                 
                 <!-- Content -->
-                <div class="relative mb-8">
+                <div class="relative mb-8 flex-grow">
                     <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-3 group-hover:text-purple-900 transition-colors duration-300">Career Pathway Explorer</h3>
                     <p class="text-gray-600 font-source leading-relaxed">
                         Find similar job profiles and career progression opportunities based on skill overlap. 
@@ -206,7 +206,7 @@
                 </div>
                 
                 <!-- Action Button -->
-                <div class="relative">
+                <div class="relative mt-auto">
                     <a href="{{ url_for('career_pathways') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-xl hover:from-purple-700 hover:to-purple-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-purple-500/25">
                         <span>Start Exploring</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,8 +216,8 @@
                 </div>
             </div>
 
-            <!-- White Paper Generator Card -->
-            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-red-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden">
+            <!-- Career Transition Analysis Generator Card -->
+            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-red-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
                 <!-- Background Gradient -->
                 <div class="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
@@ -240,8 +240,8 @@
                 </div>
                 
                 <!-- Content -->
-                <div class="relative mb-8">
-                    <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-3 group-hover:text-red-900 transition-colors duration-300">White Paper Generator</h3>
+                <div class="relative mb-8 flex-grow">
+                    <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-3 group-hover:text-red-900 transition-colors duration-300">Career Transition Analysis Generator</h3>
                     <p class="text-gray-600 font-source leading-relaxed">
                         Generate professional transition reports for workforce scenarios. 
                         Automated analysis with similar job profiles, transition pathways, and skill gaps.
@@ -262,8 +262,8 @@
                 </div>
                 
                 <!-- Action Button -->
-                <div class="relative">
-                                         <a href="{{ url_for('white_papers') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-red-500/25">
+                <div class="relative mt-auto">
+                    <a href="{{ url_for('career_analysis') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-red-500/25">
                         <span>Generate Reports</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>

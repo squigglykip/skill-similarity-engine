@@ -1,4 +1,4 @@
-"""
+﻿"""
 Hexbin visualization module for large-scale skill similarity data.
 
 This module provides functionality to create hexbin plots and outputs tabular data for Power BI.

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Functional tests for skill similarity engine.
 
 These tests verify end-to-end functionality, focusing on the complete workflow

@@ -1,0 +1,41 @@
+﻿# Enhanced Business Case Template
+# Provides strategic value and organizational benefits analysis
+
+meta:
+  name: "business_case"
+  type: "enhanced_content"
+  purpose: "Strategic value proposition for career transitions"
+
+content: |
+  **Strategic Value**: Leverages existing {source_job_function} expertise while building {target_job_function} capabilities, supporting organizational agility and internal mobility.
+  
+  **Resource Optimization**: Internal transition reduces recruitment costs and accelerates capability building through existing institutional knowledge and cultural alignment.
+  
+  **Risk Mitigation**: {similarity_score:.1%} skill similarity provides strong foundation for successful transition with {percentile_rank:.0f}th percentile confidence level.
+  
+  **Workforce Impact**: Affects {source_total_positions} source positions with {target_total_positions} target opportunities, enabling strategic redeployment.
+
+variables:
+  source_job_function:
+    description: "Job function of source role"
+    type: "string"
+    
+  target_job_function:
+    description: "Job function of target role"
+    type: "string"
+    
+  similarity_score:
+    description: "Similarity score between roles"
+    type: "float"
+    
+  percentile_rank:
+    description: "Percentile ranking of similarity"
+    type: "float"
+    
+  source_total_positions:
+    description: "Number of positions in source role"
+    type: "integer"
+    
+  target_total_positions:
+    description: "Number of positions in target role"
+    type: "integer" 

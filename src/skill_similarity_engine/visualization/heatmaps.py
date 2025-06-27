@@ -1,4 +1,4 @@
-"""
+﻿"""
 Heatmap visualisation for similarity and gap analysis.
 
 This module provides functionality for generating heatmaps from similarity matrices

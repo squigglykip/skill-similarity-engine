@@ -1,4 +1,4 @@
-"""
+﻿"""
 Business Context Database Orchestrator
 
 Provides CLI integration and workflow coordination for generating comprehensive
@@ -136,11 +136,11 @@ class BusinessContextOrchestrator:
             success = schema_builder.create_schema(drop_existing=drop_existing)
             
             if success:
-                print("✓ Database schema created successfully")
+                print("âœ“ Database schema created successfully")
                 
                 # Validate schema
                 if schema_builder.validate_schema():
-                    print("✓ Schema validation passed")
+                    print("âœ“ Schema validation passed")
                     
                     # Show table info
                     table_info = schema_builder.get_table_info()
@@ -149,9 +149,9 @@ class BusinessContextOrchestrator:
                         if table != 'schema_metadata':
                             print(f"  - {table}: {count} rows")
                 else:
-                    print("⚠ Schema validation failed")
+                    print("âš  Schema validation failed")
             else:
-                print("✗ Failed to create database schema")
+                print("âœ— Failed to create database schema")
                 
         except Exception as e:
             logger.error(f"Schema creation failed: {e}")
@@ -180,9 +180,9 @@ class BusinessContextOrchestrator:
             if success:
                 stats = data_loader.get_load_statistics()
                 job_stats = stats.get('jobs', {})
-                print(f"✓ Loaded {job_stats.get('rows_loaded', 0):,} job records")
+                print(f"âœ“ Loaded {job_stats.get('rows_loaded', 0):,} job records")
             else:
-                print("✗ Failed to load job architecture data")
+                print("âœ— Failed to load job architecture data")
                 
         except Exception as e:
             logger.error(f"Job architecture loading failed: {e}")
@@ -213,9 +213,9 @@ class BusinessContextOrchestrator:
             if success:
                 stats = data_loader.get_load_statistics()
                 skills_stats = stats.get('skills', {})
-                print(f"✓ Loaded {skills_stats.get('rows_loaded', 0):,} skill records")
+                print(f"âœ“ Loaded {skills_stats.get('rows_loaded', 0):,} skill records")
             else:
-                print("✗ Failed to load skills library data")
+                print("âœ— Failed to load skills library data")
                 
         except Exception as e:
             logger.error(f"Skills library loading failed: {e}")
@@ -244,9 +244,9 @@ class BusinessContextOrchestrator:
             if success:
                 stats = data_loader.get_load_statistics()
                 positions_stats = stats.get('positions', {})
-                print(f"✓ Loaded {positions_stats.get('rows_loaded', 0):,} position records")
+                print(f"âœ“ Loaded {positions_stats.get('rows_loaded', 0):,} position records")
             else:
-                print("✗ Failed to load workforce context data")
+                print("âœ— Failed to load workforce context data")
                 
         except Exception as e:
             logger.error(f"Workforce context loading failed: {e}")
@@ -275,9 +275,9 @@ class BusinessContextOrchestrator:
             if success:
                 stats = data_loader.get_load_statistics()
                 job_skills_stats = stats.get('job_skills', {})
-                print(f"✓ Loaded {job_skills_stats.get('rows_loaded', 0):,} job-skill mappings")
+                print(f"âœ“ Loaded {job_skills_stats.get('rows_loaded', 0):,} job-skill mappings")
             else:
-                print("✗ Failed to load job-skill mapping data")
+                print("âœ— Failed to load job-skill mapping data")
                 
         except Exception as e:
             logger.error(f"Job-skill mapping loading failed: {e}")
@@ -328,11 +328,11 @@ class BusinessContextOrchestrator:
             
             if success:
                 stats = similarity_integrator.get_integration_statistics()
-                print(f"✓ Loaded {stats.get('total_similarity_pairs', 0):,} similarity pairs")
+                print(f"âœ“ Loaded {stats.get('total_similarity_pairs', 0):,} similarity pairs")
                 print(f"  Coverage: {stats.get('unique_jobs_total', 0):,} unique jobs")
                 print(f"  Average similarity: {stats.get('avg_similarity_score', 0):.3f}")
             else:
-                print("✗ Failed to load similarity matrices")
+                print("âœ— Failed to load similarity matrices")
                 
         except Exception as e:
             logger.error(f"Similarity matrix loading failed: {e}")
@@ -389,17 +389,17 @@ class BusinessContextOrchestrator:
             
             schema_builder = SchemaBuilder(str(db_path))
             if not schema_builder.create_schema(drop_existing=True):
-                print("✗ Schema creation failed")
+                print("âœ— Schema creation failed")
                 return
-            print("✓ Schema created")
+            print("âœ“ Schema created")
             
             # Step 2: Load all CSV data
             print("\n[2/6] Loading all CSV data sources...")
             data_loader = DataLoader(str(db_path))
             if not data_loader.load_all_data(str(self.data_root_dir)):
-                print("✗ Data loading failed")
+                print("âœ— Data loading failed")
                 return
-            print("✓ All CSV data loaded")
+            print("âœ“ All CSV data loaded")
             
             # Step 3: Load similarity matrices
             print("\n[3/6] Loading similarity matrices...")
@@ -408,11 +408,11 @@ class BusinessContextOrchestrator:
             
             if latest_similarity_file:
                 if not similarity_integrator.load_similarity_matrix(str(latest_similarity_file)):
-                    print("✗ Similarity matrix loading failed")
+                    print("âœ— Similarity matrix loading failed")
                     return
-                print("✓ Similarity matrices loaded")
+                print("âœ“ Similarity matrices loaded")
             else:
-                print("⚠ No similarity matrices found - database will be incomplete")
+                print("âš  No similarity matrices found - database will be incomplete")
                 print("  Run similarity computation first (main menu option 1)")
             
             # Step 4: Validate database
@@ -421,12 +421,12 @@ class BusinessContextOrchestrator:
             validation_results = validator.run_full_validation()
             
             if validation_results.get('overall_status') == 'FAIL':
-                print("✗ Database validation failed")
+                print("âœ— Database validation failed")
                 return
             elif validation_results.get('overall_status') == 'WARNING':
-                print("⚠ Database validation passed with warnings")
+                print("âš  Database validation passed with warnings")
             else:
-                print("✓ Database validation passed")
+                print("âœ“ Database validation passed")
             
             # Step 5: Generate statistics
             print("\n[5/6] Generating database statistics...")
@@ -437,8 +437,8 @@ class BusinessContextOrchestrator:
             duration = end_time - start_time
             
             print(f"\n[6/6] Database generation complete!")
-            print(f"✓ Business context database created: {db_path}")
-            print(f"✓ Generation time: {duration.total_seconds():.1f} seconds")
+            print(f"âœ“ Business context database created: {db_path}")
+            print(f"âœ“ Generation time: {duration.total_seconds():.1f} seconds")
             
             # Show summary statistics
             self._print_final_summary()
@@ -483,7 +483,7 @@ class BusinessContextOrchestrator:
                 
                 if 'error' not in distribution:
                     print(f"\nSimilarity Distribution:")
-                    print(f"  High similarity (≥0.8): {distribution.get('high_similarity', 0):,} pairs")
+                    print(f"  High similarity (â‰¥0.8): {distribution.get('high_similarity', 0):,} pairs")
                     print(f"  Medium similarity (0.6-0.8): {distribution.get('medium_similarity', 0):,} pairs")
                     print(f"  Moderate similarity (0.4-0.6): {distribution.get('moderate_similarity', 0):,} pairs")
                     print(f"  Low similarity (<0.4): {distribution.get('low_similarity', 0):,} pairs")
@@ -524,7 +524,7 @@ class BusinessContextOrchestrator:
             if table != 'schema_metadata' and isinstance(count, int):
                 print(f"  {table}: {count:,} rows")
         
-        print("\n✓ Business context database ready for Flask webapp!")
+        print("\nâœ“ Business context database ready for Flask webapp!")
         print("  Use this database for:")
         print("  - Career pathway exploration")
         print("  - Skills gap analysis") 

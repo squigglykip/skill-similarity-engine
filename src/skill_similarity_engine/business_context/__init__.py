@@ -1,4 +1,4 @@
-"""
+﻿"""
 Business Context Database Generation Module
 
 This module provides CLI functionality for generating comprehensive SQLite databases

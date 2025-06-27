@@ -1,4 +1,4 @@
-"""
+﻿"""
 SQLite Schema Builder for Business Context Database
 
 Implements the exact schema design from docs/sqlite_schema_design.md with:

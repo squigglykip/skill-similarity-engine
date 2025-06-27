@@ -1,4 +1,4 @@
-"""
+﻿"""
 Field mapping utility for the Skill Similarity Engine.
 
 This module provides functionality for loading and accessing field mappings 

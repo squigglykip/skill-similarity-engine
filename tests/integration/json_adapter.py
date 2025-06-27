@@ -1,4 +1,4 @@
-"""
+﻿"""
 Helper module for JSON format adaptation.
 
 This module provides helper functions to adapt our list-format JSON files

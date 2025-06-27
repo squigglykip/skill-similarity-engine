@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for configuration loading, especially for the external similarity enhancement factors file.
 """
 

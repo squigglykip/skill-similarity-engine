@@ -1,1 +1,1 @@
-"""Config package for application configuration."""
+﻿"""Config package for application configuration."""

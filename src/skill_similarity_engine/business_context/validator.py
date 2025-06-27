@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data Validation Framework for Business Context Database
 
 Provides comprehensive validation of:
@@ -218,7 +218,7 @@ class DatabaseValidator:
                 for table, min_expected in expected_minimums.items():
                     actual_count = completeness.get(f'{table}_count', 0)
                     if actual_count < min_expected:
-                        issues.append(f"Table {table} has only {actual_count} rows (expected ≥{min_expected})")
+                        issues.append(f"Table {table} has only {actual_count} rows (expected â‰¥{min_expected})")
                 
                 # Check JobProfileID coverage
                 cursor = conn.execute("SELECT COUNT(DISTINCT JobProfileID) FROM jobs")
@@ -231,7 +231,7 @@ class DatabaseValidator:
                 completeness['job_similarity_coverage'] = coverage_pct
                 
                 if coverage_pct < 95:
-                    issues.append(f"Job similarity coverage is only {coverage_pct:.1f}% (expected ≥95%)")
+                    issues.append(f"Job similarity coverage is only {coverage_pct:.1f}% (expected â‰¥95%)")
                 
                 status = 'FAIL' if issues else 'PASS'
                 
@@ -480,10 +480,10 @@ class DatabaseValidator:
             message = validation_result.get('message', 'No message')
             
             status_icon = {
-                'PASS': '✓',
-                'WARNING': '⚠',
-                'FAIL': '✗',
-                'ERROR': '💥'
+                'PASS': 'âœ“',
+                'WARNING': 'âš ',
+                'FAIL': 'âœ—',
+                'ERROR': 'ðŸ’¥'
             }.get(status, '?')
             
             print(f"{status_icon} {validation_name}: {status}")

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory Usage Dashboard and Visualisation
 
 This module provides tools for visualising memory usage patterns, 

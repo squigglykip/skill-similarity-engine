@@ -1,4 +1,4 @@
-"""
+﻿"""
 Gap analysis for identifying skill gaps between employees and target roles.
 
 This module provides functionality for identifying skill gaps, calculating

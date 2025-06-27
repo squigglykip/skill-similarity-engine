@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for configuration CLI commands.
 
 This module tests the CLI commands for configuration management.

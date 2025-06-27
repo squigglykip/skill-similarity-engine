@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Skill Similarity Engine v2 - Modular Entry Point (Menu-Driven)
 
@@ -31,26 +31,26 @@ from skill_similarity_engine.business_context import BusinessContextOrchestrator
 
 # Welcome banner
 BANNER = r'''
-    ███████╗██╗  ██╗██╗██╗     ██╗                                        
-    ██╔════╝██║ ██╔╝██║██║     ██║                                        
-    ███████╗█████╔╝ ██║██║     ██║                                        
-    ╚════██║██╔═██╗ ██║██║     ██║                                        
-    ███████║██║  ██╗██║███████╗███████╗                                   
-    ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝                                   
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—  â–ˆâ–ˆâ•—â–ˆâ–ˆâ•—â–ˆâ–ˆâ•—     â–ˆâ–ˆâ•—                                        
+    â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•‘ â–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•‘                                        
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â• â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•‘                                        
+    â•šâ•â•â•â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•— â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•‘                                        
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—                                   
+    â•šâ•â•â•â•â•â•â•â•šâ•â•  â•šâ•â•â•šâ•â•â•šâ•â•â•â•â•â•â•â•šâ•â•â•â•â•â•â•                                   
                                                                         
-    ███████╗██╗███╗   ███╗██╗██╗      █████╗ ██████╗ ██╗████████╗██╗   ██╗
-    ██╔════╝██║████╗ ████║██║██║     ██╔══██╗██╔══██╗██║╚══██╔══╝╚██╗ ██╔╝
-    ███████╗██║██╔████╔██║██║██║     ███████║██████╔╝██║   ██║    ╚████╔╝ 
-    ╚════██║██║██║╚██╔╝██║██║██║     ██╔══██║██╔══██╗██║   ██║     ╚██╔╝  
-    ███████║██║██║ ╚═╝ ██║██║███████╗██║  ██║██║  ██║██║   ██║      ██║   
-    ╚══════╝╚═╝╚═╝     ╚═╝╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝   ╚═╝      ╚═╝   
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ•—   â–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—â–ˆâ–ˆâ•—      â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—   â–ˆâ–ˆâ•—
+    â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘â•šâ•â•â–ˆâ–ˆâ•”â•â•â•â•šâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•”â•
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â–ˆâ–ˆâ–ˆâ–ˆâ•”â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘    â•šâ–ˆâ–ˆâ–ˆâ–ˆâ•”â• 
+    â•šâ•â•â•â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘     â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘     â•šâ–ˆâ–ˆâ•”â•  
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘ â•šâ•â• â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘      â–ˆâ–ˆâ•‘   
+    â•šâ•â•â•â•â•â•â•â•šâ•â•â•šâ•â•     â•šâ•â•â•šâ•â•â•šâ•â•â•â•â•â•â•â•šâ•â•  â•šâ•â•â•šâ•â•  â•šâ•â•â•šâ•â•   â•šâ•â•      â•šâ•â•   
                                                                         
-    ███████╗███╗   ██╗ ██████╗ ██╗███╗   ██╗███████╗                      
-    ██╔════╝████╗  ██║██╔════╝ ██║████╗  ██║██╔════╝                      
-    █████╗  ██╔██╗ ██║██║  ███╗██║██╔██╗ ██║█████╗                        
-    ██╔══╝  ██║╚██╗██║██║   ██║██║██║╚██╗██║██╔══╝                        
-    ███████╗██║ ╚████║╚██████╔╝██║██║ ╚████║███████╗                      
-    ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝                                 
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ•—   â–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ•—   â–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—                      
+    â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•â•â• â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•â•â•                      
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ•”â–ˆâ–ˆâ•— â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘  â–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â–ˆâ–ˆâ•— â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—                        
+    â–ˆâ–ˆâ•”â•â•â•  â–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•                        
+    â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘ â•šâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•‘ â•šâ–ˆâ–ˆâ–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—                      
+    â•šâ•â•â•â•â•â•â•â•šâ•â•  â•šâ•â•â•â• â•šâ•â•â•â•â•â• â•šâ•â•â•šâ•â•  â•šâ•â•â•â•â•šâ•â•â•â•â•â•â•                                 
 
 Skill Similarity Engine v2 - Modular Pipeline
 '''
@@ -107,7 +107,7 @@ def load_and_validate_data(logger):
     global loaded_taxonomy, loaded_architecture
     
     print("\n" + "="*60)
-    print("🔧 DATA LOADING & VALIDATION (SIMPLIFIED ARCHITECTURE)")
+    print("ðŸ”§ DATA LOADING & VALIDATION (SIMPLIFIED ARCHITECTURE)")
     print("="*60)
     print("Default data files will be used if you press Enter without typing a path.")
     print("Jobs will be auto-generated from the job-skill mapping file.")
@@ -116,13 +116,13 @@ def load_and_validate_data(logger):
     try:
         from skill_similarity_engine.api.skills_updater import prompt_skills_update
         if not prompt_skills_update(logger):
-            print("❌ Skills library update failed. Exiting...")
+            print("âŒ Skills library update failed. Exiting...")
             return False
     except ImportError as e:
-        print(f"⚠️  Skills updater not available: {e}")
+        print(f"âš ï¸  Skills updater not available: {e}")
         print("   Proceeding with existing skills library...")
     except Exception as e:
-        print(f"⚠️  Error checking for skills updates: {e}")
+        print(f"âš ï¸  Error checking for skills updates: {e}")
         print("   Proceeding with existing skills library...")
     
     # Load default file paths from config
@@ -159,9 +159,9 @@ def load_and_validate_data(logger):
         elif Path(f"data/{file_path}").exists():
             continue
         else:
-            print(f"❌ ERROR: {file_type} file not found at either:")
-            print(f"   • {file_path}")
-            print(f"   • data/{file_path}")
+            print(f"âŒ ERROR: {file_type} file not found at either:")
+            print(f"   â€¢ {file_path}")
+            print(f"   â€¢ data/{file_path}")
             return False
     
     chunked = prompt_bool("Enable chunked/streaming loading?", default=True)
@@ -173,13 +173,13 @@ def load_and_validate_data(logger):
     logger.setLevel('DEBUG' if verbose else 'WARNING')
     error_registry = ErrorRegistry()
 
-    print(f"\n⏳ Processing data files...")
-    print(f"   📊 Skills: {Path(skills_file).name}")
-    print(f"   🔗 Job-skill mapping: {Path(job_skills_file).name}")
-    print(f"   💼 Jobs: Auto-generated from mapping file")
+    print(f"\nâ³ Processing data files...")
+    print(f"   ðŸ“Š Skills: {Path(skills_file).name}")
+    print(f"   ðŸ”— Job-skill mapping: {Path(job_skills_file).name}")
+    print(f"   ðŸ’¼ Jobs: Auto-generated from mapping file")
     
     # Step 1: Load Skill Taxonomy
-    print(f"\n📊 Step 1: Loading skill taxonomy...")
+    print(f"\nðŸ“Š Step 1: Loading skill taxonomy...")
     try:
         taxonomy_loader = SkillTaxonomyLoader()
         taxonomy = taxonomy_loader.load_from_csv(
@@ -189,15 +189,15 @@ def load_and_validate_data(logger):
             validate=False  # Disable validation for comprehensive skills library
         )
         loaded_taxonomy = taxonomy
-        print(f"✅ Loaded {len(taxonomy.skills):,} skills successfully")
+        print(f"âœ… Loaded {len(taxonomy.skills):,} skills successfully")
     except Exception as e:
         logger.error(f"Failed to load skill taxonomy: {e}")
         error_registry.register(e)
-        print(f"❌ ERROR: Failed to load skill taxonomy - {e}")
+        print(f"âŒ ERROR: Failed to load skill taxonomy - {e}")
         return False
 
     # Step 2: Load Job Architecture (auto-generated from job-skill mapping)
-    print(f"\n💼 Step 2: Auto-generating job architecture from job-skill mapping...")
+    print(f"\nðŸ’¼ Step 2: Auto-generating job architecture from job-skill mapping...")
     try:
         job_loader = JobArchitectureLoader(taxonomy)
         architecture = job_loader.load_from_csv(
@@ -208,36 +208,36 @@ def load_and_validate_data(logger):
             validate=validate
         )
         loaded_architecture = architecture
-        print(f"✅ Auto-generated {len(architecture.jobs):,} jobs successfully")
+        print(f"âœ… Auto-generated {len(architecture.jobs):,} jobs successfully")
     except Exception as e:
         logger.error(f"Failed to load job architecture: {e}")
         error_registry.register(e)
-        print(f"❌ ERROR: Failed to auto-generate job architecture - {e}")
+        print(f"âŒ ERROR: Failed to auto-generate job architecture - {e}")
         return False
 
     # Print summary with clear visual separation
     print(f"\n" + "="*60)
-    print(f"📋 DATA LOADING SUMMARY")
+    print(f"ðŸ“‹ DATA LOADING SUMMARY")
     print("="*60)
-    print(f"✅ Skills loaded: {len(taxonomy.skills):,}")
-    print(f"✅ Jobs auto-generated: {len(architecture.jobs):,}")
-    print(f"\n📁 Data sources:")
-    print(f"   • Skills: {skills_file}")
-    print(f"   • Job-skill mapping: {job_skills_file}")
-    print(f"   • Jobs: Auto-generated from mapping (simplified architecture)")
-    print(f"\n⚙️  Configuration:")
-    print(f"   • Chunked loading: {'✅ Enabled' if chunked else '❌ Disabled'} (size: {chunksize:,})")
-    print(f"   • Schema validation: {'✅ Enabled' if validate else '❌ Disabled'}")
-    print(f"   • Verbose logging: {'✅ Enabled' if verbose else '❌ Disabled'}")
+    print(f"âœ… Skills loaded: {len(taxonomy.skills):,}")
+    print(f"âœ… Jobs auto-generated: {len(architecture.jobs):,}")
+    print(f"\nðŸ“ Data sources:")
+    print(f"   â€¢ Skills: {skills_file}")
+    print(f"   â€¢ Job-skill mapping: {job_skills_file}")
+    print(f"   â€¢ Jobs: Auto-generated from mapping (simplified architecture)")
+    print(f"\nâš™ï¸  Configuration:")
+    print(f"   â€¢ Chunked loading: {'âœ… Enabled' if chunked else 'âŒ Disabled'} (size: {chunksize:,})")
+    print(f"   â€¢ Schema validation: {'âœ… Enabled' if validate else 'âŒ Disabled'}")
+    print(f"   â€¢ Verbose logging: {'âœ… Enabled' if verbose else 'âŒ Disabled'}")
     print("="*60)
-    print("🚀 Ready for similarity matrix generation!")
+    print("ðŸš€ Ready for similarity matrix generation!")
     print("="*60)
 
     # Print any registered errors
     if len(error_registry.get_all()) > 0:
-        print(f"\n⚠️  Some warnings occurred during processing:")
+        print(f"\nâš ï¸  Some warnings occurred during processing:")
         for err in error_registry.get_all():
-            print(f"   • {err.get('message', err)}")
+            print(f"   â€¢ {err.get('message', err)}")
         print()
     
     # Brief pause to let user read the summary
@@ -249,21 +249,21 @@ def generate_similarity_matrix(logger):
     global loaded_architecture
     
     if loaded_architecture is None:
-        print("❌ ERROR: No job architecture loaded. Please load data first (option 1).")
+        print("âŒ ERROR: No job architecture loaded. Please load data first (option 1).")
         return
     
     print(f"\n" + "="*60)
-    print(f"🔄 SIMILARITY MATRIX GENERATION")
+    print(f"ðŸ”„ SIMILARITY MATRIX GENERATION")
     print("="*60)
-    print(f"📊 Jobs to process: {len(loaded_architecture.jobs):,}")
+    print(f"ðŸ“Š Jobs to process: {len(loaded_architecture.jobs):,}")
     
     # Model versioning and output location
-    print(f"\n📁 Setting up output directory...")
+    print(f"\nðŸ“ Setting up output directory...")
     quarter_dir = setup_model_output_directory()
-    print(f"✅ Output directory ready: {quarter_dir}")
+    print(f"âœ… Output directory ready: {quarter_dir}")
     
     # Output format selection
-    print(f"\n📝 Output format configuration...")
+    print(f"\nðŸ“ Output format configuration...")
     output_parquet = prompt_bool("Generate Parquet file (recommended for primary storage)?", default=True)
     output_csv = prompt_bool("Generate CSV file (required for Power BI cloud ingestion)?", default=True)
     
@@ -297,35 +297,35 @@ def generate_similarity_matrix(logger):
         
         # Show runtime estimate if requested
         if estimate_runtime:
-            print(f"\n📊 Calculating runtime estimates...")
+            print(f"\nðŸ“Š Calculating runtime estimates...")
             estimates = precomputer.estimate_runtime()
             
             print(f"\n" + "-"*50)
-            print(f"⏱️  PROCESSING ESTIMATES")
+            print(f"â±ï¸  PROCESSING ESTIMATES")
             print("-"*50)
-            print(f"📊 Total jobs: {estimates['total_jobs']:,}")
-            print(f"🔄 Total comparisons: {estimates['total_comparisons']:,}")
-            print(f"📦 Estimated chunks: {estimates['estimated_chunks']:,}")
-            print(f"⚡ Parallel workers: {estimates['parallel_workers']} (auto-detected)")
-            print(f"⏳ Estimated time: {estimates['estimated_parallel_time_hours']:.2f} hours")
-            print(f"💾 Memory per chunk: {estimates['estimated_memory_per_chunk_mb']:.2f} MB")
+            print(f"ðŸ“Š Total jobs: {estimates['total_jobs']:,}")
+            print(f"ðŸ”„ Total comparisons: {estimates['total_comparisons']:,}")
+            print(f"ðŸ“¦ Estimated chunks: {estimates['estimated_chunks']:,}")
+            print(f"âš¡ Parallel workers: {estimates['parallel_workers']} (auto-detected)")
+            print(f"â³ Estimated time: {estimates['estimated_parallel_time_hours']:.2f} hours")
+            print(f"ðŸ’¾ Memory per chunk: {estimates['estimated_memory_per_chunk_mb']:.2f} MB")
             
             # Show expected output file sizes
             estimated_csv_size = estimates['total_comparisons'] * 0.000040  # ~40 bytes per comparison in CSV
-            print(f"📁 Expected CSV size: ~{estimated_csv_size:.1f} GB")
+            print(f"ðŸ“ Expected CSV size: ~{estimated_csv_size:.1f} GB")
             if output_parquet:
                 estimated_parquet_size = estimated_csv_size * 0.1  # Parquet typically 10x smaller than CSV
-                print(f"📁 Expected Parquet size: ~{estimated_parquet_size:.1f} GB")
+                print(f"ðŸ“ Expected Parquet size: ~{estimated_parquet_size:.1f} GB")
             print("-"*50)
             
-            proceed = prompt_bool("🚀 Proceed with similarity matrix generation?", default=True)
+            proceed = prompt_bool("ðŸš€ Proceed with similarity matrix generation?", default=True)
             if not proceed:
-                print("❌ Operation cancelled.")
+                print("âŒ Operation cancelled.")
                 return
         
         # Generate similarity matrix and career pathways
         print(f"\n" + "="*60)
-        print(f"🚀 STARTING PRECOMPUTATION PIPELINE")
+        print(f"ðŸš€ STARTING PRECOMPUTATION PIPELINE")
         print("="*60)
         
         output_path = precomputer.precompute_all()
@@ -342,7 +342,7 @@ def generate_similarity_matrix(logger):
                 parquet_file = output_path / "job_similarity_matrix.parquet"
                 df.to_parquet(parquet_file, compression='snappy', index=False)
                 logger.info(f"Created Parquet file: {parquet_file}")
-                print(f"✓ Parquet file created: {parquet_file}")
+                print(f"âœ“ Parquet file created: {parquet_file}")
             except ImportError:
                 print("[WARNING] Could not create Parquet file - pyarrow not installed")
                 logger.warning("pyarrow not available for Parquet conversion")
@@ -355,23 +355,23 @@ def generate_similarity_matrix(logger):
             parquet_file = output_path / "job_similarity_matrix.parquet"
             if parquet_file.exists():
                 csv_file.unlink()
-                print("✓ CSV file removed (Parquet created successfully)")
+                print("âœ“ CSV file removed (Parquet created successfully)")
         
         print(f"\n" + "="*60)
-        print(f"✅ GENERATION COMPLETE!")
+        print(f"âœ… GENERATION COMPLETE!")
         print("="*60)
-        print(f"📁 Output directory: {output_path}")
+        print(f"ðŸ“ Output directory: {output_path}")
         
         if output_parquet and (output_path / "job_similarity_matrix.parquet").exists():
-            print(f"📦 Parquet file: job_similarity_matrix.parquet")
+            print(f"ðŸ“¦ Parquet file: job_similarity_matrix.parquet")
         if output_csv and (output_path / "job_similarity_matrix.csv").exists():
-            print(f"📄 CSV file: job_similarity_matrix.csv")
-        print(f"📋 Metadata: metadata.json")
+            print(f"ðŸ“„ CSV file: job_similarity_matrix.csv")
+        print(f"ðŸ“‹ Metadata: metadata.json")
         if enable_checkpoints:
-            print(f"💾 Checkpoint file: checkpoint.json")
+            print(f"ðŸ’¾ Checkpoint file: checkpoint.json")
         
         print("="*60)
-        print("🎉 Similarity matrix and career pathways ready!")
+        print("ðŸŽ‰ Similarity matrix and career pathways ready!")
         print("="*60)
         
     except Exception as e:

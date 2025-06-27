@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Schema Analysis Script for Skill Similarity Engine
 
@@ -64,7 +64,7 @@ class SchemaAnalyzer:
                 print("Loading all rows")
                 self.df = pd.read_csv(self.file_path)
                 
-            print(f"Loaded {len(self.df):,} rows × {len(self.df.columns)} columns")
+            print(f"Loaded {len(self.df):,} rows Ã— {len(self.df.columns)} columns")
             
         except Exception as e:
             raise RuntimeError(f"Error loading CSV file: {e}")
@@ -233,15 +233,15 @@ class SchemaAnalyzer:
         
         # Metadata summary
         metadata = analysis["metadata"]
-        report.append(f"\n📊 METADATA:")
-        report.append(f"   • Rows: {metadata['row_count']:,}")
-        report.append(f"   • Columns: {metadata['column_count']}")
-        report.append(f"   • Memory: {metadata['memory_usage']}")
-        report.append(f"   • Duplicates: {metadata['duplicate_rows']:,} ({metadata['duplicate_percentage']}%)")
+        report.append(f"\nðŸ“Š METADATA:")
+        report.append(f"   â€¢ Rows: {metadata['row_count']:,}")
+        report.append(f"   â€¢ Columns: {metadata['column_count']}")
+        report.append(f"   â€¢ Memory: {metadata['memory_usage']}")
+        report.append(f"   â€¢ Duplicates: {metadata['duplicate_rows']:,} ({metadata['duplicate_percentage']}%)")
         
         # Column summaries
         schema = analysis["schema"]
-        report.append(f"\n📋 COLUMNS:")
+        report.append(f"\nðŸ“‹ COLUMNS:")
         
         categorical_cols = []
         text_cols = []
@@ -260,34 +260,34 @@ class SchemaAnalyzer:
                 numeric_cols.append(col_name)
         
         if categorical_cols:
-            report.append(f"\n   🏷️  Categorical ({len(categorical_cols)}):")
+            report.append(f"\n   ðŸ·ï¸  Categorical ({len(categorical_cols)}):")
             for col in categorical_cols[:10]:  # Show first 10
                 unique_count = schema[col]["unique_values"]["count"]
-                report.append(f"      • {col} ({unique_count} categories)")
+                report.append(f"      â€¢ {col} ({unique_count} categories)")
             if len(categorical_cols) > 10:
                 report.append(f"      ... and {len(categorical_cols) - 10} more")
         
         if text_cols:
-            report.append(f"\n   📝 Text ({len(text_cols)}):")
+            report.append(f"\n   ðŸ“ Text ({len(text_cols)}):")
             for col in text_cols[:10]:  # Show first 10
                 unique_pct = schema[col]["unique_values"]["percentage"]
-                report.append(f"      • {col} ({unique_pct}% unique)")
+                report.append(f"      â€¢ {col} ({unique_pct}% unique)")
             if len(text_cols) > 10:
                 report.append(f"      ... and {len(text_cols) - 10} more")
         
         if numeric_cols:
-            report.append(f"\n   🔢 Numeric ({len(numeric_cols)}):")
+            report.append(f"\n   ðŸ”¢ Numeric ({len(numeric_cols)}):")
             for col in numeric_cols[:10]:  # Show first 10
                 data_type = schema[col]["data_type"]
-                report.append(f"      • {col} ({data_type})")
+                report.append(f"      â€¢ {col} ({data_type})")
             if len(numeric_cols) > 10:
                 report.append(f"      ... and {len(numeric_cols) - 10} more")
         
         if high_null_cols:
-            report.append(f"\n   ⚠️  High Null Percentage:")
+            report.append(f"\n   âš ï¸  High Null Percentage:")
             for col in high_null_cols:
                 null_pct = schema[col]["null_values"]["percentage"]
-                report.append(f"      • {col} ({null_pct}% null)")
+                report.append(f"      â€¢ {col} ({null_pct}% null)")
         
         return "\n".join(report)
     
@@ -363,12 +363,12 @@ Examples:
         if args.summary:
             print("\n" + analyzer.generate_summary_report())
         
-        print(f"\n✅ Schema analysis complete!")
-        print(f"   📁 Input file: {args.file}")
-        print(f"   📄 Output file: {args.output}")
+        print(f"\nâœ… Schema analysis complete!")
+        print(f"   ðŸ“ Input file: {args.file}")
+        print(f"   ðŸ“„ Output file: {args.output}")
         
     except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        print(f"âŒ Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 

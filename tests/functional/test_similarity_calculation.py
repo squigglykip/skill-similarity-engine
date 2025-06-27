@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Functional test for the similarity calculation functionality.
 
@@ -142,7 +142,7 @@ class TestSimilarityCalculation(unittest.TestCase):
                 employee_job_similarities[(employee_id, job_id)] = similarity
         
         # Verify the similarity matrix has the correct dimensions
-        self.assertEqual(len(employee_job_similarities), 9)  # 3 employees × 3 jobs
+        self.assertEqual(len(employee_job_similarities), 9)  # 3 employees Ã— 3 jobs
         
         # Alice should match well with the Data Scientist job (her current job)
         similarity_alice_ds = self.calculator.calculate_job_employee_similarity("J001", "E001")

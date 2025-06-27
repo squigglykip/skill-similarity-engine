@@ -1,4 +1,4 @@
-"""
+﻿"""
 Adaptive Chunking Utilities
 
 This module provides utilities for breaking large datasets into manageable chunks
@@ -110,7 +110,7 @@ class AdaptiveChunker(Generic[T]):
                 # Force garbage collection to free memory
                 trigger_garbage_collection(full=True)
                 logger.info(f"Memory pressure detected ({memory_percent:.1f}%), "
-                           f"reducing chunk size: {prev_chunk_size} → {self.current_chunk_size}")
+                           f"reducing chunk size: {prev_chunk_size} â†’ {self.current_chunk_size}")
             elif memory_percent < self.strategy.target_memory_percent:
                 # Memory usage is low, increase chunk size
                 self.current_chunk_size = min(
@@ -119,7 +119,7 @@ class AdaptiveChunker(Generic[T]):
                 )
                 if self.current_chunk_size > prev_chunk_size:
                     logger.debug(f"Memory usage low ({memory_percent:.1f}%), "
-                               f"increasing chunk size: {prev_chunk_size} → {self.current_chunk_size}")
+                               f"increasing chunk size: {prev_chunk_size} â†’ {self.current_chunk_size}")
             
             # Move to next chunk
             start_idx = end_idx
@@ -187,7 +187,7 @@ class IndexChunker:
                 # Force garbage collection to free memory
                 trigger_garbage_collection(full=True)
                 logger.info(f"Memory pressure detected ({memory_percent:.1f}%), "
-                           f"reducing chunk size: {prev_chunk_size} → {self.current_chunk_size}")
+                           f"reducing chunk size: {prev_chunk_size} â†’ {self.current_chunk_size}")
             elif memory_percent < self.strategy.target_memory_percent:
                 # Memory usage is low, increase chunk size
                 self.current_chunk_size = min(
@@ -196,7 +196,7 @@ class IndexChunker:
                 )
                 if self.current_chunk_size > prev_chunk_size:
                     logger.debug(f"Memory usage low ({memory_percent:.1f}%), "
-                               f"increasing chunk size: {prev_chunk_size} → {self.current_chunk_size}")
+                               f"increasing chunk size: {prev_chunk_size} â†’ {self.current_chunk_size}")
             
             # Move to next chunk
             start_idx = end_idx

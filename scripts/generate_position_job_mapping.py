@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Generate Position to Job Profile Mapping Data
 
@@ -239,7 +239,7 @@ def main():
     print(f"\nSchema Info:")
     print(df.info())
     
-    print(f"\n✅ Position to Job Profile mapping completed successfully!")
+    print(f"\nâœ… Position to Job Profile mapping completed successfully!")
 
 if __name__ == "__main__":
     main() 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Models for representing skills and skill taxonomies in the skill similarity engine.
 
 This module defines the data structures for representing skills, skill categories,

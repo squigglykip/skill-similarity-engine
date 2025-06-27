@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data loaders for importing skill taxonomy, job architecture, and employee data.
 
 This module provides functionality for loading data from CSV and Excel files.

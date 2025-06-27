@@ -1,4 +1,4 @@
-"""
+﻿"""
 Performance tests for the skill similarity engine.
 
 This module contains tests designed to evaluate the performance

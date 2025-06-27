@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory-Aware Processing Framework
 
 This module provides a framework for memory-aware processing that continuously

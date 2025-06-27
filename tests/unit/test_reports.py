@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for the reports module.
 
 This module tests the DataExporter and ReportConfig classes in isolation,

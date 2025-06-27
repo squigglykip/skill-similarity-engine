@@ -1,4 +1,4 @@
-# Career Pathway Diversity Strategy
+﻿# Career Pathway Diversity Strategy
 ## Addressing Similarity Bias in Precomputed Career Recommendations
 
 **Document Version**: 1.0  
@@ -52,7 +52,7 @@ Missing Cross-Functional Opportunities:
 
 **Performance Requirements:**
 - Career pathway queries must return in <100ms
-- White paper generation involves 3+ pathway queries per document
+- Career Transition Analysis Generator involves 3+ pathway queries per document
 - Expected load: 100+ concurrent users during peak times
 
 **Precomputation Benefits:**
@@ -348,7 +348,7 @@ def get_pathways_with_caching(source_job_id, diversity_ratio):
 ### User Adoption
 - Diversity control usage: >40% of users interact with diversity settings
 - Cross-functional pathway click-through rate: >15%
-- White paper generation: Include cross-functional recommendations in >80% of documents
+- Career Transition Analysis Generator: Include cross-functional recommendations in >80% of documents
 
 ---
 
@@ -384,4 +384,4 @@ This approach positions the NAB Skills Intelligence Platform to deliver genuinel
 - `src/skill_similarity_engine/similarity/precompute.py`
 - `src/skill_similarity_engine/webapp/templates/career_pathways.html`
 - `docs/sqlite_schema_design.md`
-- `docs/whitepaper_example_gold_standard.md` 
+- `docs/career_analysis_example_gold_standard.md` 

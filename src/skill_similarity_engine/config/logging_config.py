@@ -1,4 +1,4 @@
-"""
+﻿"""
 Logging configuration for the skill similarity engine.
 
 This module provides a central configuration for logging throughout the application.

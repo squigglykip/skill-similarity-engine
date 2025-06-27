@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data Loading Pipeline for Business Context Database
 
 Handles loading CSV data from multiple directories into SQLite tables:
@@ -144,7 +144,7 @@ class DataLoader:
                     logger.error(f"Failed to load {dataset_name}")
                     success = False
                 else:
-                    logger.info(f"✓ Successfully loaded {dataset_name}")
+                    logger.info(f"âœ“ Successfully loaded {dataset_name}")
             else:
                 logger.warning(f"Data file not found: {file_path}")
                 success = False
@@ -371,7 +371,7 @@ class DataLoader:
                 'schema_version': '16-column' if len(available_columns) > 6 else '6-column'
             }
             
-            logger.info(f"✅ Loaded {len(df_mapped)} job records with {self.load_stats['jobs']['schema_version']} schema")
+            logger.info(f"âœ… Loaded {len(df_mapped)} job records with {self.load_stats['jobs']['schema_version']} schema")
             return True
             
         except Exception as e:
@@ -471,7 +471,7 @@ class DataLoader:
                 'duplicates_removed': duplicates_removed
             }
             
-            logger.info(f"✅ Loaded {len(df_mapped)} skill records with {self.load_stats['skills']['schema_version']} schema")
+            logger.info(f"âœ… Loaded {len(df_mapped)} skill records with {self.load_stats['skills']['schema_version']} schema")
             return True
             
         except Exception as e:
@@ -675,7 +675,7 @@ class DataLoader:
         for table_name, stats in self.load_stats.items():
             rows = stats['rows_loaded']
             total_rows += rows
-            print(f"✓ {table_name}: {rows:,} rows loaded")
+            print(f"âœ“ {table_name}: {rows:,} rows loaded")
             print(f"  Source: {Path(stats['source_file']).name}")
         
         print(f"\nTotal records loaded: {total_rows:,}")
@@ -760,7 +760,7 @@ class DataLoader:
     
     def _load_career_pathways_from_parquet(self) -> None:
         """Load pre-computed career pathways from parquet file."""
-        logger.info("📦 Loading pre-computed career pathways from parquet...")
+        logger.info("ðŸ“¦ Loading pre-computed career pathways from parquet...")
         
         # Look for career pathways parquet file in the models directory
         from pathlib import Path
@@ -791,17 +791,17 @@ class DataLoader:
         if not parquet_files:
             raise FileNotFoundError(
                 "No pre-computed career pathways parquet file found. "
-                "Please run the precompute pipeline first (main.py option 1 → 2)"
+                "Please run the precompute pipeline first (main.py option 1 â†’ 2)"
             )
         
         # Use the most recent file
         latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
-        logger.info(f"📁 Loading career pathways from: {latest_file}")
+        logger.info(f"ðŸ“ Loading career pathways from: {latest_file}")
         
         try:
             # Load parquet file
             pathways_df = pd.read_parquet(latest_file)
-            logger.info(f"📊 Loaded {len(pathways_df):,} career pathway relationships from parquet")
+            logger.info(f"ðŸ“Š Loaded {len(pathways_df):,} career pathway relationships from parquet")
             
             # Create database connection
             conn = sqlite3.connect(self.db_path)
@@ -813,7 +813,7 @@ class DataLoader:
                 
                 # Check if DataFrame is empty
                 if len(pathways_df) == 0:
-                    logger.warning("📊 No career pathway relationships found in parquet file")
+                    logger.warning("ðŸ“Š No career pathway relationships found in parquet file")
                     conn.commit()
                     return
                 
@@ -843,12 +843,12 @@ class DataLoader:
                 cursor.executemany(insert_query, pathway_records)
                 conn.commit()
                 
-                logger.info(f"✅ Successfully loaded {len(pathway_records):,} career pathway relationships into database")
+                logger.info(f"âœ… Successfully loaded {len(pathway_records):,} career pathway relationships into database")
                 
                 # Log distribution by move type (only if we have data)
                 if len(pathways_df) > 0:
                     move_type_counts = pathways_df['career_move_type'].value_counts().to_dict()
-                    logger.info("📊 Career move type distribution:")
+                    logger.info("ðŸ“Š Career move type distribution:")
                     for move_type, count in sorted(move_type_counts.items()):
                         percentage = (count / len(pathways_df)) * 100
                         logger.info(f"   - {move_type}: {count:,} ({percentage:.1f}%)")

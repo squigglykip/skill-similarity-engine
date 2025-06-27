@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Generate Comprehensive SQLite Schema Documentation
 =================================================
@@ -410,11 +410,11 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
         doc_lines.extend([
             "",
             "**Key Relationships:**",
-            "- `jobs.JobProfileID` → `career_pathways.source_job_id/target_job_id`",
-            "- `jobs.JobProfileID` → `job_similarities.job_from/job_to`",
-            "- `jobs.JobProfileID` → `positions.JobProfileID`",
-            "- `jobs.JobProfileID` → `job_skills.JobProfileID`",
-            "- `skills.Skill_ID` → `job_skills.Skill_ID`",
+            "- `jobs.JobProfileID` â†’ `career_pathways.source_job_id/target_job_id`",
+            "- `jobs.JobProfileID` â†’ `job_similarities.job_from/job_to`",
+            "- `jobs.JobProfileID` â†’ `positions.JobProfileID`",
+            "- `jobs.JobProfileID` â†’ `job_skills.JobProfileID`",
+            "- `skills.Skill_ID` â†’ `job_skills.Skill_ID`",
             "",
             "**Critical for D3 Tree Queries:**",
             "- Use `career_pathways` table for pre-computed relationships (fast!)",
@@ -487,7 +487,7 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
                     ""
                 ])
                 for fk in table['foreign_keys']:
-                    doc_lines.append(f"- `{fk['column']}` → `{fk['references_table']}.{fk['references_column']}`")
+                    doc_lines.append(f"- `{fk['column']}` â†’ `{fk['references_table']}.{fk['references_column']}`")
                 doc_lines.append("")
             
             # Column statistics with unique values count
@@ -692,9 +692,9 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(doc_lines))
         
-        print(f"✅ Schema documentation generated: {output_file}")
-        print(f"📊 Analyzed {len(tables)} tables with {sum(table['row_count'] for table in tables):,} total records")
-        print(f"📄 Generated {len(doc_lines)} lines of documentation")
+        print(f"âœ… Schema documentation generated: {output_file}")
+        print(f"ðŸ“Š Analyzed {len(tables)} tables with {sum(table['row_count'] for table in tables):,} total records")
+        print(f"ðŸ“„ Generated {len(doc_lines)} lines of documentation")
 
 def main():
     """Main execution function."""
@@ -703,8 +703,8 @@ def main():
     db_path = project_root / "models" / "2025-Q2" / "business_context.sqlite"
     
     if not db_path.exists():
-        print(f"❌ Database not found at: {db_path}")
-        print("💡 Run 'python main.py' → Option 2 to generate the business context database first")
+        print(f"âŒ Database not found at: {db_path}")
+        print("ðŸ’¡ Run 'python main.py' â†’ Option 2 to generate the business context database first")
         return 1
     
     # Output path
@@ -715,7 +715,7 @@ def main():
         return 0
         
     except Exception as e:
-        print(f"❌ Error generating schema documentation: {e}")
+        print(f"âŒ Error generating schema documentation: {e}")
         return 1
 
 if __name__ == "__main__":

@@ -1,0 +1,241 @@
+# Pathway Analysis Template for Specific Job Transitions
+# Rich business-friendly format matching standard template structure
+# Uses conditional logic for single vs multiple target analysis
+
+pathway_analysis:
+  section_title: |
+    {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+    Strategic Transition Analysis: {{target_job_logical_name}}
+    {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+    Comparative Transition Analysis
+    {% else %}
+    Pathway Analysis: Top 3 Strategic Opportunities
+    {% endif %}
+  
+  section_config:
+    title: |
+      {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+      Strategic Transition Analysis: {{target_job_logical_name}}
+      {% elif analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+      Comparative Transition Analysis
+      {% else %}
+      Pathway Analysis: Top 3 Strategic Opportunities
+      {% endif %}
+    references_start: 57
+
+  # Template for each opportunity (uses same structure as discovery mode)
+  opportunity_template:
+    header: |
+      {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+      ## Strategic Transition: {{target_job_logical_name}}
+      Target Role: {{target_job_logical_name}} | Similarity Score: {{transition_similarity}}% | Move Type: {{move_classification}}
+      Strategic Classification: {{transition_viability}} Viability
+      {% endif %}
+
+    opportunity_overview:
+      title: "Transition Overview"
+      content_type: "table"
+      table_headers: ["Metric", "Value", "Assessment"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Role Compatibility|{{transition_similarity}}%|{{transition_viability}} viability
+        Skills Foundation|{{shared_skills_count}} overlapping competencies|Strong foundation
+        Development Focus|{{development_skills_count}} skills requiring enhancement|Focused development needed
+        Timeline Estimate|{{estimated_timeline}}|{{transition_viability}} timeline
+        Move Classification|{{move_classification}}|Strategic alignment confirmed
+        {% endif %}
+
+    strategic_positioning:
+      title: "Why This Transition Makes Sense"
+      content_type: "paragraph"
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        This {{move_classification}} builds on existing {{source_job_function}} expertise while supporting NAB's strategic priorities in {{target_job_function}}. With {{transition_similarity}}% skill compatibility, the transition leverages strong foundational capabilities.
+        
+        The transition from {{source_job_logical_display_name}} to {{target_job_logical_name}} aligns with established career frameworks and represents a {{transition_viability}} progression opportunity. {{strategic_rationale}}
+        
+        This pathway leverages {{shared_skills_count}} overlapping competencies, creating accelerated development potential and reducing time-to-productivity compared to external recruitment.
+        {% endif %}
+
+    skills_development:
+      title: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Skills Development Requirements
+        {% else %}
+        Skills Development Requirements
+        {% endif %}
+      content_type: "table"
+      table_headers: ["Category", "Current Foundation", "Development Needed"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Core Competencies|{{shared_skills_count}} skills aligned|Foundation complete
+        {{target_job_function}} Skills|{{transferable_skills_count}} transferable|{{development_skills_count}} new skills required
+        Development Focus|{{development_focus}}|Targeted skill building
+        {% else %}
+        {% for category in transferable_skill_categories %}{{category.name}}|{{category.skill_list}}|Foundation complete{% if not loop.last %}
+        {% endif %}{% endfor %}
+        {% for skill in required_skills[:3] %}New Skills|{{skill.name}}|{{skill.description}}{% if not loop.last %}
+        {% endif %}{% endfor %}
+        {% endif %}
+
+    business_case:
+      title: "Business Impact"
+      content_type: "mixed"
+      bold_labels: ["Cost Savings:", "Capability Building:", "Timeline Benefits:"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Cost Savings: Internal development reduces external recruitment costs by approximately £40-60K+ per senior hire, while maintaining institutional knowledge and cultural fit.
+        
+        Capability Building: Strengthens {{target_job_function}} capabilities through cross-functional expertise from {{source_job_function}}, supporting NAB's strategic objectives and competitive positioning.
+        
+        Timeline Benefits: {{estimated_timeline}} development timeline leverages {{shared_skills_count}} existing competencies, providing {{transition_similarity}}% head start over external candidates.
+        {% else %}
+        Cost Savings: Internal development reduces external recruitment costs by approximately ${{recruitment_cost_estimate}}K+ per senior hire, while maintaining institutional knowledge and cultural fit.
+        
+        Capability Building: Strengthens {{capability_building_area}} capabilities across multiple business units, supporting NAB's strategic objectives and competitive positioning.
+        
+        Career Development: Provides clear advancement pathway with {{salary_increase_estimate}}% salary increase potential, supporting talent retention and employee engagement initiatives.
+        {% endif %}
+
+    implementation_timeline:
+      title: "Implementation Roadmap"
+      content_type: "table"
+      table_headers: ["Phase", "Timeline", "Key Activities", "Success Measures"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Foundation Building|Months 1-3|Skills gap assessment, {{target_job_function}} training, mentoring assignment|Development plan approved
+        Applied Learning|Months 4-6|{{target_job_logical_name}} project work, cross-functional collaboration|{{development_skills_count}} competencies demonstrated
+        Transition Execution|Months 7+|Role transition, performance milestones, team integration|{{transition_similarity}}% competency achievement
+        {% else %}
+        Getting Started|Months 1-2|Career conversations, skills assessment, mentor assignment|Development plan approved
+        Building Skills|Months 3-4|Technical training, workshops, shadowing programs|{{specialized_skills_count}} competencies acquired
+        Applying Learning|Months 5-6|Cross-functional projects, progress reviews|Practical application demonstrated
+        Full Transition|Month 7+|Role transition, ongoing mentorship|Performance targets achieved
+        {% endif %}
+
+    skills_development:
+      title: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Skills Development Requirements
+        {% else %}
+        Skills Development Requirements
+        {% endif %}
+      content_type: "table"
+      table_headers: ["Category", "Current Foundation", "Development Needed"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
+        Core Competencies|{{shared_skills_count}} skills aligned|Foundation complete
+        {{target_job_function}} Skills|{{transferable_skills_count}} transferable|{{development_skills_count}} new skills required
+        Development Focus|{{development_focus}}|Targeted skill building
+        {% else %}
+        {% for category in transferable_skill_categories %}{{category.name}}|{{category.skill_list}}|Foundation complete{% if not loop.last %}
+        {% endif %}{% endfor %}
+        {% for skill in required_skills[:3] %}New Skills|{{skill.name}}|{{skill.description}}{% if not loop.last %}
+        {% endif %}{% endfor %}
+        {% endif %}
+
+  # Multiple transition comparative format (for future use)
+  comparative_analysis:
+    header: |
+      {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+      ## Comparative Transition Analysis
+      Portfolio Analysis: {{target_count}} Strategic Options | Similarity Range: {{lowest_similarity}}%-{{highest_similarity}}%
+      Portfolio Strength: {{portfolio_strength}}
+      {% endif %}
+
+    portfolio_overview:
+      title: "Portfolio Overview"
+      content_type: "table"
+      table_headers: ["Metric", "Value", "Assessment"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Target Options|{{target_count}} transitions analyzed|{{strategic_coverage}} strategic coverage
+        Similarity Range|{{lowest_similarity}}%-{{highest_similarity}}%|{{portfolio_strength}} portfolio strength
+        Function Diversity|{{function_diversity_count}} job functions|Cross-functional opportunities
+        Level Diversity|{{level_diversity_count}} management levels|Career progression options
+        Recommended Approach|Staged implementation|Risk mitigation strategy
+        {% endif %}
+
+    transition_rankings:
+      title: "Ranked Transition Options"
+      content_type: "table"
+      table_headers: ["Rank", "Target Role", "Similarity", "Strategic Priority", "Recommendation"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        {% for ranking in recommendations_rank %}
+        {{ranking.rank}}|{{ranking.logical_display_name}}|{{ranking.similarity_score}}%|{{ranking.strategic_priority | title}}|{{ranking.recommendation_rationale}}{% if not loop.last %}
+        {% endif %}{% endfor %}
+        {% endif %}
+
+    portfolio_business_case:
+      title: "Portfolio Business Impact"
+      content_type: "mixed"
+      bold_labels: ["Strategic Benefits:", "Risk Mitigation:", "Implementation Approach:"]
+      content: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Strategic Benefits: {{target_count}} pathway portfolio provides strategic flexibility while reducing dependency on single transition success. Coverage spans {{function_diversity_count}} functions for enhanced workforce agility.
+        
+        Risk Mitigation: Staggered implementation approach enables learning optimisation and evidence-based scaling. Pilot with highest similarity option ({{highest_similarity}}%) establishes proven methodology.
+        
+        Implementation Approach: Portfolio enables risk mitigation through diversified options while maintaining focus on highest-probability transitions for immediate impact and long-term strategic capability building.
+        {% endif %}
+
+    portfolio_implementation:
+      title: "Portfolio Implementation Strategy"
+      content_type: "table"
+      table_headers: ["Phase", "Timeline", "Key Activities", "Success Measures"]
+      table_data: |
+        {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_multiple' %}
+        Primary Transition|Months 1-6|Launch highest similarity option ({{highest_similarity}}%)|Proven methodology established
+        Secondary Expansion|Months 7-12|Deploy to moderate similarity options|Portfolio success metrics achieved
+        Strategic Diversification|Months 13+|Expand to challenging transitions|Full portfolio implementation
+        {% endif %}
+
+# Reference mapping for specific transitions (extending standard references)
+references:
+  # Transition-specific references (57-66)
+  57: "Specific transition similarity calculation from job_similarities table"
+  58: "Strategic context assessment derived from transition viability analysis"
+  59: "Move classification assessment based on function and level analysis"
+  60: "Skills foundation analysis derived from competency overlap calculation"
+  61: "Development requirements assessment based on skills gap analysis"
+  62: "Timeline estimation derived from development complexity analysis"
+  63: "Strategic rationale assessment based on business alignment factors"
+  64: "Transition success probability derived from similarity and progression analysis"
+  65: "Cost-benefit analysis derived from recruitment cost comparison"
+  66: "Implementation roadmap derived from transition complexity and timeline analysis"
+  
+  # Portfolio analysis references (67-77)
+  67: "Portfolio strength assessment derived from similarity range analysis"
+  68: "Strategic coverage evaluation based on function and level diversity"
+  69: "Risk mitigation analysis derived from portfolio diversification assessment"
+  70: "Comparative ranking derived from similarity score and strategic value analysis"
+  71: "Strategic priority assessment based on business alignment and viability"
+  72: "Portfolio implementation strategy derived from staged development approach"
+  73: "Success probability assessment based on comparative transition analysis"
+  74: "Business impact evaluation derived from multi-pathway capability building"
+  75: "Implementation timeline calculation based on portfolio complexity analysis"
+  76: "Transition success factors derived from comparative pathway progression data"
+  77: "ROI assessment based on portfolio development cost vs. recruitment cost analysis"
+
+# Template metadata
+template_metadata:
+  version: "2.0"
+  created_for: "NAB Skills Intelligence Platform"
+  supports_modes: ["specific_single", "specific_multiple"]
+  business_language_compliant: true
+  nab_styling_standards: true
+  structure_matches: "pathway_analysis.yaml"
+
+pathway_analysis_specific:
+  single_target:
+    section_title: "Strategic Transition Analysis: {{target_job_logical_display_name}}"
+    content_template: |
+      ## Strategic Transition Analysis: {{target_job_logical_display_name}}
+      Transition Assessment: {{source_job_logical_display_name}} → {{target_job_logical_display_name}} ({{similarity_score}}% compatibility)
+
+  multiple_targets:
+    section_title: "Comparative Transition Analysis"
+    content_template: |
+      ## Comparative Transition Analysis: Top {{pathway_count}} Strategic Opportunities
+      Strategic Assessment: Multiple transition pathways from {{source_job_logical_display_name}} 

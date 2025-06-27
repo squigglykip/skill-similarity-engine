@@ -1,4 +1,4 @@
-"""
+﻿"""
 Matrix Chunking Utilities
 
 This module provides specialized chunking utilities for matrix operations,
@@ -129,7 +129,7 @@ class SimilarityMatrixChunker:
             )
             trigger_garbage_collection(full=True)
             logger.info(f"Memory pressure detected ({memory_percent:.1f}%), "
-                       f"reducing chunk size: {prev_chunk_size} → {self.current_chunk_size}")
+                       f"reducing chunk size: {prev_chunk_size} â†’ {self.current_chunk_size}")
         elif memory_percent < self.strategy.target_memory_percent:
             # Increase chunk size if memory usage is low
             self.current_chunk_size = min(
@@ -138,7 +138,7 @@ class SimilarityMatrixChunker:
             )
             if self.current_chunk_size > prev_chunk_size:
                 logger.debug(f"Memory usage low ({memory_percent:.1f}%), "
-                           f"increasing chunk size: {prev_chunk_size} → {self.current_chunk_size}")
+                           f"increasing chunk size: {prev_chunk_size} â†’ {self.current_chunk_size}")
 
     def estimate_num_chunks(self) -> int:
         """

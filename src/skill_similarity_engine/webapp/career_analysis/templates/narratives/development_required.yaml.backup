@@ -1,0 +1,40 @@
+﻿# Development Required Template (0.2-0.4 similarity)
+meta:
+  name: 'development_required'
+  similarity_range: [0.2, 0.4]
+  description: 'Career transitions requiring significant development investment'
+
+variables:
+  avg_similarity:
+    thresholds:
+      - range: [0.3, 0.4]
+        value: 'limited'
+      - range: [0.2, 0.3]
+        value: 'minimal'
+
+paragraphs:
+  executive_summary: |
+    Our analysis indicates {avg_similarity} alignment between {source_job_title} and the target opportunity. 
+    With {avg_similarity_percent}% compatibility, this transition requires significant development investment 
+    but remains achievable with dedicated effort and structured learning approach.
+
+  context_analysis: |
+    Based on our analysis of {colleague_count} colleagues currently in {source_job_title} positions, 
+    this transition pathway presents considerable challenges. The skills analysis shows {skills_shared} 
+    transferable skills, with {skills_to_develop} critical areas requiring substantial development.
+
+  opportunity_analysis: |
+    While this career transition requires significant investment, it offers {success_probability_percent}% 
+    estimated success probability with proper preparation. The pathway demands extensive skills development 
+    but can lead to meaningful career advancement for committed individuals.
+
+  skills_development: |
+    Success requires comprehensive development across {skills_to_develop} key skill areas. The recommended 
+    timeline is {timeline_weeks} weeks of intensive development, including formal training, certification 
+    programs, and hands-on experience. Skills retention from current role is estimated at {skill_retention_percent}%.
+
+  implementation_roadmap: |
+    We recommend a comprehensive {timeline_weeks}-week development program with structured milestones. 
+    This includes formal education, certification pursuit, mentoring relationships, and practical project 
+    experience. Regular assessment and adjustment of the development plan will be essential for success.
+

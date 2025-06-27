@@ -1,4 +1,4 @@
-"""
+﻿"""
 Job Display Name Formatting Module
 
 This module provides centralised job display name formatting functionality,

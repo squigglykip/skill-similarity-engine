@@ -1,4 +1,4 @@
-"""
+﻿"""
 SQL Query Loader for NAB Skills Intelligence Platform
 ===================================================
 
@@ -7,14 +7,14 @@ Provides a clean interface for accessing queries by category and name.
 
 Directory Structure:
     sql/
-    ├── __init__.py              # This file - query loader
-    ├── jobs.sql                 # Job and job family queries
-    ├── similarities.sql         # Job similarity queries
-    ├── career_pathways.sql      # Career pathway analysis
-    ├── skills.sql               # Skills analysis queries
-    ├── positions.sql            # Position and org context
-    ├── d3_visualization.sql     # D3.js tree and network data
-    └── metadata.sql             # Database stats and health
+    â”œâ”€â”€ __init__.py              # This file - query loader
+    â”œâ”€â”€ jobs.sql                 # Job and job family queries
+    â”œâ”€â”€ similarities.sql         # Job similarity queries
+    â”œâ”€â”€ career_pathways.sql      # Career pathway analysis
+    â”œâ”€â”€ skills.sql               # Skills analysis queries
+    â”œâ”€â”€ positions.sql            # Position and org context
+    â”œâ”€â”€ d3_visualization.sql     # D3.js tree and network data
+    â””â”€â”€ metadata.sql             # Database stats and health
 
 Usage:
     from sql import queries

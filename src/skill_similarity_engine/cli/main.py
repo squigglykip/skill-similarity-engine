@@ -1,4 +1,4 @@
-"""
+﻿"""
 Command-line interface for the Skill Similarity Engine.
 
 This module provides the main CLI entry point and command registration.

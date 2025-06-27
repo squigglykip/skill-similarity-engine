@@ -1,4 +1,4 @@
-"""
+﻿"""
 Skill Similarity Engine - A system for analyzing skill similarities and identifying reskilling opportunities.
 """
 

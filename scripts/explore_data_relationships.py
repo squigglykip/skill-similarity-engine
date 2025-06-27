@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Data Exploration & Relationship Analysis Script
 ===============================================
@@ -65,11 +65,11 @@ class DataExplorer:
                     else:
                         df = pd.read_csv(path)
                     self.datasets[name] = df
-                    logger.info(f"✅ Loaded {name}: {len(df):,} rows, {len(df.columns)} columns")
+                    logger.info(f"âœ… Loaded {name}: {len(df):,} rows, {len(df.columns)} columns")
                 except Exception as e:
-                    logger.error(f"❌ Failed to load {name}: {e}")
+                    logger.error(f"âŒ Failed to load {name}: {e}")
             else:
-                logger.warning(f"⚠️  File not found: {path}")
+                logger.warning(f"âš ï¸  File not found: {path}")
     
     def analyze_dataset_structure(self, df: pd.DataFrame, name: str) -> dict:
         """Analyze structure and basic stats for a dataset"""
@@ -335,93 +335,93 @@ class DataExplorer:
         print(f"Total datasets analyzed: {len(self.datasets)}")
         
         # Dataset overview
-        print("\n📊 DATASET OVERVIEW")
+        print("\nðŸ“Š DATASET OVERVIEW")
         print("-" * 50)
         for name, df in self.datasets.items():
             analysis = self.analyze_dataset_structure(df, name)
-            print(f"• {name.upper()}")
-            print(f"  ├─ Rows: {analysis['rows']:,}")
-            print(f"  ├─ Columns: {analysis['columns']}")
-            print(f"  ├─ Memory: {analysis['memory_usage_mb']:.1f} MB")
-            print(f"  ├─ Data Completeness: {analysis['data_quality']['data_completeness']:.1f}%")
-            print(f"  └─ Key Fields: {', '.join(analysis['key_fields']) if analysis['key_fields'] else 'None detected'}")
+            print(f"â€¢ {name.upper()}")
+            print(f"  â”œâ”€ Rows: {analysis['rows']:,}")
+            print(f"  â”œâ”€ Columns: {analysis['columns']}")
+            print(f"  â”œâ”€ Memory: {analysis['memory_usage_mb']:.1f} MB")
+            print(f"  â”œâ”€ Data Completeness: {analysis['data_quality']['data_completeness']:.1f}%")
+            print(f"  â””â”€ Key Fields: {', '.join(analysis['key_fields']) if analysis['key_fields'] else 'None detected'}")
         
         # Relationship analysis
         if 'relationships' in self.analysis_results:
-            print("\n🔗 RELATIONSHIP ANALYSIS")
+            print("\nðŸ”— RELATIONSHIP ANALYSIS")
             print("-" * 50)
             
             rel = self.analysis_results['relationships']
             
             if 'job_consistency' in rel:
                 jc = rel['job_consistency']
-                print(f"• Job Data Consistency:")
-                print(f"  ├─ JobProfileID overlap: {jc['overlap_percentage']:.1f}%")
-                print(f"  ├─ Common IDs: {jc['common_ids']:,}")
-                print(f"  └─ Unique to each: {jc['job_data_only']:,} | {jc['job_arch_only']:,}")
+                print(f"â€¢ Job Data Consistency:")
+                print(f"  â”œâ”€ JobProfileID overlap: {jc['overlap_percentage']:.1f}%")
+                print(f"  â”œâ”€ Common IDs: {jc['common_ids']:,}")
+                print(f"  â””â”€ Unique to each: {jc['job_data_only']:,} | {jc['job_arch_only']:,}")
             
             if 'skills_overlap' in rel:
                 so = rel['skills_overlap']
-                print(f"• Skills Library Overlap:")
-                print(f"  ├─ Name-based overlap: {so['overlap_percentage']:.1f}%")
-                print(f"  ├─ Existing skills: {so['existing_skills_count']:,}")
-                print(f"  └─ Lightcast skills: {so['lightcast_skills_count']:,}")
+                print(f"â€¢ Skills Library Overlap:")
+                print(f"  â”œâ”€ Name-based overlap: {so['overlap_percentage']:.1f}%")
+                print(f"  â”œâ”€ Existing skills: {so['existing_skills_count']:,}")
+                print(f"  â””â”€ Lightcast skills: {so['lightcast_skills_count']:,}")
             
             if 'position_mapping' in rel:
                 pm = rel['position_mapping']
-                print(f"• Position-Job Mapping:")
-                print(f"  ├─ Coverage: {pm['coverage_percentage']:.1f}%")
-                print(f"  ├─ Mapped positions: {pm['mapped_positions']:,}")
-                print(f"  └─ Unmapped workforce: {pm['unmapped_workforce']:,}")
+                print(f"â€¢ Position-Job Mapping:")
+                print(f"  â”œâ”€ Coverage: {pm['coverage_percentage']:.1f}%")
+                print(f"  â”œâ”€ Mapped positions: {pm['mapped_positions']:,}")
+                print(f"  â””â”€ Unmapped workforce: {pm['unmapped_workforce']:,}")
             
             if 'job_skill_coverage' in rel:
                 jsc = rel['job_skill_coverage']
-                print(f"• Job-Skill Coverage:")
-                print(f"  ├─ Jobs with skills: {jsc['skill_coverage_percentage']:.1f}%")
-                print(f"  └─ Avg skills per job: {jsc['avg_skills_per_job']:.1f}")
+                print(f"â€¢ Job-Skill Coverage:")
+                print(f"  â”œâ”€ Jobs with skills: {jsc['skill_coverage_percentage']:.1f}%")
+                print(f"  â””â”€ Avg skills per job: {jsc['avg_skills_per_job']:.1f}")
             
             if 'similarity_matrix_coverage' in rel:
                 smc = rel['similarity_matrix_coverage']
-                print(f"• Job Similarity Matrix:")
-                print(f"  ├─ Total pairs: {smc['total_similarity_pairs']:,}")
-                print(f"  ├─ Job coverage: {smc['coverage_percentage']:.1f}%")
-                print(f"  ├─ Avg similarity: {smc['avg_similarity']:.3f}")
-                print(f"  └─ High similarity pairs (≥0.8): {smc['similarity_distribution']['high_similarity_pairs']:,}")
+                print(f"â€¢ Job Similarity Matrix:")
+                print(f"  â”œâ”€ Total pairs: {smc['total_similarity_pairs']:,}")
+                print(f"  â”œâ”€ Job coverage: {smc['coverage_percentage']:.1f}%")
+                print(f"  â”œâ”€ Avg similarity: {smc['avg_similarity']:.3f}")
+                print(f"  â””â”€ High similarity pairs (â‰¥0.8): {smc['similarity_distribution']['high_similarity_pairs']:,}")
         
         # Schema recommendations
         if 'schema_analysis' in self.analysis_results:
-            print("\n🏗️  SCHEMA DESIGN RECOMMENDATIONS")
+            print("\nðŸ—ï¸  SCHEMA DESIGN RECOMMENDATIONS")
             print("-" * 50)
             
             schema = self.analysis_results['schema_analysis']
             
-            print("• Normalization Needs:")
+            print("â€¢ Normalization Needs:")
             for suggestion in schema['normalization_suggestions']:
-                print(f"  ├─ {suggestion['table']}: {suggestion['reason']}")
+                print(f"  â”œâ”€ {suggestion['table']}: {suggestion['reason']}")
             
-            print("• Key Indexes Required:")
+            print("â€¢ Key Indexes Required:")
             for idx in schema['index_recommendations'][:5]:  # Show first 5
-                print(f"  ├─ {idx['table']}.{', '.join(idx['columns'])} ({idx['type']})")
+                print(f"  â”œâ”€ {idx['table']}.{', '.join(idx['columns'])} ({idx['type']})")
             
-            print("• Performance Considerations:")
+            print("â€¢ Performance Considerations:")
             for consideration in schema['performance_considerations']:
-                print(f"  └─ {consideration}")
+                print(f"  â””â”€ {consideration}")
         
         # Integration strategies
         if 'join_strategies' in self.analysis_results:
-            print("\n🔄 INTEGRATION STRATEGIES")
+            print("\nðŸ”„ INTEGRATION STRATEGIES")
             print("-" * 50)
             
             strategies = self.analysis_results['join_strategies']
             
-            print("• Primary Integration Patterns:")
+            print("â€¢ Primary Integration Patterns:")
             for strategy_name, strategy in strategies.items():
                 if isinstance(strategy, dict) and 'primary_table' in strategy:
-                    print(f"  ├─ {strategy_name}: {strategy['primary_table']} as base")
+                    print(f"  â”œâ”€ {strategy_name}: {strategy['primary_table']} as base")
                 elif isinstance(strategy, dict) and 'strategy' in strategy:
-                    print(f"  ├─ {strategy_name}: {strategy['strategy']}")
+                    print(f"  â”œâ”€ {strategy_name}: {strategy['strategy']}")
         
-        print("\n✅ Analysis Complete!")
+        print("\nâœ… Analysis Complete!")
         print("   Next steps: Use this analysis to design SQLite schema in docs/sqlite_schema_design.md")
         print("="*80)
 
@@ -465,7 +465,7 @@ def main():
     try:
         with open(analysis_file, 'w') as f:
             json.dump(export_data, f, indent=2, default=lambda x: str(x) if not isinstance(x, (str, int, float, bool, type(None))) else x)
-        logger.info(f"📄 Detailed analysis exported to: {analysis_file}")
+        logger.info(f"ðŸ“„ Detailed analysis exported to: {analysis_file}")
     except Exception as e:
         logger.warning(f"Could not export analysis: {e}")
 

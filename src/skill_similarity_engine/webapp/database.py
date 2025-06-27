@@ -1,4 +1,4 @@
-"""
+﻿"""
 Database Access Layer for NAB Skills Intelligence Platform
 =========================================================
 

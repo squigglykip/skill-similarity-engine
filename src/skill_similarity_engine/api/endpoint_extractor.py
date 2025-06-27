@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Lightcast Skills API Endpoint Extractor
 
@@ -209,14 +209,14 @@ class EndpointExtractor:
             skills = response.get("data", [])
             
             if len(skills) < expected_count:
-                print(f"⚠️  Retrieved {len(skills):,} of {expected_count:,} expected skills (API pagination limit)")
+                print(f"âš ï¸  Retrieved {len(skills):,} of {expected_count:,} expected skills (API pagination limit)")
             
             # Use version number in filename
             filename = f"skills_{version_number}"
             self.save_to_csv(skills, filename)
             
         except Exception as e:
-            print(f"⚠️  Error extracting skills: {e}")
+            print(f"âš ï¸  Error extracting skills: {e}")
             # Try with no limit
             try:
                 response = self.client.list_skills(
@@ -229,7 +229,7 @@ class EndpointExtractor:
                 filename = f"skills_{version_number}"
                 self.save_to_csv(skills, filename)
             except Exception as e2:
-                print(f"❌ Failed to extract skills: {e2}")
+                print(f"âŒ Failed to extract skills: {e2}")
                 raise
     
     def extract_all_skills_comprehensive(self):
@@ -259,14 +259,14 @@ class EndpointExtractor:
                 
                 if version_fields == reference_fields:
                     compatible_versions.append(version)
-                    print(f"  ✓ {version} - Compatible")
+                    print(f"  âœ“ {version} - Compatible")
                 else:
                     missing = reference_fields - version_fields
                     extra = version_fields - reference_fields
-                    print(f"  ✗ {version} - Incompatible (missing: {len(missing)}, extra: {len(extra)})")
+                    print(f"  âœ— {version} - Incompatible (missing: {len(missing)}, extra: {len(extra)})")
                     
             except Exception as e:
-                print(f"  ✗ {version} - Error getting metadata: {e}")
+                print(f"  âœ— {version} - Error getting metadata: {e}")
         
         print(f"\nFound {len(compatible_versions)} compatible versions out of {len(versions)} total")
         print(f"Compatible versions: {', '.join(compatible_versions[:10])}{'...' if len(compatible_versions) > 10 else ''}")
@@ -312,7 +312,7 @@ class EndpointExtractor:
                     version_tracker.update(1)
                     
                 except Exception as e:
-                    tqdm.tqdm.write(f"  ❌ Error processing version {version}: {e}")
+                    tqdm.tqdm.write(f"  âŒ Error processing version {version}: {e}")
                     version_tracker.update(1)  # Still update progress
                     continue
         
@@ -362,9 +362,9 @@ class EndpointExtractor:
             self.extract_all_skills_comprehensive()
             
             print("=" * 50)
-            print("✅ EXTRACTION COMPLETE!")
-            print(f"📁 Output directory: {self.session_dir}")
-            print("📄 Files created:")
+            print("âœ… EXTRACTION COMPLETE!")
+            print(f"ðŸ“ Output directory: {self.session_dir}")
+            print("ðŸ“„ Files created:")
             print("  1. status.csv")
             print("  2. meta.csv") 
             print("  3. versions.csv")
@@ -374,7 +374,7 @@ class EndpointExtractor:
             print("=" * 50)
             
         except Exception as e:
-            print(f"❌ ERROR: {e}")
+            print(f"âŒ ERROR: {e}")
             raise
 
 

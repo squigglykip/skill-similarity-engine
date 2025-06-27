@@ -1,4 +1,4 @@
-"""
+﻿"""
 logging.formatters
 
 Defines log formatters for the centralised logging framework.

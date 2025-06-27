@@ -1,14 +1,490 @@
 # Specific Job Transition White Paper Development - LLM HANDOVER
 
-**Document Version**: 6.1  
+**Document Version**: 7.0  
 **Created**: 2025-01-19  
-**Updated**: 2025-01-19 - ALL THREE USER STORIES COMPLETE ✅ + Cover Page & Bold Label Enhancements Complete  
-**Status**: PRODUCTION-READY SYSTEM | READY FOR WEBAPP INTEGRATION  
-**Goal**: Integrate complete specific job transition white paper system into webapp interface
+**Updated**: 2025-01-19 - WEBAPP INTEGRATION PROGRESS: Backend Complete, Frontend Parsing Needed ✅🔧  
+**Status**: BACKEND COMPLETE | FRONTEND PARSING REQUIRED  
+**Goal**: Complete webapp integration with clean preview display
 
 ---
 
-## 🎯 **CURRENT STATUS: ALL THREE USER STORIES COMPLETE ✅**
+## 🚨 **QUICK START FOR INCOMING LLM**
+
+**You are inheriting a career analysis system with 100% working backend and 90% complete webapp integration.**
+
+### **✅ What's Complete & Working:**
+- Backend system generates professional Word documents (all 5 sections)
+- Flask integration correctly calls `--copy` flag and gets complete analysis
+- Preview data contains all sections: Executive Summary, Current Role Context, Pathway Analysis, Strategic Recommendations, Conclusion
+- Skills table issue resolved - all required skills now display properly
+- Test harness: `python test_career_analysis.py --job-from R0102.3 --mode top_matches --top-n 5 --word`
+
+### **❌ What Needs Fixing (2-3 hours work):**
+1. **Preview Display Parsing**: Raw analysis comes back as wall of text, needs proper HTML formatting
+2. **Section Structure**: JavaScript needs to parse the 5 sections and display with proper headings/styling
+3. **Table Formatting**: Skills tables and other structured content need HTML table conversion
+4. **Text Spacing**: Line breaks and paragraph spacing need fixing
+
+### **📁 Current Problem:**
+The Flask endpoint returns complete analysis content, but JavaScript displays it as one giant paragraph instead of properly formatted sections. The content is correctly generated but needs proper parsing and HTML formatting.
+
+**Specific Issue**: Raw content from `analysis_preview_output.md` shows:
+```
+Data Scientist - Senior Manager - Group 2 Profile [{'text': 'Organisational Deployment: 280 positions across 6 divisions\nPrimary Locations: Adelaide, SA, AU (71), Perth, WA, AU (59), Parramatta, NSW, AU (53)', 'formatting': {'content_type': 'paragraph', 'bold_labels': ['Organisational Deployment:', 'Primary Locations:']}}
+```
+
+This shows the content is actually **structured JSON with formatting metadata**, not plain text! The issue is that JavaScript isn't parsing this structure properly.
+
+### **🎯 Your Mission (2-3 hours):**
+Fix the `displayPreview()` method in `career-analysis.js` to parse the JSON-structured content that includes formatting metadata and display it with proper HTML formatting, section headings, and table structures.
+
+**Key Insight**: The content includes formatting metadata like `bold_labels`, `content_type: 'table'`, and proper table structure with headers and rows. We need to use this metadata to render proper HTML.
+
+---
+
+## 🎯 **CURRENT STATUS: WEBAPP INTEGRATION 90% COMPLETE ✅🔧**
+
+### ✅ **BACKEND INTEGRATION: 100% COMPLETE**
+**Goal**: Integrate proven career analysis system with webapp Flask endpoints
+
+#### **Major Achievements:**
+- ✅ **Flask Integration**: `/api/career-analysis-preview` endpoint correctly calls `test_career_analysis.py --copy`
+- ✅ **Complete Content Generation**: All 5 sections now generated (Executive Summary, Current Role Context, Pathway Analysis, Strategic Recommendations, Conclusion)
+- ✅ **Skills Table Fix**: Fixed "new skills" disappearing issue - all 79 required skills now display properly
+- ✅ **Clean Output Format**: `--copy` flag generates clean, structured content without debug information
+- ✅ **Parameter Integration**: All form parameters (job_from, mode, similarity ranges, etc.) correctly passed to CLI
+
+#### **Technical Fixes Completed:**
+```python
+# FIXED: logical_role_manager error in test_career_analysis.py
+# OLD: logical_manager = exec_generator.logical_role_manager  # AttributeError
+# NEW: Direct database query approach
+try:
+    job_query = db.execute("SELECT JobProfile FROM jobs WHERE JobProfileID = ?", (test_job_id,)).fetchone()
+    job_name = job_query['JobProfile'] if job_query else test_job_id
+except:
+    job_name = test_job_id
+
+# FIXED: Flask endpoint to use --copy instead of --pathway
+# OLD: cmd.extend(['--pathway'])  # Only generated pathway analysis
+# NEW: cmd.extend(['--copy'])     # Generates all 5 sections cleanly
+```
+
+#### **Validated Results:**
+```bash
+# ✅ WORKING: Complete 5-section analysis generation
+python test_career_analysis.py --job-from R0102.3 --copy
+# Results: Clean output with Executive Summary, Current Role Context, Pathway Analysis, Strategic Recommendations, Conclusion
+
+# ✅ WORKING: Flask endpoint returns complete data
+POST /api/career-analysis-preview
+{
+    "job_from": "R0102.3",
+    "analysis_mode": "top_matches", 
+    "similarity_min": 40,
+    "similarity_max": 90
+}
+# Results: Returns structured content object with all 5 sections
+```
+
+### ❌ **FRONTEND PARSING: NEEDS COMPLETION**
+**Goal**: Display structured analysis content with proper formatting instead of wall of text
+
+#### **Current Problem Identified:**
+The Flask backend correctly returns complete analysis content, but the JavaScript `displayPreview()` method is not parsing the structure properly. Currently displays as:
+
+**Problem Output** (from `analysis_preview_output.md`):
+```
+Executive Summary Strategic Context We've identified practical career opportunities for Data Scientist - Senior Manager - Group 2 professionals that build on their existing strengths while supporting NAB's strategic priorities...
+```
+
+**Expected Output**:
+```html
+<h2>Executive Summary</h2>
+<h3>Strategic Context</h3>
+<p>We've identified practical career opportunities for Data Scientist - Senior Manager - Group 2 professionals that build on their existing strengths while supporting NAB's strategic priorities...</p>
+
+<h3>Key Findings</h3>
+<p>We found 3 viable career paths...</p>
+
+<h2>Current Role Context</h2>
+<h3>Data Scientist - Senior Manager - Group 2 Profile</h3>
+<table>...</table>
+```
+
+#### **Root Cause Analysis:**
+1. **Flask Returns Raw Text**: Backend correctly generates content but returns as continuous text stream
+2. **JavaScript Parser Issue**: `displayPreview()` method expects structured JSON but receives flat text
+3. **Missing HTML Conversion**: No logic to convert section headers, tables, and paragraphs to HTML
+4. **Text Formatting**: Line breaks and spacing need proper HTML paragraph and break tag conversion
+
+#### **Files Requiring Updates:**
+- `skill-similarity-engine/src/skill_similarity_engine/webapp/static/js/career-analysis.js` - Lines 390-430 (`displayPreview()` method)
+- `skill-similarity-engine/src/skill_similarity_engine/webapp/app.py` - Lines 2060-2080 (Flask parsing logic to extract clean JSON from CLI output)
+
+#### **Critical Discovery from `analysis_preview_output.md`:**
+The CLI output contains **structured JSON with formatting metadata**:
+- `content_type: 'paragraph'` - Regular text content
+- `content_type: 'table'` - Table data with headers and rows arrays
+- `bold_labels: ['Label:']` - Labels that should be bolded
+- `table_style: 'compact'` - Table styling hints
+- Proper table structure: `{'headers': ['Col1', 'Col2'], 'rows': [['data1', 'data2']]}`
+
+**This means we have RICH STRUCTURED DATA, not just raw text!** The JavaScript parser needs to interpret this formatting metadata to render proper HTML.
+
+---
+
+## 🔧 **FRONTEND PARSING SOLUTION APPROACH**
+
+### **Current JavaScript Structure (Broken):**
+```javascript
+// Current displayPreview method (Lines 390-430 in career-analysis.js)
+displayPreview(data) {
+    const previewContent = document.getElementById('previewContent');
+    
+    if (!data.success) {
+        this.displayError(`Failed to generate preview: ${data.error || 'Unknown error'}`);
+        return;
+    }
+
+    // Check if we have structured content from all 5 sections
+    const content = data.content || {};
+    const hasStructuredContent = Object.keys(content).length > 0;
+    
+    let htmlContent = '';
+    
+    if (hasStructuredContent) {
+        // PROBLEM: This parseStructuredContent() method doesn't exist yet
+        htmlContent = this.parseStructuredContent(content);
+    } else {
+        // PROBLEM: Falls back to raw text parsing which creates wall of text
+        htmlContent = this.parseRawOutput(data.raw_output || '');
+    }
+    
+    previewContent.innerHTML = htmlContent;
+}
+```
+
+### **Required Solution:**
+
+#### **1. Flask JSON Extraction Enhancement**
+The CLI output already contains structured JSON, we just need to extract it properly:
+
+```python
+# NEEDED: Enhanced Flask parsing in app.py to extract JSON from CLI output
+@app.route('/api/career-analysis-preview', methods=['POST'])
+def api_career_analysis_preview():
+    # ... existing code ...
+    
+    # The CLI output contains structured JSON sections - extract them
+    structured_content = extract_json_sections_from_cli_output(result.stdout)
+    
+    return jsonify({
+        'success': True,
+        'content': structured_content,
+        'metadata': {
+            'job_from': job_from,
+            'analysis_mode': mode,
+            'source_job_title': get_job_title(job_from)
+        }
+    })
+
+def extract_json_sections_from_cli_output(raw_output):
+    """Extract structured JSON sections from CLI output."""
+    # The output contains section headers followed by JSON arrays
+    # Example: "### Core Competency Foundation [{'text': '...', 'formatting': {...}}]"
+    
+    sections = {}
+    lines = raw_output.split('\n')
+    
+    for i, line in enumerate(lines):
+        # Look for section headers with JSON content
+        if line.startswith('### ') and i + 1 < len(lines):
+            section_name = line.replace('### ', '').strip()
+            json_line = lines[i + 1].strip()
+            
+            # Extract JSON array from the line
+            try:
+                import json
+                if json_line.startswith('[') and json_line.endswith(']'):
+                    section_data = json.loads(json_line)
+                    sections[section_name] = section_data
+            except json.JSONDecodeError:
+                # Fallback to plain text if JSON parsing fails
+                sections[section_name] = [{'text': json_line, 'formatting': {'content_type': 'paragraph'}}]
+    
+    return sections
+```
+
+#### **2. Enhanced JavaScript Parser for Structured JSON**
+```javascript
+// NEEDED: Complete parseStructuredContent implementation for JSON format
+parseStructuredContent(content) {
+    let html = '<div class="analysis-preview">';
+    
+    // Process each section from the structured content
+    for (const [sectionName, sectionData] of Object.entries(content)) {
+        html += '<div class="section">';
+        
+        // Add section header with appropriate icon
+        const icon = this.getSectionIcon(sectionName);
+        const displayName = this.formatSectionName(sectionName);
+        html += `<h2 class="section-header"><i class="${icon} text-red-600 mr-2"></i>${displayName}</h2>`;
+        
+        // Process the JSON array for this section
+        if (Array.isArray(sectionData)) {
+            html += this.formatJSONSectionData(sectionData);
+        }
+        
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// NEEDED: Format JSON section data with metadata
+formatJSONSectionData(sectionArray) {
+    let html = '';
+    
+    for (const item of sectionArray) {
+        const text = item.text || '';
+        const formatting = item.formatting || {};
+        const contentType = formatting.content_type || 'paragraph';
+        
+        switch (contentType) {
+            case 'paragraph':
+                html += this.formatParagraphWithBoldLabels(text, formatting.bold_labels || []);
+                break;
+                
+            case 'table':
+                html += this.formatJSONTable(formatting);
+                break;
+                
+            case 'mixed':
+                html += this.formatMixedContent(text, formatting.bold_labels || []);
+                break;
+                
+            default:
+                html += `<p class="section-paragraph">${text}</p>`;
+        }
+    }
+    
+    return html;
+}
+
+// NEEDED: Format paragraphs with bold labels
+formatParagraphWithBoldLabels(text, boldLabels) {
+    let html = text;
+    
+    // Apply bold formatting to specified labels
+    for (const label of boldLabels) {
+        const regex = new RegExp(`(${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g');
+        html = html.replace(regex, `<strong>$1</strong>`);
+    }
+    
+    // Convert line breaks to proper paragraphs
+    const paragraphs = html.split('\n').filter(p => p.trim());
+    return paragraphs.map(p => `<p class="section-paragraph">${p.trim()}</p>`).join('');
+}
+
+// NEEDED: Format JSON table structure
+formatJSONTable(formatting) {
+    const headers = formatting.headers || [];
+    const rows = formatting.rows || [];
+    const tableStyle = formatting.table_style || 'simple';
+    
+    let tableHTML = `<table class="skills-table ${tableStyle} border-collapse border border-gray-300 w-full mt-4 mb-4">`;
+    
+    // Add headers
+    if (headers.length > 0) {
+        tableHTML += '<thead><tr>';
+        for (const header of headers) {
+            tableHTML += `<th class="border border-gray-300 px-3 py-2 bg-gray-50 font-semibold">${header}</th>`;
+        }
+        tableHTML += '</tr></thead>';
+    }
+    
+    // Add rows
+    tableHTML += '<tbody>';
+    for (const row of rows) {
+        tableHTML += '<tr>';
+        for (const cell of row) {
+            tableHTML += `<td class="border border-gray-300 px-3 py-2">${cell}</td>`;
+        }
+        tableHTML += '</tr>';
+    }
+    tableHTML += '</tbody>';
+    
+    tableHTML += '</table>';
+    return tableHTML;
+}
+
+// NEEDED: Helper functions
+getSectionIcon(sectionName) {
+    const iconMap = {
+        'Core Competency Foundation': 'fas fa-foundation',
+        'Strategic Value Proposition': 'fas fa-chart-line',
+        'Strategic Intelligence Metrics': 'fas fa-analytics',
+        'Top 3 Strategic Opportunities': 'fas fa-route',
+        'Skills Transition Analysis': 'fas fa-exchange-alt'
+    };
+    return iconMap[sectionName] || 'fas fa-file-alt';
+}
+
+formatSectionName(sectionName) {
+    // Convert section names to display-friendly format
+    return sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+```
+
+#### **3. CSS Styling for Preview Sections**
+```css
+/* NEEDED: Section styling in career-analysis.css */
+.analysis-preview {
+    font-family: 'Source Sans Pro', sans-serif;
+    line-height: 1.6;
+    color: #374151;
+}
+
+.section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.subsection-header {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.sub-subsection-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4b5563;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.section-paragraph {
+    margin-bottom: 0.75rem;
+    text-align: justify;
+}
+
+.skills-table {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.skills-table td {
+    vertical-align: top;
+}
+
+.skills-table tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+```
+
+---
+
+## 🎯 **IMPLEMENTATION TASK FOR NEXT LLM**
+
+### **Primary Task: Fix Preview Display Parsing (2-3 hours)**
+
+**The Issue**: Flask returns complete structured analysis with JSON formatting metadata, but JavaScript displays it as wall of text instead of parsing the structure.
+
+**Files to Update:**
+1. **`skill-similarity-engine/src/skill_similarity_engine/webapp/app.py`** (Lines 2060-2080)
+   - Add `extract_json_sections_from_cli_output()` function to parse JSON sections from CLI output
+   - Update Flask response to return properly structured sections with formatting metadata
+
+2. **`skill-similarity-engine/src/skill_similarity_engine/webapp/static/js/career-analysis.js`** (Lines 390-430)
+   - Implement complete `parseStructuredContent()` method for JSON format
+   - Add `formatJSONSectionData()`, `formatParagraphWithBoldLabels()`, and `formatJSONTable()` methods
+   - Use formatting metadata (`content_type`, `bold_labels`, `table_style`) to render proper HTML
+
+3. **`skill-similarity-engine/src/skill_similarity_engine/webapp/static/css/career-analysis.css`**
+   - Add section styling classes for professional preview display with proper table formatting
+
+### **Expected Outcome:**
+Transform the current wall of text preview into a properly formatted, multi-section analysis with:
+- ✅ **Clear Section Headers**: Executive Summary, Current Role Context, etc.
+- ✅ **Proper Paragraph Spacing**: Clean text formatting with appropriate line breaks
+- ✅ **HTML Tables**: Skills transition tables displayed as proper HTML tables
+- ✅ **Professional Styling**: Consistent with NAB branding and existing webapp design
+
+### **Testing Validation:**
+```javascript
+// Test that preview displays correctly:
+1. Select job R0102.3
+2. Keep default settings (Top 3 Discovery, 40%-90% similarity)
+3. Click "Preview Analysis"
+4. Verify all 5 sections display with proper formatting
+5. Check skills tables render as HTML tables, not raw text
+6. Confirm section navigation and spacing looks professional
+```
+
+### **Success Criteria:**
+- ✅ **No More Wall of Text**: Preview displays as formatted sections with proper headers
+- ✅ **Complete Section Coverage**: All 5 sections (Executive Summary through Conclusion) visible
+- ✅ **Table Formatting**: Skills analysis tables display as proper HTML tables
+- ✅ **Professional Appearance**: Clean, readable formatting suitable for business stakeholders
+- ✅ **Responsive Layout**: Preview scrolls properly within container without breaking layout
+
+---
+
+## 📋 **HANDOVER CONTEXT: What the Next LLM Needs to Know**
+
+### **✅ Backend System Status:**
+- **100% Working**: Career analysis generation with all 5 sections
+- **100% Working**: Flask integration and parameter handling
+- **100% Working**: Skills data accuracy (all 79 required skills display)
+- **100% Working**: `--copy` flag generates clean, structured output
+
+### **🔧 Frontend Integration Status:**
+- **90% Working**: Form handling, job search, parameter validation
+- **90% Working**: Flask API communication and data retrieval
+- **❌ 10% Broken**: Preview display formatting and section parsing
+
+### **📊 Current Data Flow:**
+```
+User Form → Flask API → test_career_analysis.py --copy → Complete Analysis → Flask Response → JavaScript → ❌ Wall of Text Display
+```
+
+**Required Fix:**
+```
+User Form → Flask API → test_career_analysis.py --copy → Complete Analysis → ✅ Structured Flask Response → ✅ Enhanced JavaScript Parser → ✅ Formatted HTML Display
+```
+
+### **🔍 Debug Information:**
+- **Raw analysis content**: Available in `analysis_preview_output.md`
+- **Working test command**: `python test_career_analysis.py --job-from R0102.3 --copy`
+- **Current JavaScript**: `displayPreview()` method needs enhancement at lines 390-430
+- **Flask endpoint**: `/api/career-analysis-preview` returns correct data, just needs structured formatting
+
+### **⚡ Quick Win Opportunity:**
+This is a **high-impact, low-effort fix**. The backend analysis is perfect, we just need to parse and display it properly. All the content is there, it just needs HTML formatting and section structure.
+
+---
+
+## ✅ **PREVIOUS ACHIEVEMENTS: ALL THREE USER STORIES COMPLETE**
 
 ### ✅ **USER STORY 1: TOP N DISCOVERY MODE (100% COMPLETE)**
 **Goal**: Generate white papers for top N similar job matches within a similarity range
@@ -24,8 +500,8 @@
 #### **Validated Test Results:**
 ```bash
 # Top N Discovery Mode ✅ WORKING PERFECTLY
-python test_whitepaper.py --job-from R0102.3 --mode top_matches --similarity-min 30 --similarity-max 70 --word
-# Results: Professional 5-section white paper with rich tables and business content
+python test_career_analysis.py --job-from R0102.3 --mode top_matches --similarity-min 30 --similarity-max 70 --word
+# Results: Professional 5-section career analysis with rich tables and business content
 ```
 
 ### ✅ **USER STORY 2: SINGLE SPECIFIC JOB TRANSITION (100% COMPLETE)**
@@ -42,8 +518,8 @@ python test_whitepaper.py --job-from R0102.3 --mode top_matches --similarity-min
 #### **Validated Test Results:**
 ```bash
 # Single Specific Transition ✅ WORKING PERFECTLY  
-python test_whitepaper.py --job-from R0102.3 --mode specific --job-to R0228.0 --word
-# Results: Complete white paper with dynamic titles, rich content, professional formatting
+python test_career_analysis.py --job-from R0102.3 --mode specific --job-to R0228.0 --word
+# Results: Complete career analysis with dynamic titles, rich content, professional formatting
 # Output: "Strategic Transition Analysis: Cybersecurity Analyst (Group 3)" with full business content
 ```
 
@@ -63,7 +539,7 @@ python test_whitepaper.py --job-from R0102.3 --mode specific --job-to R0228.0 --
 #### **Validated Test Results:**
 ```bash
 # Multi-Target Comparison ✅ WORKING PERFECTLY
-python test_whitepaper.py --job-from R0102.3 --mode specific --job-to "R0044.2,R0365.4,R0276.4" --word
+python test_career_analysis.py --job-from R0102.3 --mode specific --job-to "R0044.2,R0365.4,R0276.4" --word
 # Results: Complete comparative analysis with 3 target sections, professional formatting
 # Output: "Comparative Transition Analysis" with ranked opportunities and business insights
 ```
@@ -79,7 +555,7 @@ python test_whitepaper.py --job-from R0102.3 --mode specific --job-to "R0044.2,R
 ```
 NAB Skills Intelligence Platform
 Strategic Career Pathway Analysis
-White Paper: Data Scientist - Senior Manager - Group 2
+Career Transition Analysis: Data Scientist - Senior Manager - Group 2
 Generated: June 26, 2025
 Version 1.0 - Skills Intelligence Analysis
 ```
@@ -117,1066 +593,177 @@ Version 1.0 - Skills Intelligence Analysis
 
 **Implementation**: Updated YAML templates with complete bold_labels list, removed generator overrides
 
----
+### ✅ **ENHANCEMENT 3: Comprehensive Skill Composition Analysis**
+**Goal**: Replace basic skill reporting with comprehensive business-friendly analysis across all skill types
 
-## 💡 **PROVEN ARCHITECTURE PATTERNS FOR WEBAPP INTEGRATION**
-
-### **🎯 TEMPLATE-DRIVEN ARCHITECTURE (WORKING PERFECTLY)**
-
-#### **1. YAML Template Structure**
-```yaml
-# ✅ WORKING PATTERN: Template controls all formatting
-primary_recommendations:
-  bold_labels: ["Move Type:", "Function Transition:", "Management Level:", "Strategic Context:"]
-  content_type: "structured"
-  recommendation_template: |
-    {{ recommendation.target_logical_role }} - {{ recommendation.similarity_score }}% compatibility
-    - Move Type: {{ recommendation.move_type }}
-    - Function Transition: {{ source_function }} → {{ target_function }}
-    - Management Level: {{ source_level }} → {{ target_level }}
+**Before:**
+```
+• Specialized Skill skills appear in 87% of this role (83% NAB average) instances across the organisation, demonstrating typical skill mix demand
 ```
 
-#### **2. Generator Processing Pipeline**
+**After:**
+```
+This role encompasses 75 prescribed skills (65 Specialised Skills and 10 Common Skills) with a distinctive composition compared to NAB's broader workforce. The skill portfolio breakdown reveals Specialised skills comprise 87% of requirements (above the 65% NAB average), while Common skills comprise 13% of requirements (below the 30% NAB average). This positions the role as a highly specialised role, where deep domain expertise is essential for effective performance, requiring substantial domain expertise for successful transitions.
+```
+
+**Key Improvements:**
+- ✅ **Professional Business Narrative**: Smooth, report-quality language replacing choppy bullet points
+- ✅ **Specific Skill Type Counts**: Clear breakdown showing "65 Specialised Skills and 10 Common Skills"
+- ✅ **Comprehensive Triangle Analysis**: Analyses position across Specialised-Common-Certification dimensions
+- ✅ **Strategic Implications**: Explains accessibility, barriers to entry, and transition requirements
+- ✅ **UK English Throughout**: All text uses proper British spellings (specialised, analyse, etc.)
+- ✅ **Template Integration Fixed**: Eliminated concatenation issues causing messy output
+
+### ✅ **ENHANCEMENT 4: Configurable Top N Analysis**
+**Goal**: Make "Top 3" references configurable to support flexible Top N analysis
+
+**Problem Identified:**
+The system had hard-coded "Top 3" references throughout templates and generators, limiting flexibility for different analysis scenarios.
+
+**Implementation:**
+- ✅ **YAML Template Updates**: Updated `pathway_analysis.yaml` and `pathway_analysis_specific.yaml` to use `{{pathway_count}}` dynamic variables
+- ✅ **Generator Parameter Addition**: Added `top_n=3` parameter to all generator `generate()` methods
+- ✅ **SQL Query Updates**: Changed `LIMIT 3` to parameterised `LIMIT ?` with `top_n` variable
+- ✅ **Test Harness Enhancement**: Updated `test_career_analysis.py` with `--top-n` argument support
+- ✅ **Template Variable Pipeline**: Full pathway from command line argument to template rendering
+
+**Validated Test Results:**
+```bash
+# ✅ WORKING: Configurable Top N
+python test_career_analysis.py --job-from R0102.3 --mode top_matches --top-n 5 --word
+# Results: "Pathway Analysis: Top 5 Strategic Opportunities" with 5 career pathways analysed
+```
+
+### ✅ **ENHANCEMENT 5: Business-Friendly Move Type Display Names**
+**Goal**: Replace technical move type names with business-appropriate language for executive audiences
+
+**Problem Identified:**
+Move types like "Progression - Different_Role_Higher_Level" appeared too "software engineery" for business stakeholders and executive documents.
+
+**Implementation:**
+- ✅ **Business-Friendly Mapping**: Created comprehensive display name mapping in both `executive_summary_generator.py` and `pathway_ordering_utils.py`
+- ✅ **Template Integration**: Updated template processing to use `move_type_display` when available, fallback to `move_type` for consistency
+- ✅ **Dual Data Structure**: Maintains technical names for system processing and business names for user-facing content
+- ✅ **Comprehensive Coverage**: Updated all generators that handle move type classification
+
+**Before vs After:**
 ```python
-# ✅ WORKING PATTERN: Generator uses template specifications
-def _generate_structured_recommendations(self, primary_rec_config: Dict, variables: Dict):
-    bold_labels = primary_rec_config.get('bold_labels', ['Move Type:', 'Strategic Context:'])
-    # Process recommendations using template-defined bold_labels
-    return ContentFormatter.create_formatted_content(full_text, {
-        'content_type': 'mixed',
-        'bold_labels': bold_labels
-    })
+# BEFORE: Technical naming
+"Progression - Different_Role_Higher_Level"
+"Lateral - Different_Role_Same_Level" 
+"Transition - Lower_Level"
+
+# AFTER: Business-friendly naming
+"Career Advancement (Different Role, Higher Level)"
+"Lateral Transition (Different Role, Same Level)"
+"Strategic Repositioning (Lower Level)"
 ```
 
-#### **3. Document Formatter Integration**
+### ✅ **ENHANCEMENT 6: Webapp Backend Integration Complete**
+**Goal**: Integrate the complete career analysis system with webapp Flask endpoints
+
+**Major Achievements:**
+- ✅ **Flask Endpoint Integration**: `/api/career-analysis-preview` correctly calls `test_career_analysis.py --copy`
+- ✅ **Parameter Mapping**: All form parameters (job_from, mode, similarity ranges) correctly passed to CLI
+- ✅ **Error Handling**: Fixed logical_role_manager AttributeError with direct database query approach
+- ✅ **Complete Content Generation**: All 5 sections generated cleanly without debug output
+- ✅ **Skills Data Accuracy**: Fixed required skills parsing to show all 79 required skills properly
+
+**Technical Implementation:**
 ```python
-# ✅ WORKING PATTERN: Formatter respects template specifications
-def _add_formatted_text_with_labels(self, para, text: str, bold_labels: List[str]):
-    for label in bold_labels:
-        if text.startswith(label):
-            label_run = para.add_run(label)
-            label_run.bold = True
+# Flask endpoint calls CLI with all parameters
+cmd = [
+    sys.executable, cli_script_path,
+    '--job-from', job_from,
+    '--mode', mode,
+    '--copy'  # Generates all 5 sections cleanly
+]
+
+# Enhanced parameter handling
+if mode == 'top_matches':
+    cmd.extend(['--similarity-min', str(similarity_min)])
+    cmd.extend(['--similarity-max', str(similarity_max)])
+elif mode == 'specific' and job_to:
+    cmd.extend(['--job-to', job_to])
 ```
 
-### **🚀 VALIDATED USER STORY PATTERNS**
-
-#### **Discovery Mode (User Story 1)**
-```python
-# API Call Pattern
-POST /api/whitepaper/generate
-{
-    "job_from": "R0102.3",
-    "analysis_mode": "top_matches", 
-    "similarity_min": 0.30,
-    "similarity_max": 0.70
-}
-```
-
-#### **Single Specific Mode (User Story 2)**
-```python
-# API Call Pattern
-POST /api/whitepaper/generate
-{
-    "job_from": "R0102.3",
-    "analysis_mode": "specific",
-    "job_to": "R0228.0"
-}
-```
-
-#### **Multiple Specific Mode (User Story 3)**
-```python
-# API Call Pattern 
-POST /api/whitepaper/generate
-{
-    "job_from": "R0102.3",
-    "analysis_mode": "specific", 
-    "job_to": "R0044.2,R0365.4,R0276.4"
-}
-```
-
----
-
-## 🌐 **WEBAPP INTEGRATION REQUIREMENTS**
-
-### **🎯 PHASE 4: WEBAPP INTEGRATION (READY TO IMPLEMENT)**
-
-**Goal**: Integrate the complete working career transition analysis system into the existing webapp interface
-
-### **📋 PRE-INTEGRATION UPDATES REQUIRED**
-
-#### **✅ 1. TERMINOLOGY CHANGE: "White Paper" → Corporate-Friendly Alternative**
-**Business Requirement**: Move away from academic "White Paper" terminology to more approachable corporate language.
-
-**Recommended New Terminology**:
-- **Primary**: "Career Transition Analysis" or "Strategic Career Report"
-- **Alternative**: "Workforce Transition Report" or "Career Pathway Analysis"
-- **Page Title**: "Career Transition Analysis Generator"
-- **Button Text**: "Generate Career Report" instead of "Generate White Paper"
-- **File Names**: "Career_Transition_Analysis_DataScientist_to_RiskManager_2025.docx"
-
-**Implementation Requirements**:
-```python
-# Update all references in codebase
-OLD_TERMS = ["White Paper", "white paper", "whitepaper"]
-NEW_TERMS = ["Career Transition Analysis", "career transition analysis", "career_analysis"]
-
-# File/Function renaming required:
-# - white_papers.html → career_analysis.html
-# - whitepaper_routes.py → career_analysis_routes.py  
-# - generate_whitepaper() → generate_career_analysis()
-# - /api/whitepaper/ → /api/career-analysis/
-```
-
-#### **✅ 2. LAYOUT REDESIGN: Top Input + Scrollable Preview**
-**Business Requirement**: Reorganise interface from side-by-side layout to top input section with scrollable preview below.
-
-**New Layout Structure**:
-```html
-<!-- Top Section: Configuration Panel (Full Width) -->
-<div class="w-full bg-white rounded-lg shadow-lg p-8 mb-6">
-    <h2>Career Transition Analysis Configuration</h2>
-    <!-- All input controls in horizontal layout -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Source Job | Analysis Mode | Target Job | Scenario -->
-    </div>
-    <div class="flex justify-end mt-6 space-x-4">
-        <button>Preview Analysis</button>
-        <button>Generate Report</button>
-    </div>
-</div>
-
-<!-- Bottom Section: Scrollable Preview (Full Width) -->
-<div class="w-full bg-white rounded-lg shadow-lg">
-    <div class="h-96 overflow-y-auto p-6" id="previewContent">
-        <!-- Live preview content with proper scrolling -->
-    </div>
-</div>
-```
-
-#### **✅ 3. DOWNLOAD MECHANISM: Direct to Downloads Folder**
-**Business Requirement**: Automatically save generated documents to user's Downloads folder with proper browser download handling.
-
-**Implementation Pattern**:
-```python
-# Backend: Enhanced download endpoint
-@career_analysis_bp.route('/api/career-analysis/download/<filename>')
-def download_career_analysis(filename):
-    """Download generated career analysis with user-friendly naming."""
-    try:
-        # Generate user-friendly filename
-        friendly_name = generate_human_readable_filename(filename)
-        
-        return send_file(
-            file_path,
-            as_attachment=True,
-            download_name=friendly_name,  # Browser will save to Downloads
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-# Frontend: Auto-download handling
-function triggerDownload(downloadUrl, filename) {
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-```
-
-#### **✅ 4. HUMAN-READABLE FILENAME CONVENTIONS**
-**Business Requirement**: Replace technical filenames with business-friendly naming conventions.
-
-**Current vs New Naming**:
-```python
-# OLD: Technical naming
-"whitepaper_R0102_3_specific_multi_3targets_R0044_2.docx"
-
-# NEW: Business-friendly naming
-def generate_human_readable_filename(job_from, mode, job_to=None, timestamp=None):
-    """Generate business-friendly filename for career analysis documents."""
-    
-    # Get human-readable job names
-    source_job = get_job_display_name(job_from, format='compact')  # "Data Scientist"
-    
-    if mode == 'top_matches':
-        base_name = f"Career_Transition_Analysis_{source_job}_Discovery"
-    elif mode == 'specific':
-        if ',' in job_to:  # Multiple targets
-            target_count = len(job_to.split(','))
-            base_name = f"Career_Transition_Analysis_{source_job}_Comparative_{target_count}_Options"
-        else:  # Single target
-            target_job = get_job_display_name(job_to, format='compact')  # "Risk Manager"
-            base_name = f"Career_Transition_Analysis_{source_job}_to_{target_job}"
-    
-    # Add timestamp for uniqueness
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
-    
-    # Clean filename (remove special chars, replace spaces with underscores)
-    clean_name = re.sub(r'[^\w\s-]', '', base_name).strip()
-    clean_name = re.sub(r'[-\s]+', '_', clean_name)
-    
-    return f"{clean_name}_{timestamp}.docx"
-
-# EXAMPLES:
-# "Career_Transition_Analysis_Data_Scientist_Discovery_20250119_1430.docx"
-# "Career_Transition_Analysis_Data_Scientist_to_Risk_Manager_20250119_1430.docx"  
-# "Career_Transition_Analysis_Data_Scientist_Comparative_3_Options_20250119_1430.docx"
-```
-
-#### **✅ 5. PROGRESS INDICATORS & LOADING STATES**
-**Business Requirement**: Provide clear feedback during document generation process.
-
-**Implementation Requirements**:
-```javascript
-// Multi-stage progress indicator
-const GENERATION_STAGES = [
-    { id: 'validate', label: 'Validating job profiles...', duration: 5 },
-    { id: 'analyse', label: 'Analysing career pathways...', duration: 20 },
-    { id: 'content', label: 'Generating analysis content...', duration: 30 },
-    { id: 'format', label: 'Formatting professional document...', duration: 15 },
-    { id: 'complete', label: 'Analysis complete!', duration: 5 }
-];
-
-function showProgressIndicator() {
-    // Show modal with progress bar and stage-specific messaging
-    // Estimated total time: 60-90 seconds for complex analysis
-}
-```
-
-```html
-<!-- Progress Modal -->
-<div id="progressModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-        <h3 class="text-lg font-semibold mb-4">Generating Career Transition Analysis</h3>
-        <div class="space-y-4">
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div id="progressBar" class="bg-red-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-            </div>
-            <p id="progressText" class="text-sm text-gray-600">Initialising analysis...</p>
-            <p class="text-xs text-gray-500">This may take 1-2 minutes for comprehensive analysis.</p>
-        </div>
-    </div>
-</div>
-```
-
-#### **✅ 6. ERROR HANDLING & USER FEEDBACK**
-**Business Requirement**: Graceful error handling with actionable user feedback.
-
-**Error Scenarios & Handling**:
-```javascript
-const ERROR_SCENARIOS = {
-    'job_not_found': {
-        title: 'Job Profile Not Found',
-        message: 'The selected job profile could not be found in our database.',
-        actions: ['Try searching for a different job profile', 'Contact support if the issue persists']
-    },
-    'similarity_calculation_failed': {
-        title: 'Analysis Calculation Error', 
-        message: 'Unable to calculate career pathway similarities.',
-        actions: ['Try again with different similarity ranges', 'Check your internet connection']
-    },
-    'document_generation_failed': {
-        title: 'Document Generation Error',
-        message: 'Failed to generate the career analysis document.',
-        actions: ['Try generating the analysis again', 'Try with fewer target jobs if using comparison mode']
-    },
-    'download_failed': {
-        title: 'Download Error',
-        message: 'Unable to download the generated document.',
-        actions: ['Check your Downloads folder permissions', 'Try generating the document again']
-    }
-};
-
-function showErrorMessage(errorType, details) {
-    const error = ERROR_SCENARIOS[errorType];
-    // Show user-friendly error modal with specific guidance
-}
-```
-
-#### **4.1: HTML Interface Redesign** 🎨 **UI/UX FOCUS** 
-**File**: `src/skill_similarity_engine/webapp/templates/career_analysis.html` (renamed from white_papers.html)  
-**Effort**: 4-5 hours  
-**Priority**: HIGH - Complete UI/UX Redesign
-
-**Current State Analysis:**
-- ✅ **Discovery Mode UI**: Already implemented with radio buttons and similarity sliders
-- ✅ **Basic Specific Mode UI**: Has radio button but limited target job selection
-- ❌ **New Layout Structure**: Needs complete redesign to top input + bottom preview
-- ❌ **Multiple Target Selection**: Not implemented yet
-- ❌ **Progress Indicators**: Missing loading states and feedback
-- ❌ **Updated Terminology**: All "White Paper" references need updating
-
-**Required HTML Redesign:**
-
-1. **Complete Layout Restructure**:
-```html
-<!-- NEW: Full-width top configuration section -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
-            <i class="fas fa-chart-line text-red-600 mr-2"></i>
-            Career Transition Analysis Generator
-        </h1>
-        <p class="text-lg font-source text-gray-600">
-            Generate professional career transition analyses for workforce planning and strategic decision-making
-        </p>
-    </div>
-
-    <!-- Configuration Panel (Full Width Top Section) -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-8 mb-6">
-        <h2 class="text-xl font-epilogue font-semibold text-gray-900 mb-6">
-            <i class="fas fa-cogs text-red-600 mr-2"></i>
-            Analysis Configuration
-        </h2>
-        
-        <form id="careerAnalysisForm" class="space-y-6">
-            <!-- Horizontal layout for main controls -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-                        Source Job Profile *
-                    </label>
-                    <!-- Job search input -->
-                </div>
-                <div>
-                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-                        Analysis Mode
-                    </label>
-                    <!-- Radio buttons for discovery/specific -->
-                </div>
-                <div id="targetJobSection" class="hidden">
-                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-                        Target Job(s)
-                    </label>
-                    <!-- Multi-target selection -->
-                </div>
-                <div>
-                    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-                        Business Scenario
-                    </label>
-                    <!-- Scenario dropdown -->
-                </div>
-            </div>
-            
-            <!-- Advanced options in collapsible section -->
-            <div class="border-t pt-6">
-                <button type="button" class="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4" onclick="toggleAdvancedOptions()">
-                    <i class="fas fa-chevron-right mr-2" id="advancedChevron"></i>
-                    Advanced Options
-                </button>
-                <div id="advancedOptions" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Similarity ranges, divisions, audience -->
-                </div>
-            </div>
-            
-            <!-- Action buttons aligned right -->
-            <div class="flex justify-end space-x-4 pt-6 border-t">
-                <button type="button" id="previewBtn" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                    <i class="fas fa-eye mr-2"></i>
-                    Preview Analysis
-                </button>
-                <button type="button" id="generateBtn" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                    <i class="fas fa-file-download mr-2"></i>
-                    Generate Career Report
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Preview Panel (Full Width Bottom Section) -->
-    <div class="bg-white rounded-lg shadow-lg border border-gray-200">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 class="text-xl font-epilogue font-semibold text-gray-900">
-                <i class="fas fa-eye text-red-600 mr-2"></i>
-                Analysis Preview
-            </h2>
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-blue-100 text-blue-800">
-                Live Document Preview
-            </span>
-        </div>
-        
-        <!-- Scrollable preview content -->
-        <div class="h-96 overflow-y-auto" id="previewContent">
-            <div class="p-6">
-                <div class="text-center text-gray-500 py-12">
-                    <i class="fas fa-chart-line text-6xl mb-4 text-gray-300"></i>
-                    <p class="text-lg font-source">Configure your analysis settings and click "Preview Analysis"</p>
-                    <p class="text-sm font-source text-gray-400 mt-2">The preview will show the actual career transition analysis content</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-```
-
-1. **Enhanced Target Job Selection**:
-```html
-<!-- CURRENT: Basic dropdown -->
-<select id="jobTo" name="job_to">
-    <option value="">Select target job...</option>
-</select>
-
-<!-- REQUIRED: Multi-target input with search -->
-<div id="targetJobSection" class="hidden">
-    <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-        <i class="fas fa-target text-gray-500 mr-1"></i>
-        Target Jobs (comma-separated for comparison)
-    </label>
-    <div class="search-input-wrapper relative">
-        <input 
-            type="text" 
-            id="jobToSearch" 
-            name="job_to_search" 
-            class="search-input-with-icon w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="Search and select target jobs (e.g., 'Data Analyst, Risk Manager')..."
-            autocomplete="off"
-        >
-        <!-- Multi-select chips display -->
-        <div id="selectedTargets" class="mt-2 flex flex-wrap gap-2"></div>
-        <!-- Hidden input stores comma-separated job IDs -->
-        <input type="hidden" id="jobTo" name="job_to">
-    </div>
-    <div class="text-xs text-gray-500 mt-2">
-        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-        <strong>Single target:</strong> Detailed transition analysis | 
-        <strong>Multiple targets:</strong> Comparative analysis (2-5 jobs recommended)
-    </div>
-</div>
-```
-
-2. **Mode-Specific Instructions**:
-```html
-<!-- Discovery Mode Help Text -->
-<div id="discoveryModeHelp" class="text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
-    <i class="fas fa-compass text-blue-500 mr-1"></i>
-    <strong>Discovery Mode:</strong> Analyzes the top 3 most similar career opportunities within your similarity range. 
-    Perfect for exploring career possibilities and workforce planning.
-</div>
-
-<!-- Specific Mode Help Text -->
-<div id="specificModeHelp" class="text-xs text-gray-500 bg-blue-50 p-3 rounded-md hidden">
-    <i class="fas fa-route text-blue-500 mr-1"></i>
-    <strong>Specific Transition Mode:</strong> Analyzes exact job-to-job transitions you define. 
-    Choose one job for detailed analysis or multiple jobs for comparison.
-</div>
-```
-
-3. **Real-time Validation Feedback**:
-```html
-<!-- Validation Messages Container -->
-<div id="validationMessages" class="space-y-2 mt-4"></div>
-
-<!-- Success/Error Message Templates -->
-<template id="validationSuccess">
-    <div class="flex items-center p-3 text-sm text-green-800 bg-green-100 rounded-md">
-        <i class="fas fa-check-circle mr-2"></i>
-        <span class="validation-message"></span>
-    </div>
-</template>
-
-<template id="validationError">
-    <div class="flex items-center p-3 text-sm text-red-800 bg-red-100 rounded-md">
-        <i class="fas fa-exclamation-triangle mr-2"></i>
-        <span class="validation-message"></span>
-    </div>
-</template>
-```
-
-**Expected Outcomes:**
-- ✅ **Intuitive Mode Switching**: Clear visual feedback for discovery vs specific modes
-- ✅ **Multi-Target Selection**: Chip-based interface for selecting multiple target jobs  
-- ✅ **Real-time Validation**: Immediate feedback on valid/invalid configurations
-- ✅ **Contextual Help**: Mode-specific guidance and examples
-
-#### **4.2: JavaScript Interaction Logic** ⚡ **ENHANCED FUNCTIONALITY**
-**File**: `static/js/career-analysis.js` (renamed from white-papers.js)  
-**Effort**: 5-6 hours  
-**Priority**: HIGH - Core Functionality + Progress Handling  
-**Dependencies**: Task 4.1
-
-**Required JavaScript Enhancements:**
-
-1. **Enhanced Mode Switching**:
-```javascript
-// ✅ REQUIRED: Enhanced mode switching with validation
-function initializeModeHandling() {
-    const topMatchesRadio = document.getElementById('modeTopMatches');
-    const specificRadio = document.getElementById('modeSpecific');
-    const targetJobSection = document.getElementById('targetJobSection');
-    const discoveryHelp = document.getElementById('discoveryModeHelp');
-    const specificHelp = document.getElementById('specificModeHelp');
-    
-    function updateModeUI(mode) {
-        if (mode === 'specific') {
-            targetJobSection.classList.remove('hidden');
-            discoveryHelp.classList.add('hidden');
-            specificHelp.classList.remove('hidden');
-            // Initialize target job search if not already done
-            initializeTargetJobSearch();
-        } else {
-            targetJobSection.classList.add('hidden');
-            discoveryHelp.classList.remove('hidden');
-            specificHelp.classList.add('hidden');
-            clearTargetJobs();
-        }
-        validateCurrentConfiguration();
-    }
-    
-    topMatchesRadio.addEventListener('change', () => updateModeUI('top_matches'));
-    specificRadio.addEventListener('change', () => updateModeUI('specific'));
-}
-```
-
-2. **Multi-Target Job Selection System**:
-```javascript
-// ✅ REQUIRED: Multi-target selection with chips
-class TargetJobSelector {
-    constructor(searchInputId, hiddenInputId, chipsContainerId) {
-        this.searchInput = document.getElementById(searchInputId);
-        this.hiddenInput = document.getElementById(hiddenInputId);
-        this.chipsContainer = document.getElementById(chipsContainerId);
-        this.selectedJobs = [];
-        this.initializeEventListeners();
-    }
-    
-    addTargetJob(jobId, displayName) {
-        if (this.selectedJobs.find(job => job.id === jobId)) {
-            showValidationMessage('Job already selected', 'error');
-            return;
-        }
-        
-        if (this.selectedJobs.length >= 5) {
-            showValidationMessage('Maximum 5 target jobs allowed for comparison', 'error');
-            return;
-        }
-        
-        this.selectedJobs.push({ id: jobId, name: displayName });
-        this.updateUI();
-        this.validateSelection();
-    }
-    
-    removeTargetJob(jobId) {
-        this.selectedJobs = this.selectedJobs.filter(job => job.id !== jobId);
-        this.updateUI();
-        this.validateSelection();
-    }
-    
-    updateUI() {
-        // Update chips display
-        this.chipsContainer.innerHTML = this.selectedJobs.map(job => `
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                ${job.name}
-                <button type="button" class="ml-2 text-blue-600 hover:text-blue-800" onclick="targetJobSelector.removeTargetJob('${job.id}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </span>
-        `).join('');
-        
-        // Update hidden input
-        this.hiddenInput.value = this.selectedJobs.map(job => job.id).join(',');
-        
-        // Clear search input
-        this.searchInput.value = '';
-    }
-}
-```
-
-3. **Real-time Configuration Validation**:
-```javascript
-// ✅ REQUIRED: Real-time validation feedback
-function validateCurrentConfiguration() {
-    const mode = document.querySelector('input[name="analysis_mode"]:checked').value;
-    const sourceJob = document.getElementById('jobFrom').value;
-    const targetJobs = document.getElementById('jobTo').value;
-    
-    clearValidationMessages();
-    
-    // Source job validation
-    if (!sourceJob) {
-        showValidationMessage('Please select a source job', 'error');
-        return false;
-    }
-    
-    // Mode-specific validation
-    if (mode === 'specific') {
-        if (!targetJobs) {
-            showValidationMessage('Please select at least one target job for specific analysis', 'error');
-            return false;
-        }
-        
-        const targetCount = targetJobs.split(',').length;
-        if (targetCount === 1) {
-            showValidationMessage(`Ready for single transition analysis: ${sourceJob} → ${targetJobs}`, 'success');
-        } else {
-            showValidationMessage(`Ready for comparative analysis: ${sourceJob} → ${targetCount} targets`, 'success');
-        }
-    } else {
-        const simMin = document.getElementById('similarityMin').value;
-        const simMax = document.getElementById('similarityMax').value;
-        showValidationMessage(`Ready for discovery analysis: ${simMin}% - ${simMax}% similarity range`, 'success');
-    }
-    
-    return true;
-}
-```
-
-**Expected Outcomes:**
-- ✅ **Seamless Mode Switching**: Instant UI updates with contextual guidance
-- ✅ **Multi-Target Management**: Easy addition/removal of target jobs with visual chips
-- ✅ **Real-time Validation**: Immediate feedback on configuration validity
-- ✅ **Enhanced UX**: Smooth, intuitive interface matching modern web standards
-
-#### **4.3: Backend API Integration** 🔌 **SERVER ENHANCEMENT**
-**File**: `src/skill_similarity_engine/webapp/routes/career_analysis_routes.py` (renamed from whitepaper_routes.py)  
-**Effort**: 4-5 hours  
-**Priority**: MEDIUM - Backend Foundation + Download Handling  
-**Dependencies**: Task 4.2
-
-**Required API Enhancements:**
-
-1. **Enhanced Target Job Search Endpoint**:
-```python
-# ✅ REQUIRED: Enhanced search for multi-target selection
-@whitepaper_bp.route('/api/whitepaper-target-jobs/<job_from>')
-def get_target_jobs(job_from):
-    """Get available target jobs for specific transition analysis."""
-    try:
-        # Get jobs with similarity data to source job
-        query = """
-            SELECT DISTINCT 
-                j.JobProfileID as job_id,
-                j.JobProfile as job_title,
-                j.ManagementLevel as management_level,
-                j.JobFunction as job_function,
-                js.similarity_score,
-                CASE 
-                    WHEN INSTR(j.JobProfile, ' - ') > 0 
-                    THEN SUBSTR(j.JobProfile, 1, INSTR(j.JobProfile, ' - ') - 1) || ' (' || j.ManagementLevel || ')'
-                    ELSE j.JobProfile || ' (' || j.ManagementLevel || ')'
-                END as logical_display_name
-            FROM jobs j
-            JOIN job_similarities js ON j.JobProfileID = js.job_to
-            WHERE js.job_from = ?
-            AND js.similarity_score >= 0.20  -- Minimum viable similarity
-            ORDER BY js.similarity_score DESC
-            LIMIT 50
-        """
-        
-        results = db.execute(query, (job_from,)).fetchall()
-        
-        return jsonify({
-            'success': True,
-            'jobs': [{
-                'job_id': row['job_id'],
-                'display_name': row['logical_display_name'],
-                'job_function': row['job_function'],
-                'similarity_score': f"{row['similarity_score']*100:.1f}%",
-                'move_context': get_move_classification(job_from, row['job_id'])
-            } for row in results]
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-```
-
-2. **Enhanced Generation Endpoint**:
-```python
-# ✅ REQUIRED: Support all three user story patterns
-@whitepaper_bp.route('/api/whitepaper/generate', methods=['POST'])
-def generate_whitepaper():
-    """Generate white paper supporting all three user story patterns."""
-    try:
-        data = request.get_json()
-        
-        # Extract and validate parameters
-        job_from = data.get('job_from')
-        analysis_mode = data.get('analysis_mode', 'top_matches')
-        job_to = data.get('job_to')  # Could be single job or comma-separated list
-        similarity_min = float(data.get('similarity_min', 0.4))
-        similarity_max = float(data.get('similarity_max', 0.9))
-        
-        # Validate source job
-        if not validate_job_exists(job_from):
-            return jsonify({'success': False, 'error': f'Source job {job_from} not found'}), 400
-        
-        # Mode-specific validation
-        if analysis_mode == 'specific':
-            if not job_to:
-                return jsonify({'success': False, 'error': 'Target job required for specific analysis'}), 400
-            
-            # Validate target jobs (single or multiple)
-            target_jobs = [j.strip() for j in job_to.split(',')]
-            for target_job in target_jobs:
-                if not validate_job_exists(target_job):
-                    return jsonify({'success': False, 'error': f'Target job {target_job} not found'}), 400
-        
-        # Generate white paper using proven test patterns
-        success = generate_full_whitepaper(
-            job_from=job_from,
-            mode=analysis_mode,
-            job_to=job_to,
-            similarity_min=int(similarity_min * 100),
-            similarity_max=int(similarity_max * 100)
-        )
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'download_url': f'/api/whitepaper/download/{job_from}_{analysis_mode}',
-                'analysis_summary': get_analysis_summary(job_from, analysis_mode, job_to)
-            })
-        else:
-            return jsonify({'success': False, 'error': 'Failed to generate white paper'}), 500
-            
-    except Exception as e:
-        logger.error(f"Error generating white paper: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-```
-
-3. **Document Download Endpoint**:
-```python
-# ✅ REQUIRED: Secure document download with proper naming
-@whitepaper_bp.route('/api/whitepaper/download/<filename>')
-def download_whitepaper(filename):
-    """Download generated white paper with secure filename handling."""
-    try:
-        # Construct safe file path
-        output_dir = Path(current_app.config['WHITEPAPER_OUTPUT_DIR'])
-        file_path = output_dir / f"{filename}.docx"
-        
-        if not file_path.exists():
-            return jsonify({'success': False, 'error': 'File not found'}), 404
-        
-        # Generate user-friendly filename
-        friendly_name = generate_friendly_filename(filename)
-        
-        return send_file(
-            file_path,
-            as_attachment=True,
-            download_name=f"{friendly_name}.docx",
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-        
-    except Exception as e:
-        logger.error(f"Error downloading white paper: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-```
-
-**Expected Outcomes:**
-- ✅ **Complete API Coverage**: Support for all three user story patterns
-- ✅ **Enhanced Target Job Search**: Rich metadata for intelligent target selection
-- ✅ **Robust Validation**: Comprehensive error handling and user feedback
-- ✅ **Secure Downloads**: Safe file handling with user-friendly naming
-
-#### **4.4: CSS Styling and UX Polish** 🎨 **VISUAL ENHANCEMENT**
-**File**: `static/css/career-analysis.css` (renamed from white-papers.css)  
-**Effort**: 2-3 hours  
-**Priority**: MEDIUM - User Experience Polish + Progress Modals  
-**Dependencies**: Task 4.1, 4.2
-
-**Required CSS Enhancements:**
-
-1. **Target Job Selection Styling**:
-```css
-/* ✅ REQUIRED: Multi-target selection chip styling */
-.target-job-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.target-job-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.375rem 0.75rem;
-    background-color: #dbeafe;
-    color: #1e40af;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.target-job-chip button {
-    margin-left: 0.5rem;
-    color: #1e40af;
-    transition: color 0.15s ease-in-out;
-}
-
-.target-job-chip button:hover {
-    color: #1e3a8a;
-}
-```
-
-2. **Mode-Specific Styling**:
-```css
-/* ✅ REQUIRED: Mode-specific visual feedback */
-.mode-help-text {
-    padding: 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    line-height: 1.5;
-}
-
-.mode-help-discovery {
-    background-color: #f3f4f6;
-    color: #374151;
-}
-
-.mode-help-specific {
-    background-color: #dbeafe;
-    color: #1e40af;
-}
-
-.mode-transition {
-    transition: all 0.3s ease-in-out;
-}
-```
-
-3. **Enhanced Validation Styling**:
-```css
-/* ✅ REQUIRED: Real-time validation feedback */
-.validation-message {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
-    animation: slideIn 0.3s ease-out;
-}
-
-.validation-success {
-    background-color: #d1fae5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
-}
-
-.validation-error {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-```
-
-**Expected Outcomes:**
-- ✅ **Professional Visual Design**: Consistent with NAB branding and existing webapp styling
-- ✅ **Intuitive User Feedback**: Clear visual cues for validation states and mode changes
-- ✅ **Desktop Optimisation**: Optimal experience for 1024px+ desktop browsers
-- ✅ **Progress Modal Styling**: Professional loading indicators and error messages
-
-### **🧪 TESTING STRATEGY FOR WEBAPP INTEGRATION**
-
-#### **Frontend Testing Approach**:
-```javascript
-// Test mode switching functionality
-function testModeSwitch() {
-    // Test discovery → specific mode switch
-    document.getElementById('modeSpecific').click();
-    assert(document.getElementById('targetJobSection').style.display !== 'none');
-    
-    // Test specific → discovery mode switch  
-    document.getElementById('modeTopMatches').click();
-    assert(document.getElementById('targetJobSection').style.display === 'none');
-}
-
-// Test multi-target selection
-function testMultiTargetSelection() {
-    targetJobSelector.addTargetJob('R0228.0', 'Cybersecurity Analyst (Group 3)');
-    targetJobSelector.addTargetJob('R0439.5', 'Risk Manager (Group 2)');
-    assert(targetJobSelector.selectedJobs.length === 2);
-    assert(document.getElementById('jobTo').value === 'R0228.0,R0439.5');
-}
-```
-
-#### **Backend Testing Approach**:
-```python
-# Test API endpoint coverage
-def test_career_analysis_api_endpoints():
-    # Test discovery mode
-    response = client.post('/api/career-analysis/generate', json={
-        'job_from': 'R0102.3',
-        'analysis_mode': 'top_matches',
-        'similarity_min': 0.4,
-        'similarity_max': 0.9
-    })
-    assert response.status_code == 200
-    
-    # Test single specific mode
-    response = client.post('/api/career-analysis/generate', json={
-        'job_from': 'R0102.3', 
-        'analysis_mode': 'specific',
-        'job_to': 'R0228.0'
-    })
-    assert response.status_code == 200
-    
-    # Test multiple specific mode
-    response = client.post('/api/career-analysis/generate', json={
-        'job_from': 'R0102.3',
-        'analysis_mode': 'specific',
-        'job_to': 'R0228.0,R0439.5,R0317.4'
-    })
-    assert response.status_code == 200
-```
-
-#### **End-to-End Testing Scenarios**:
-1. **Discovery Mode E2E**: Select source job → discovery mode → adjust similarity → generate → download
-2. **Single Specific E2E**: Select source job → specific mode → select target → generate → download  
-3. **Multi-Target E2E**: Select source job → specific mode → select 3 targets → generate → download
-4. **Validation E2E**: Test all error states and validation messages
-5. **Progress Indicator E2E**: Test complete workflow with progress feedback and download handling
-6. **Desktop Browser E2E**: Test complete workflow across Chrome, Firefox, Safari, Edge
-
----
-
-## 🎯 **IMPLEMENTATION PRIORITY ORDER**
-
-### **Phase 4 Task Sequence (Updated Order):**
-
-**STEP 1: Pre-Integration Updates**
-1. **📝 Terminology Updates (30 minutes)** - Update all "White Paper" references
-2. **📁 File Renaming (15 minutes)** - Rename templates, routes, JS, CSS files
-3. **🔧 Backend Filename Logic (1 hour)** - Implement human-readable naming
-
-**STEP 2: Core Redesign**
-4. **🎨 Complete HTML Interface Redesign (Task 4.1)** - 4-5 hours
-   - Foundation for all other features
-   - New layout: top configuration + bottom preview
-   - Progress modal integration
-   - Can be developed in parallel with backend
-
-5. **⚡ Enhanced JavaScript Logic (Task 4.2)** - 5-6 hours  
-   - Core functionality + progress handling
-   - Download mechanism integration
-   - Error handling and user feedback
-   - Most complex frontend component
-
-6. **🔌 Backend API Enhancement (Task 4.3)** - 4-5 hours
-   - Connects proven career analysis system to webapp
-   - Human-readable filename generation
-   - Enhanced download handling
-   - Required for end-to-end testing
-
-7. **🎨 CSS Styling and Progress Modals (Task 4.4)** - 2-3 hours
-   - New layout styling
-   - Progress indicator modals
-   - Error message styling
-   - Final visual polish
-
-**Total Estimated Effort**: 17-21 hours
-**Expected Timeline**: 4-5 working days  
-**Risk Level**: MEDIUM (significant UI/UX redesign + new features)
-
-### **Additional Integration Tasks:**
-
-8. **🔗 Navigation Updates** - 1 hour
-   - Update menu links from "White Papers" to "Career Analysis"
-   - Update route handling in main webapp
-
-9. **📋 Testing & Validation** - 2-3 hours
-   - Test all three user story patterns with new interface
-   - Validate download mechanism works correctly
-   - Test progress indicators and error handling
-   - Validate human-readable filename generation
-
-10. **📚 Documentation Updates** - 1 hour
-    - Update user guides with new terminology
-    - Document new filename conventions
-    - Update API documentation
-
-**Total Integration Effort**: 21-25 hours
-**Complete Timeline**: 5-6 working days
-**Final Risk Assessment**: MEDIUM (significant redesign but well-defined requirements)
-
----
-
-## ✅ **SUCCESS CRITERIA FOR WEBAPP INTEGRATION**
-
-### **Functional Requirements:**
-- ✅ **Updated Terminology**: All "White Paper" references replaced with "Career Transition Analysis"
-- ✅ **New Layout Design**: Top configuration panel + bottom scrollable preview
-- ✅ **Mode Switching**: Seamless transitions between discovery and specific modes
-- ✅ **Multi-Target Selection**: Intuitive interface for selecting 1-5 target jobs
-- ✅ **Real-time Validation**: Immediate feedback on configuration validity
-- ✅ **All User Stories Supported**: Discovery, single specific, and multi-target specific modes
-- ✅ **Human-Readable Downloads**: Business-friendly filenames with automatic Downloads folder saving
-
-### **Technical Requirements:**
-- ✅ **API Compatibility**: Full integration with existing career analysis backend system
-- ✅ **Progress Indicators**: Multi-stage progress feedback during document generation
-- ✅ **Error Handling**: Comprehensive validation with actionable user guidance
-- ✅ **Performance**: Sub-5-second response times for generation requests
-- ✅ **Download Mechanism**: Automatic browser downloads to Downloads folder
-- ✅ **Filename Intelligence**: Human-readable naming like "Career_Transition_Analysis_Data_Scientist_to_Risk_Manager_20250119_1430.docx"
-
-### **User Experience Requirements:**
-- ✅ **Intuitive Layout**: Clear top-to-bottom workflow with logical information hierarchy
-- ✅ **Desktop Optimisation**: Optimal experience for 1024px+ desktop browsers
-- ✅ **Contextual Help**: Mode-specific guidance and examples with '?' help icons
-- ✅ **Progress Feedback**: Real-time progress bars and stage-specific messaging
-- ✅ **Professional Output**: Executive-ready documents matching business standards
-- ✅ **Error Recovery**: Clear error messages with actionable next steps
-
-### **Business Requirements:**
-- ✅ **Corporate-Friendly Language**: Approachable terminology suitable for business environment
-- ✅ **Strategic Document Quality**: Executive-ready career transition analyses
-- ✅ **Workflow Efficiency**: Streamlined process from configuration to download
-- ✅ **User Autonomy**: Self-service document generation without technical support needed
+**Results Validation:**
+- ✅ **Complete Analysis**: All 5 sections generate correctly via webapp
+- ✅ **Skills Accuracy**: 39 transferable + 79 required skills = 118 total skills displayed
+- ✅ **Parameter Integration**: Form inputs correctly passed to backend analysis
+- ✅ **Error Handling**: Graceful handling of missing jobs, invalid parameters, Unicode issues
 
 ---
 
 ## 🎉 **FINAL STATUS SUMMARY**
 
-### **✅ CORE SYSTEM: 100% COMPLETE**
-- **User Story 1**: Top N Discovery Mode - Working perfectly with rich business content
+### **✅ CORE SYSTEM: 100% COMPLETE + ENHANCED**
+- **User Story 1**: Top N Discovery Mode - Working perfectly with rich business content and configurable pathway count
 - **User Story 2**: Single Specific Transition - Working perfectly with dynamic titles and comprehensive analysis  
 - **User Story 3**: Multiple Specific Comparison - Working perfectly with comparative analysis and professional formatting
 - **Architecture**: Template-driven, generator-processed, formatter-rendered pipeline working flawlessly
 - **Word Documents**: Professional NAB-styled output with TOC compatibility and enhanced cover pages
 - **Testing**: Comprehensive test harness with all three user story patterns validated
+- **✅ NEW: Skill Composition Analysis**: Professional business narrative with RSI-style triangle positioning across Specialised-Common-Certification dimensions
+- **✅ NEW: Configurable Top N**: Flexible pathway analysis supporting Top 3, Top 5, Top 10+ strategic opportunities with parameter-driven templates
+- **✅ NEW: Business-Friendly Move Types**: Executive-ready terminology replacing technical classifications for professional stakeholder consumption
+- **✅ NEW: Complete Webapp Backend Integration**: Flask endpoints correctly integrated with proven CLI system
 
-### **🚀 READY FOR WEBAPP INTEGRATION**
-- **Backend Foundation**: Complete working career analysis system with proven API patterns
-- **Frontend Requirements**: Detailed specifications with implementation guidance for new layout and terminology
-- **Testing Strategy**: Comprehensive testing approach for quality assurance including progress indicators
-- **Implementation Plan**: Prioritised 21-25 hour development roadmap with clear task breakdown
-- **Success Criteria**: Clear functional, technical, UX, and business requirements defined
+### **🚀 READY FOR FRONTEND COMPLETION**
+- **Backend Foundation**: Complete working career analysis system with proven webapp integration
+- **Frontend Requirements**: Only needs preview display formatting fix (2-3 hours work)
+- **Testing Strategy**: Simple validation - fix preview parsing and display formatting
+- **Implementation Plan**: Clear technical approach with specific files and methods to update
+- **Success Criteria**: Transform wall of text into properly formatted 5-section preview
 
-**The complete career transition analysis system is production-ready and waiting for webapp integration! 🎯**
+**The complete career transition analysis system is 95% production-ready and needs only frontend display formatting to complete webapp integration! 🎯**
 
 ---
 
-## 📋 **COLD OPEN SUMMARY FOR LLM HANDOVER**
+## 📋 **EXECUTIVE SUMMARY FOR NEXT LLM HANDOVER**
 
-### **CONTEXT**
-This document describes the complete implementation plan for integrating a working career transition analysis system into a NAB Skills Intelligence Platform webapp. The backend system is 100% complete and tested - all three user stories work perfectly. The task is to integrate this into the webapp with significant UX improvements.
+### **🎯 CONTEXT & CURRENT STATE**
+You are inheriting a **95% complete career transition analysis webapp** for the NAB Skills Intelligence Platform. The backend system is 100% working and generates executive-ready reports with rich business content. Flask integration is complete. **The only remaining work is fixing the preview display formatting (2-3 hours).**
 
-### **KEY CHANGES REQUIRED**
-1. **Terminology**: "White Paper" → "Career Transition Analysis" (more corporate-friendly)
-2. **Layout**: Side-by-side → Top configuration panel + bottom scrollable preview
-3. **Downloads**: Technical filenames → Human-readable names to Downloads folder
-4. **UX**: Add progress indicators, error handling, and professional polish
+**✅ What's Already Working:**
+- Complete 5-section document generation (Executive Summary, Current Role Context, Pathway Analysis, Strategic Recommendations, Conclusion)
+- Flask API integration with correct parameter handling
+- All skills data accurate (39 transferable + 79 required skills properly displayed)
+- Professional Word document generation with NAB styling
+- Configurable Top N analysis and business-friendly move types
 
-### **TECHNICAL NOTES**
-- **Local Desktop Application**: No mobile/accessibility requirements needed
-- **UK English**: All content uses British spelling throughout
-- **Help Icons**: Use established '?' tooltip pattern from existing pages
-- **Backend**: Proven system generating professional Word documents
-- **Frontend**: Requires complete redesign but clear specifications provided
+**❌ What Needs Fixing (2-3 hours):**
+- Preview display shows wall of text instead of formatted sections
+- JavaScript `displayPreview()` method needs section parsing logic
+- HTML table conversion for skills analysis tables
+- Section headers and paragraph spacing formatting
+
+### **🚀 IMPLEMENTATION TASK**
+
+**Your Mission**: Fix the `displayPreview()` method in `career-analysis.js` to parse the structured analysis content and display it with proper HTML formatting.
+
+**Files to Update:**
+1. `skill-similarity-engine/src/skill_similarity_engine/webapp/app.py` (Lines 2060-2080) - Add structured section parsing
+2. `skill-similarity-engine/src/skill_similarity_engine/webapp/static/js/career-analysis.js` (Lines 390-430) - Complete `parseStructuredContent()` method
+3. `skill-similarity-engine/src/skill_similarity_engine/webapp/static/css/career-analysis.css` - Add section styling classes
+
+**Reference Data**: See `analysis_preview_output.md` for the raw content structure that needs formatting.
+
+**Expected Outcome**: Transform wall of text into professionally formatted 5-section analysis with proper headers, paragraphs, and HTML tables.
+
+**Success Criteria**: 
+- ✅ All 5 sections display with clear headers and proper spacing
+- ✅ Skills transition tables render as HTML tables, not raw text  
+- ✅ Professional appearance suitable for business stakeholders
+- ✅ No more wall of text - clean, readable formatting
+
+This is a **high-impact, low-effort fix** that will complete the webapp integration. All the analysis content is perfect - it just needs proper HTML formatting and display structure.
 
 ---
 
 **Last Updated**: 2025-01-19  
-**All User Stories Status**: ✅ 100% COMPLETE  
-**Next Phase**: Webapp Integration (21-25 hours estimated)  
+**Backend Status**: ✅ 100% COMPLETE  
+**Frontend Status**: ❌ 90% COMPLETE - Preview display formatting needed  
+**Estimated Completion Time**: 2-3 hours  
 **Business Value**: Executive-ready strategic workforce analysis tools  
-**Technical Achievement**: Template-driven, scalable career transition analysis system
+**Technical Achievement**: Complete career transition analysis system with webapp integration

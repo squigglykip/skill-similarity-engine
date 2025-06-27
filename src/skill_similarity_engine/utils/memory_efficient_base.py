@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory-Efficient Base Classes and Mixins
 
 This module provides base classes and mixins that add memory-efficiency features

@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 
 # Add the src directory to the Python path
@@ -38,9 +38,9 @@ calculator = CosineSimilarityCalculator(
 try:
     similarity = calculator.calculate_job_similarity('J001', 'J002')
     print(f"Similarity between job with skills and job without skills: {similarity:.2f}")
-    print("✓ Successfully handled comparison with empty skill set")
+    print("âœ“ Successfully handled comparison with empty skill set")
 except Exception as e:
-    print(f"✗ Error handling empty skill set: {e}")
+    print(f"âœ— Error handling empty skill set: {e}")
 
 # Test case 2: Jobs with extremely high number of skills
 print("\n----- Test Case 2: Jobs with many skills -----")
@@ -67,7 +67,7 @@ calculator = CosineSimilarityCalculator(
 try:
     similarity = calculator.calculate_job_similarity('J001', 'J003')
     print(f"Similarity between normal job and job with 100 skills: {similarity:.2f}")
-    print("✓ Successfully handled job with many skills")
+    print("âœ“ Successfully handled job with many skills")
     
     import time
     start_time = time.time()
@@ -75,7 +75,7 @@ try:
     end_time = time.time()
     print(f"Time taken for calculation with 100 skills: {end_time - start_time:.4f} seconds")
 except Exception as e:
-    print(f"✗ Error handling job with many skills: {e}")
+    print(f"âœ— Error handling job with many skills: {e}")
 
 # Test case 3: Unusual skill taxonomy structure
 print("\n----- Test Case 3: Unusual skill taxonomy structures -----")
@@ -104,9 +104,9 @@ unusual_calculator = CosineSimilarityCalculator(
 try:
     similarity = unusual_calculator.calculate_job_similarity('J004', 'J005')
     print(f"Similarity between jobs with similarly named but different skills: {similarity:.2f}")
-    print("✓ Successfully handled unusual taxonomy with similar skill names")
+    print("âœ“ Successfully handled unusual taxonomy with similar skill names")
 except Exception as e:
-    print(f"✗ Error handling unusual taxonomy: {e}")
+    print(f"âœ— Error handling unusual taxonomy: {e}")
 
 # Test case 4: Jobs with missing or invalid data
 print("\n----- Test Case 4: Jobs with missing or invalid data -----")
@@ -125,9 +125,9 @@ try:
         job_architecture=incomplete_arch
     )
     similarity = unusual_calculator.calculate_job_similarity('J006', 'NON_EXISTENT')
-    print("✗ Failed to catch non-existent job")
+    print("âœ— Failed to catch non-existent job")
 except Exception as e:
-    print(f"✓ Correctly handled non-existent job: {e}")
+    print(f"âœ“ Correctly handled non-existent job: {e}")
 
 # Test case 5: Error handling for invalid input
 print("\n----- Test Case 5: Error handling for invalid inputs -----")
@@ -135,16 +135,16 @@ try:
     # Try to add a skill with invalid proficiency
     job7 = Job(job_id='J007', title='Invalid Job', department='IT', level='Senior')
     job7.add_skill('S001', 10)  # Proficiency should be 0-5
-    print("✗ Failed to catch invalid proficiency")
+    print("âœ— Failed to catch invalid proficiency")
 except Exception as e:
-    print(f"✓ Correctly handled invalid proficiency: {e}")
+    print(f"âœ“ Correctly handled invalid proficiency: {e}")
 
 try:
     # Try to create job with invalid level
     job8 = Job(job_id='J008', title='Invalid Level Job', department='IT', level='InvalidLevel')
-    print("✗ Failed to catch invalid job level")
+    print("âœ— Failed to catch invalid job level")
 except Exception as e:
-    print(f"✓ Correctly handled invalid job level: {e}")
+    print(f"âœ“ Correctly handled invalid job level: {e}")
 
 print("\nEdge case tests completed!")
 print("="*50) 

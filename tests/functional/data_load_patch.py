@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data loading utilities for functional tests.
 
 This module provides patches and helper functions for loading test data

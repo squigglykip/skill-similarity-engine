@@ -1,4 +1,4 @@
-"""
+﻿"""
 Parallel Processing Framework
 
 This module provides a framework for parallel processing with memory awareness.

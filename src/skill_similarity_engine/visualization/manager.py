@@ -1,4 +1,4 @@
-"""
+﻿"""
 Visualisation manager for generating various visualizations of skill and job data.
 """
 

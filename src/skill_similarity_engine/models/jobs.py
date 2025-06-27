@@ -1,4 +1,4 @@
-"""
+﻿"""
 Models for representing jobs and job architecture in the skill similarity engine.
 
 This module defines the data structures for representing jobs, including their

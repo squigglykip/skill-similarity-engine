@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for the HRIS adapter CLI module.
 
 These tests verify that the command-line interface for the HRIS adapter

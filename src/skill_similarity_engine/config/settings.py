@@ -1,4 +1,4 @@
-"""
+﻿"""
 Configuration settings for the skill similarity engine.
 
 This module provides a centralized configuration management system using a single YAML file.

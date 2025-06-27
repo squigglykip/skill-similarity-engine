@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Compare Similarity Matrices Script
 Compares two job similarity matrices to analyze differences in results.
@@ -15,7 +15,7 @@ import json
 
 def load_similarity_matrix(file_path: Path) -> pd.DataFrame:
     """Load similarity matrix from parquet file."""
-    print(f"📊 Loading similarity matrix from: {file_path}")
+    print(f"ðŸ“Š Loading similarity matrix from: {file_path}")
     
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -28,7 +28,7 @@ def load_similarity_matrix(file_path: Path) -> pd.DataFrame:
 
 def analyze_basic_stats(df: pd.DataFrame, name: str) -> dict:
     """Analyze basic statistics of similarity matrix."""
-    print(f"\n📈 Basic Statistics for {name}:")
+    print(f"\nðŸ“ˆ Basic Statistics for {name}:")
     
     stats = {
         'total_pairs': len(df),
@@ -55,7 +55,7 @@ def analyze_basic_stats(df: pd.DataFrame, name: str) -> dict:
 
 def compare_matrices(old_df: pd.DataFrame, new_df: pd.DataFrame) -> dict:
     """Compare two similarity matrices."""
-    print(f"\n🔍 Comparing Similarity Matrices:")
+    print(f"\nðŸ” Comparing Similarity Matrices:")
     
     # Create comparison key for both dataframes
     old_df['pair_key'] = old_df['job_from'] + '|' + old_df['job_to']
@@ -71,7 +71,7 @@ def compare_matrices(old_df: pd.DataFrame, new_df: pd.DataFrame) -> dict:
     print(f"   New matrix only: {len(new_only):,}")
     
     if len(common_pairs) == 0:
-        print("   ⚠️  No common pairs found - matrices may use different job sets")
+        print("   âš ï¸  No common pairs found - matrices may use different job sets")
         return {
             'common_pairs': 0,
             'old_only': len(old_only),
@@ -127,10 +127,10 @@ def compare_matrices(old_df: pd.DataFrame, new_df: pd.DataFrame) -> dict:
 def create_visualizations(comparison_results: dict, output_dir: Path):
     """Create comparison visualizations."""
     if comparison_results['correlation'] is None:
-        print("   ⚠️  Skipping visualizations - no common data to compare")
+        print("   âš ï¸  Skipping visualizations - no common data to compare")
         return
     
-    print(f"\n📊 Creating visualizations in: {output_dir}")
+    print(f"\nðŸ“Š Creating visualizations in: {output_dir}")
     output_dir.mkdir(exist_ok=True)
     
     comparison_df = comparison_results['comparison_data']
@@ -204,8 +204,8 @@ def create_visualizations(comparison_results: dict, output_dir: Path):
     plt.savefig(output_dir / 'difference_analysis.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"   ✅ Saved: similarity_comparison.png")
-    print(f"   ✅ Saved: difference_analysis.png")
+    print(f"   âœ… Saved: similarity_comparison.png")
+    print(f"   âœ… Saved: difference_analysis.png")
 
 def find_extreme_changes(comparison_results: dict, top_n: int = 20) -> dict:
     """Find job pairs with the most extreme changes."""
@@ -229,18 +229,18 @@ def find_extreme_changes(comparison_results: dict, top_n: int = 20) -> dict:
         ['old_similarity', 'new_similarity', 'difference', 'abs_difference']
     ]
     
-    print(f"\n🔝 Top {top_n} Largest Increases in Similarity:")
+    print(f"\nðŸ” Top {top_n} Largest Increases in Similarity:")
     for idx, row in largest_increases.iterrows():
         job_a, job_b = idx.split('|')
-        print(f"   {job_a} ↔ {job_b}")
-        print(f"      Old: {row['old_similarity']:.4f} → New: {row['new_similarity']:.4f} "
+        print(f"   {job_a} â†” {job_b}")
+        print(f"      Old: {row['old_similarity']:.4f} â†’ New: {row['new_similarity']:.4f} "
               f"(+{row['difference']:.4f}, +{row['percent_change']:.1f}%)")
     
-    print(f"\n🔻 Top {top_n} Largest Decreases in Similarity:")
+    print(f"\nðŸ”» Top {top_n} Largest Decreases in Similarity:")
     for idx, row in largest_decreases.iterrows():
         job_a, job_b = idx.split('|')
-        print(f"   {job_a} ↔ {job_b}")
-        print(f"      Old: {row['old_similarity']:.4f} → New: {row['new_similarity']:.4f} "
+        print(f"   {job_a} â†” {job_b}")
+        print(f"      Old: {row['old_similarity']:.4f} â†’ New: {row['new_similarity']:.4f} "
               f"({row['difference']:.4f}, {row['percent_change']:.1f}%)")
     
     return {
@@ -274,7 +274,7 @@ def save_comparison_report(old_stats: dict, new_stats: dict, comparison_results:
     with open(report_file, 'w') as f:
         json.dump(report, f, indent=2)
     
-    print(f"\n📄 Saved comprehensive report: {report_file}")
+    print(f"\nðŸ“„ Saved comprehensive report: {report_file}")
 
 def main():
     parser = argparse.ArgumentParser(description='Compare two similarity matrices')
@@ -297,7 +297,7 @@ def main():
     output_dir = Path(args.output)
     
     print("=" * 60)
-    print("🔍 SIMILARITY MATRIX COMPARISON")
+    print("ðŸ” SIMILARITY MATRIX COMPARISON")
     print("=" * 60)
     print(f"Old matrix: {old_path}")
     print(f"New matrix: {new_path}")
@@ -329,14 +329,14 @@ def main():
                               extreme_changes, output_dir)
         
         print("\n" + "=" * 60)
-        print("✅ COMPARISON COMPLETE!")
+        print("âœ… COMPARISON COMPLETE!")
         print("=" * 60)
-        print(f"📁 Results saved to: {output_dir}")
-        print(f"📊 Visualizations: similarity_comparison.png, difference_analysis.png")
-        print(f"📄 Report: comparison_report.json")
+        print(f"ðŸ“ Results saved to: {output_dir}")
+        print(f"ðŸ“Š Visualizations: similarity_comparison.png, difference_analysis.png")
+        print(f"ðŸ“„ Report: comparison_report.json")
         
     except Exception as e:
-        print(f"\n❌ Error during comparison: {e}")
+        print(f"\nâŒ Error during comparison: {e}")
         raise
 
 if __name__ == "__main__":

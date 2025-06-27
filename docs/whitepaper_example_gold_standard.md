@@ -1,4 +1,4 @@
-# Gold Standard White Paper Example
+﻿# Gold Standard Career Transition Analysis Example
 ## Workforce Transition Analysis: Data Scientist Associate Career Pathways
 
 ---

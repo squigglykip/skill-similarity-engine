@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for schema separation in the HRIS adapter.
 
 These tests verify that the HRIS adapter properly separates the HRIS schema

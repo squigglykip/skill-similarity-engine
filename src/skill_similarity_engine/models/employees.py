@@ -1,4 +1,4 @@
-"""
+﻿"""
 Models for representing employees in the skill similarity engine.
 
 This module defines the data structures for representing employees, their skills,

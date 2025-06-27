@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Functional test for job similarity calculation with Pay Scale Area adjustment.
 

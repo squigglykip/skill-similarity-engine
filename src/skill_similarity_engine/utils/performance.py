@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory Management and Performance Utilities
 
 This module provides utilities for tracking memory usage, managing large objects,

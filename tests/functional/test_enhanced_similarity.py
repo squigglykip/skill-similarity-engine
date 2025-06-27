@@ -1,4 +1,4 @@
-"""
+﻿"""
 Functional tests for enhanced similarity features.
 
 These tests verify that the seniority, role track, and location enhancements

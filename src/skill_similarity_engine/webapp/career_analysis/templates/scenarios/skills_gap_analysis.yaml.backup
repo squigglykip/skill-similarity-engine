@@ -1,0 +1,118 @@
+﻿# Skills Gap Analysis Scenario Template
+# Focus: Career development pathways, skill building, talent development
+
+meta:
+  scenario: "skills_gap_analysis"
+  business_driver: "Career Development"
+  timeline_urgency: "Low"
+  primary_focus: "skill_development"
+  secondary_focus: "career_progression"
+
+context:
+  purpose: |
+    Skills gap analysis enables strategic career pathway planning by identifying skill 
+    development requirements and transition opportunities. This analysis supports talent 
+    development initiatives and career progression planning.
+  
+  business_value: |
+    Systematic skills gap analysis enhances talent retention, improves internal mobility, 
+    and builds organisational capability. This approach supports strategic workforce 
+    planning and reduces external recruitment costs.
+
+adaptations:
+  urgency:
+    timeline_pressure: "low"
+    decision_timeline: "flexible"
+    implementation_pace: "measured"
+  
+  business_context:
+    driver: "talent_development"
+    strategic_importance: "capability_building"
+    organisational_impact: "positive_development"
+  
+  focus_adjustments:
+    primary_emphasis: "skill_development_pathways"
+    secondary_emphasis: "career_progression_opportunities"
+    tertiary_emphasis: "organisational_capability_enhancement"
+  
+  language_adaptations:
+    opportunity_framing: "development_focused"
+    risk_framing: "growth_oriented"
+    timeline_framing: "development_paced"
+
+content_modifications:
+  executive_summary:
+    emphasise: ["development_opportunities", "career_pathways", "skill_building"]
+    de_emphasise: ["urgency", "disruption", "immediate_action"]
+  
+  context_analysis:
+    include_development_context: true
+    include_career_progression_data: true
+    include_skill_market_trends: true
+  
+  opportunity_analysis:
+    focus_on_growth: true
+    include_learning_pathways: true
+    include_mentoring_opportunities: true
+  
+  skills_development:
+    detailed_development_plans: true
+    learning_resource_recommendations: true
+    progress_measurement_framework: true
+  
+  implementation_roadmap:
+    development_focused_timeline: true
+    learning_milestones: true
+    career_progression_checkpoints: true
+
+success_metrics:
+  - "skill_development_progress"
+  - "career_progression_readiness"
+  - "learning_engagement"
+  - "competency_advancement"
+  - "internal_mobility_success"
+  - "talent_retention_impact"
+
+development_framework:
+  assessment_phase:
+    duration: "2-3 weeks"
+    activities: ["current_skills_audit", "target_skills_identification", "gap_analysis"]
+  
+  planning_phase:
+    duration: "1-2 weeks"
+    activities: ["development_plan_creation", "resource_identification", "timeline_establishment"]
+  
+  development_phase:
+    duration: "8-16 weeks"
+    activities: ["skill_building", "practical_application", "progress_monitoring"]
+  
+  validation_phase:
+    duration: "2-4 weeks"
+    activities: ["competency_assessment", "pathway_validation", "next_steps_planning"]
+
+risk_considerations:
+  development_risks:
+    - "skill_development_pace"
+    - "learning_resource_availability"
+    - "time_commitment_challenges"
+    - "motivation_sustainability"
+  
+  mitigation_strategies:
+    - "flexible_learning_approaches"
+    - "mentoring_support"
+    - "progress_recognition"
+    - "career_pathway_clarity"
+
+support_structures:
+  learning_support:
+    - "structured_learning_programs"
+    - "on_the_job_development"
+    - "mentoring_relationships"
+    - "peer_learning_groups"
+  
+  organisational_support:
+    - "manager_engagement"
+    - "hr_partnership"
+    - "learning_team_collaboration"
+    - "career_counselling_access"
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Base class for integration tests.
 
 This module provides a common base class for integration tests, ensuring that

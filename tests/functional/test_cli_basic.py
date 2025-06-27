@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Basic functional tests for the Skill Similarity Engine CLI.
 

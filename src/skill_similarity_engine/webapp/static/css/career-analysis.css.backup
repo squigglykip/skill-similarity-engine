@@ -1,0 +1,275 @@
+﻿/* =================================================================
+   White Papers - Component Specific Styles
+   Dedicated CSS for white_papers.html components
+   ================================================================= */
+
+/* =================================================================
+   NAB Brand Color Variables (for components not using Tailwind)
+   ================================================================= */
+
+.btn-nab {
+    background: linear-gradient(135deg, var(--color-nab-red) 0%, var(--color-nab-red-dark) 100%);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-nab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left var(--transition-base);
+}
+
+.btn-nab:hover::before {
+    left: 100%;
+}
+
+.btn-nab:hover {
+    background: linear-gradient(135deg, var(--color-nab-red-dark) 0%, #991b1b 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* =================================================================
+   Custom Alert with NAB Brand Border
+   ================================================================= */
+
+.alert-custom {
+    border-left: 4px solid var(--color-nab-red);
+}
+
+/* =================================================================
+   Loading Spinner Animation
+   ================================================================= */
+
+.loading-spinner {
+    display: none;
+}
+
+.loading-spinner.show {
+    display: block;
+}
+
+/* =================================================================
+   Form Section Enhancements
+   ================================================================= */
+
+.form-section {
+    transition: all var(--transition-base);
+}
+
+.form-section:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* =================================================================
+   Preview Content Animations
+   ================================================================= */
+
+.preview-content-enter {
+    animation: slideInUp var(--transition-slow) ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* =================================================================
+   White Paper Preview Styling
+   ================================================================= */
+
+.whitepaper-preview {
+    font-family: var(--font-source), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    background: #ffffff;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-6);
+    box-shadow: var(--shadow-sm);
+}
+
+.whitepaper-preview h1 {
+    color: var(--color-nab-black);
+    border-bottom: 2px solid var(--color-nab-red);
+    padding-bottom: var(--spacing-2);
+}
+
+.whitepaper-preview h3 {
+    color: var(--color-nab-black);
+    margin-top: var(--spacing-4);
+    margin-bottom: var(--spacing-2);
+}
+
+.whitepaper-preview h4 {
+    color: var(--color-gray-700);
+    font-weight: var(--font-weight-medium);
+}
+
+.whitepaper-preview p {
+    text-align: justify;
+    margin-bottom: var(--spacing-3);
+    color: var(--color-gray-700);
+}
+
+.whitepaper-preview .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-4);
+    margin-top: var(--spacing-4);
+}
+
+.whitepaper-preview .metric-card {
+    background: var(--color-gray-50);
+    padding: var(--spacing-3);
+    border-radius: var(--border-radius-md);
+    border-left: 3px solid var(--color-nab-red);
+}
+
+.whitepaper-preview .metric-value {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-nab-red);
+}
+
+.whitepaper-preview .metric-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-700);
+    font-size: var(--font-size-sm);
+}
+
+/* Custom scrollbar for preview */
+.whitepaper-preview::-webkit-scrollbar {
+    width: 6px;
+}
+
+.whitepaper-preview::-webkit-scrollbar-track {
+    background: var(--color-gray-100);
+    border-radius: var(--border-radius-full);
+}
+
+.whitepaper-preview::-webkit-scrollbar-thumb {
+    background: var(--color-nab-red);
+    border-radius: var(--border-radius-full);
+}
+
+.whitepaper-preview::-webkit-scrollbar-thumb:hover {
+    background: var(--color-nab-red-dark);
+}
+
+/* Print-friendly styles for preview */
+@media print {
+    .whitepaper-preview {
+        box-shadow: none;
+        border: none;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+/* =================================================================
+   Similarity Range Slider Styling
+   ================================================================= */
+
+.slider-red {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-gray-200);
+    outline: none;
+    border-radius: var(--border-radius-full);
+}
+
+.slider-red::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-nab-red);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+}
+
+.slider-red::-webkit-slider-thumb:hover {
+    background: var(--color-nab-red-dark);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.slider-red::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-nab-red);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+}
+
+.slider-red::-moz-range-thumb:hover {
+    background: var(--color-nab-red-dark);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.slider-red::-webkit-slider-track {
+    background: linear-gradient(to right, 
+        var(--color-gray-300) 0%, 
+        var(--color-nab-red) 50%, 
+        var(--color-gray-300) 100%);
+    height: 6px;
+    border-radius: var(--border-radius-full);
+}
+
+.slider-red::-moz-range-track {
+    background: linear-gradient(to right, 
+        var(--color-gray-300) 0%, 
+        var(--color-nab-red) 50%, 
+        var(--color-gray-300) 100%);
+    height: 6px;
+    border-radius: var(--border-radius-full);
+    border: none;
+}
+
+/* =================================================================
+   Responsive Design
+   ================================================================= */
+
+@media (max-width: 768px) {
+    .form-section {
+        margin-bottom: var(--spacing-4);
+    }
+    
+    .whitepaper-preview {
+        padding: var(--spacing-4);
+    }
+    
+    .whitepaper-preview .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .btn-nab {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .whitepaper-preview h1 {
+        font-size: var(--font-size-xl);
+    }
+} 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Functional tests for analysis workflows.
 
 This module tests complete analysis workflows from data loading to result generation,

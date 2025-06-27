@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Functional test for the gap analysis functionality with HRIS adapter integration.
 
