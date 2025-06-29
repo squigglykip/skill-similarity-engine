@@ -347,7 +347,8 @@ class DocumentFormatter:
             buffer.seek(0)  # type: ignore
             content_bytes = buffer.getvalue()  # type: ignore
             
-            filename = f'career_analysis_{job_name.replace(" ", "_").replace("(", "").replace(")", "")}.docx'
+            # Use enhanced filename from analysis_data if available
+            filename = analysis_data.get('enhanced_filename', f'career_analysis_{job_name.replace(" ", "_").replace("(", "").replace(")", "")}.docx')
             
             return {
                 'format': 'word',
@@ -368,82 +369,379 @@ class DocumentFormatter:
             }
     
     def _setup_nab_styles(self, doc):
-        """Create NAB styles based on screenshot styling, with TOC-compatible headings."""
+        """Set up comprehensive NAB styling system for professional documents."""
+        logger.info("🎨 Applying professional NAB styling")
         
+        # Import NAB styling configuration
+        if STYLING_AVAILABLE and DocumentStyles:
+            try:
+                self.nab_styles = DocumentStyles()
+                logger.info("✅ NAB styling system initialized")
+                
+                # FIX 3: Apply complete NAB styling to document
+                self._apply_comprehensive_nab_styling(doc)
+                
+            except Exception as e:
+                logger.error(f"❌ Error initializing NAB styles: {e}")
+                self.nab_styles = None
+        else:
+            logger.warning("⚠️ NAB styling not available - using basic formatting")
+            self.nab_styles = None
+    
+    def _apply_comprehensive_nab_styling(self, doc):
+        """Apply comprehensive NAB styling including colors, fonts, and table styles."""
+        logger.debug("🎨 Applying comprehensive NAB styling to document")
+        
+        # FIX 3: Set up complete NAB document styles
         styles = doc.styles
         
-        # NAB Red color from screenshots
-        nab_red = RGBColor(220, 38, 38)  # #DC2626
-        dark_gray = RGBColor(55, 65, 81)  # #374151
-        medium_gray = RGBColor(107, 114, 128)  # #6B7280
+        # NAB Corporate Colors (based on DocumentStyles configuration)
+        nab_red = RGBColor(204, 0, 51)      # NAB Corporate Red  
+        nab_dark_grey = RGBColor(64, 64, 64)  # NAB Dark Grey
+        nab_light_grey = RGBColor(128, 128, 128)  # NAB Light Grey
+        nab_black = RGBColor(0, 0, 0)       # NAB Black
         
-        # Cover Title Style - Epilogue Semibold 42pt Red (custom style for cover)
-        if 'NAB Cover Title' not in [s.name for s in styles]:
-            cover_title = styles.add_style('NAB Cover Title', WD_STYLE_TYPE.PARAGRAPH)
-            title_font = cover_title.font
-            title_font.name = 'Epilogue'
-            title_font.size = Pt(42)
-            title_font.bold = True
-            title_font.color.rgb = nab_red
-            cover_title.paragraph_format.space_after = Pt(12)
+        # FIX 3: Create/update NAB Heading 1 style
+        try:
+            heading1_style = styles['Heading 1']
+        except KeyError:
+            heading1_style = styles.add_style('Heading 1', WD_STYLE_TYPE.PARAGRAPH)
         
-        # Cover Subtitle Style - Epilogue Medium 28pt Black (custom style for cover)
-        if 'NAB Cover Subtitle' not in [s.name for s in styles]:
-            cover_subtitle = styles.add_style('NAB Cover Subtitle', WD_STYLE_TYPE.PARAGRAPH)
-            subtitle_font = cover_subtitle.font
-            subtitle_font.name = 'Epilogue'
-            subtitle_font.size = Pt(28)
-            subtitle_font.color.rgb = RGBColor(0, 0, 0)
-            cover_subtitle.paragraph_format.space_after = Pt(24)
+        heading1_style.font.name = 'Source Sans Pro'
+        heading1_style.font.size = Pt(18)
+        heading1_style.font.bold = True
+        heading1_style.font.color.rgb = nab_red  # NAB Red for headings
+        heading1_style.paragraph_format.space_before = Pt(18)
+        heading1_style.paragraph_format.space_after = Pt(12)
+        heading1_style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
         
-        # Modify Word's built-in Heading 1 style for TOC compatibility
-        h1_style = styles['Heading 1']
-        h1_font = h1_style.font
-        h1_font.name = 'Epilogue'
-        h1_font.size = Pt(22)
-        h1_font.bold = True
-        h1_font.color.rgb = nab_red
-        h1_style.paragraph_format.space_before = Pt(18)
-        h1_style.paragraph_format.space_after = Pt(12)
+        # FIX 3: Create/update NAB Heading 2 style  
+        try:
+            heading2_style = styles['Heading 2']
+        except KeyError:
+            heading2_style = styles.add_style('Heading 2', WD_STYLE_TYPE.PARAGRAPH)
+            
+        heading2_style.font.name = 'Source Sans Pro'
+        heading2_style.font.size = Pt(14)
+        heading2_style.font.bold = True
+        heading2_style.font.color.rgb = nab_dark_grey  # NAB Dark Grey for subheadings
+        heading2_style.paragraph_format.space_before = Pt(12)
+        heading2_style.paragraph_format.space_after = Pt(6)
+        heading2_style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
         
-        # Modify Word's built-in Heading 2 style for TOC compatibility  
-        h2_style = styles['Heading 2']
-        h2_font = h2_style.font
-        h2_font.name = 'Source Sans Pro'
-        h2_font.size = Pt(14)
-        h2_font.bold = True
-        h2_font.color.rgb = dark_gray
-        h2_style.paragraph_format.space_before = Pt(12)
-        h2_style.paragraph_format.space_after = Pt(8)
-        
-        # Modify Word's built-in Heading 3 style for TOC compatibility
-        h3_style = styles['Heading 3']
-        h3_font = h3_style.font
-        h3_font.name = 'Source Sans Pro'
-        h3_font.size = Pt(13)
-        h3_font.bold = True
-        h3_font.color.rgb = medium_gray
-        h3_style.paragraph_format.space_before = Pt(8)
-        h3_style.paragraph_format.space_after = Pt(6)
-        
-        # Body Text - Source Sans Pro Regular 11pt (custom style)
-        if 'NAB Body' not in [s.name for s in styles]:
+        # FIX 3: Create/update NAB Body style
+        try:
+            body_style = styles['NAB Body']
+        except KeyError:
             body_style = styles.add_style('NAB Body', WD_STYLE_TYPE.PARAGRAPH)
-            body_font = body_style.font
-            body_font.name = 'Source Sans Pro'
-            body_font.size = Pt(11)
-            body_font.color.rgb = dark_gray
-            body_style.paragraph_format.line_spacing = 1.5
-            body_style.paragraph_format.space_after = Pt(6)
+            
+        body_style.font.name = 'Source Sans Pro'
+        body_style.font.size = Pt(11)
+        body_style.font.color.rgb = nab_black  # NAB Black for body text
+        body_style.paragraph_format.space_before = Pt(0)
+        body_style.paragraph_format.space_after = Pt(6)
+        body_style.paragraph_format.line_spacing = 1.15  # NAB standard line spacing
+        body_style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         
-        # Call to Action - Epilogue Medium 12pt Red (custom style)
-        if 'NAB Call to Action' not in [s.name for s in styles]:
-            cta_style = styles.add_style('NAB Call to Action', WD_STYLE_TYPE.PARAGRAPH)
-            cta_font = cta_style.font
-            cta_font.name = 'Epilogue'
-            cta_font.size = Pt(12)
-            cta_font.color.rgb = nab_red
-            cta_style.paragraph_format.space_after = Pt(6)
+        # FIX 3: Create/update NAB Table style
+        try:
+            table_style = styles['NAB Table']
+        except KeyError:
+            table_style = styles.add_style('NAB Table', WD_STYLE_TYPE.TABLE)
+            
+        # Apply NAB table styling
+        table_style.font.name = 'Source Sans Pro'
+        table_style.font.size = Pt(10)
+        
+        logger.debug("✅ Comprehensive NAB styling applied to document")
+    
+    def _add_yaml_content_type(self, doc, subsection: Dict):
+        """
+        Process content based on YAML template content_type specifications.
+        
+        Handles content_type: table, paragraph, mixed, etc. from YAML templates
+        including table_headers, table_data, bold_labels specifications.
+        This method now handles ALL content processing to avoid duplication.
+        """
+        content_type = subsection.get('content_type', 'paragraph')
+        
+        if content_type == 'table':
+            # Handle table content type with table_headers and table_data
+            self._add_yaml_table_content(doc, subsection)
+        elif content_type == 'mixed':
+            # Handle mixed content with bold labels
+            self._add_yaml_mixed_content(doc, subsection)
+        elif content_type == 'paragraph':
+            # Handle paragraph content using NAB styling
+            content = subsection.get('content', '')
+            bold_labels = subsection.get('bold_labels', [])
+            if content:
+                if hasattr(self, 'nab_styles') and self.nab_styles:
+                    if bold_labels:
+                        # Handle paragraph with bold labels using NAB styling
+                        self._add_nab_styled_content_with_bold_labels(doc, content, bold_labels)
+                    else:
+                        self.nab_styles.add_formatted_content_with_style(doc, content)
+                else:
+                    self._add_legacy_string_content(doc, content)
+        else:
+            # Fallback for unknown content types using NAB styling
+            content = subsection.get('content', '')
+            if content:
+                if hasattr(self, 'nab_styles') and self.nab_styles:
+                    self.nab_styles.add_formatted_content_with_style(doc, content)
+                else:
+                    self._add_legacy_string_content(doc, content)
+        
+        # ALSO handle the 'content' field if it exists and is structured (dict) 
+        # This covers cases where subsections have both content_type and a structured content field
+        if 'content' in subsection:
+            content_field = subsection['content']
+            if isinstance(content_field, dict):
+                # Handle structured content (like from pathway analysis opportunities)
+                self._add_structured_content_with_nab_styling(doc, content_field)
+            elif isinstance(content_field, str) and content_type == 'paragraph':
+                # String content was already handled above for paragraph type
+                pass
+            elif isinstance(content_field, str):
+                # Handle string content with table detection for other content types
+                if hasattr(self, 'nab_styles') and self.nab_styles:
+                    if hasattr(self.nab_styles, 'detect_and_format_pipe_delimited_tables'):
+                        tables_found = self.nab_styles.detect_and_format_pipe_delimited_tables(doc, content_field)
+                        if not tables_found:
+                            # No tables found, add as regular formatted content
+                            self.nab_styles.add_formatted_content_with_style(doc, content_field)
+                    else:
+                        # Fallback: regular formatted content
+                        self.nab_styles.add_formatted_content_with_style(doc, content_field)
+                else:
+                    self._add_legacy_string_content(doc, content_field)
+    
+    def _add_yaml_table_content(self, doc, subsection: Dict):
+        """Handle table content_type from YAML templates with NAB styling."""
+        table_headers = subsection.get('table_headers', [])
+        table_data = subsection.get('table_data', '')
+        
+        if not table_headers or not table_data:
+            logger.warning("⚠️ Missing table_headers or table_data for table content_type")
+            return
+        
+        # Parse table_data (pipe-delimited format from YAML)
+        rows = []
+        for line in table_data.strip().split('\n'):
+            if line.strip():
+                row = [cell.strip() for cell in line.split('|')]
+                if len(row) == len(table_headers):
+                    rows.append(row)
+        
+        if rows:
+            # Create table using proper NAB styling system
+            table = doc.add_table(rows=len(rows) + 1, cols=len(table_headers))
+            # DON'T apply built-in table style yet - it will override our black headers
+            # table.style = 'Light Grid Accent 1'  # Commented out to prevent header override
+            
+            # Use NAB color system
+            nab_red = self.nab_styles.colors.get_rgb_color('nab_red') if self.nab_styles else RGBColor(204, 0, 51)
+            nab_black = self.nab_styles.colors.get_rgb_color('nab_black') if self.nab_styles else RGBColor(0, 0, 0)
+            nab_white = self.nab_styles.colors.get_rgb_color('white') if self.nab_styles else RGBColor(255, 255, 255)
+            
+            # Add headers with NAB styling
+            header_cells = table.rows[0].cells
+            for i, header in enumerate(table_headers):
+                header_cells[i].text = header
+                
+                # Set BLACK background for header cell (NAB Table Design 2)
+                try:
+                    from docx.oxml.ns import qn
+                    cell_shading = header_cells[i]._element.get_or_add_tcPr().get_or_add_shd()
+                    cell_shading.set(qn('w:fill'), "000000")  # Black background
+                    cell_shading.set(qn('w:val'), "clear")
+                except:
+                    # If shading fails, continue with text styling
+                    pass
+                
+                # Apply NAB table header styling
+                for paragraph in header_cells[i].paragraphs:
+                    paragraph.style = doc.styles['NAB Body']
+                    for run in paragraph.runs:
+                        run.font.bold = True
+                        run.font.name = self.nab_styles.fonts.FONT_PRIMARY if self.nab_styles else 'Source Sans Pro'
+                        run.font.size = self.nab_styles.fonts.get_pt_size('table_header') if self.nab_styles else Pt(11)
+                        run.font.color.rgb = nab_white  # White text on dark header
+            
+            # Add data rows with NAB styling and banded rows
+            for row_idx, row_data in enumerate(rows, 1):
+                row_cells = table.rows[row_idx].cells
+                
+                # Apply alternating row banding for NAB Table Design 2
+                if (row_idx - 1) % 2 == 1:  # Every other row gets light grey
+                    for cell in row_cells:
+                        try:
+                            from docx.oxml.ns import qn
+                            cell_shading = cell._element.get_or_add_tcPr().get_or_add_shd()
+                            cell_shading.set(qn('w:fill'), "F5F5F5")  # Light grey
+                            cell_shading.set(qn('w:val'), "clear")
+                        except:
+                            # If shading fails, continue without banding
+                            pass
+                
+                for col_idx, cell_data in enumerate(row_data):
+                    row_cells[col_idx].text = cell_data
+                    # Apply NAB body styling to table cells
+                    for paragraph in row_cells[col_idx].paragraphs:
+                        paragraph.style = doc.styles['NAB Body']
+                        for run in paragraph.runs:
+                            run.font.name = self.nab_styles.fonts.FONT_PRIMARY if self.nab_styles else 'Source Sans Pro'
+                            run.font.size = self.nab_styles.fonts.get_pt_size('body') if self.nab_styles else Pt(11)
+                            run.font.color.rgb = nab_black
+    
+    def _add_nab_styled_content_with_bold_labels(self, doc, content: str, bold_labels: list):
+        """Handle content with bold labels using proper NAB styling."""
+        if not content:
+            return
+            
+        # Split content into paragraphs
+        paragraphs = content.split('\n\n')
+        
+        for para_text in paragraphs:
+            if para_text.strip():
+                para = doc.add_paragraph()
+                para.style = doc.styles['NAB Body']
+                
+                # Process bold labels in the text
+                remaining_text = para_text.strip()
+                
+                for label in bold_labels:
+                    if label in remaining_text:
+                        # Split at the first occurrence of the label
+                        parts = remaining_text.split(label, 1)
+                        if len(parts) == 2:
+                            # Add text before label
+                            if parts[0]:
+                                para.add_run(parts[0])
+                            # Add bold label with NAB styling
+                            bold_run = para.add_run(label)
+                            bold_run.bold = True
+                            # Continue with remaining text
+                            remaining_text = parts[1]
+                        else:
+                            break
+                
+                # Add any remaining text
+                if remaining_text:
+                    para.add_run(remaining_text)
+
+    def _add_yaml_mixed_content(self, doc, subsection: Dict):
+        """Handle mixed content_type with bold_labels from YAML templates using proper NAB styling."""
+        content = subsection.get('content', '')
+        bold_labels = subsection.get('bold_labels', [])
+        
+        if content:
+            # Use the new NAB styled content method
+            if hasattr(self, 'nab_styles') and self.nab_styles:
+                if bold_labels:
+                    self._add_nab_styled_content_with_bold_labels(doc, content, bold_labels)
+                else:
+                    self.nab_styles.add_formatted_content_with_style(doc, content)
+            else:
+                # Fallback to legacy styling if NAB styles not available
+                self._add_legacy_mixed_content(doc, content, bold_labels)
+    
+    def _add_structured_content_with_nab_styling(self, doc, content: dict):
+        """Add structured content using proper NAB styling instead of old blue/Epilogue styling."""
+        if not content:
+            return
+            
+        # Handle different content types with NAB styling
+        content_type = content.get('content_type', 'paragraph')
+        
+        if content_type == 'table':
+            # Use existing NAB table styling
+            self._add_yaml_table_content(doc, content)
+        elif content_type in ['bullet_list', 'bullets']:
+            # Handle bullet lists with NAB styling
+            items = content.get('items', [])
+            if items:
+                for item in items:
+                    para = doc.add_paragraph(style='NAB Body')
+                    para.add_run(f"• {item}")
+        elif content_type == 'numbered_list':
+            # Handle numbered lists with NAB styling
+            items = content.get('items', [])
+            if items:
+                for i, item in enumerate(items, 1):
+                    para = doc.add_paragraph(style='NAB Body')
+                    para.add_run(f"{i}. {item}")
+        else:
+            # Handle as text content with NAB styling and pipe-delimited table detection
+            text_content = content.get('text', content.get('content', ''))
+            if text_content:
+                if hasattr(self, 'nab_styles') and self.nab_styles:
+                    # Try to detect and format pipe-delimited tables first
+                    if hasattr(self.nab_styles, 'detect_and_format_pipe_delimited_tables'):
+                        tables_found = self.nab_styles.detect_and_format_pipe_delimited_tables(doc, text_content)
+                        if not tables_found and hasattr(self.nab_styles, 'add_formatted_content_with_style'):
+                            # No tables found, add as regular formatted content
+                            self.nab_styles.add_formatted_content_with_style(doc, text_content)
+                    elif hasattr(self.nab_styles, 'add_formatted_content_with_style'):
+                        # Fallback: regular formatted content
+                        self.nab_styles.add_formatted_content_with_style(doc, text_content)
+                else:
+                    # Fallback if NAB styles not available
+                    para = doc.add_paragraph(style='NAB Body')
+                    para.add_run(text_content)
+
+    def _add_legacy_mixed_content(self, doc, content: str, bold_labels: list):
+        """Legacy fallback method for mixed content when NAB styles aren't available."""
+        # NAB Corporate Colors (fallback)
+        nab_black = RGBColor(0, 0, 0)
+        
+        # Split content into paragraphs
+        paragraphs = content.split('\n\n')
+        
+        for para_text in paragraphs:
+            if para_text.strip():
+                para = doc.add_paragraph()
+                para.style = 'NAB Body'
+                
+                # Apply bold labels if specified
+                if bold_labels:
+                    for label in bold_labels:
+                        if label in para_text:
+                            # Split text at the label and apply bold formatting
+                            parts = para_text.split(label, 1)
+                            if len(parts) == 2:
+                                # Add text before label
+                                if parts[0]:
+                                    run = para.add_run(parts[0])
+                                    run.font.name = 'Source Sans Pro'
+                                    run.font.size = Pt(11)
+                                    run.font.color.rgb = nab_black
+                                # Add bold label
+                                bold_run = para.add_run(label)
+                                bold_run.bold = True
+                                bold_run.font.name = 'Source Sans Pro'
+                                bold_run.font.size = Pt(11)
+                                bold_run.font.color.rgb = nab_black
+                                # Add text after label
+                                if parts[1]:
+                                    run = para.add_run(parts[1])
+                                    run.font.name = 'Source Sans Pro'
+                                    run.font.size = Pt(11)
+                                    run.font.color.rgb = nab_black
+                                break
+                    else:
+                        # No bold labels found, add regular text
+                        run = para.add_run(para_text.strip())
+                        run.font.name = 'Source Sans Pro'
+                        run.font.size = Pt(11)
+                        run.font.color.rgb = nab_black
+                else:
+                    # No bold labels specified, add regular text
+                    run = para.add_run(para_text.strip())
+                    run.font.name = 'Source Sans Pro'
+                    run.font.size = Pt(11)
+                    run.font.color.rgb = nab_black
     
     def _create_professional_content(self, doc, content: Dict, analysis_data: Dict, job_name: str):
         """Create professional content sections using NAB styling system."""
@@ -543,17 +841,9 @@ class DocumentFormatter:
                                     subsection_title = subsection.get('title', subsection_key.replace('_', ' ').title())
                                     self.nab_styles.add_section_heading(doc, subsection_title, level=3)
                                     
-                                    # Add subsection content
-                                    if 'content' in subsection:
-                                        content = subsection['content']
-                                        if isinstance(content, dict):
-                                            # Handle structured content (tables, etc.) using _add_nab_content
-                                            self._add_nab_content(doc, content)
-                                        elif isinstance(content, str):
-                                            # Handle string content
-                                            self.nab_styles.add_formatted_content_with_style(doc, content)
-                                        else:
-                                            logger.warning(f"⚠️ Unexpected content type in {subsection_key}: {type(content)}")
+                                    # Process content based on content_type (YAML template specification)
+                                    # This method now handles all content processing to avoid duplication
+                                    self._add_yaml_content_type(doc, subsection)
                                 else:
                                     logger.warning(f"⚠️ Subsection {subsection_key} is not a dict: {type(subsection)}")
                         
@@ -662,67 +952,58 @@ class DocumentFormatter:
                 logger.warning(f"Section {section_key} not found in content. Available keys: {list(content.keys())}")
     
     def _add_nab_section(self, doc, section_title: str, section_content: Dict):
-        """Add section using NAB styles."""
+        """
+        Add a section with NAB styling and enhanced YAML processing.
         
-        # Debug logging to identify the data structure issue
-        logger.debug(f"_add_nab_section called with section_title: {section_title}")
-        logger.debug(f"section_content type: {type(section_content)}")
-        logger.debug(f"section_content: {section_content}")
+        Args:
+            doc: Document object
+            section_title: Title for the section
+            section_content: Section content with metadata
+        """
+        logger.debug(f"🔹 Adding NAB section: {section_title}")
         
-        # Add main section heading using Word's built-in Heading 1 (modified with NAB styling)
-        section_heading = doc.add_paragraph(section_title)
-        section_heading.style = 'Heading 1'
+        # Add section heading using proper NAB styling
+        heading = doc.add_heading(section_title, level=1)
+        if hasattr(self, 'nab_styles') and self.nab_styles:
+            # Apply professional NAB heading style
+            for run in heading.runs:
+                run.font.name = 'Source Sans Pro'
+                run.font.size = Pt(18)
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(204, 0, 51)  # NAB Red
         
-        # Handle different content structures
-        if isinstance(section_content, dict):
-            try:
-                if 'opportunities' in section_content:
-                    # Handle pathway analysis with multiple opportunities
-                    opportunities = section_content.get('opportunities', [])
-                    logger.debug(f"Processing {len(opportunities)} opportunities")
-                    for i, opportunity in enumerate(opportunities, 1):
-                        logger.debug(f"Processing opportunity {i}, type: {type(opportunity)}")
-                        self._add_nab_opportunity(doc, opportunity, i)
-                else:
-                    # Handle other structured sections
-                    for key, subsection in section_content.items():
-                        logger.debug(f"Processing subsection key: {key}, type: {type(subsection)}")
-                        if isinstance(subsection, dict):
-                            if 'title' in subsection and 'content' in subsection:
-                                # Add subsection heading using Word's built-in Heading 2 (modified with NAB styling)
-                                subsection_heading = doc.add_paragraph(subsection['title'])
-                                subsection_heading.style = 'Heading 2'
-                                
-                                # Add content
-                                self._add_nab_content(doc, subsection['content'])
-                            else:
-                                logger.warning(f"Subsection {key} doesn't have expected 'title' and 'content' structure: {subsection}")
-                        elif isinstance(subsection, str):
-                            # Handle string subsections
-                            logger.debug(f"Processing string subsection {key}")
-                            subsection_heading = doc.add_paragraph(key.replace('_', ' ').title())
-                            subsection_heading.style = 'Heading 2'
-                            self._add_nab_content(doc, subsection)
-                        else:
-                            logger.warning(f"Unexpected subsection type for {key}: {type(subsection)}")
-                            
-            except Exception as subsection_error:
-                logger.error(f"❌ Error processing section_content dict: {subsection_error}")
-                logger.error(f"❌ section_content keys: {list(section_content.keys()) if hasattr(section_content, 'keys') else 'No keys method'}")
-                raise subsection_error
+        # FIX 2 & 3: Process content with enhanced YAML support and NAB styling
+        content = section_content.get('content', '')
+        content_type = section_content.get('content_type', 'text')
         
-        elif isinstance(section_content, str):
-            # Simple string content
-            logger.debug(f"Processing section as string content: {section_content[:100]}...")
-            self._add_nab_content(doc, section_content)
+        # Enhanced content processing with YAML template support
+        if content_type == 'yaml_content_type':
+            self._add_yaml_content_type(doc, section_content)
+        elif content_type == 'yaml_table_content':
+            self._add_yaml_table_content(doc, section_content)
+        elif content_type == 'yaml_mixed_content':
+            self._add_yaml_mixed_content(doc, section_content)
+        elif isinstance(content, str):
+            if content.strip():
+                self._add_nab_content(doc, content)
+        elif isinstance(content, dict):
+            # Handle structured content
+            if 'opportunities' in content:
+                opportunities = content['opportunities']
+                logger.debug(f"🎯 Processing {len(opportunities)} opportunities")
+                for i, opportunity in enumerate(opportunities, 1):
+                    self._add_nab_opportunity(doc, opportunity, i)
+            else:
+                # Generic dict content processing
+                self._add_nab_content(doc, content)
+        elif isinstance(content, list):
+            # Handle list content
+            self._add_nab_content(doc, content)
         else:
-            logger.error(f"Unexpected section_content type: {type(section_content)} for section: {section_title}")
-            # Try to convert to string as fallback
-            try:
-                self._add_nab_content(doc, str(section_content))
-            except Exception as fallback_error:
-                logger.error(f"❌ Fallback conversion failed: {fallback_error}")
-                raise fallback_error
+            logger.warning(f"⚠️ Unknown content type for section {section_title}: {type(content)}")
+        
+        # Add section break
+        doc.add_paragraph()  # Professional section spacing
     
     def _add_nab_opportunity(self, doc, opportunity: Dict, opportunity_num: int):
         """Add pathway opportunity using NAB styles with enhanced headers."""
@@ -1461,6 +1742,15 @@ class DocumentFormatter:
             from docx.oxml import parse_xml
             from docx.oxml.ns import qn
             
+            # Check if paragraph has 'part' attribute (some table cells might not)
+            if not hasattr(paragraph, 'part'):
+                # Fallback to styled text for table cells without document part access
+                run = paragraph.add_run(text)
+                run.font.size = Pt(9)
+                run.font.color.rgb = RGBColor(5, 99, 193)  # Blue hyperlink color
+                run.underline = True
+                return
+            
             # Get the document part and create relationship
             part = paragraph.part
             r_id = part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink", is_external=True)
@@ -1491,4 +1781,6 @@ class DocumentFormatter:
             run.font.size = Pt(9)
             run.font.color.rgb = RGBColor(5, 99, 193)  # Blue hyperlink color
             run.underline = True
+
+
 

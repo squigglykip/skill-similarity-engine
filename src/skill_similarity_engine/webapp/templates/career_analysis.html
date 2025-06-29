@@ -137,7 +137,7 @@
                     </div>
                     <div class="text-xs text-gray-500 mt-2">
                         <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                        <strong>Single:</strong> Detailed analysis | <strong>Multiple:</strong> Comparative analysis
+                        <strong>Single:</strong> Detailed analysis | <strong>Multiple:</strong> Comparative analysis across all selected roles
                     </div>
                 </div>
 
@@ -158,8 +158,18 @@
                 <div id="tieBreakingSection" class="border-t pt-6">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Tie-Breaking Preferences</h3>
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Tie-Breaking Preferences
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
+                                    <i class="fas fa-code-branch mr-1"></i>
+                                    Under Development
+                                </span>
+                            </h3>
                             <p class="text-sm text-gray-600">When opportunities have similar relevance scores, prioritise based on:</p>
+                            <p class="text-xs text-yellow-700 bg-yellow-50 px-3 py-2 rounded-md mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Note:</strong> These tie-breaking options are currently under development and do not affect analysis results yet.
+                            </p>
                         </div>
                         <i class="fas fa-balance-scale text-gray-400"></i>
                     </div>
@@ -455,12 +465,6 @@
                 // Add new job ID
                 selectedJobIds.push(selection.jobId);
                 
-                // Limit to maximum 5 jobs for multiple selection
-                if (selectedJobIds.length > 5) {
-                    selectedJobIds = selectedJobIds.slice(-5); // Keep last 5
-                    console.log('🔍 Maximum 5 jobs allowed, removed oldest selection');
-                }
-                
                 // Update hidden input
                 hiddenInput.value = selectedJobIds.join(',');
                 
@@ -491,7 +495,7 @@
                 // Update help text
                 const helpText = jobIds.length === 1 ? 
                     'Single job selected - detailed analysis will be generated' :
-                    `${jobIds.length} jobs selected - comparative analysis will be generated`;
+                    `${jobIds.length} jobs selected - comparative analysis will be generated across all roles`;
                 
                 const helpElement = container.nextElementSibling;
                 if (helpElement && helpElement.classList.contains('text-xs')) {

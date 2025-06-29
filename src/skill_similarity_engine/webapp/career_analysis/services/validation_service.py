@@ -49,9 +49,15 @@ class ValidationService:
             
             # Validate optional job_to (for specific mode)
             if analysis_mode == 'specific':
-                job_to = self._validate_job_id(form_data.get('job_to'), 'job_to', errors)
+                job_to_raw = form_data.get('job_to')
+                logger.info(f"🔍 Validating job_to for specific mode: '{job_to_raw}'")
+                job_to = self._validate_job_id(job_to_raw, 'job_to', errors)
                 if job_to:
                     cleaned_data['job_to'] = job_to
+                    target_count = len(job_to.split(',')) if ',' in job_to else 1
+                    logger.info(f"✅ Validated {target_count} target job(s): {job_to}")
+                else:
+                    logger.warning(f"❌ job_to validation failed for: '{job_to_raw}'")
             
             # Validate similarity range
             similarity_min, similarity_max = self._validate_similarity_range(
@@ -71,6 +77,10 @@ class ValidationService:
                 form_data.get('include_organisational_deployment', False)
             )
             
+            # Validate tie-breaking options
+            tie_breaking_options = self._validate_tie_breaking_options(form_data.get('tie_breaking_options', {}))
+            cleaned_data['tie_breaking_options'] = tie_breaking_options
+            
             is_valid = len(errors) == 0
             
             if is_valid:
@@ -86,26 +96,51 @@ class ValidationService:
             return False, {}, errors
     
     def _validate_job_id(self, job_id: Any, field_name: str, errors: List[str]) -> Optional[str]:
-        """Validate job ID format and existence."""
+        """Validate job ID format and existence. Supports comma-separated multiple job IDs for job_to."""
         if not job_id:
             if field_name == 'job_from':
                 errors.append(f"{field_name} is required")
             return None
         
         # Convert to string and clean
-        job_id = str(job_id).strip().upper()
+        job_id_str = str(job_id).strip().upper()
         
-        # Check format (e.g., R0102.3, C1234.1)
-        if not re.match(r'^[A-Z]\d{4}\.\d+$', job_id):
-            errors.append(f"{field_name} must be in format like 'R0102.3' or 'C1234.1'")
-            return None
-        
-        # Check if job exists in database using correct table name
-        if not self._job_exists_in_database(job_id):
-            errors.append(f"Job ID '{job_id}' not found in database")
-            return None
-        
-        return job_id
+        # Handle multiple job IDs for job_to field (comma-separated)
+        if field_name == 'job_to' and ',' in job_id_str:
+            job_ids = [j.strip() for j in job_id_str.split(',') if j.strip()]
+            
+            validated_jobs = []
+            for single_job_id in job_ids:
+                # Validate each job ID individually
+                if not re.match(r'^[A-Z]\d{4}\.\d+$', single_job_id):
+                    errors.append(f"Job ID '{single_job_id}' must be in format like 'R0102.3' or 'C1234.1'")
+                    continue
+                
+                if not self._job_exists_in_database(single_job_id):
+                    errors.append(f"Job ID '{single_job_id}' not found in database")
+                    continue
+                
+                validated_jobs.append(single_job_id)
+            
+            if not validated_jobs:
+                errors.append("No valid target job IDs found")
+                return None
+            
+            # Return comma-separated validated job IDs
+            return ','.join(validated_jobs)
+        else:
+            # Single job ID validation (existing logic)
+            # Check format (e.g., R0102.3, C1234.1)
+            if not re.match(r'^[A-Z]\d{4}\.\d+$', job_id_str):
+                errors.append(f"{field_name} must be in format like 'R0102.3' or 'C1234.1'")
+                return None
+            
+            # Check if job exists in database using correct table name
+            if not self._job_exists_in_database(job_id_str):
+                errors.append(f"Job ID '{job_id_str}' not found in database")
+                return None
+            
+            return job_id_str
     
     def _validate_analysis_mode(self, mode: Any, errors: List[str]) -> str:
         """Validate analysis mode."""
@@ -162,6 +197,26 @@ class ValidationService:
             return 3
         
         return top_n
+    
+    def _validate_tie_breaking_options(self, tie_breaking_options: Any) -> Dict[str, bool]:
+        """Validate tie-breaking options structure."""
+        if not isinstance(tie_breaking_options, dict):
+            # Return default tie-breaking options
+            return {
+                'same_function_priority': False,
+                'career_progression_priority': False,
+                'minimal_level_jump': False,
+                'skills_overlap_detail': False
+            }
+        
+        # Validate and clean each option
+        validated_options = {}
+        expected_keys = ['same_function_priority', 'career_progression_priority', 'minimal_level_jump', 'skills_overlap_detail']
+        
+        for key in expected_keys:
+            validated_options[key] = bool(tie_breaking_options.get(key, False))
+        
+        return validated_options
     
     def _job_exists_in_database(self, job_id: str) -> bool:
         """Check if job ID exists in the database using correct table name."""

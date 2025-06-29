@@ -231,13 +231,20 @@ SkillEngine.CareerAnalysis = {
             const formData = this.getFormData();
             formData.output_format = 'word'; // Generate Word document
             
+            // Add timeout to handle potential server restarts
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+            
             const response = await fetch('/api/career-analysis-document', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (response.ok) {
                 // Handle direct file download
@@ -277,7 +284,19 @@ SkillEngine.CareerAnalysis = {
 
         } catch (error) {
             console.error('❌ Generation error:', error);
-            this.displayError('Failed to Generate Career Report: ' + error.message);
+            
+            // Handle specific error types
+            let errorMessage = 'Failed to Generate Career Report: ';
+            
+            if (error.name === 'AbortError') {
+                errorMessage += 'Request timed out. The server might be restarting. Please try again.';
+            } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_RESET')) {
+                errorMessage += 'Connection lost during document generation. The server might be restarting. Please try again in a moment.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            this.displayError(errorMessage);
         } finally {
             this.state.isGenerating = false;
             this.setLoadingState(false);

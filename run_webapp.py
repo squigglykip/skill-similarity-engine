@@ -47,5 +47,7 @@ if __name__ == '__main__':
     app.run(
         debug=True,
         port=5000,
-        host='localhost'
+        host='localhost',
+        use_reloader=False,  # Disable auto-reload
+        threaded=True  # Enable threading for better performance
     ) 

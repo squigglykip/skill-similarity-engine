@@ -2027,100 +2027,77 @@ def create_app(config=None):
 
     @app.route('/api/career-analysis-document', methods=['POST'])
     def api_career_analysis_document():
-        """Generate a downloadable document using the new service layer architecture."""
+        """Generate a downloadable document using the enhanced service layer."""
+        import uuid
+        request_id = str(uuid.uuid4())[:8]
+        
         try:
-            # Import service classes using the same pattern as preview
-            sys.path.insert(0, str(Path(__file__).parent / 'career_analysis' / 'services'))
-            from career_analysis_service import CareerAnalysisService
-            
-            # Import formatter from parent directory
-            sys.path.insert(0, str(Path(__file__).parent / 'career_analysis'))
-            from formatter import DocumentFormatter
-            
-            import uuid
-            request_id = str(uuid.uuid4())[:8]
-            print(f"📄 [REQ-{request_id}] Starting career analysis document generation using service layer...")
+            print(f"📄 [REQ-{request_id}] Document generation request received")
             
             data = request.get_json()
             if not data or 'job_from' not in data:
+                print(f"❌ [REQ-{request_id}] Missing job_from parameter")
                 return jsonify({'error': 'job_from is required'}), 400
             
             output_format = data.get('output_format', 'word')
             print(f"📋 [REQ-{request_id}] Generating {output_format} document for job: {data['job_from']}")
             
-            # Initialize services directly
+            # Import enhanced document service locally to avoid module caching issues
+            from skill_similarity_engine.webapp.career_analysis.services.document_service import DocumentService
+            
+            # Initialize enhanced document service with database connection
             db = get_db()
-            analysis_service = CareerAnalysisService(db)
-            formatter = DocumentFormatter()
+            document_service = DocumentService(db)
             
-            # Extract form parameters
-            job_from = data.get('job_from', '')
-            job_to = data.get('job_to')
-            analysis_mode = data.get('analysis_mode', 'top_matches')
-            similarity_min = int(data.get('similarity_min', 40))
-            similarity_max = int(data.get('similarity_max', 90))
-            top_n = int(data.get('top_n', 3))
-            
-            # Generate analysis using the main service in document mode
-            result = analysis_service.generate_analysis(
-                job_from=job_from,
-                analysis_mode=analysis_mode,
-                output_mode='document',  # Document mode for Word generation
-                job_to=job_to,
-                similarity_min=similarity_min,
-                similarity_max=similarity_max,
-                top_n=top_n,
-                include_organisational_deployment=True
+            # Generate document with enhanced improvements
+            print(f"🔄 [REQ-{request_id}] Starting document generation...")
+            document_result = document_service.generate_document(
+                form_data=data,
+                output_format=output_format
             )
             
-            if not result['success']:
-                return jsonify(result), 500
-            
-            # Format the document using DocumentFormatter
-            document_result = formatter.format_document(
-                content=result['sections'],
-                output_format=output_format,
-                analysis_data=result['metadata']
-            )
-            
-            if document_result['status'] != 'generated':
+            if not document_result.get('success', False):
+                error_msg = document_result.get('error', 'Unknown error')
+                print(f"❌ [REQ-{request_id}] Document generation failed: {error_msg}")
                 return jsonify({
                     'success': False,
-                    'error': f"Document generation failed: {document_result.get('message', 'Unknown error')}"
+                    'error': f"Document generation failed: {error_msg}"
                 }), 500
             
-            print(f"✅ Successfully generated {output_format} document")
+            # Extract document content and metadata
+            document_data = document_result.get('document', {})
+            document_content = document_data.get('content')
+            filename = document_data.get('filename', 'career_analysis.docx')
             
-            # Return the document as a direct download
-            import io
-            
-            # Create file stream from document content
-            if isinstance(document_result['content'], bytes):
-                file_stream = io.BytesIO(document_result['content'])
-            else:
+            if not document_content:
+                print(f"❌ [REQ-{request_id}] Document content is missing")
                 return jsonify({
                     'success': False,
-                    'error': 'Document content is not in expected format'
+                    'error': 'Document content is missing'
                 }), 500
             
-            file_stream.seek(0)
+            print(f"✅ [REQ-{request_id}] Document generated successfully: {filename} ({len(document_content)} bytes)")
             
             # Create response with proper headers for download
-            response = make_response(file_stream.getvalue())
+            response = make_response(document_content)
             response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            response.headers['Content-Disposition'] = f'attachment; filename="{document_result["filename"]}"'
-            response.headers['Content-Length'] = len(file_stream.getvalue())
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response.headers['Content-Length'] = len(document_content)
+            
+            # Add cache control headers to prevent caching issues
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
             
             return response
             
         except Exception as e:
-            print(f"❌ Error in career analysis document generation: {e}")
+            print(f"❌ [REQ-{request_id}] Exception in document generation: {e}")
             import traceback
             traceback.print_exc()
             return jsonify({
                 'success': False,
-                'error': 'Internal server error', 
-                'details': str(e)
+                'error': f'Document generation failed: {str(e)}'
             }), 500
 
     @app.route('/api/career-analysis-jobs')
