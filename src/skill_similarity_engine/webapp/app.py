@@ -19,7 +19,7 @@ import csv
 import io
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, g, redirect, url_for, Response
+from flask import Flask, render_template, request, jsonify, g, redirect, url_for, Response, make_response
 import sys
 import tempfile
 
@@ -2029,32 +2029,89 @@ def create_app(config=None):
     def api_career_analysis_document():
         """Generate a downloadable document using the new service layer architecture."""
         try:
-            # Import service classes
+            # Import service classes using the same pattern as preview
             sys.path.insert(0, str(Path(__file__).parent / 'career_analysis' / 'services'))
-            from document_service import DocumentService
+            from career_analysis_service import CareerAnalysisService
             
-            print("📄 Starting career analysis document generation using service layer...")
+            # Import formatter from parent directory
+            sys.path.insert(0, str(Path(__file__).parent / 'career_analysis'))
+            from formatter import DocumentFormatter
+            
+            import uuid
+            request_id = str(uuid.uuid4())[:8]
+            print(f"📄 [REQ-{request_id}] Starting career analysis document generation using service layer...")
             
             data = request.get_json()
             if not data or 'job_from' not in data:
                 return jsonify({'error': 'job_from is required'}), 400
             
             output_format = data.get('output_format', 'word')
-            print(f"📋 Generating {output_format} document for job: {data['job_from']}")
+            print(f"📋 [REQ-{request_id}] Generating {output_format} document for job: {data['job_from']}")
             
-            # Initialize document service
+            # Initialize services directly
             db = get_db()
-            document_service = DocumentService(db)
+            analysis_service = CareerAnalysisService(db)
+            formatter = DocumentFormatter()
             
-            # Generate document using service layer
-            result = document_service.generate_document(data, output_format)
+            # Extract form parameters
+            job_from = data.get('job_from', '')
+            job_to = data.get('job_to')
+            analysis_mode = data.get('analysis_mode', 'top_matches')
+            similarity_min = int(data.get('similarity_min', 40))
+            similarity_max = int(data.get('similarity_max', 90))
+            top_n = int(data.get('top_n', 3))
+            
+            # Generate analysis using the main service in document mode
+            result = analysis_service.generate_analysis(
+                job_from=job_from,
+                analysis_mode=analysis_mode,
+                output_mode='document',  # Document mode for Word generation
+                job_to=job_to,
+                similarity_min=similarity_min,
+                similarity_max=similarity_max,
+                top_n=top_n,
+                include_organisational_deployment=True
+            )
             
             if not result['success']:
                 return jsonify(result), 500
             
+            # Format the document using DocumentFormatter
+            document_result = formatter.format_document(
+                content=result['sections'],
+                output_format=output_format,
+                analysis_data=result['metadata']
+            )
+            
+            if document_result['status'] != 'generated':
+                return jsonify({
+                    'success': False,
+                    'error': f"Document generation failed: {document_result.get('message', 'Unknown error')}"
+                }), 500
+            
             print(f"✅ Successfully generated {output_format} document")
             
-            return jsonify(result)
+            # Return the document as a direct download
+            import io
+            
+            # Create file stream from document content
+            if isinstance(document_result['content'], bytes):
+                file_stream = io.BytesIO(document_result['content'])
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Document content is not in expected format'
+                }), 500
+            
+            file_stream.seek(0)
+            
+            # Create response with proper headers for download
+            response = make_response(file_stream.getvalue())
+            response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            response.headers['Content-Disposition'] = f'attachment; filename="{document_result["filename"]}"'
+            response.headers['Content-Length'] = len(file_stream.getvalue())
+            
+            return response
             
         except Exception as e:
             print(f"❌ Error in career analysis document generation: {e}")
@@ -2240,7 +2297,7 @@ if __name__ == '__main__':
     
     # Check if database exists
     if not app.config['DATABASE_PATH'].exists():
-        print(f"âš ï¸  Database not found at: {app.config['DATABASE_PATH']}")
+        print(f"âš ï¸  Database not found at: {app.config['DATABASE_PATH']}")
         print("   Run the CLI to generate business context database first.")
         exit(1)
     

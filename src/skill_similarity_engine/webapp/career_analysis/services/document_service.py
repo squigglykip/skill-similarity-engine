@@ -7,23 +7,36 @@ DocumentFormatter and maintaining compatibility with the current document genera
 
 from typing import Dict, List, Optional, Any
 import logging
-from .career_analysis_service import CareerAnalysisService
 import sys
 from pathlib import Path
 
-# Add parent directory to path for importing formatter
-parent_path = Path(__file__).parent.parent
-if str(parent_path) not in sys.path:
-    sys.path.append(str(parent_path))
-
+# Import the services we need
 try:
-    from ..formatter import DocumentFormatter
+    # Try to import from the same package first
+    from career_analysis_service import CareerAnalysisService
 except ImportError:
-    # Fallback for direct script execution
-    import sys
-    current_dir = Path(__file__).parent.parent
-    sys.path.insert(0, str(current_dir))
+    # Fallback to relative import
+    from .career_analysis_service import CareerAnalysisService
+
+# Import the DocumentFormatter
+try:
+    # Add the parent directory to import the formatter
+    sys.path.insert(0, str(Path(__file__).parent.parent))
     from formatter import DocumentFormatter
+except ImportError:
+    try:
+        from ..formatter import DocumentFormatter
+    except ImportError:
+        # Final fallback - create a simple formatter
+        class DocumentFormatter:
+            def format_document(self, content, output_format, analysis_data):
+                return {
+                    'format': output_format,
+                    'filename': f'career_analysis.{output_format}',
+                    'content': b'Error: DocumentFormatter not available',
+                    'status': 'error',
+                    'message': 'DocumentFormatter import failed'
+                }
 
 logger = logging.getLogger(__name__)
 

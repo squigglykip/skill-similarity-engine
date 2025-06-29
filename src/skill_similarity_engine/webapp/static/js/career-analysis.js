@@ -214,17 +214,24 @@ SkillEngine.CareerAnalysis = {
     async handleGenerateClick() {
         console.log('📄 Generate button clicked');
 
+        // Prevent double-clicks and multiple rapid requests
+        if (this.state.isGenerating) {
+            console.log('⚠️ Generation already in progress, ignoring duplicate click');
+            return;
+        }
+
         if (!this.validateForm()) {
             this.showAlert('Please select a source job first.', 'warning');
             return;
         }
 
         try {
+            this.state.isGenerating = true;
             this.setLoadingState(true);
             const formData = this.getFormData();
             formData.output_format = 'word'; // Generate Word document
             
-            const response = await fetch('/api/generate-career-analysis', {
+            const response = await fetch('/api/career-analysis-document', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -232,18 +239,47 @@ SkillEngine.CareerAnalysis = {
                 body: JSON.stringify(formData)
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                this.displayResults(data);
+            if (response.ok) {
+                // Handle direct file download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                // Extract filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'career_analysis.docx';
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+                
+                // Create temporary anchor and trigger download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                console.log('✅ Document downloaded:', filename);
+                this.showAlert('Career Analysis document generated and downloaded successfully!', 'success');
+                
             } else {
-                throw new Error(data.error || 'Career Transition Analysis Generator failed');
+                // Handle error response (still JSON)
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Document generation failed');
             }
 
         } catch (error) {
             console.error('❌ Generation error:', error);
             this.displayError('Failed to Generate Career Report: ' + error.message);
         } finally {
+            this.state.isGenerating = false;
             this.setLoadingState(false);
         }
     },
@@ -1090,34 +1126,66 @@ SkillEngine.CareerAnalysis = {
      * Parse opportunity header string into structured data
      */
     parseOpportunityHeader(headerString) {
-        const lines = headerString.split('\n');
+        console.log('🔍 DEBUG: Parsing opportunity header:', headerString);
+        const lines = headerString.split('\n').filter(line => line.trim()); // Filter out empty lines
         const result = {};
+        
+        console.log('🔍 DEBUG: Header lines:', lines);
         
         // Parse title from first line (remove ## prefix)
         if (lines[0]) {
             result.title = lines[0].replace(/^##\s*/, '').trim();
+            console.log('🔍 DEBUG: Parsed title:', result.title);
         }
         
         // Parse metadata from subsequent lines
-        lines.forEach(line => {
+        lines.forEach((line, index) => {
+            console.log(`🔍 DEBUG: Processing line ${index}:`, line);
+            
             if (line.includes('Target Role:')) {
                 const match = line.match(/Target Role:\s*(.+?)\s*\|/);
-                if (match) result.targetRole = match[1].trim();
+                if (match) {
+                    result.targetRole = match[1].trim();
+                    console.log('🔍 DEBUG: Found targetRole via regex:', result.targetRole);
+                } else {
+                    // Fallback: try to extract from the line directly
+                    const fallbackMatch = line.match(/Target Role:\s*(.+?)(?:\s*$|\s*\n)/);
+                    if (fallbackMatch) {
+                        result.targetRole = fallbackMatch[1].trim();
+                        console.log('🔍 DEBUG: Found targetRole via fallback:', result.targetRole);
+                    }
+                }
             }
             if (line.includes('Similarity Score:')) {
                 const match = line.match(/Similarity Score:\s*([0-9.]+%)/);
-                if (match) result.similarity = match[1];
+                if (match) {
+                    result.similarity = match[1];
+                    console.log('🔍 DEBUG: Found similarity:', result.similarity);
+                }
             }
             if (line.includes('Move Type:')) {
                 const match = line.match(/Move Type:\s*(.+?)(?:\s*$|\s*\n)/);
-                if (match) result.moveType = match[1].trim();
+                if (match) {
+                    result.moveType = match[1].trim();
+                    console.log('🔍 DEBUG: Found moveType:', result.moveType);
+                }
             }
             if (line.includes('Strategic Classification:')) {
                 const match = line.match(/Strategic Classification:\s*(.+?)(?:\s*$|\s*\n)/);
-                if (match) result.classification = match[1].trim();
+                if (match) {
+                    result.classification = match[1].trim();
+                    console.log('🔍 DEBUG: Found classification:', result.classification);
+                }
             }
         });
         
+        // If targetRole is still undefined, set a fallback
+        if (!result.targetRole || result.targetRole === 'undefined') {
+            result.targetRole = 'Target Role';
+            console.log('🔍 DEBUG: Using fallback targetRole');
+        }
+        
+        console.log('🔍 DEBUG: Final parsed result:', result);
         return result;
     },
 
@@ -1173,9 +1241,23 @@ SkillEngine.CareerAnalysis = {
      * Format opportunity overview (typically contains metrics table)
      */
     formatOpportunityOverview(subsection) {
-        if (subsection.content && subsection.content.text) {
-            return this.formatAdvancedTable(subsection.content.text, subsection.content.formatting);
+        console.log('🔍 DEBUG: Formatting opportunity overview:', subsection);
+        
+        // Check for new structured overview table format
+        if (subsection.content_type === 'structured_overview_table' && subsection.content && typeof subsection.content === 'object') {
+            console.log('🔧 DEBUG: Found structured overview table from backend');
+            return this.formatStructuredTable(subsection.content, 'structured_overview_table');
         }
+        // Legacy format handling
+        else if (subsection.content && subsection.content.text) {
+            console.log('🔍 DEBUG: Found content.text, using formatAdvancedTable');
+            return this.formatAdvancedTable(subsection.content.text, subsection.content.formatting);
+        } else if (subsection.content && typeof subsection.content === 'string') {
+            console.log('🔍 DEBUG: Found string content, treating as table');
+            return this.formatAdvancedTable(subsection.content, null);
+        }
+        
+        console.log('🔍 DEBUG: No valid content found for opportunity overview');
         return `<div class="text-gray-700">${subsection.content || 'No overview available'}</div>`;
     },
 
@@ -1199,10 +1281,285 @@ SkillEngine.CareerAnalysis = {
      * Format skills transition analysis (complex table with skills links)
      */
     formatSkillsTransitionAnalysis(subsection) {
-        if (subsection.content && subsection.content.text) {
+        console.log('🔍 DEBUG: Formatting skills transition analysis:', subsection);
+        
+        // Check for new structured skills table format from backend
+        if (subsection.content_type === 'structured_skills_table' && subsection.content && typeof subsection.content === 'object') {
+            console.log('🔧 DEBUG: Found structured skills table from backend');
+            console.log('📊 DEBUG: Structured table data:', subsection.content);
+            return this.formatStructuredSkillsTable(subsection.content);
+        } 
+        // Legacy format handling
+        else if (subsection.content && subsection.content.text) {
+            console.log('🔍 DEBUG: Found content.text, using formatAdvancedSkillsTable');
             return this.formatAdvancedSkillsTable(subsection.content.text, subsection.content.formatting);
+        } else if (subsection.content && typeof subsection.content === 'string') {
+            console.log('🔍 DEBUG: Found string content, treating as skills table');
+            return this.formatAdvancedSkillsTable(subsection.content, null);
         }
+        
+        console.log('🔍 DEBUG: No valid content found for skills transition analysis');
         return `<div class="text-gray-700">${subsection.content || 'No skills analysis available'}</div>`;
+    },
+
+    /**
+     * Format structured skills table from backend (new format)
+     */
+    /**
+     * Universal Structured Table Renderer - handles all structured table types
+     */
+    formatStructuredTable(tableData, tableType = 'default') {
+        console.log(`🔧 DEBUG: formatStructuredTable called with type: ${tableType}`, tableData);
+        
+        if (!tableData || !tableData.headers || !tableData.rows) {
+            console.log('❌ DEBUG: Invalid structured table data');
+            return '<div class="text-gray-700">Invalid table data</div>';
+        }
+        
+        const { headers, rows, metadata } = tableData;
+        console.log(`📊 DEBUG: Rendering ${tableType} table with ${headers.length} headers and ${rows.length} rows`);
+        
+        let html = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+        `;
+        
+        // Add headers
+        headers.forEach(header => {
+            html += `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">${header}</th>`;
+        });
+        
+        html += `
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        // Add data rows with type-specific formatting
+        rows.forEach((row, index) => {
+            html += `<tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
+            html += this.formatTableRowByType(row, headers, tableType);
+            html += `</tr>`;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        // Add type-specific metadata summary
+        html += this.formatTableMetadata(metadata, tableType);
+        
+        return html;
+    },
+
+    /**
+     * Format table row based on table type
+     */
+    formatTableRowByType(row, headers, tableType) {
+        let rowHtml = '';
+        
+        switch(tableType) {
+            case 'structured_skills_table':
+                rowHtml = this.formatSkillsTableRow(row, headers);
+                break;
+            case 'structured_timeline_table':
+                rowHtml = this.formatTimelineTableRow(row, headers);
+                break;
+            case 'structured_overview_table':
+                rowHtml = this.formatOverviewTableRow(row, headers);
+                break;
+            case 'structured_deployment_table':
+                rowHtml = this.formatDeploymentTableRow(row, headers);
+                break;
+            case 'structured_strategic_table':
+                rowHtml = this.formatStrategicTableRow(row, headers);
+                break;
+            default:
+                rowHtml = this.formatGenericTableRow(row, headers);
+                break;
+        }
+        
+        return rowHtml;
+    },
+
+    /**
+     * Format skills table row (existing logic)
+     */
+    formatSkillsTableRow(row, headers) {
+        const rowArray = [
+            row.category || '',
+            row.current_skills || '',
+            row.required_skills || '',
+            row.gap_assessment || ''
+        ];
+        
+        let html = '';
+        rowArray.forEach((cell, cellIndex) => {
+            let cellContent = cell || '';
+            
+            // Process skills columns (current and required skills)
+            if (cellIndex === 1 || cellIndex === 2) {
+                if (cellContent && cellContent.includes('|https://lightcast.io/')) {
+                    cellContent = this.formatSkillsWithLinks(cellContent);
+                } else if (cellContent && cellContent.includes('\n•')) {
+                    cellContent = this.formatBulletList(cellContent);
+                } else if (!cellContent.trim()) {
+                    cellContent = '<span class="text-gray-400 italic">No skills in this category</span>';
+                }
+            }
+            
+            html += `<td class="px-4 py-3 text-sm text-gray-700 border-b align-top">${cellContent}</td>`;
+        });
+        
+        return html;
+    },
+
+    /**
+     * Format timeline table row 
+     */
+    formatTimelineTableRow(row, headers) {
+        return `
+            <td class="px-4 py-3 text-sm font-medium text-gray-900 border-b">${row.phase || ''}</td>
+            <td class="px-4 py-3 text-sm text-gray-700 border-b">${row.timeline || ''}</td>
+            <td class="px-4 py-3 text-sm text-gray-700 border-b">${row.key_activities || ''}</td>
+            <td class="px-4 py-3 text-sm text-gray-700 border-b">${row.success_measures || ''}</td>
+        `;
+    },
+
+    /**
+     * Format overview table row
+     */
+    formatOverviewTableRow(row, headers) {
+        const rowArray = Array.isArray(row) ? row : [
+            row.metric || row[0] || '',
+            row.value || row[1] || '',
+            row.assessment || row[2] || ''
+        ];
+        
+        let html = '';
+        rowArray.forEach((cell, cellIndex) => {
+            const cellClass = cellIndex === 0 ? 'font-medium text-gray-900' : 'text-gray-700';
+            html += `<td class="px-4 py-3 text-sm ${cellClass} border-b">${cell}</td>`;
+        });
+        
+        return html;
+    },
+
+    /**
+     * Format deployment table row
+     */
+    formatDeploymentTableRow(row, headers) {
+        const rowArray = Array.isArray(row) ? row : [
+            row.division || row[0] || '',
+            row.positions || row[1] || '',
+            row.business_unit || row[2] || ''
+        ];
+        
+        let html = '';
+        rowArray.forEach((cell, cellIndex) => {
+            html += `<td class="px-4 py-3 text-sm text-gray-700 border-b">${cell}</td>`;
+        });
+        
+        return html;
+    },
+
+    /**
+     * Format strategic table row
+     */
+    formatStrategicTableRow(row, headers) {
+        const rowArray = Array.isArray(row) ? row : [
+            row.metric || row[0] || '',
+            row.score || row[1] || '',
+            row.assessment || row[2] || '',
+            row.significance || row[3] || ''
+        ];
+        
+        let html = '';
+        rowArray.forEach((cell, cellIndex) => {
+            const cellClass = cellIndex === 0 ? 'font-medium text-gray-900' : 'text-gray-700';
+            html += `<td class="px-4 py-3 text-sm ${cellClass} border-b">${cell}</td>`;
+        });
+        
+        return html;
+    },
+
+    /**
+     * Format generic table row
+     */
+    formatGenericTableRow(row, headers) {
+        const rowArray = Array.isArray(row) ? row : headers.map((_, i) => row[i] || '');
+        
+        let html = '';
+        rowArray.forEach((cell, cellIndex) => {
+            html += `<td class="px-4 py-3 text-sm text-gray-700 border-b">${cell}</td>`;
+        });
+        
+        return html;
+    },
+
+    /**
+     * Format table metadata by type
+     */
+    formatTableMetadata(metadata, tableType) {
+        if (!metadata) return '';
+        
+        switch(tableType) {
+            case 'structured_skills_table':
+                if (metadata.total_categories) {
+                    return `
+                        <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-blue-800">
+                                <strong>Skills Analysis Summary:</strong> 
+                                ${metadata.total_categories} skill categories analyzed, 
+                                ${metadata.categories_with_current_skills || 0} with transferable skills, 
+                                ${metadata.categories_with_new_skills || 0} requiring new skills development.
+                            </p>
+                        </div>
+                    `;
+                }
+                break;
+            case 'structured_timeline_table':
+                return `
+                    <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400">
+                        <p class="text-sm text-blue-700">
+                            <strong>Timeline Summary:</strong> 
+                            ${metadata.total_phases || 'Multiple'} phases over ${metadata.estimated_duration || 'multiple months'}, 
+                            targeting ${metadata.specialized_skills_count || 'N/A'} competencies.
+                        </p>
+                    </div>
+                `;
+            case 'structured_overview_table':
+                return `
+                    <div class="mt-4 p-3 bg-green-50 border-l-4 border-green-400">
+                        <p class="text-sm text-green-700">
+                            <strong>Opportunity Overview:</strong> 
+                            ${metadata.table_style || 'Compact'} format with key transition metrics.
+                        </p>
+                    </div>
+                `;
+            default:
+                return '';
+        }
+        
+        return '';
+    },
+
+    /**
+     * Legacy method - now delegates to universal renderer
+     */
+    formatStructuredSkillsTable(tableData) {
+        return this.formatStructuredTable(tableData, 'structured_skills_table');
+    },
+
+    /**
+     * Legacy method - now delegates to universal renderer
+     */
+    formatStructuredTimelineTable(tableData) {
+        return this.formatStructuredTable(tableData, 'structured_timeline_table');
     },
 
     /**
@@ -1219,7 +1576,14 @@ SkillEngine.CareerAnalysis = {
      * Format implementation roadmap (timeline table)
      */
     formatImplementationRoadmap(subsection) {
-        if (subsection.content && subsection.content.text) {
+        // Check for new structured timeline table format from backend
+        if (subsection.content_type === 'structured_timeline_table' && subsection.content && typeof subsection.content === 'object') {
+            console.log('🔧 DEBUG: Found structured timeline table from backend');
+            console.log('📊 DEBUG: Structured timeline data:', subsection.content);
+            return this.formatStructuredTimelineTable(subsection.content);
+        }
+        // Legacy format handling
+        else if (subsection.content && subsection.content.text) {
             return this.formatTimelineTable(subsection.content.text, subsection.content.formatting);
         }
         return `<div class="text-gray-700">${subsection.content || 'No roadmap available'}</div>`;
@@ -1231,6 +1595,8 @@ SkillEngine.CareerAnalysis = {
     formatAdvancedSkillsTable(content, formatting) {
         if (!content) return '';
         
+        console.log(`🔍 DEBUG: formatAdvancedSkillsTable called with content length: ${content.length}`);
+        
         // Check if we have pre-structured data in formatting
         if (formatting && formatting.headers && formatting.rows) {
             console.log(`🔍 DEBUG: Using pre-structured Skills table data`);
@@ -1240,21 +1606,20 @@ SkillEngine.CareerAnalysis = {
             return this.formatPreStructuredSkillsTable(formatting.headers, formatting.rows);
         }
         
-        // Fallback to parsing raw text content
-        console.log(`🔍 DEBUG: Parsing raw Skills table text`);
+        // Parse the malformed table content from backend
+        console.log(`🔍 DEBUG: Parsing malformed Skills table text`);
         const lines = content.split('\n').filter(line => line.trim());
-        if (lines.length < 2) return content;
+        if (lines.length < 3) return content;
         
-        // Parse headers
+        // Parse headers (first line)
         const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
-        
         console.log(`🔍 DEBUG: Skills table headers (${headers.length}):`, headers);
-        console.log(`🔍 DEBUG: Expected 4 columns: Category | Current Skills | New Skills Required | Gap Assessment`);
         
-        // Skip separator line and parse data rows with skills URL protection
-        const dataRows = lines.slice(2).map(line => 
-            this.parseTableRowWithSkillsLinks(line, headers.length)
-        );
+        // Skip separator line (second line)
+        // Reconstruct proper table rows from malformed data
+        const reconstructedRows = this.reconstructSkillsTableRows(lines.slice(2));
+        
+        console.log(`🔍 DEBUG: Reconstructed ${reconstructedRows.length} table rows`);
         
         let html = `
             <div class="overflow-x-auto">
@@ -1273,19 +1638,12 @@ SkillEngine.CareerAnalysis = {
                     <tbody class="divide-y divide-gray-200">
         `;
         
-        dataRows.forEach((row, index) => {
+        reconstructedRows.forEach((row, index) => {
             html += `<tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
             row.forEach((cell, cellIndex) => {
-                let cellContent = cell;
-                
-                // Handle skills with links (check for skills bullet points with URLs)
-                if (cell.includes('•') && cell.includes('https://lightcast.io/')) {
-                    cellContent = this.formatSkillsWithLinks(cell);
-                } else if (cell.includes('\n•')) {
-                    cellContent = this.formatBulletList(cell);
-                } else {
-                    cellContent = cell;
-                }
+                // The cell content is already formatted HTML from finalizeSkillsRow
+                // Don't double-process it, just insert it directly
+                const cellContent = cell || '';
                 
                 html += `<td class="px-4 py-3 text-sm text-gray-700 border-b align-top">${cellContent}</td>`;
             });
@@ -1328,22 +1686,20 @@ SkillEngine.CareerAnalysis = {
             html += `<tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
             
             row.forEach((cell, cellIndex) => {
-                let cellContent = cell;
+                // If the rows come from finalizeSkillsRow, they're already formatted HTML
+                // If they come from raw data, we need to process them
+                let cellContent = cell || '';
                 
-                // Process skills with links (columns 1 and 2: Current Skills and New Skills Required)
-                if (cellIndex === 1 || cellIndex === 2) {
-                    if (cell && cell.trim() && cell.includes('|https://lightcast.io/')) {
-                        cellContent = this.formatSkillsWithLinks(cell);
-                    } else if (cell && cell.includes('\n•')) {
-                        cellContent = this.formatBulletList(cell);
-                    } else if (!cell || cell.trim() === '') {
+                // Only process if this looks like raw data (not already formatted HTML)
+                if (cellContent && !cellContent.includes('<') && cellIndex >= 1 && cellIndex <= 2) {
+                    // Process skills with links (columns 1 and 2: Current Skills and New Skills Required)
+                    if (cellContent.includes('|https://lightcast.io/')) {
+                        cellContent = this.formatSkillsWithLinks(cellContent);
+                    } else if (cellContent.includes('\n•')) {
+                        cellContent = this.formatBulletList(cellContent);
+                    } else if (!cellContent.trim()) {
                         cellContent = '<span class="text-gray-400 italic">No skills in this category</span>';
-                    } else {
-                        cellContent = cell;
                     }
-                } else {
-                    // Other columns (Category and Gap Assessment)
-                    cellContent = cell || '';
                 }
                 
                 html += `<td class="px-4 py-3 text-sm text-gray-700 border-b align-top">${cellContent}</td>`;
@@ -1359,6 +1715,143 @@ SkillEngine.CareerAnalysis = {
         `;
         
         return html;
+    },
+
+    /**
+     * Reconstruct proper table rows from malformed Skills Transition Analysis data
+     * The backend sends malformed data where each skill is on a separate line
+     * We need to group them back into proper 4-column rows
+     */
+    reconstructSkillsTableRows(dataLines) {
+        console.log(`🔍 DEBUG: reconstructSkillsTableRows called with ${dataLines.length} lines`);
+        
+        const rows = [];
+        let currentRow = null;
+        let isInNewSkillsSection = false;
+        
+        for (let i = 0; i < dataLines.length; i++) {
+            const line = dataLines[i].trim();
+            if (!line) continue;
+            
+            console.log(`🔍 DEBUG: Processing line ${i}: "${line.substring(0, 80)}..."`);
+            
+            // Check if this line starts a new row (has category)
+            // Pattern: "Category | • Skill|URL" or "Category |" (2+ pipes)
+            const pipeCount = line.split('|').length - 1;
+            
+            if (pipeCount >= 2 && !line.startsWith('•')) {
+                // This starts a new row
+                if (currentRow) {
+                    // Finalize previous row
+                    rows.push(this.finalizeSkillsRow(currentRow));
+                }
+                
+                // Start new row
+                const parts = line.split('|');
+                currentRow = {
+                    category: parts[0].trim(),
+                    currentSkills: [],
+                    newSkills: [],
+                    gapAssessment: '',
+                    rawParts: parts
+                };
+                isInNewSkillsSection = false;
+                
+                // Add any skills from this line
+                for (let j = 1; j < parts.length; j++) {
+                    const part = parts[j].trim();
+                    if (part && part.startsWith('•')) {
+                        currentRow.currentSkills.push(part);
+                    } else if (part && !part.startsWith('•') && j === parts.length - 1) {
+                        // Last part might be gap assessment
+                        const gapKeywords = ['ready', 'foundation', 'development', 'strong', 'moderate', 'limited', 'assessment'];
+                        if (gapKeywords.some(keyword => part.toLowerCase().includes(keyword))) {
+                            currentRow.gapAssessment = part;
+                        }
+                    }
+                }
+                
+                console.log(`🔍 DEBUG: Started new row for category: "${currentRow.category}"`);
+            } else if (line.startsWith('•') && currentRow) {
+                // This is a skill line that belongs to current row
+                // Use heuristics to determine if this is a new skill or current skill
+                
+                // Simple heuristic: if we've seen many current skills, start treating as new skills
+                if (currentRow.currentSkills.length > 5 && !isInNewSkillsSection) {
+                    isInNewSkillsSection = true;
+                    console.log(`🔍 DEBUG: Switching to new skills section after ${currentRow.currentSkills.length} current skills`);
+                }
+                
+                if (isInNewSkillsSection) {
+                    currentRow.newSkills.push(line);
+                    console.log(`🔍 DEBUG: Added to new skills: "${line.substring(0, 50)}..."`);
+                } else {
+                    currentRow.currentSkills.push(line);
+                    console.log(`🔍 DEBUG: Added to current skills: "${line.substring(0, 50)}..."`);
+                }
+            } else if (currentRow && !line.startsWith('•')) {
+                // This might be new skills or gap assessment
+                const gapKeywords = ['ready', 'foundation', 'development', 'strong', 'moderate', 'limited', 'assessment'];
+                if (gapKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
+                    currentRow.gapAssessment = line;
+                    console.log(`🔍 DEBUG: Set gap assessment: "${line}"`);
+                } else {
+                    // Treat as new skills text
+                    currentRow.newSkills.push(line);
+                    console.log(`🔍 DEBUG: Added to new skills: "${line.substring(0, 50)}..."`);
+                }
+            }
+        }
+        
+        // Finalize last row
+        if (currentRow) {
+            rows.push(this.finalizeSkillsRow(currentRow));
+        }
+        
+        console.log(`🔍 DEBUG: Reconstructed ${rows.length} rows`);
+        return rows;
+    },
+
+    /**
+     * Finalize a skills row by formatting the content properly
+     */
+    finalizeSkillsRow(rowData) {
+        console.log(`🔍 DEBUG: Finalizing row for category: "${rowData.category}"`);
+        console.log(`🔍 DEBUG: Current skills count: ${rowData.currentSkills.length}`);
+        console.log(`🔍 DEBUG: New skills count: ${rowData.newSkills.length}`);
+        
+        const category = rowData.category || '';
+        
+        // Format current skills with links - keep empty if no current skills
+        const currentSkillsHtml = rowData.currentSkills.length > 0 
+            ? this.formatSkillsWithLinks(rowData.currentSkills.join('\n'))
+            : '';
+        
+        // Format new skills with links - keep empty if no new skills
+        let newSkillsHtml;
+        if (rowData.newSkills.length > 0) {
+            newSkillsHtml = this.formatSkillsWithLinks(rowData.newSkills.join('\n'));
+        } else {
+            // If no new skills, leave empty (don't add fallback text)
+            newSkillsHtml = '';
+        }
+        
+        // Gap assessment based on NEW SKILLS REQUIRED (not current skills)
+        let gapAssessment = rowData.gapAssessment;
+        if (!gapAssessment || gapAssessment === 'Assessment pending') {
+            if (rowData.newSkills.length === 0) {
+                // No new skills needed = strong foundation
+                gapAssessment = '<span class="text-green-600 font-medium">Strong foundation - ready for transition</span>';
+            } else if (rowData.newSkills.length <= 3) {
+                // Few new skills needed = moderate development
+                gapAssessment = '<span class="text-yellow-600 font-medium">Moderate foundation - some development needed</span>';
+            } else {
+                // Many new skills needed = significant development
+                gapAssessment = '<span class="text-red-600 font-medium">Limited foundation - significant development required</span>';
+            }
+        }
+        
+        return [category, currentSkillsHtml, newSkillsHtml, gapAssessment];
     },
 
     /**
@@ -1436,101 +1929,167 @@ SkillEngine.CareerAnalysis = {
      * Expected format: Category | Current Skills | New Skills Required | Gap Assessment
      */
     parseSkillsTransitionRow(protectedLine) {
-        // Look for pattern: starts with category, then has skills sections, ends with gap assessment
-        const parts = protectedLine.split('|');
+        console.log('🔍 DEBUG: parseSkillsTransitionRow input:', protectedLine);
         
-        if (parts.length < 4) {
-            // Not enough parts, return as-is
-            return parts.map(p => p.trim());
+        // For Skills Transition Analysis, we need to be very careful about the pipe splitting
+        // The format is: Category | Current Skills (with bullets and URLs) | New Skills Required | Gap Assessment
+        
+        // Strategy: Find the first pipe (after category), then find the last pipe (before gap assessment)
+        // Everything in between needs to be split into Current Skills and New Skills Required
+        
+        const firstPipeIndex = protectedLine.indexOf('|');
+        if (firstPipeIndex === -1) {
+            return [protectedLine.trim()];
         }
         
-        // Strategy: Category is first, Gap Assessment is last, middle parts are skills
-        const category = parts[0].trim();
-        const gapAssessment = parts[parts.length - 1].trim();
+        const category = protectedLine.substring(0, firstPipeIndex).trim();
+        const remainingContent = protectedLine.substring(firstPipeIndex + 1);
         
-        // The middle parts need to be split into Current Skills and New Skills Required
-        const middleParts = parts.slice(1, -1);
+        // Find the last meaningful pipe (before gap assessment)
+        // Gap assessment typically contains words like "ready", "foundation", "development", etc.
+        const gapAssessmentKeywords = ['ready', 'foundation', 'development', 'strong', 'moderate', 'limited', 'assessment'];
         
-        // Heuristic: If we have exactly 4 parts, it's straightforward
-        if (parts.length === 4) {
-            return [category, middleParts[0].trim(), middleParts[1].trim(), gapAssessment];
+        let lastPipeIndex = -1;
+        let gapAssessment = '';
+        
+        // Work backwards to find the gap assessment
+        const pipes = [];
+        let currentIndex = 0;
+        while ((currentIndex = remainingContent.indexOf('|', currentIndex)) !== -1) {
+            pipes.push(currentIndex);
+            currentIndex++;
         }
         
-        // If we have more than 4 parts, we need to merge middle parts intelligently
-        // Look for empty parts or "New Skills Required" indicators
+        // Try each pipe position from the end to find the gap assessment
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            const potentialGapAssessment = remainingContent.substring(pipes[i] + 1).trim();
+            
+            // Check if this looks like a gap assessment
+            const hasGapKeywords = gapAssessmentKeywords.some(keyword => 
+                potentialGapAssessment.toLowerCase().includes(keyword)
+            );
+            
+            if (hasGapKeywords && potentialGapAssessment.length < 100) { // Gap assessments are usually short
+                lastPipeIndex = pipes[i];
+                gapAssessment = potentialGapAssessment;
+                break;
+            }
+        }
+        
+        if (lastPipeIndex === -1) {
+            // Fallback: assume last pipe is the gap assessment
+            lastPipeIndex = pipes[pipes.length - 1] || remainingContent.length;
+            gapAssessment = remainingContent.substring(lastPipeIndex + 1).trim();
+        }
+        
+        // Extract the skills content (between category and gap assessment)
+        const skillsContent = remainingContent.substring(0, lastPipeIndex).trim();
+        
+        // Now split the skills content into Current Skills and New Skills Required
+        // Look for empty sections or patterns that indicate the split
+        const skillsParts = skillsContent.split('|').map(p => p.trim());
+        
         let currentSkills = '';
         let newSkills = '';
-        let foundNewSkillsSection = false;
         
-        for (let i = 0; i < middleParts.length; i++) {
-            const part = middleParts[i].trim();
-            
-            // Check if this looks like it starts the "New Skills Required" section
-            if (part === '' && !foundNewSkillsSection) {
-                foundNewSkillsSection = true;
-                continue;
-            }
-            
-            if (!foundNewSkillsSection) {
-                currentSkills += (currentSkills ? ' | ' : '') + part;
-            } else {
-                newSkills += (newSkills ? ' | ' : '') + part;
-            }
-        }
+        // Simple heuristic: if we have an even number of parts, split in half
+        // If odd, give more to current skills
+        const midPoint = Math.ceil(skillsParts.length / 2);
         
-        return [category, currentSkills, newSkills, gapAssessment];
+        currentSkills = skillsParts.slice(0, midPoint).join(' | ').trim();
+        newSkills = skillsParts.slice(midPoint).join(' | ').trim();
+        
+        // Clean up empty sections
+        if (currentSkills === '|' || currentSkills === '') currentSkills = '';
+        if (newSkills === '|' || newSkills === '') newSkills = '';
+        
+        const result = [category, currentSkills, newSkills, gapAssessment];
+        console.log('🔍 DEBUG: parseSkillsTransitionRow result:', result);
+        
+        return result;
     },
 
     /**
      * Format skills with clickable links
      */
     formatSkillsWithLinks(content) {
-        if (!content || typeof content !== 'string') return content || '';
+        if (!content) return '';
         
-        // Split by newlines to handle multiple skills
-        const skills = content.split('\n').filter(line => line.trim() && line.includes('•'));
+        // Handle both array-style input and string input
+        let skillsArray = [];
+        if (Array.isArray(content)) {
+            skillsArray = content;
+            console.log(`🔍 DEBUG: formatSkillsWithLinks input: array with ${content.length} items`);
+        } else if (typeof content === 'string') {
+            console.log(`🔍 DEBUG: formatSkillsWithLinks input: string "${content.substring(0, 100)}..."`);
+            // Split by newlines to handle multiple skills
+            skillsArray = content.split('\n').filter(line => line.trim());
+        } else {
+            console.log(`🔍 DEBUG: formatSkillsWithLinks input: unknown type ${typeof content}`);
+            return content || '';
+        }
         
-        if (skills.length === 0) {
-            // If no bullet points found, but still contains lightcast URLs, try to parse as single skill
-            if (content.includes('https://lightcast.io/')) {
-                const match = content.match(/•\s*(.+?)\|https:\/\/lightcast\.io\/open-skills\/skills\/([^|\s]+)/);
-                if (match) {
-                    const skillName = match[1].trim();
-                    const skillId = match[2].trim();
-                    return `<a href="https://lightcast.io/open-skills/skills/${skillId}" 
-                               target="_blank" 
-                               class="text-blue-600 hover:text-blue-800 text-sm hover:underline">
-                                ${skillName}
-                            </a>`;
+        const formattedSkills = [];
+        
+        for (const skill of skillsArray) {
+            const trimmedSkill = skill.trim();
+            if (!trimmedSkill) continue;
+            
+            // Enhanced regex to catch various URL patterns
+            const skillUrlMatch = trimmedSkill.match(/•\s*(.+?)\|https:\/\/lightcast\.io\/open-skills\/skills\/([A-Z0-9]+)/);
+            
+            if (skillUrlMatch) {
+                const skillName = skillUrlMatch[1].trim();
+                const skillId = skillUrlMatch[2].trim();
+                const skillLink = `<a href="https://lightcast.io/open-skills/skills/${skillId}" 
+                                   target="_blank" 
+                                   class="text-blue-600 hover:text-blue-800 text-sm hover:underline"
+                                   title="View skill details on Lightcast.io">
+                                    • ${skillName}
+                                  </a>`;
+                formattedSkills.push(skillLink);
+                console.log(`🔍 DEBUG: Formatted skill with link: "${skillName}" -> ${skillId}`);
+            } else if (trimmedSkill.includes('https://lightcast.io/')) {
+                // Try alternative parsing for malformed URLs
+                const parts = trimmedSkill.split('|');
+                if (parts.length >= 2) {
+                    const skillName = parts[0].trim();
+                    const url = parts[1].trim();
+                    const skillIdMatch = url.match(/skills\/([A-Z0-9]+)/);
+                    if (skillIdMatch) {
+                        const skillId = skillIdMatch[1];
+                        const skillLink = `<a href="https://lightcast.io/open-skills/skills/${skillId}" 
+                                           target="_blank" 
+                                           class="text-blue-600 hover:text-blue-800 text-sm hover:underline"
+                                           title="View skill details on Lightcast.io">
+                                            ${skillName}
+                                          </a>`;
+                        formattedSkills.push(skillLink);
+                        console.log(`🔍 DEBUG: Alternative parsing - skill with link: "${skillName}" -> ${skillId}`);
+                        continue;
+                    }
                 }
+                // Fallback for malformed URL
+                formattedSkills.push(`<span class="text-gray-700">${trimmedSkill}</span>`);
+                console.log(`🔍 DEBUG: Malformed URL skill: "${trimmedSkill.substring(0, 30)}..."`);
+            } else if (trimmedSkill.startsWith('•')) {
+                // Skill without URL, keep as is
+                formattedSkills.push(`<span class="text-gray-700">${trimmedSkill}</span>`);
+                console.log(`🔍 DEBUG: Formatted skill without link: "${trimmedSkill.substring(0, 30)}..."`);
+            } else {
+                // Non-skill content, keep as is
+                formattedSkills.push(`<span class="text-gray-600">${trimmedSkill}</span>`);
             }
+        }
+        
+        if (formattedSkills.length === 0) {
+            console.log(`🔍 DEBUG: No skills found in content`);
             return content;
         }
         
-        let html = '<div class="space-y-1">';
-        skills.forEach(skill => {
-            const match = skill.match(/•\s*(.+?)\|https:\/\/lightcast\.io\/open-skills\/skills\/([^|\s]+)/);
-            if (match) {
-                const skillName = match[1].trim();
-                const skillId = match[2].trim();
-                html += `
-                    <div class="flex items-start">
-                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                        <a href="https://lightcast.io/open-skills/skills/${skillId}" 
-                           target="_blank" 
-                           class="text-blue-600 hover:text-blue-800 text-sm hover:underline">
-                            ${skillName}
-                        </a>
-                    </div>
-                `;
-            } else {
-                // Handle skills without URLs or malformed entries
-                html += `<div class="text-sm text-gray-700">${skill}</div>`;
-            }
-        });
-        html += '</div>';
-        
-        return html;
+        const result = formattedSkills.join('<br>');
+        console.log(`🔍 DEBUG: formatSkillsWithLinks result: ${formattedSkills.length} skills formatted`);
+        return result;
     },
 
     /**
@@ -1686,21 +2245,30 @@ SkillEngine.CareerAnalysis = {
                 return `<p class="leading-relaxed my-3">${this.formatInlineElements(content)}</p>`;
             
             case 'bullet_list':
+                // Check if this is a references section (small italic text)
+                const isReferencesSection = formatting.small_italic_text === true;
+                const listClass = isReferencesSection 
+                    ? 'list-disc list-inside space-y-3 my-6 text-sm italic text-gray-600' 
+                    : 'list-disc list-inside space-y-2 my-4';
+                const itemClass = isReferencesSection 
+                    ? 'leading-relaxed pl-2' 
+                    : 'leading-relaxed';
+                
                 if (Array.isArray(content)) {
-                    let html = '<ul class="list-disc list-inside space-y-2 my-4">';
+                    let html = `<ul class="${listClass}">`;
                     content.forEach(item => {
-                        html += `<li class="leading-relaxed">${this.formatInlineElements(String(item))}</li>`;
+                        html += `<li class="${itemClass}">${this.formatInlineElements(String(item))}</li>`;
                     });
                     html += '</ul>';
                     return html;
                 } else {
                     // Handle string content with bullet points
                     const lines = content.split('\n').filter(line => line.trim());
-                    let html = '<ul class="list-disc list-inside space-y-2 my-4">';
+                    let html = `<ul class="${listClass}">`;
                     lines.forEach(line => {
                         const cleanLine = line.replace(/^[-•*]\s*/, '').trim();
                         if (cleanLine) {
-                            html += `<li class="leading-relaxed">${this.formatInlineElements(cleanLine)}</li>`;
+                            html += `<li class="${itemClass}">${this.formatInlineElements(cleanLine)}</li>`;
                         }
                     });
                     html += '</ul>';
@@ -1728,60 +2296,264 @@ SkillEngine.CareerAnalysis = {
     formatMixedContent(content, boldLabels = [], boldNumberedHeaders = false) {
         if (!content) return '<p class="text-gray-500">No content available</p>';
         
+        // Check for markdown-style bold headers (e.g., **Header:** content)
+        if (content.includes('**') && content.includes(':**')) {
+            return this.formatMarkdownBoldContent(content, boldNumberedHeaders);
+        }
+        
         // Split content into sections (by double newlines)
         const sections = content.split('\n\n').filter(section => section.trim());
         
         if (boldNumberedHeaders) {
             // Handle numbered recommendations format
-            let html = '<ol class="space-y-6 my-4">';
+            let html = '<div class="space-y-6 my-4">';
             
-            sections.forEach(section => {
-                const lines = section.split('\n').filter(line => line.trim());
-                if (lines.length === 0) return;
-                
-                // First line should be the numbered header
-                const headerLine = lines[0];
-                const bulletLines = lines.slice(1);
-                
-                // Extract number and title from header (e.g., "1. HR Business Partner - Team Member - Group 2 - 52.0% similarity")
-                const numberMatch = headerLine.match(/^(\d+)\.\s*(.+)/);
-                if (numberMatch) {
-                    const [, number, title] = numberMatch;
-                    
-                    html += `
-                        <li class="ml-0">
-                            <div class="font-semibold text-gray-800 mb-2">${title}</div>
-                            <ul class="list-none space-y-1 ml-4">
-                    `;
-                    
-                    // Format the sub-bullets with bold labels
-                    bulletLines.forEach(line => {
-                        const trimmedLine = line.replace(/^-\s*/, '').trim();
-                        if (trimmedLine) {
-                            html += `<li class="text-gray-700 leading-relaxed">• ${this.formatBoldLabels(trimmedLine, boldLabels)}</li>`;
-                        }
-                    });
-                    
-                    html += `
-                            </ul>
-                        </li>
-                    `;
+            sections.forEach((section, index) => {
+                // Check if this section has markdown-style bold headers
+                if (section.includes('**') && section.includes(':**')) {
+                    html += this.formatMarkdownBoldSection(section, index + 1);
                 } else {
-                    // Fallback if numbering doesn't match expected format
-                    html += `<li class="ml-0">${this.formatInlineElements(section)}</li>`;
+                    // Handle regular numbered sections
+                    const lines = section.split('\n').filter(line => line.trim());
+                    if (lines.length === 0) return;
+                    
+                    // First line should be the numbered header
+                    const headerLine = lines[0];
+                    const bulletLines = lines.slice(1);
+                    
+                    // Extract number and title from header (e.g., "1. HR Business Partner - Team Member - Group 2 - 52.0% similarity")
+                    const numberMatch = headerLine.match(/^(\d+)\.\s*(.+)/);
+                    if (numberMatch) {
+                        const [, number, title] = numberMatch;
+                        
+                        html += `
+                            <div class="mb-6">
+                                <div class="font-semibold text-gray-800 mb-2">${number}. ${title}</div>
+                                <ul class="list-none space-y-1 ml-4">
+                        `;
+                        
+                        // Format the sub-bullets with bold labels
+                        bulletLines.forEach(line => {
+                            const trimmedLine = line.replace(/^-\s*/, '').trim();
+                            if (trimmedLine) {
+                                html += `<li class="text-gray-700 leading-relaxed">• ${this.formatBoldLabels(trimmedLine, boldLabels)}</li>`;
+                            }
+                        });
+                        
+                        html += `
+                                </ul>
+                            </div>
+                        `;
+                    } else {
+                        // Fallback if numbering doesn't match expected format
+                        html += `<div class="mb-4">${this.formatInlineElements(section)}</div>`;
+                    }
                 }
             });
             
-            html += '</ol>';
+            html += '</div>';
             return html;
         } else {
             // Handle regular mixed content
             let html = '';
             sections.forEach(section => {
-                html += `<div class="mb-4">${this.formatBoldLabels(section, boldLabels)}</div>`;
+                // Check if this section contains bullet points
+                const lines = section.split('\n').filter(line => line.trim());
+                const hasBulletPoints = lines.some(line => 
+                    line.trim().match(/^[-•*]\s+/) || 
+                    line.includes(': - ') || 
+                    line.includes('- ') && lines.length > 1
+                );
+                
+                if (hasBulletPoints) {
+                    // Format as bullet list
+                    html += this.formatSectionWithBullets(section, boldLabels);
+                } else {
+                    // Check if this section has structured content (headers followed by content)
+                    const hasStructuredHeaders = section.match(/^[A-Z][^.]*\([^)]*\)/m) || 
+                                               section.match(/^[A-Z][^.]*Strategy/m) ||
+                                               section.match(/^[A-Z][^.]*Actions/m);
+                    
+                    if (hasStructuredHeaders) {
+                        html += this.formatStructuredSection(section, boldLabels);
+                    } else {
+                        // Format as regular paragraph
+                        html += `<div class="mb-4">${this.formatInlineElements(this.formatBoldLabels(section, boldLabels))}</div>`;
+                    }
+                }
             });
             return html;
         }
+    },
+
+    /**
+     * Format a section that contains bullet points
+     */
+    formatSectionWithBullets(section, boldLabels = []) {
+        const lines = section.split('\n').filter(line => line.trim());
+        let html = '';
+        let currentBulletList = [];
+        let currentParagraph = '';
+        
+        lines.forEach(line => {
+            const trimmedLine = line.trim();
+            
+            // Check if this line contains a bullet point pattern
+            if (trimmedLine.match(/^[-•*]\s+/) || trimmedLine.includes(': - ')) {
+                // If we have a current paragraph, add it first
+                if (currentParagraph) {
+                    html += `<div class="mb-3">${this.formatBoldLabels(currentParagraph, boldLabels)}</div>`;
+                    currentParagraph = '';
+                }
+                
+                // If we have accumulated bullets, render them
+                if (currentBulletList.length > 0) {
+                    html += '<ul class="list-disc list-inside space-y-2 my-4 ml-4">';
+                    currentBulletList.forEach(bullet => {
+                        html += `<li class="leading-relaxed text-gray-700">${this.formatBoldLabels(bullet, boldLabels)}</li>`;
+                    });
+                    html += '</ul>';
+                    currentBulletList = [];
+                }
+                
+                // Extract the bullet content
+                let bulletContent = '';
+                if (trimmedLine.includes(': - ')) {
+                    // Handle "Label: - content" format
+                    const parts = trimmedLine.split(': - ');
+                    if (parts.length >= 2) {
+                        const label = parts[0];
+                        const content = parts.slice(1).join(': - ');
+                        bulletContent = `<strong class="font-semibold text-gray-900">${label}:</strong> ${content}`;
+                    }
+                } else {
+                    // Handle standard "- content" format
+                    bulletContent = trimmedLine.replace(/^[-•*]\s+/, '');
+                }
+                
+                currentBulletList.push(bulletContent);
+            } else {
+                // This is a regular line
+                if (currentBulletList.length > 0) {
+                    // We're in the middle of bullet points, add to the last bullet
+                    if (currentBulletList.length > 0) {
+                        currentBulletList[currentBulletList.length - 1] += ' ' + trimmedLine;
+                    }
+                } else {
+                    // Add to current paragraph
+                    currentParagraph += (currentParagraph ? ' ' : '') + trimmedLine;
+                }
+            }
+        });
+        
+        // Handle any remaining content
+        if (currentParagraph) {
+            html += `<div class="mb-3">${this.formatBoldLabels(currentParagraph, boldLabels)}</div>`;
+        }
+        
+        if (currentBulletList.length > 0) {
+            html += '<ul class="list-disc list-inside space-y-2 my-4 ml-4">';
+            currentBulletList.forEach(bullet => {
+                html += `<li class="leading-relaxed text-gray-700">${this.formatBoldLabels(bullet, boldLabels)}</li>`;
+            });
+            html += '</ul>';
+        }
+        
+        return html || `<div class="mb-4">${this.formatBoldLabels(section, boldLabels)}</div>`;
+    },
+
+    /**
+     * Format structured sections with headers and content
+     */
+    formatStructuredSection(section, boldLabels = []) {
+        const lines = section.split('\n').filter(line => line.trim());
+        let html = '';
+        let currentHeader = '';
+        let currentContent = '';
+        
+        lines.forEach((line, index) => {
+            const trimmedLine = line.trim();
+            
+            // Check if this line looks like a header
+            const isHeader = 
+                trimmedLine.match(/^[A-Z][^.]*\([^)]*\)/) || // "Title (timeframe)"
+                trimmedLine.match(/^[A-Z][^.]*Strategy/) ||   // "Something Strategy"
+                trimmedLine.match(/^[A-Z][^.]*Actions/) ||    // "Something Actions"
+                trimmedLine.match(/^[A-Z][^.]*Implementation/) || // "Something Implementation"
+                (index === 0 && trimmedLine.length > 10 && !trimmedLine.includes('**')); // First long line without markdown
+            
+            if (isHeader) {
+                // Save previous section if it exists
+                if (currentHeader && currentContent) {
+                    html += this.formatHeaderContentPair(currentHeader, currentContent, boldLabels);
+                }
+                
+                // Start new section
+                currentHeader = trimmedLine;
+                currentContent = '';
+            } else {
+                // Add to current content
+                currentContent += (currentContent ? ' ' : '') + trimmedLine;
+            }
+            
+            // Handle last section
+            if (index === lines.length - 1 && currentHeader && currentContent) {
+                html += this.formatHeaderContentPair(currentHeader, currentContent, boldLabels);
+            }
+        });
+        
+        // If no headers were found, treat as regular content
+        if (!html) {
+            html = `<div class="mb-4">${this.formatInlineElements(this.formatBoldLabels(section, boldLabels))}</div>`;
+        }
+        
+        return html;
+    },
+
+    /**
+     * Format a header-content pair
+     */
+    formatHeaderContentPair(header, content, boldLabels = []) {
+        let html = `
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-3">${this.formatInlineElements(header)}</h4>
+                <div class="text-gray-700">
+        `;
+        
+        // Check if content has markdown bold patterns that should be treated as sub-headers
+        if (content.includes('**') && content.includes(':**')) {
+            // Split by bold patterns and process each part
+            const parts = content.split(/(\*\*[^*]+\*\*:)/);
+            let isExpectingContent = false;
+            
+            parts.forEach((part, index) => {
+                const trimmedPart = part.trim();
+                
+                if (part.match(/^\*\*[^*]+\*\*:$/)) {
+                    // This is a sub-header like **Transition Readiness Assessment:**
+                    const subHeader = part.replace(/\*\*/g, '').replace(/:$/, '');
+                    html += `<h5 class="font-semibold text-gray-800 mb-2 mt-4">${subHeader}:</h5>`;
+                    isExpectingContent = true;
+                } else if (trimmedPart && isExpectingContent) {
+                    // This is content following a sub-header
+                    html += `<p class="text-gray-700 leading-relaxed mb-4">${this.formatInlineElements(this.formatBoldLabels(trimmedPart, boldLabels))}</p>`;
+                    isExpectingContent = false;
+                } else if (trimmedPart && !part.match(/^\*\*[^*]+\*\*:$/)) {
+                    // This is regular content without a preceding sub-header
+                    html += `<p class="mb-3 leading-relaxed">${this.formatInlineElements(this.formatBoldLabels(trimmedPart, boldLabels))}</p>`;
+                }
+            });
+        } else {
+            // Regular content without sub-headers
+            html += `<p class="leading-relaxed">${this.formatInlineElements(this.formatBoldLabels(content, boldLabels))}</p>`;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+        
+        return html;
     },
 
     /**
@@ -1797,6 +2569,44 @@ SkillEngine.CareerAnalysis = {
         });
         
         return this.formatInlineElements(formattedText);
+    },
+
+    formatMarkdownBoldContent(content, isNumbered = false) {
+        // Split by bold headers pattern **Header:** to create sections
+        const sections = content.split(/(?=\*\*[^*]+:\*\*)/g).filter(section => section.trim());
+        
+        let html = '<div class="space-y-4">';
+        
+        sections.forEach((section, index) => {
+            html += this.formatMarkdownBoldSection(section, isNumbered ? index + 1 : null);
+        });
+        
+        html += '</div>';
+        return html;
+    },
+
+    formatMarkdownBoldSection(section, sectionNumber = null) {
+        // Extract bold header and content
+        const headerMatch = section.match(/^\*\*([^*]+):\*\*\s*([\s\S]*)/);
+        
+        if (headerMatch) {
+            const [, header, content] = headerMatch;
+            const cleanContent = content.trim();
+            
+            return `
+                <div class="mb-4">
+                    <div class="font-semibold text-gray-800 mb-2">
+                        ${sectionNumber ? `${sectionNumber}. ` : ''}${header}:
+                    </div>
+                    <div class="ml-4 text-gray-700 leading-relaxed">
+                        ${this.formatInlineElements(cleanContent)}
+                    </div>
+                </div>
+            `;
+        } else {
+            // Fallback for sections without proper markdown headers
+            return `<div class="mb-4 text-gray-700">${this.formatInlineElements(section)}</div>`;
+        }
     },
 
     /**
@@ -1819,8 +2629,8 @@ SkillEngine.CareerAnalysis = {
         if (referencesContent) {
             html += `
                 <div class="mt-8 pt-6 border-t border-gray-200">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">References & Supporting Research</h4>
-                    <div class="text-sm text-gray-600 italic space-y-3">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-6">References & Supporting Research</h4>
+                    <div class="space-y-4">
             `;
             
             // Parse references - look for patterns like "Author (Year)." or similar
@@ -1828,9 +2638,9 @@ SkillEngine.CareerAnalysis = {
             
             references.forEach((reference, index) => {
                 html += `
-                    <div class="flex">
-                        <span class="font-normal text-gray-700 mr-2">${index + 1}.</span>
-                        <span class="italic leading-relaxed">${reference.trim()}</span>
+                    <div class="flex items-start">
+                        <span class="font-medium text-gray-700 mr-3 mt-0.5 flex-shrink-0">${index + 1}.</span>
+                        <span class="text-sm text-gray-600 italic leading-relaxed">${this.formatInlineElements(reference.trim())}</span>
                     </div>
                 `;
             });
@@ -1848,66 +2658,96 @@ SkillEngine.CareerAnalysis = {
      * Parse references text into individual reference entries
      */
     parseReferences(referencesText) {
-        // Common patterns for reference separation:
-        // 1. Author (Year). Title. Publisher.
-        // 2. Number. Author (Year).
-        // 3. Look for sentences ending with periods followed by capital letters
-        
         const references = [];
         
-        // Split by numbered patterns first (1., 2., etc.)
-        const numberedMatches = referencesText.match(/\d+\.\s*[^.]+\./g);
-        if (numberedMatches && numberedMatches.length > 1) {
-            return numberedMatches.map(ref => ref.replace(/^\d+\.\s*/, '').trim());
+        // First, try to split by numbered patterns (1., 2., 3., etc.)
+        // This handles cases where references are already numbered
+        const numberedPattern = /(\d+)\.\s*([^0-9]+?)(?=\d+\.\s*|$)/g;
+        let numberedMatches = [...referencesText.matchAll(numberedPattern)];
+        
+        if (numberedMatches.length > 1) {
+            return numberedMatches.map(match => match[2].trim().replace(/\.$/, '') + '.');
         }
         
-        // Split by author-year patterns: Author, Name (Year).
-        const authorYearPattern = /([^.]+\([12]\d{3}\)[^.]*\.)/g;
-        const authorYearMatches = referencesText.match(authorYearPattern);
-        if (authorYearMatches && authorYearMatches.length > 1) {
-            return authorYearMatches.map(ref => ref.trim());
+        // Try to split by author-year pattern: "Author (Year). Title"
+        // Look for patterns like "Bersin, J. (2022). The ROI of Internal Talent Development."
+        const authorYearSplitPattern = /(?<=\.)\s+(?=[A-Z][a-z]+[^.]*\([12]\d{3}\))/;
+        const authorYearSplit = referencesText.split(authorYearSplitPattern);
+        
+        if (authorYearSplit.length > 1) {
+            return authorYearSplit
+                .map(ref => ref.trim())
+                .filter(ref => ref.length > 10)
+                .map(ref => ref.endsWith('.') ? ref : ref + '.');
         }
         
-        // Fallback: Split by sentence boundaries and group logically
-        const sentences = referencesText.split(/\.\s+(?=[A-Z])/);
+        // Try to split by sentence boundaries followed by capital letters
+        // This handles cases where each reference is a complete sentence
+        const sentenceSplitPattern = /(?<=\.)\s+(?=[A-Z])/;
+        const sentences = referencesText.split(sentenceSplitPattern);
         
-        // Group sentences that look like they belong together
-        let currentRef = '';
-        
-        sentences.forEach((sentence, index) => {
-            sentence = sentence.trim();
-            if (!sentence) return;
+        if (sentences.length > 1) {
+            // Group sentences that belong together (same author/topic)
+            let currentRef = '';
             
-            // Add the period back if it was removed by split
-            if (!sentence.endsWith('.')) {
-                sentence += '.';
+            sentences.forEach((sentence, index) => {
+                sentence = sentence.trim();
+                if (!sentence) return;
+                
+                // Ensure sentence ends with period
+                if (!sentence.endsWith('.')) {
+                    sentence += '.';
+                }
+                
+                // Check if this looks like the start of a new reference
+                const looksLikeNewRef = 
+                    sentence.match(/^[A-Z][a-z]+[^.]*\([12]\d{3}\)/) || // Author (Year)
+                    sentence.match(/^(Lightcast|McKinsey|LinkedIn|Gallup|Additional)/) || // Known sources
+                    sentence.match(/^[A-Z][a-z]+\s+[A-Z]/) || // "Author Name"
+                    index === 0; // First sentence
+                
+                if (looksLikeNewRef && currentRef) {
+                    // Save the previous reference and start a new one
+                    references.push(currentRef.trim());
+                    currentRef = sentence;
+                } else {
+                    // Continue building the current reference
+                    currentRef += (currentRef ? ' ' : '') + sentence;
+                }
+                
+                // If this is the last sentence, save current reference
+                if (index === sentences.length - 1 && currentRef) {
+                    references.push(currentRef.trim());
+                }
+            });
+            
+            if (references.length > 1) {
+                return references;
             }
-            
-            // Check if this starts a new reference (contains author-year pattern)
-            const hasAuthorYear = /[A-Z][a-z]+.*\([12]\d{3}\)/.test(sentence);
-            
-            if (hasAuthorYear && currentRef) {
-                // Save previous reference and start new one
-                references.push(currentRef.trim());
-                currentRef = sentence;
-            } else {
-                // Continue building current reference
-                currentRef += (currentRef ? ' ' : '') + sentence;
-            }
-            
-            // If this is the last sentence, save the current reference
-            if (index === sentences.length - 1 && currentRef) {
-                references.push(currentRef.trim());
-            }
-        });
-        
-        // If no pattern matching worked, split by likely separators
-        if (references.length === 0) {
-            const fallbackRefs = referencesText.split(/(?<=\.)\s+(?=[A-Z][a-z]+.*\([12]\d{3}\)|Additional|HSBC|Amazon|ING|Unilever)/);
-            return fallbackRefs.filter(ref => ref.trim().length > 10);
         }
         
-        return references.length > 0 ? references : [referencesText];
+        // Fallback: Try to split by known research organization names
+        const orgSplitPattern = /(?<=\.)\s+(?=(Lightcast|McKinsey|LinkedIn|Gallup|Bersin|Additional|HSBC|Amazon|ING|Unilever))/;
+        const orgSplit = referencesText.split(orgSplitPattern);
+        
+        if (orgSplit.length > 1) {
+            return orgSplit
+                .map(ref => ref.trim())
+                .filter(ref => ref.length > 10)
+                .map(ref => ref.endsWith('.') ? ref : ref + '.');
+        }
+        
+        // Final fallback: Split by double spaces or line breaks
+        const basicSplit = referencesText.split(/\s{2,}|\n+/);
+        if (basicSplit.length > 1) {
+            return basicSplit
+                .map(ref => ref.trim())
+                .filter(ref => ref.length > 10)
+                .map(ref => ref.endsWith('.') ? ref : ref + '.');
+        }
+        
+        // If all else fails, return the entire text as one reference
+        return [referencesText.trim()];
     },
 
     /**
@@ -3014,9 +3854,17 @@ SkillEngine.CareerAnalysis = {
     },
 
     /**
-     * Format inline elements (bold, emphasis, etc.)
+     * Format inline elements (bold, emphasis, markdown, etc.)
      */
     formatInlineElements(text) {
+        if (!text) return '';
+        
+        // Handle markdown bold formatting (**text**)
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
+        
+        // Handle markdown italic formatting (*text*)
+        text = text.replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>');
+        
         // Handle percentages
         text = text.replace(/(\d+\.?\d*)%/g, '<span class="font-semibold text-blue-600">$1%</span>');
         
@@ -3025,6 +3873,10 @@ SkillEngine.CareerAnalysis = {
         
         // Handle costs/savings
         text = text.replace(/\$(\d+[KM]?\+?)/g, '<span class="font-semibold text-green-600">$$$1</span>');
+        text = text.replace(/£(\d+[KM]?\+?)/g, '<span class="font-semibold text-green-600">£$1</span>');
+        
+        // Handle time periods (months, weeks, days)
+        text = text.replace(/(\d+\+?)\s*(months?|weeks?|days?)/gi, '<span class="font-medium text-orange-600">$1 $2</span>');
         
         return text;
     },
@@ -3214,9 +4066,30 @@ SkillEngine.CareerAnalysis = {
 
     // Method to handle document download
     downloadDocument(filename) {
-        // This would typically trigger a download from the server
         console.log('📥 Downloading document:', filename);
-        this.showAlert('Document download functionality will be implemented with actual file generation.', 'info');
+        
+        try {
+            // Create download URL - the document should be available at this path
+            const downloadUrl = `/api/download/${filename}`;
+            
+            // Create a temporary anchor element and trigger download
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            
+            // Append to body, click, and remove
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            console.log('✅ Download initiated for:', filename);
+            this.showAlert('Document download started. Check your downloads folder.', 'success');
+            
+        } catch (error) {
+            console.error('❌ Download error:', error);
+            this.showAlert('Failed to download document: ' + error.message, 'danger');
+        }
     },
 
     // Reset form to initial state
@@ -3362,12 +4235,16 @@ SkillEngine.CareerAnalysis = {
                 this.selectedJobs.push({ id: jobId, name: displayName });
                 this.updateUI();
                 SkillEngine.CareerAnalysis.validateForm();
+                
+                console.log('🔍 Target job added via CareerAnalysis module:', jobId, displayName);
             },
             
             removeJob(jobId) {
                 this.selectedJobs = this.selectedJobs.filter(job => job.id !== jobId);
                 this.updateUI();
                 SkillEngine.CareerAnalysis.validateForm();
+                
+                console.log('🔍 Target job removed via CareerAnalysis module:', jobId);
             },
             
             updateUI() {
@@ -3377,12 +4254,12 @@ SkillEngine.CareerAnalysis = {
                 
                 if (chipsContainer) {
                     chipsContainer.innerHTML = this.selectedJobs.map(job => `
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                            ${job.name}
-                            <button type="button" class="ml-2 text-blue-600 hover:text-blue-800" onclick="SkillEngine.CareerAnalysis.targetJobSelector.removeJob('${job.id}')">
-                                <i class="fas fa-times"></i>
+                        <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <span class="mr-2">${job.name}</span>
+                            <button type="button" class="inline-flex items-center justify-center w-4 h-4 ml-1 text-red-600 hover:text-red-800 hover:bg-red-200 rounded-full" onclick="SkillEngine.CareerAnalysis.targetJobSelector.removeJob('${job.id}')">
+                                <i class="fas fa-times text-xs"></i>
                             </button>
-                        </span>
+                        </div>
                     `).join('');
                 }
                 
@@ -3392,6 +4269,25 @@ SkillEngine.CareerAnalysis = {
                 
                 if (searchInput) {
                     searchInput.value = '';
+                }
+                
+                // Update help text based on number of selections
+                this.updateHelpText();
+            },
+            
+            updateHelpText() {
+                const helpText = this.selectedJobs.length === 0 ? 
+                    'Search and select target jobs (supports multiple selection)' :
+                    this.selectedJobs.length === 1 ? 
+                        'Single job selected - detailed analysis will be generated' :
+                        `${this.selectedJobs.length} jobs selected - comparative analysis will be generated`;
+                
+                const helpElement = document.querySelector('#selectedTargets + .text-xs');
+                if (helpElement) {
+                    helpElement.innerHTML = `
+                        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                        ${helpText}
+                    `;
                 }
             },
 

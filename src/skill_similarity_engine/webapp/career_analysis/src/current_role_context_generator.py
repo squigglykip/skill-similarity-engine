@@ -49,8 +49,19 @@ class CurrentRoleContextGenerator:
         
         # Initialize display manager for job name formatting
         if JobDisplayManager:
-            self.display_manager = JobDisplayManager(db_connection)
+            try:
+                # Ensure we have a proper database connection
+                if hasattr(db_connection, 'execute'):
+                    self.display_manager = JobDisplayManager(db_connection)
+                    logger.debug(f"JobDisplayManager initialized successfully with {type(db_connection)}")
+                else:
+                    logger.warning(f"Invalid database connection type for JobDisplayManager: {type(db_connection)}")
+                    self.display_manager = None
+            except Exception as e:
+                logger.error(f"Failed to initialize JobDisplayManager: {e}")
+                self.display_manager = None
         else:
+            logger.debug("JobDisplayManager not available")
             self.display_manager = None
         
         # Initialize advanced SQL integration if available
@@ -87,11 +98,28 @@ class CurrentRoleContextGenerator:
             job_from, db_values, skills_analysis, strategic_metrics, include_organisational_deployment
         )
         
+        # Add source job ID for template
+        template_variables['source_job_id'] = job_from
+        
         # Step 5: Generate content sections
         content = self._generate_content_sections(template_variables)
         
+        # Generate section title using template variables
+        from jinja2 import Template
+        section_title_template = self.template_data.get('current_role_context', {}).get('section_title', 'Current Role Context')
+        
+        try:
+            if '{{' in section_title_template:
+                title_template = Template(section_title_template)
+                section_title = title_template.render(**template_variables)
+            else:
+                section_title = section_title_template
+        except Exception as e:
+            print(f"⚠️ Error rendering section title: {e}")
+            section_title = f"Current Role Context: {template_variables.get('source_job_logical_display_name', 'Unknown Role')}"
+        
         return {
-            'section_title': 'Current Role Context',
+            'section_title': section_title,
             'content': content,
             'references': self._generate_references(job_from),
             'template_variables': template_variables  # For debugging
@@ -105,8 +133,17 @@ class CurrentRoleContextGenerator:
         try:
             # Get source job details with logical role display
             if self.display_manager and DisplayFormat:
-                values['source_job_logical_display_name'] = self.display_manager.get_display_name(job_from, DisplayFormat.LOGICAL)
+                logger.debug(f"Using JobDisplayManager for job: {job_from}")
+                logger.debug(f"Database connection type: {type(self.db)}")
+                try:
+                    values['source_job_logical_display_name'] = self.display_manager.get_display_name(job_from, DisplayFormat.LOGICAL)
+                    logger.debug(f"Successfully got logical display name: {values['source_job_logical_display_name']}")
+                except Exception as display_error:
+                    logger.error(f"JobDisplayManager error: {display_error}")
+                    # Fallback to manual job name retrieval
+                    values['source_job_logical_display_name'] = self._get_job_title_fallback(job_from)
             else:
+                logger.debug("JobDisplayManager not available, using fallback")
                 values['source_job_logical_display_name'] = self._get_job_title_fallback(job_from)
             
             # Get basic job information
@@ -129,7 +166,7 @@ class CurrentRoleContextGenerator:
                 values['include_organisational_deployment'] = False
             
         except Exception as e:
-            print(f"⚠️ Error getting database values: {e}")
+            logger.error(f"Error getting database values: {e}")
             import traceback
             traceback.print_exc()
             values = self._get_fallback_values(job_from)
@@ -781,6 +818,9 @@ class CurrentRoleContextGenerator:
         content = {}
         
         try:
+            # Role Identification - New intro section
+            content['role_identification'] = self._generate_role_identification(template_sections.get('role_identification', {}), variables)
+            
             # Profile Overview - Structured bullet list
             content['profile_overview'] = self._generate_profile_overview(template_sections.get('profile_overview', {}), variables)
             
@@ -800,6 +840,34 @@ class CurrentRoleContextGenerator:
             content = {'error': f'Content generation failed: {e}'}
         
         return content
+    
+    def _generate_role_identification(self, role_config: Dict, variables: Dict) -> Dict:
+        """Generate role identification section content."""
+        from jinja2 import Template
+        
+        title = role_config.get('title', 'Role Analysis Overview')
+        content_template = role_config.get('content', '')
+        
+        try:
+            if content_template:
+                template = Template(content_template)
+                content = template.render(**variables)
+            else:
+                # Fallback content
+                role_name = variables.get('source_job_logical_display_name', 'Unknown Role')
+                job_id = variables.get('source_job_id', 'Unknown ID')
+                content = f"This analysis focuses on **{role_name}** (Job ID: {job_id}) within NAB's organisational structure. The following assessment provides comprehensive context for strategic career planning and transition analysis."
+            
+            return {
+                'title': title,
+                'content': content
+            }
+        except Exception as e:
+            print(f"⚠️ Error generating role identification: {e}")
+            return {
+                'title': title,
+                'content': f"Role identification content generation failed: {e}"
+            }
     
     def _generate_profile_overview(self, profile_config: Dict, variables: Dict) -> Dict:
         """Generate structured profile overview content with table for organisational deployment."""
@@ -833,8 +901,8 @@ class CurrentRoleContextGenerator:
                         division.get('business_unit', 'Unknown')
                     ])
                 
-                # Create table content
-                table_content = ContentFormatter.create_table(headers, rows)
+                # Create table content with format awareness
+                table_content = ContentFormatter.create_table(headers, rows, 'compact', variables.get('output_format', 'document'))
                 
                 # Combine intro and table
                 return {

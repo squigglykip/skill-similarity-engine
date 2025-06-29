@@ -3,20 +3,44 @@ Document formatting (Word, PDF, PowerPoint) for Career Transition Analysis Gener
 Uses pre-styled NAB Word templates for professional output.
 """
 
-from typing import Dict, Any, List, cast, Union, Optional
+from docx import Document
+from docx.shared import RGBColor, Pt, Inches
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from typing import Dict, Any, List, Union, Optional
 from pathlib import Path
-import io
 import logging
+import io
+import os
 import re
 
-try:
-    from docx import Document
-    from docx.shared import Inches, Pt, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
-    DOCX_AVAILABLE = True
-except ImportError:
-    DOCX_AVAILABLE = False
+# Set DOCX availability constant
+DOCX_AVAILABLE = True
 
+# Import NAB styling configuration
+try:
+    # Try absolute import first (works in Flask context)
+    from skill_similarity_engine.webapp.career_analysis.config import DocumentStyles, NABColors, FontSettings, SpacingSettings
+    STYLING_AVAILABLE = True
+except ImportError:
+    try:
+        # Fallback to relative import
+        from .config import DocumentStyles, NABColors, FontSettings, SpacingSettings
+        STYLING_AVAILABLE = True
+    except ImportError:
+        try:
+            # Third fallback for standalone test context
+            from config import DocumentStyles, NABColors, FontSettings, SpacingSettings
+            STYLING_AVAILABLE = True
+        except ImportError:
+            # Final fallback if config module is not available
+            DocumentStyles = None
+            NABColors = None
+            FontSettings = None
+            SpacingSettings = None
+            STYLING_AVAILABLE = False
+    
 logger = logging.getLogger(__name__)
 
 class ContentFormatter:
@@ -80,26 +104,37 @@ class ContentFormatter:
         )
     
     @staticmethod
-    def create_table(headers: List[str], rows: List[List[str]], table_style: str = 'simple') -> Dict[str, Any]:
-        """Create a table with headers and rows for Word document formatting."""
-        # Convert table data to text format for now
-        # Headers
-        table_text = " | ".join(headers) + "\n"
-        table_text += "|".join(["-" * len(header) for header in headers]) + "\n"
+    def create_table(headers: List[str], rows: List[List[str]], table_style: str = 'simple', output_format: str = 'document') -> Dict[str, Any]:
+        """Create table with dual output: structured for web, formatted for documents."""
         
-        # Rows
-        for row in rows:
-            table_text += " | ".join(str(cell) for cell in row) + "\n"
-        
-        return ContentFormatter.create_formatted_content(
-            table_text,
-            {
-                'content_type': 'table',
-                'table_style': table_style,
+        if output_format == 'web':
+            # Return structured data for frontend consumption
+            return {
+                'type': 'structured_table',
                 'headers': headers,
-                'rows': rows
+                'rows': rows,
+                'metadata': {
+                    'table_style': table_style,
+                    'column_count': len(headers),
+                    'row_count': len(rows)
+                }
             }
-        )
+        else:
+            # Existing document generation logic
+            table_text = " | ".join(headers) + "\n"
+            table_text += "|".join(["-" * len(header) for header in headers]) + "\n"
+            for row in rows:
+                table_text += " | ".join(str(cell) for cell in row) + "\n"
+            
+            return ContentFormatter.create_formatted_content(
+                table_text,
+                {
+                    'content_type': 'table',
+                    'table_style': table_style,
+                    'headers': headers,
+                    'rows': rows
+                }
+            )
     
     @staticmethod
     def create_skills_analysis_table(skill_categories: List[Dict], total_skills: int, skills_overlap_job_count: int) -> Dict[str, Any]:
@@ -214,17 +249,18 @@ class ContentFormatter:
         )
 
 class DocumentFormatter:
-    """Formats generated content into various document formats using NAB templates."""
+    """Enhanced document formatter with NAB professional styling."""
     
     def __init__(self, template_path=None):
-        """
-        Initialize formatter with optional template path.
-        
-        Args:
-            template_path: Path to NAB Word template file (.docx)
-        """
+        """Initialize the formatter with optional template path."""
         self.template_path = template_path
-        self.templates_path = Path(__file__).parent / 'templates' / 'word_templates'
+        # Initialize NAB styling system
+        if STYLING_AVAILABLE and DocumentStyles:
+            self.nab_styles = DocumentStyles()
+            logger.info("✅ NAB styling system initialized")
+        else:
+            self.nab_styles = None
+            logger.warning("⚠️ NAB styling not available, using basic styles")
     
     def format_document(self, content: Dict, output_format: str, analysis_data: Dict) -> Dict:
         """Format content into requested document format."""
@@ -239,31 +275,65 @@ class DocumentFormatter:
             raise ValueError(f"Unsupported output format: {output_format}")
     
     def _format_word_document(self, content: Dict, analysis_data: Dict) -> Dict:
-        """Format content as Word document using NAB styling from screenshots."""
-        
-        if not DOCX_AVAILABLE:
-            logger.warning("python-docx not available. Install with: pip install python-docx")
-            return {
-                'format': 'word',
-                'filename': f'career_analysis_{analysis_data.get("summary", "analysis").replace(" ", "_")}.docx',
-                'content': content,
-                'status': 'error',
-                'message': 'python-docx not installed'
-            }
-        
+        """Create Word document with professional NAB styling."""
         try:
-            # Create new document from scratch with NAB styling
-            doc = Document()
             logger.info("Creating document from scratch with NAB styling")
             
+            # Create new document
+            doc = Document()
+            
+            # Get job name for document
             job_name = analysis_data.get('source_job_logical_display_name', 'Professional Role')
             
-            # Setup NAB styles and create professional document
-            self._setup_nab_styles(doc)
-            self._create_nab_document(doc, content, analysis_data, job_name)
+            # Log styling system status
+            logger.info(f"🔍 STYLING_AVAILABLE: {STYLING_AVAILABLE}")
+            logger.info(f"🔍 DocumentStyles available: {DocumentStyles is not None}")
+            logger.info(f"🔍 self.nab_styles: {self.nab_styles is not None}")
+            
+            # Use professional NAB styling if available
+            if self.nab_styles:
+                logger.info("🎨 Applying professional NAB styling")
+                
+                # Setup document styles
+                self.nab_styles.setup_document_styles(doc)
+                logger.info("✅ Professional document styles setup completed")
+                
+                # Create professional title page
+                self.nab_styles.create_title_page(doc, analysis_data)
+                logger.info("✅ Professional title page created")
+                
+                # Add page break after title page
+                doc.add_page_break()
+                
+                # Add professional table of contents
+                self.nab_styles.add_table_of_contents(doc)
+                logger.info("✅ Professional table of contents added")
+                
+                # Add page break after TOC
+                doc.add_page_break()
+                
+                # Process content sections with professional styling
+                self._create_professional_content(doc, content, analysis_data, job_name)
+                logger.info("✅ Professional content sections created")
+                
+            else:
+                logger.warning("🎨 Using basic styling (NAB styles not available)")
+                logger.warning(f"🔍 Reason: STYLING_AVAILABLE={STYLING_AVAILABLE}, DocumentStyles={DocumentStyles is not None}")
+                # Fallback to basic styling
+                self._setup_nab_styles(doc)
+                logger.debug("✅ NAB styles setup completed successfully")
+                
+                try:
+                    self._create_nab_document(doc, content, analysis_data, job_name)
+                    logger.debug("✅ NAB document creation completed successfully")
+                except Exception as doc_error:
+                    logger.error(f"❌ Error in _create_nab_document: {doc_error}")
+                    logger.error(f"❌ Error type: {type(doc_error)}")
+                    logger.error(f"❌ Content type passed: {type(content)}")
+                    logger.error(f"❌ Analysis_data type passed: {type(analysis_data)}")
+                    raise doc_error
             
             # Set up page margins (Normal Word margins: 2.54cm all around)
-            from docx.shared import Inches
             sections = doc.sections
             for section in sections:
                 section.top_margin = Inches(1.0)      # 2.54cm = 1.0 inch
@@ -299,9 +369,6 @@ class DocumentFormatter:
     
     def _setup_nab_styles(self, doc):
         """Create NAB styles based on screenshot styling, with TOC-compatible headings."""
-        
-        from docx.shared import RGBColor, Pt
-        from docx.enum.style import WD_STYLE_TYPE
         
         styles = doc.styles
         
@@ -378,49 +445,190 @@ class DocumentFormatter:
             cta_font.color.rgb = nab_red
             cta_style.paragraph_format.space_after = Pt(6)
     
-    def _create_nab_document(self, doc, content: Dict, analysis_data: Dict, job_name: str):
-        """Create NAB-styled document with content."""
+    def _create_professional_content(self, doc, content: Dict, analysis_data: Dict, job_name: str):
+        """Create professional content sections using NAB styling system."""
         
+        if not self.nab_styles:
+            logger.error("❌ NAB styling system not available for professional content")
+            # Fallback to basic document creation
+            self._create_nab_document(doc, content, analysis_data, job_name)
+            return
+            
+        logger.debug(f"🎨 Creating professional content for job: {job_name}")
+        logger.debug(f"📄 Content sections available: {list(content.keys())}")
+        
+        # Define section order and titles
+        section_order = [
+            ('executive_summary', 'Executive Summary'),
+            ('current_role_context', 'Current Role Context'),
+            ('pathway_analysis', 'Pathway Analysis: Top 3 Strategic Opportunities'),
+            ('strategic_recommendations', 'Strategic Recommendations'),
+            ('conclusion', 'Conclusion')
+        ]
+        
+        for i, (section_key, section_title) in enumerate(section_order):
+            logger.debug(f"🔍 Processing section {i+1}: {section_key} -> {section_title}")
+            
+            if section_key in content:
+                section_content = content[section_key]
+                logger.debug(f"✅ Section {section_key} found, type: {type(section_content)}")
+                
+                # Add section heading using NAB styling
+                self.nab_styles.add_section_heading(doc, section_title, level=1)
+                
+                # Process section content
+                if isinstance(section_content, dict):
+                    self._add_professional_section_content(doc, section_content)
+                elif isinstance(section_content, str):
+                    # Simple string content
+                    self.nab_styles.add_formatted_content_with_style(doc, section_content)
+                else:
+                    logger.warning(f"⚠️ Unexpected section content type for {section_key}: {type(section_content)}")
+                
+                # Add page break after each section except the last one
+                if i < len(section_order) - 1:
+                    doc.add_page_break()
+            else:
+                logger.warning(f"❌ Section {section_key} not found in content")
+    
+    def _add_professional_section_content(self, doc, section_content: Dict):
+        """Add section content using professional NAB styling."""
+        
+        if not self.nab_styles:
+            logger.error("❌ NAB styling system not available for section content")
+            return
+            
+        try:
+            # Handle opportunities section specially (for pathway analysis)
+            if 'opportunities' in section_content:
+                opportunities = section_content.get('opportunities', [])
+                logger.debug(f"🎯 Processing {len(opportunities)} opportunities for Word document")
+                
+                for i, opportunity in enumerate(opportunities, 1):
+                    if isinstance(opportunity, dict):
+                        logger.debug(f"🔹 Processing opportunity {i}: {list(opportunity.keys())}")
+                        
+                        # Add opportunity main heading from header if available
+                        if 'header' in opportunity:
+                            # Parse the header to extract the opportunity title
+                            header_lines = opportunity['header'].split('\n')
+                            if header_lines:
+                                # Extract title from the first line (remove ## prefix)
+                                opp_title = header_lines[0].replace('##', '').strip()
+                                self.nab_styles.add_section_heading(doc, opp_title, level=2)
+                                
+                                # Add the metadata lines as a formatted paragraph
+                                if len(header_lines) > 1:
+                                    metadata_text = '\n'.join(header_lines[1:]).strip()
+                                    if metadata_text:
+                                        self.nab_styles.add_formatted_content_with_style(doc, metadata_text)
+                        else:
+                            # Fallback title
+                            self.nab_styles.add_section_heading(doc, f"Strategic Opportunity {i}", level=2)
+                        
+                        # Process each subsection of the opportunity
+                        subsection_order = [
+                            'opportunity_overview',
+                            'strategic_positioning',
+                            'skills_transition_analysis', 
+                            'business_case',
+                            'implementation_roadmap'
+                        ]
+                        
+                        for subsection_key in subsection_order:
+                            if subsection_key in opportunity:
+                                subsection = opportunity[subsection_key]
+                                if isinstance(subsection, dict):
+                                    # Add subsection heading
+                                    subsection_title = subsection.get('title', subsection_key.replace('_', ' ').title())
+                                    self.nab_styles.add_section_heading(doc, subsection_title, level=3)
+                                    
+                                    # Add subsection content
+                                    if 'content' in subsection:
+                                        content = subsection['content']
+                                        if isinstance(content, dict):
+                                            # Handle structured content (tables, etc.) using _add_nab_content
+                                            self._add_nab_content(doc, content)
+                                        elif isinstance(content, str):
+                                            # Handle string content
+                                            self.nab_styles.add_formatted_content_with_style(doc, content)
+                                        else:
+                                            logger.warning(f"⚠️ Unexpected content type in {subsection_key}: {type(content)}")
+                                else:
+                                    logger.warning(f"⚠️ Subsection {subsection_key} is not a dict: {type(subsection)}")
+                        
+                        # Add spacing between opportunities (but not after the last one)
+                        if i < len(opportunities):
+                            doc.add_paragraph()
+                            
+                    else:
+                        logger.warning(f"⚠️ Opportunity {i} is not a dict: {type(opportunity)}")
+                        
+            else:
+                # Handle regular subsections
+                for key, subsection in section_content.items():
+                    logger.debug(f"🔹 Processing subsection: {key}")
+                    
+                    if isinstance(subsection, dict):
+                        if 'title' in subsection and 'content' in subsection:
+                            # Add subsection heading
+                            self.nab_styles.add_section_heading(doc, subsection['title'], level=2)
+                            # Add content using professional styling
+                            self.nab_styles.add_formatted_content_with_style(doc, subsection['content'])
+                        else:
+                            logger.warning(f"⚠️ Subsection {key} missing title or content")
+                    elif isinstance(subsection, str):
+                        # String subsection - add as content with generated title
+                        title = key.replace('_', ' ').title()
+                        self.nab_styles.add_section_heading(doc, title, level=2)
+                        self.nab_styles.add_formatted_content_with_style(doc, subsection)
+                    else:
+                        logger.warning(f"⚠️ Unexpected subsection type for {key}: {type(subsection)}")
+                        
+        except Exception as section_error:
+            logger.error(f"❌ Error processing professional section content: {section_error}")
+            logger.error(f"❌ Section content: {section_content}")
+            raise section_error
+    
+    def _create_nab_document(self, doc, content, analysis_data, job_name):
+        """Create the main NAB document content"""
+        
+        logger.debug(f"🔍 _create_nab_document called with:")
+        logger.debug(f"   - content type: {type(content)}")
+        logger.debug(f"   - analysis_data type: {type(analysis_data)}")
+        logger.debug(f"   - job_name: {job_name}")
+        
+        if isinstance(content, dict):
+            logger.debug(f"   - content keys: {list(content.keys())}")
+        if isinstance(analysis_data, dict):
+            logger.debug(f"   - analysis_data keys: {list(analysis_data.keys())}")
+            
+        # Document header - ensure we have at least one paragraph
+        if not doc.paragraphs:
+            doc.add_paragraph()  # Add initial paragraph if none exists
+        header_para = doc.paragraphs[0]
+        header_para.clear()  # Clear any default content
+        
+        # Add title page
+        title = doc.add_paragraph('Career Transition Analysis')
+        title.style = 'Heading 1'  # Use built-in style instead of 'NAB Document Title'
+        
+        # Add job information
+        job_info = doc.add_paragraph(f'Source Role: {job_name}')
+        job_info.style = 'NAB Body'
+        
+        # Add generated date
         from datetime import datetime
-        
-        # Page 1: Cover Page
-        title_para = doc.add_paragraph('NAB Skills Intelligence Platform')
-        title_para.style = 'NAB Cover Title'
-        
-        subtitle_para = doc.add_paragraph(f'Strategic Career Pathway Analysis')
-        subtitle_para.style = 'NAB Cover Subtitle'
-        
-        # Remove "Career Transition Analysis:" prefix and add job function
-        job_para = doc.add_paragraph(job_name)
-        job_para.style = 'Heading 2'
-        
-        # Add source job function from analysis data
-        source_job_function = analysis_data.get('source_job_function', 'Professional Services')
-        function_para = doc.add_paragraph(source_job_function)
-        function_para.style = 'NAB Body'
-        
-        # Date and version info
-        date_para = doc.add_paragraph(f'Generated: {datetime.now().strftime("%B %d, %Y")}')
+        date_para = doc.add_paragraph(f'Generated: {datetime.now().strftime("%d %B %Y")}')
         date_para.style = 'NAB Body'
         
-        version_para = doc.add_paragraph('Version 1.0 - Skills Intelligence Analysis')
-        version_para.style = 'NAB Body'
-        
-        doc.add_page_break()
-        
-        # Page 2: Table of Contents
-        toc_heading = doc.add_paragraph('Table of Contents')
-        toc_heading.style = 'Heading 1'
-        
-        # Add instruction for automatic TOC generation
-        toc_instruction = doc.add_paragraph()
-        toc_instruction.style = 'NAB Body'
-        instruction_run = toc_instruction.add_run("Instructions: ")
-        instruction_run.bold = True
-        toc_instruction.add_run("Place cursor here and go to References â†’ Table of Contents â†’ Automatic Table to generate TOC")
-        
-        # Add space for TOC
+        # Add spacing
         doc.add_paragraph()
+        
+        # Table of Contents placeholder (would be filled by Word)
+        toc_heading = doc.add_paragraph('Table of Contents')
+        toc_heading.style = 'Heading 1'  # Use built-in style instead of 'NAB Heading 1'
+        
         toc_placeholder = doc.add_paragraph("[Table of Contents will be generated here]")
         toc_placeholder.style = 'NAB Body'
         doc.add_paragraph()
@@ -436,15 +644,30 @@ class DocumentFormatter:
             ('conclusion', 'Conclusion')
         ])
         
+        logger.debug(f"section_order: {section_order}")
+        
         for i, (section_key, section_title) in enumerate(section_order):
+            logger.debug(f"Processing section {i}: {section_key} -> {section_title}")
             if section_key in content:
+                logger.debug(f"Section {section_key} found in content")
+                section_content = content[section_key]
+                logger.debug(f"Section content type: {type(section_content)}")
+                logger.debug(f"Section content: {section_content}")
+                
                 # Add page break before each section (except the first one)
                 if i > 0:
                     doc.add_page_break()
-                self._add_nab_section(doc, section_title, content[section_key])
+                self._add_nab_section(doc, section_title, section_content)
+            else:
+                logger.warning(f"Section {section_key} not found in content. Available keys: {list(content.keys())}")
     
     def _add_nab_section(self, doc, section_title: str, section_content: Dict):
         """Add section using NAB styles."""
+        
+        # Debug logging to identify the data structure issue
+        logger.debug(f"_add_nab_section called with section_title: {section_title}")
+        logger.debug(f"section_content type: {type(section_content)}")
+        logger.debug(f"section_content: {section_content}")
         
         # Add main section heading using Word's built-in Heading 1 (modified with NAB styling)
         section_heading = doc.add_paragraph(section_title)
@@ -452,80 +675,148 @@ class DocumentFormatter:
         
         # Handle different content structures
         if isinstance(section_content, dict):
-            if 'opportunities' in section_content:
-                # Handle pathway analysis with multiple opportunities
-                for i, opportunity in enumerate(section_content['opportunities'], 1):
-                    self._add_nab_opportunity(doc, opportunity, i)
-            else:
-                # Handle other structured sections
-                for key, subsection in section_content.items():
-                    if isinstance(subsection, dict) and 'title' in subsection and 'content' in subsection:
-                        # Add subsection heading using Word's built-in Heading 2 (modified with NAB styling)
-                        subsection_heading = doc.add_paragraph(subsection['title'])
-                        subsection_heading.style = 'Heading 2'
-                        
-                        # Add content
-                        self._add_nab_content(doc, subsection['content'])
+            try:
+                if 'opportunities' in section_content:
+                    # Handle pathway analysis with multiple opportunities
+                    opportunities = section_content.get('opportunities', [])
+                    logger.debug(f"Processing {len(opportunities)} opportunities")
+                    for i, opportunity in enumerate(opportunities, 1):
+                        logger.debug(f"Processing opportunity {i}, type: {type(opportunity)}")
+                        self._add_nab_opportunity(doc, opportunity, i)
+                else:
+                    # Handle other structured sections
+                    for key, subsection in section_content.items():
+                        logger.debug(f"Processing subsection key: {key}, type: {type(subsection)}")
+                        if isinstance(subsection, dict):
+                            if 'title' in subsection and 'content' in subsection:
+                                # Add subsection heading using Word's built-in Heading 2 (modified with NAB styling)
+                                subsection_heading = doc.add_paragraph(subsection['title'])
+                                subsection_heading.style = 'Heading 2'
+                                
+                                # Add content
+                                self._add_nab_content(doc, subsection['content'])
+                            else:
+                                logger.warning(f"Subsection {key} doesn't have expected 'title' and 'content' structure: {subsection}")
+                        elif isinstance(subsection, str):
+                            # Handle string subsections
+                            logger.debug(f"Processing string subsection {key}")
+                            subsection_heading = doc.add_paragraph(key.replace('_', ' ').title())
+                            subsection_heading.style = 'Heading 2'
+                            self._add_nab_content(doc, subsection)
+                        else:
+                            logger.warning(f"Unexpected subsection type for {key}: {type(subsection)}")
+                            
+            except Exception as subsection_error:
+                logger.error(f"❌ Error processing section_content dict: {subsection_error}")
+                logger.error(f"❌ section_content keys: {list(section_content.keys()) if hasattr(section_content, 'keys') else 'No keys method'}")
+                raise subsection_error
         
         elif isinstance(section_content, str):
             # Simple string content
+            logger.debug(f"Processing section as string content: {section_content[:100]}...")
             self._add_nab_content(doc, section_content)
+        else:
+            logger.error(f"Unexpected section_content type: {type(section_content)} for section: {section_title}")
+            # Try to convert to string as fallback
+            try:
+                self._add_nab_content(doc, str(section_content))
+            except Exception as fallback_error:
+                logger.error(f"❌ Fallback conversion failed: {fallback_error}")
+                raise fallback_error
     
     def _add_nab_opportunity(self, doc, opportunity: Dict, opportunity_num: int):
         """Add pathway opportunity using NAB styles with enhanced headers."""
         
-        # Use the enhanced header from pathway analysis, fallback to simple title
-        if 'header' in opportunity:
-            # New enhanced header format with detailed opportunity information
-            header_content = opportunity['header']
-            # Split header into lines and format appropriately
-            header_lines = header_content.strip().split('\n')
-            
-            for i, line in enumerate(header_lines):
-                line = line.strip()
-                if not line:
-                    continue
-                    
-                if i == 0 and line.startswith('##'):
-                    # Main opportunity heading (remove ## and use as Heading 2)
-                    heading_text = line.replace('##', '').strip()
-                    opp_heading = doc.add_paragraph(heading_text)
-                    opp_heading.style = 'Heading 2'
-                elif line.startswith('**') and line.endswith('**'):
-                    # Bold formatted line (like **Target Role**: ...)
-                    para = doc.add_paragraph()
-                    para.style = 'NAB Body'
-                    
-                    # Parse bold label and content
-                    clean_line = line.replace('**', '')
-                    if ':' in clean_line:
-                        label, content = clean_line.split(':', 1)
-                        label_run = para.add_run(f"{label.strip()}: ")
-                        label_run.bold = True
-                        para.add_run(content.strip())
-                    else:
-                        full_run = para.add_run(clean_line)
-                        full_run.bold = True
-                else:
-                    # Regular line
-                    para = doc.add_paragraph(line)
-                    para.style = 'NAB Body'
-        else:
-            # Fallback to legacy format
-            opp_title = opportunity.get('title', f'Opportunity {opportunity_num}')
-            opp_heading = doc.add_paragraph(f"{opportunity_num}. {opp_title}")
-            opp_heading.style = 'Heading 2'
+        logger.debug(f"_add_nab_opportunity called with opportunity_num: {opportunity_num}")
+        logger.debug(f"opportunity type: {type(opportunity)}")
+        logger.debug(f"opportunity: {opportunity}")
         
-        # Add opportunity details (skip the header field since we already processed it)
-        for detail_key, detail_content in opportunity.items():
-            if detail_key not in ['title', 'header'] and isinstance(detail_content, dict):
-                if 'title' in detail_content:
-                    # Detail subheading using Word's built-in Heading 3 (modified with NAB styling)
-                    detail_heading = doc.add_paragraph(detail_content['title'])
-                    detail_heading.style = 'Heading 3'
+        if not isinstance(opportunity, dict):
+            logger.error(f"❌ Expected dict for opportunity, got {type(opportunity)}")
+            logger.error(f"❌ opportunity content: {opportunity}")
+            # Try to convert to dict or handle as string
+            if isinstance(opportunity, str):
+                para = doc.add_paragraph(f"{opportunity_num}. {opportunity}")
+                para.style = 'NAB Body'
+                return
+            else:
+                logger.error(f"❌ Cannot process opportunity of type {type(opportunity)}")
+                return
+        
+        try:
+            # Use the enhanced header from pathway analysis, fallback to simple title
+            if 'header' in opportunity:
+                # New enhanced header format with detailed opportunity information
+                header_content = opportunity.get('header', '')
+                logger.debug(f"Processing header content: {header_content[:100]}...")
+                # Split header into lines and format appropriately
+                header_lines = header_content.strip().split('\n')
                 
-                if 'content' in detail_content:
-                    self._add_nab_content(doc, detail_content['content'])
+                for i, line in enumerate(header_lines):
+                    line = line.strip()
+                    if not line:
+                        continue
+                        
+                    if i == 0 and line.startswith('##'):
+                        # Main opportunity heading (remove ## and use as Heading 2)
+                        heading_text = line.replace('##', '').strip()
+                        opp_heading = doc.add_paragraph(heading_text)
+                        opp_heading.style = 'Heading 2'
+                    elif line.startswith('**') and line.endswith('**'):
+                        # Bold formatted line (like **Target Role**: ...)
+                        para = doc.add_paragraph()
+                        para.style = 'NAB Body'
+                        
+                        # Parse bold label and content
+                        clean_line = line.replace('**', '')
+                        if ':' in clean_line:
+                            label, content = clean_line.split(':', 1)
+                            label_run = para.add_run(f"{label.strip()}: ")
+                            label_run.bold = True
+                            para.add_run(content.strip())
+                        else:
+                            full_run = para.add_run(clean_line)
+                            full_run.bold = True
+                    else:
+                        # Regular line
+                        para = doc.add_paragraph(line)
+                        para.style = 'NAB Body'
+            else:
+                # Fallback to legacy format
+                opp_title = opportunity.get('title', f'Opportunity {opportunity_num}')
+                logger.debug(f"Using fallback title: {opp_title}")
+                opp_heading = doc.add_paragraph(f"{opportunity_num}. {opp_title}")
+                opp_heading.style = 'Heading 2'
+            
+            # Add opportunity details (skip the header field since we already processed it)
+            for detail_key, detail_content in opportunity.items():
+                logger.debug(f"Processing opportunity detail: {detail_key}, type: {type(detail_content)}")
+                
+                if detail_key not in ['title', 'header']:
+                    if isinstance(detail_content, dict):
+                        logger.debug(f"Processing dict detail: {detail_key}")
+                        if 'title' in detail_content:
+                            # Detail subheading using Word's built-in Heading 3 (modified with NAB styling)
+                            detail_heading = doc.add_paragraph(detail_content['title'])
+                            detail_heading.style = 'Heading 3'
+                        
+                        if 'content' in detail_content:
+                            self._add_nab_content(doc, detail_content['content'])
+                    elif isinstance(detail_content, str):
+                        logger.debug(f"Processing string detail: {detail_key}")
+                        # Handle string details
+                        detail_heading = doc.add_paragraph(detail_key.replace('_', ' ').title())
+                        detail_heading.style = 'Heading 3'
+                        self._add_nab_content(doc, detail_content)
+                    else:
+                        logger.warning(f"Unexpected detail type for {detail_key}: {type(detail_content)}")
+                        
+        except Exception as opp_error:
+            logger.error(f"❌ Error in _add_nab_opportunity: {opp_error}")
+            logger.error(f"❌ opportunity_num: {opportunity_num}")
+            logger.error(f"❌ opportunity type: {type(opportunity)}")
+            logger.error(f"❌ opportunity: {opportunity}")
+            raise opp_error
     
     def _add_nab_content(self, doc, content: Union[str, Dict, List]):
         """Add content using NAB body style with structured formatting support."""
@@ -533,36 +824,66 @@ class DocumentFormatter:
         if not content:
             return
         
-        # Handle list of content items (new for table support)
-        if isinstance(content, list):
-            for content_item in content:
-                self._add_nab_content(doc, content_item)
-            return
+        logger.debug(f"_add_nab_content called with content type: {type(content)}")
         
-        # Handle both legacy string content and new structured content
-        if isinstance(content, str):
-            # Legacy string content - use basic formatting
-            self._add_legacy_string_content(doc, content)
-        elif isinstance(content, dict):
-            # Check for new pathway analysis table format
-            if 'content_type' in content and content.get('content_type') == 'table':
-                self._add_pathway_table(doc, content)
-            elif 'content_type' in content and content.get('content_type') == 'mixed':
-                # Mixed content with bold labels
-                table_content = content.get('content', '')
-                bold_labels = content.get('bold_labels', [])
-                self._add_structured_mixed_content(doc, table_content, {'bold_labels': bold_labels})
-            elif 'content_type' in content and content.get('content_type') == 'paragraph':
-                # Simple paragraph content
-                paragraph_content = content.get('content', '')
-                self._add_structured_paragraph(doc, paragraph_content, {})
-            elif 'text' in content:
-                # New structured content with formatting metadata
-                self._add_structured_content(doc, content)
+        try:
+            # Handle list of content items (new for table support)
+            if isinstance(content, list):
+                logger.debug(f"Processing list content with {len(content)} items")
+                for i, content_item in enumerate(content):
+                    logger.debug(f"Processing list item {i}, type: {type(content_item)}")
+                    self._add_nab_content(doc, content_item)
+                return
+            
+            # Handle both legacy string content and new structured content
+            if isinstance(content, str):
+                # Legacy string content - use basic formatting
+                logger.debug(f"Processing string content, length: {len(content)}")
+                self._add_legacy_string_content(doc, content)
+            elif isinstance(content, dict):
+                logger.debug(f"Processing dict content with keys: {list(content.keys())}")
+                
+                # Check for new pathway analysis table format
+                if 'content_type' in content:
+                    content_type = content.get('content_type')
+                    logger.debug(f"Content type: {content_type}")
+                    
+                    if content_type == 'table':
+                        self._add_pathway_table(doc, content)
+                    elif content_type == 'mixed':
+                        # Mixed content with bold labels
+                        table_content = content.get('content', '')
+                        bold_labels = content.get('bold_labels', [])
+                        self._add_structured_mixed_content(doc, table_content, {'bold_labels': bold_labels})
+                    elif content_type == 'paragraph':
+                        # Simple paragraph content
+                        paragraph_content = content.get('content', '')
+                        self._add_structured_paragraph(doc, paragraph_content, {})
+                    else:
+                        logger.warning(f"Unknown content_type: {content_type}")
+                        # Fall back to legacy processing
+                        if 'content' in content:
+                            self._add_nab_content(doc, content['content'])
+                elif 'text' in content:
+                    # New structured content with formatting metadata
+                    logger.debug("Processing structured content with 'text' field")
+                    self._add_structured_content(doc, content)
+                else:
+                    # Handle other dict structures (like sections with title/content)
+                    logger.debug("Processing legacy dict content")
+                    if 'content' in content:
+                        self._add_nab_content(doc, content['content'])
+                    else:
+                        logger.warning(f"Dict content has no recognized structure: {content}")
             else:
-                # Handle other dict structures (like sections with title/content)
-                if 'content' in content:
-                    self._add_nab_content(doc, content['content'])
+                logger.warning(f"Unexpected content type: {type(content)}, converting to string")
+                self._add_legacy_string_content(doc, str(content))
+                
+        except Exception as content_error:
+            logger.error(f"❌ Error in _add_nab_content: {content_error}")
+            logger.error(f"❌ Content type: {type(content)}")
+            logger.error(f"❌ Content: {content}")
+            raise content_error
     
     def _add_pathway_table(self, doc, table_content: Dict):
         """Add pathway analysis table with proper structure mapping."""
@@ -586,7 +907,7 @@ class DocumentFormatter:
             self._add_structured_table(doc, formatting)
             
         except Exception as e:
-            print(f"âš ï¸ Error creating pathway table: {e}")
+            print(f"âš ï¸ Error creating pathway table: {e}")
             # Fallback to text content
             para = doc.add_paragraph()
             para.style = 'NAB Body'
@@ -814,13 +1135,13 @@ class DocumentFormatter:
                 try:
                     table.style = style_name
                     style_applied = True
-                    print(f"âœ… Applied table style: {style_name}")
+                    print(f"âœ Applied table style: {style_name}")
                     break
                 except:
                     continue
             
             if not style_applied:
-                print("âš ï¸ Could not apply any table style, using default")
+                print("âš ï¸ Could not apply any table style, using default")
             
             # Use consistent 9pt font size for all tables (headers and body)
             header_font_size = Pt(9)  # 9pt font for all table headers
@@ -871,10 +1192,10 @@ class DocumentFormatter:
             
         except Exception as e:
             # Fallback to text-based table if docx table creation fails
-            print(f"âš ï¸ Table creation failed, using text format: {e}")
+            print(f"âš ï¸ Table creation failed, using text format: {e}")
             para = doc.add_paragraph()
             para.style = 'NAB Body'
-            para.add_run("Table data (formatted as text due to processing limitations)")
+            para.add_run(f"Table data (formatted as text due to processing limitations)")
             
             headers = formatting.get('headers', [])
             rows = formatting.get('rows', [])

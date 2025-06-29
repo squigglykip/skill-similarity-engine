@@ -91,6 +91,7 @@ class CareerAnalysisService:
             similarity_max = kwargs.get('similarity_max', 90)
             top_n = kwargs.get('top_n', 3)
             include_deployment = kwargs.get('include_organisational_deployment', True)  # Default to True for web previews
+            tie_breaking_options = kwargs.get('tie_breaking_options', {})
             
             # Generate all 5 sections using existing generators
             sections = {}
@@ -102,10 +103,15 @@ class CareerAnalysisService:
                 analysis_mode=analysis_mode,
                 job_to=job_to,
                 similarity_range=(similarity_min/100.0, similarity_max/100.0),
-                top_n=top_n
+                top_n=top_n,
+                tie_breaking_options=tie_breaking_options
             )
+            # Use the section title from the generator, fallback to default if not available
+            exec_title = exec_result.get('section_title', 'Executive Summary')
+            if not isinstance(exec_title, str):
+                exec_title = 'Executive Summary'
             sections['executive_summary'] = self._format_section_for_mode(
-                exec_result, output_mode, 'Executive Summary'
+                exec_result, output_mode, exec_title
             )
             
             # 2. Current Role Context
@@ -121,8 +127,12 @@ class CareerAnalysisService:
                 context_result = {'content': {}}
             
             try:
+                # Use the section title from the generator, fallback to default if not available
+                context_title = context_result.get('section_title', 'Current Role Context')
+                if not isinstance(context_title, str):
+                    context_title = 'Current Role Context'
                 sections['current_role_context'] = self._format_section_for_mode(
-                    context_result, output_mode, 'Current Role Context'
+                    context_result, output_mode, context_title
                 )
                 logger.info("Current Role Context formatting completed successfully")
             except Exception as e:
@@ -149,11 +159,16 @@ class CareerAnalysisService:
                 job_to=job_to,
                 similarity_range=(similarity_min/100.0, similarity_max/100.0),
                 include_organisational_deployment=include_deployment,
-                top_n=top_n
+                top_n=top_n,
+                tie_breaking_options=tie_breaking_options,
+                output_format=output_mode  # Pass web/document format to generator
             )
-            pathway_title = f"Pathway Analysis: Top {top_n} Strategic Opportunities"
-            if analysis_mode == 'specific' and job_to:
-                pathway_title = "Strategic Transition Analysis"
+            # Use the section title from the generator, with intelligent fallback
+            pathway_title = pathway_result.get('section_title')
+            if not isinstance(pathway_title, str) or not pathway_title:
+                pathway_title = f"Pathway Analysis: Top {top_n} Strategic Opportunities"
+                if analysis_mode == 'specific' and job_to:
+                    pathway_title = "Strategic Transition Analysis"
             sections['pathway_analysis'] = self._format_section_for_mode(
                 pathway_result, output_mode, pathway_title
             )
@@ -168,8 +183,12 @@ class CareerAnalysisService:
                 include_organisational_deployment=include_deployment,
                 top_n=top_n
             )
+            # Use the section title from the generator, fallback to default if not available
+            recommendations_title = recommendations_result.get('section_title', 'Strategic Recommendations')
+            if not isinstance(recommendations_title, str):
+                recommendations_title = 'Strategic Recommendations'
             sections['strategic_recommendations'] = self._format_section_for_mode(
-                recommendations_result, output_mode, 'Strategic Recommendations'
+                recommendations_result, output_mode, recommendations_title
             )
             
             # 5. Conclusion
@@ -182,8 +201,12 @@ class CareerAnalysisService:
                 include_organisational_deployment=include_deployment,
                 top_n=top_n
             )
+            # Use the section title from the generator, fallback to default if not available
+            conclusion_title = conclusion_result.get('section_title', 'Conclusion')
+            if not isinstance(conclusion_title, str):
+                conclusion_title = 'Conclusion'
             sections['conclusion'] = self._format_section_for_mode(
-                conclusion_result, output_mode, 'Conclusion'
+                conclusion_result, output_mode, conclusion_title
             )
             
             # Generate metadata
@@ -247,6 +270,25 @@ class CareerAnalysisService:
             logger.debug(f"DEBUG: Subsection data type: {type(subsection_data)}")
             logger.debug(f"DEBUG: Subsection data: {subsection_data}")
             
+            # Special handling for when subsection_data is directly a list (opportunities case)
+            if isinstance(subsection_data, list) and subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower()):
+                logger.info(f"🎯 TRIGGERED special handling for direct opportunities list")
+                logger.info(f"🎯 Opportunities list length: {len(subsection_data)}")
+                logger.info(f"🎯 First opportunity type: {type(subsection_data[0]) if subsection_data else 'EMPTY'}")
+                
+                # Convert opportunities list to JSON-serializable format
+                formatted_opportunities = self._format_opportunities_for_web(subsection_data)
+                
+                # Store opportunities in a special structure for frontend
+                subsections[subsection_key] = {
+                    'title': subsection_key.replace('_', ' ').title(),
+                    'content': formatted_opportunities,  # Store as list directly
+                    'formatting': {},
+                    'type': 'opportunities_list'  # Special type for frontend handling
+                }
+                logger.info(f"🎯 Stored direct opportunities as list with {len(formatted_opportunities)} items")
+                continue  # Skip the normal processing below
+            
             if isinstance(subsection_data, dict):
                 # Extract title
                 title = subsection_data.get('title', subsection_key.replace('_', ' ').title())
@@ -258,40 +300,80 @@ class CareerAnalysisService:
                 
                 if isinstance(content_data, list):
                     # Debug the section matching
-                    logger.debug(f"DEBUG: Checking special handling - subsection_key: '{subsection_key}', section_title: '{section_title}'")
+                    logger.info(f"🔍 CHECKING special handling - subsection_key: '{subsection_key}', section_title: '{section_title}'")
+                    logger.info(f"🔍 Content data length: {len(content_data)}")
+                    logger.info(f"🔍 Is opportunities? {subsection_key == 'opportunities'}")
+                    logger.info(f"🔍 Contains pathway? {'pathway' in section_title.lower()}")
+                    logger.info(f"🔍 Contains transition? {'transition' in section_title.lower()}")
                     
                     # Special handling for pathway analysis opportunities
-                    if subsection_key == 'opportunities' and 'pathway' in section_title.lower():
-                        logger.debug(f"DEBUG: ✅ TRIGGERED special handling for pathway analysis opportunities")
-                        logger.debug(f"DEBUG: Content list length: {len(content_data)}")
+                    logger.info(f"🔍 Special handling condition evaluation:")
+                    logger.info(f"   - subsection_key == 'opportunities': {subsection_key == 'opportunities'}")
+                    logger.info(f"   - section_title.lower(): '{section_title.lower()}'")
+                    logger.info(f"   - 'pathway' in section_title.lower(): {'pathway' in section_title.lower()}")
+                    logger.info(f"   - 'transition' in section_title.lower(): {'transition' in section_title.lower()}")
+                    logger.info(f"   - Combined condition: {subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower())}")
+                    
+                    if subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower()):
+                        logger.info(f"🎯 TRIGGERED special handling for pathway analysis opportunities")
+                        logger.info(f"🎯 Content list length: {len(content_data)}")
+                        logger.info(f"🎯 Content data type: {type(content_data)}")
+                        logger.info(f"🎯 First item type: {type(content_data[0]) if content_data else 'EMPTY'}")
+                        
                         # Convert opportunities list to JSON-serializable format
-                        actual_content = self._format_opportunities_for_web(content_data)
-                        formatting = {}
-                        logger.debug(f"DEBUG: Formatted opportunities result length: {len(actual_content) if actual_content else 0}")
-                    else:
-                        # List of ContentFormatter objects - extract and combine
-                        logger.debug(f"DEBUG: Processing ContentFormatter list for {subsection_key}, length: {len(content_data)}")
-                        actual_content = self._extract_from_content_list(content_data)
-                        formatting = self._extract_formatting_from_list(content_data)
-                        logger.debug(f"DEBUG: Extracted content length: {len(actual_content) if actual_content else 0}")
+                        formatted_opportunities = self._format_opportunities_for_web(content_data)
+                        
+                        # Store opportunities in a special structure for frontend
+                        subsections[subsection_key] = {
+                            'title': title,
+                            'content': formatted_opportunities,  # Store as list directly
+                            'formatting': {},
+                            'type': 'opportunities_list'  # Special type for frontend handling
+                        }
+                        logger.info(f"🎯 Stored opportunities as list with {len(formatted_opportunities)} items")
+                        logger.info(f"🎯 First opportunity keys: {list(formatted_opportunities[0].keys()) if formatted_opportunities else 'EMPTY'}")
+                        logger.info(f"🎯 About to continue - skipping normal processing")
+                        continue  # Skip the normal processing below
+                    
+                    # List of ContentFormatter objects - extract and combine
+                    logger.debug(f"DEBUG: Processing ContentFormatter list for {subsection_key}, length: {len(content_data)}")
+                    actual_content = self._extract_from_content_list(content_data)
+                    formatting = self._extract_formatting_from_list(content_data)
+                    logger.debug(f"DEBUG: Extracted content length: {len(actual_content) if actual_content else 0}")
+                    
+                    # Create standardized subsection structure for lists
+                    subsections[subsection_key] = {
+                        'title': title,
+                        'content': actual_content,
+                        'formatting': formatting,
+                        'type': 'formatted_content'
+                    }
                 elif isinstance(content_data, dict):
                     # Complex structure: {"text": "...", "formatting": {...}}
                     actual_content = content_data.get('text', '')
                     formatting = content_data.get('formatting', {})
                     logger.debug(f"DEBUG: Dict content length: {len(actual_content) if actual_content else 0}")
+                    
+                    # Create standardized subsection structure for dicts
+                    subsections[subsection_key] = {
+                        'title': title,
+                        'content': actual_content,
+                        'formatting': formatting,
+                        'type': 'formatted_content'
+                    }
                 else:
                     # Simple structure: just a string
                     actual_content = content_data
                     formatting = {}
                     logger.debug(f"DEBUG: String content length: {len(actual_content) if actual_content else 0}")
-                
-                # Create standardized subsection structure
-                subsections[subsection_key] = {
-                    'title': title,
-                    'content': actual_content,
-                    'formatting': formatting,
-                    'type': 'formatted_content'
-                }
+                    
+                    # Create standardized subsection structure for strings
+                    subsections[subsection_key] = {
+                        'title': title,
+                        'content': actual_content,
+                        'formatting': formatting,
+                        'type': 'formatted_content'
+                    }
             else:
                 # Handle edge case where subsection_data is not a dict
                 subsections[subsection_key] = {
@@ -303,6 +385,7 @@ class CareerAnalysisService:
         
         return {
             'title': section_title,
+            'section_title': section_title,  # Add section_title for backward compatibility
             'section_key': section_title.lower().replace(' ', '_'),
             'subsections': subsections
         }
@@ -312,9 +395,109 @@ class CareerAnalysisService:
         Format section data for document generation (Word/PDF).
         
         Returns the data in the format expected by the DocumentFormatter.
+        The DocumentFormatter expects sections with 'title' and 'content' structure.
         """
-        # Document generation uses the existing format from generators
-        return section_data
+        logger.debug(f"Formatting section '{section_title}' for document generation")
+        
+        # Get the generator content from section_data
+        generator_content = section_data.get('content', {})
+        
+        # Special handling for pathway analysis with opportunities
+        if 'opportunities' in generator_content:
+            logger.debug("🎯 Special handling for pathway analysis opportunities")
+            opportunities_list = generator_content['opportunities']
+            
+            # Process opportunities while preserving structure for document generation
+            formatted_opportunities = []
+            
+            for i, opportunity in enumerate(opportunities_list):
+                if isinstance(opportunity, dict):
+                    # Convert ContentFormatter objects to document-friendly format
+                    formatted_opportunity = {}
+                    
+                    for key, value in opportunity.items():
+                        if isinstance(value, dict) and 'content' in value:
+                            # Extract text content but preserve title
+                            content_data = value['content']
+                            if isinstance(content_data, list):
+                                text_content = self._extract_from_content_list(content_data)
+                            elif isinstance(content_data, dict) and 'text' in content_data:
+                                text_content = content_data['text']
+                            elif isinstance(content_data, str):
+                                text_content = content_data
+                            else:
+                                text_content = str(content_data)
+                            
+                            formatted_opportunity[key] = {
+                                'title': value.get('title', key.replace('_', ' ').title()),
+                                'content': text_content
+                            }
+                        else:
+                            # Keep other fields as-is
+                            formatted_opportunity[key] = value
+                    
+                    formatted_opportunities.append(formatted_opportunity)
+                else:
+                    logger.warning(f"Opportunity {i} is not a dict: {type(opportunity)}")
+            
+            return {
+                'opportunities': formatted_opportunities
+            }
+        
+        # Regular subsection processing for non-pathway sections
+        formatted_subsections = {}
+        
+        for subsection_key, subsection_data in generator_content.items():
+            logger.debug(f"Formatting subsection '{subsection_key}' for document generation")
+            
+            if isinstance(subsection_data, dict):
+                # Extract title and content
+                title = subsection_data.get('title', self._format_subsection_title(subsection_key))
+                
+                # Extract content from various formats
+                if 'content' in subsection_data:
+                    content_data = subsection_data['content']
+                    
+                    if isinstance(content_data, list):
+                        # Extract text from ContentFormatter objects
+                        content_text = self._extract_from_content_list(content_data)
+                    elif isinstance(content_data, dict) and 'text' in content_data:
+                        # ContentFormatter object
+                        content_text = content_data['text']
+                    elif isinstance(content_data, str):
+                        # Plain string
+                        content_text = content_data
+                    else:
+                        # Convert to string
+                        content_text = str(content_data)
+                else:
+                    # Use the subsection_data directly if it's a string
+                    if isinstance(subsection_data, str):
+                        content_text = subsection_data
+                        title = self._format_subsection_title(subsection_key)
+                    else:
+                        # Extract from the dict structure
+                        content_text = str(subsection_data)
+                
+                formatted_subsections[subsection_key] = {
+                    'title': title,
+                    'content': content_text
+                }
+            elif isinstance(subsection_data, str):
+                # Simple string subsection
+                formatted_subsections[subsection_key] = {
+                    'title': self._format_subsection_title(subsection_key),
+                    'content': subsection_data
+                }
+            else:
+                # Convert anything else to string
+                formatted_subsections[subsection_key] = {
+                    'title': self._format_subsection_title(subsection_key),
+                    'content': str(subsection_data)
+                }
+        
+        logger.debug(f"Formatted {len(formatted_subsections)} subsections for document generation")
+        return formatted_subsections
     
     def _format_subsection_title(self, subsection_key: str) -> str:
         """Convert subsection keys to proper display titles."""
@@ -436,7 +619,27 @@ class CareerAnalysisService:
                             # This is a ContentFormatter-like object
                             content_data = value['content']
                             
-                            if isinstance(content_data, dict) and 'text' in content_data:
+                            # Check for all structured table types
+                            STRUCTURED_TABLE_TYPES = [
+                                'structured_skills_table',
+                                'structured_timeline_table', 
+                                'structured_overview_table',
+                                'structured_deployment_table',
+                                'structured_strategic_table',
+                                'structured_table'
+                            ]
+                            
+                            if isinstance(content_data, dict) and content_data.get('type') in STRUCTURED_TABLE_TYPES:
+                                # Keep structured data intact for frontend
+                                table_type = content_data.get('type')
+                                formatted_opportunity[key] = {
+                                    'title': value.get('title', key.replace('_', ' ').title()),
+                                    'content': content_data,  # Keep full structured data
+                                    'formatting': {'content_type': table_type},
+                                    'content_type': table_type
+                                }
+                                logger.debug(f"DEBUG: Preserved {table_type} for {key}")
+                            elif isinstance(content_data, dict) and 'text' in content_data:
                                 # Extract text and formatting
                                 formatted_opportunity[key] = {
                                     'title': value.get('title', key.replace('_', ' ').title()),

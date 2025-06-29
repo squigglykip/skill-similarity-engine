@@ -97,10 +97,30 @@ class PreviewService:
     
     def _extract_parameters(self, form_data: Dict) -> Dict[str, Any]:
         """Extract and validate parameters from form data."""
+        
+        # Map frontend analysis modes to backend template modes
+        analysis_mode_raw = form_data.get('analysis_mode', 'top_matches')
+        
+        # Normalize analysis mode for backend processing
+        ANALYSIS_MODE_MAP = {
+            'top_matches': 'top_matches',
+            'discovery': 'top_matches',  # Alternative name
+            'specific': 'specific',
+            'specific_transition': 'specific',  # Alternative name
+            'multiple_specific': 'specific'  # Multiple targets still use specific templates
+        }
+        
+        analysis_mode = ANALYSIS_MODE_MAP.get(analysis_mode_raw, 'top_matches')
+        
+        # Log mode mapping for debugging
+        if analysis_mode_raw != analysis_mode:
+            logger.info(f"Mapped analysis mode: {analysis_mode_raw} → {analysis_mode}")
+        
         return {
             'job_from': form_data.get('job_from', ''),
             'job_to': form_data.get('job_to'),
-            'analysis_mode': form_data.get('analysis_mode', 'top_matches'),
+            'analysis_mode': analysis_mode,
+            'analysis_mode_raw': analysis_mode_raw,  # Keep original for reference
             'similarity_min': int(form_data.get('similarity_min', 40)),
             'similarity_max': int(form_data.get('similarity_max', 90)),
             'top_n': int(form_data.get('top_n', 3)),
@@ -127,8 +147,16 @@ class PreviewService:
     def _process_section_for_web(self, section_data: Dict[str, Any], section_key: str) -> Dict[str, Any]:
         """Process an individual section for web display."""
         
+        # Extract section title - check both 'section_title' and 'title' for compatibility
+        section_title = (
+            section_data.get('section_title') or 
+            section_data.get('title') or 
+            self._format_section_title(section_key)
+        )
+        
         processed_section = {
-            'title': section_data.get('title', self._format_section_title(section_key)),
+            'title': section_title,
+            'section_title': section_title,  # Add both for compatibility
             'section_key': section_key,
             'subsections': {}
         }
@@ -146,7 +174,15 @@ class PreviewService:
         """Process an individual subsection for web display."""
         
         # Handle different content types
-        if 'content_items' in subsection_data:
+        if subsection_data.get('type') == 'opportunities_list':
+            # Special handling for pathway analysis opportunities
+            return {
+                'title': subsection_data.get('title', self._format_subsection_title(subsection_key)),
+                'type': 'opportunities_list',
+                'content': subsection_data.get('content', []),  # Keep as list
+                'formatting': subsection_data.get('formatting', {})
+            }
+        elif 'content_items' in subsection_data:
             # List of formatted content items (from generators)
             return {
                 'title': subsection_data.get('title', self._format_subsection_title(subsection_key)),

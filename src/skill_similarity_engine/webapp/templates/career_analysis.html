@@ -119,7 +119,7 @@
                     </label>
                     <div class="search-input-wrapper relative">
                         <input type="text" id="jobToSearch" name="job_to_search" 
-                               class="search-input-with-icon w-full px-3 py-2 border border-gray-300 rounded-md"
+                               class="search-input-with-icon w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white font-source"
                                placeholder="Search and select target jobs (supports multiple selection)..."
                                autocomplete="off">
                         <div class="search-input-icon">
@@ -309,7 +309,7 @@
         </div>
 
         <!-- Preview Panel (Full Width Bottom Section) -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200" style="height: calc(100vh - 18rem); min-height: 500px;">
+                        <div class="bg-white rounded-lg shadow-lg border border-gray-200" style="min-height: 500px;">
             <div class="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
                 <h2 class="text-xl font-epilogue font-semibold text-gray-900">
                     <i class="fas fa-eye text-red-600 mr-2"></i>
@@ -321,7 +321,7 @@
             </div>
             
             <!-- Loading Spinner (hidden by default) -->
-            <div id="loadingSpinner" class="flex items-center justify-center hidden" style="height: calc(100vh - 24rem); min-height: 400px;">
+            <div id="loadingSpinner" class="flex items-center justify-center hidden py-24">
                 <div class="text-center">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-red-600 mb-4"></div>
                     <p class="text-lg font-source text-gray-600">Generating analysis preview...</p>
@@ -329,8 +329,8 @@
                 </div>
             </div>
             
-            <!-- Scrollable preview content -->
-            <div class="overflow-y-auto overflow-x-hidden" id="previewContent" style="height: calc(100vh - 24rem); min-height: 400px;">
+            <!-- Dynamic preview content (no fixed height) -->
+            <div class="overflow-x-hidden" id="previewContent">
                 <div class="p-6">
                     <div class="text-center text-gray-500 py-12">
                         <i class="fas fa-chart-line text-6xl mb-4 text-gray-300"></i>
@@ -389,12 +389,14 @@
             }
             
             // Initialize unified search module for Career Transition Analysis
+            
+            // Initialize search for "job from" field
             window.SkillEngine.SearchModule.init({
                 inputId: 'jobFromSearch',
                 resultsId: 'jobFromResults', 
                 hiddenInputId: 'jobFrom',
                 onSelect: (selection) => {
-                    console.log('🔍 Job selected:', selection.jobId, selection.displayTitle);
+                    console.log('🔍 Source job selected:', selection.jobId, selection.displayTitle);
                     // The search module already handles updating the input and hidden field
                 },
                 config: {
@@ -404,7 +406,125 @@
                 }
             });
             
-            console.log('✅ Unified Search Module initialized for Career Transition Analysis');
+            // Initialize search for "job to" field with multiple selection support
+            window.SkillEngine.SearchModule.init({
+                inputId: 'jobToSearch',
+                resultsId: 'jobToResults', 
+                hiddenInputId: 'jobTo',
+                onSelect: (selection) => {
+                    console.log('🔍 Target job selected:', selection.jobId, selection.displayTitle);
+                    // Handle multiple job selection for target jobs
+                    handleTargetJobSelection(selection);
+                },
+                config: {
+                    showDetailedResults: true,
+                    maxResults: 10,
+                    apiEndpoint: '/api/career-analysis-jobs' // Use the enhanced API endpoint
+                }
+            });
+            
+            console.log('✅ Unified Search Module initialized for Career Transition Analysis (both source and target)');
+            
+            // Define the target job selection handler that integrates with existing CareerAnalysis module
+            window.handleTargetJobSelection = function(selection) {
+                // Use the existing target job selector from CareerAnalysis module if available
+                if (window.SkillEngine && window.SkillEngine.CareerAnalysis && window.SkillEngine.CareerAnalysis.targetJobSelector) {
+                    window.SkillEngine.CareerAnalysis.targetJobSelector.addJob(selection.jobId, selection.displayTitle);
+                } else {
+                    // Fallback to direct DOM manipulation
+                    console.log('🔍 CareerAnalysis module not ready, using fallback target job selection');
+                    handleTargetJobSelectionFallback(selection);
+                }
+            };
+            
+            // Fallback target job selection handler
+            window.handleTargetJobSelectionFallback = function(selection) {
+                const hiddenInput = document.getElementById('jobTo');
+                const selectedTargetsContainer = document.getElementById('selectedTargets');
+                const searchInput = document.getElementById('jobToSearch');
+                
+                // Get current selected job IDs
+                let selectedJobIds = hiddenInput.value ? hiddenInput.value.split(',') : [];
+                
+                // Check if job is already selected
+                if (selectedJobIds.includes(selection.jobId)) {
+                    console.log('🔍 Job already selected:', selection.jobId);
+                    return;
+                }
+                
+                // Add new job ID
+                selectedJobIds.push(selection.jobId);
+                
+                // Limit to maximum 5 jobs for multiple selection
+                if (selectedJobIds.length > 5) {
+                    selectedJobIds = selectedJobIds.slice(-5); // Keep last 5
+                    console.log('🔍 Maximum 5 jobs allowed, removed oldest selection');
+                }
+                
+                // Update hidden input
+                hiddenInput.value = selectedJobIds.join(',');
+                
+                // Clear search input
+                searchInput.value = '';
+                
+                // Update visual chips
+                updateTargetJobChipsFallback(selectedJobIds, selection.displayTitle);
+                
+                console.log('🔍 Updated selected target jobs:', selectedJobIds);
+            };
+            
+            // Fallback function to update visual job chips
+            window.updateTargetJobChipsFallback = function(jobIds, displayTitle) {
+                const container = document.getElementById('selectedTargets');
+                
+                // Create chip element for the new job
+                const chip = document.createElement('div');
+                chip.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800';
+                chip.innerHTML = `
+                    <span class="mr-2">${displayTitle || jobIds[jobIds.length - 1]}</span>
+                    <button type="button" onclick="removeTargetJobFallback('${jobIds[jobIds.length - 1]}')" class="inline-flex items-center justify-center w-4 h-4 ml-1 text-red-600 hover:text-red-800 hover:bg-red-200 rounded-full">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                `;
+                container.appendChild(chip);
+                
+                // Update help text
+                const helpText = jobIds.length === 1 ? 
+                    'Single job selected - detailed analysis will be generated' :
+                    `${jobIds.length} jobs selected - comparative analysis will be generated`;
+                
+                const helpElement = container.nextElementSibling;
+                if (helpElement && helpElement.classList.contains('text-xs')) {
+                    helpElement.innerHTML = `
+                        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                        ${helpText}
+                    `;
+                }
+            };
+            
+            // Fallback function to remove a target job
+            window.removeTargetJobFallback = function(jobIdToRemove) {
+                const hiddenInput = document.getElementById('jobTo');
+                let selectedJobIds = hiddenInput.value ? hiddenInput.value.split(',') : [];
+                
+                // Remove the job ID
+                selectedJobIds = selectedJobIds.filter(id => id !== jobIdToRemove);
+                
+                // Update hidden input
+                hiddenInput.value = selectedJobIds.join(',');
+                
+                // Remove the chip from DOM
+                const container = document.getElementById('selectedTargets');
+                const chips = container.querySelectorAll('div');
+                chips.forEach(chip => {
+                    const button = chip.querySelector('button');
+                    if (button && button.getAttribute('onclick').includes(jobIdToRemove)) {
+                        chip.remove();
+                    }
+                });
+                
+                console.log('🔍 Removed target job:', jobIdToRemove, 'Remaining:', selectedJobIds);
+            };
         }
         
         initializeSearch();

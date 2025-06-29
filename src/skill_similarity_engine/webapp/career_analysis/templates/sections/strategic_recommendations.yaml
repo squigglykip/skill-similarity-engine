@@ -83,17 +83,12 @@ strategic_recommendations:
 
     research_references:
       title: "References & Supporting Research"
-      content_type: "numbered_list"
+      content_type: "bullet_list"
       small_italic_text: true
       content: |
-        Bersin, J. (2022). The ROI of Internal Talent Development. Bersin & Associates. Research demonstrates internal talent development saves up to £116,000 per person over three years compared to external hiring costs.
-
-        Lightcast (2023). Skills-Based Hiring and Workforce Development Report. Analysis shows upskilling existing employees is six times more cost-effective than external recruitment when accounting for total cost of hiring.
-
-        McKinsey & Company (2021). Skills-Based Hiring Builds Stronger Teams. Research indicates skills-based hiring provides 5× better job performance prediction compared to traditional education and experience-based hiring.
-
-        LinkedIn (2022). Workplace Learning Report: Internal Mobility and Retention. Study of global workforce data shows employees with internal career moves achieve 70% retention rates versus 45% for those without mobility opportunities.
-
-        Gallup (2022). State of the Global Workplace: Learning and Development Impact. Survey research indicates 71% of employees who receive targeted upskilling report higher job satisfaction and engagement levels.
-
-        Additional Industry References: HSBC (2023) internal talent marketplace outcomes; Amazon (2023) Upskilling 2025 program results; ING (2022) workforce planning capabilities research; Unilever (2020) COVID-19 redeployment case study.
+        - Bersin, J. (2022). The ROI of Internal Talent Development. Bersin & Associates. Research demonstrates internal talent development saves up to £116,000 per person over three years compared to external hiring costs.
+        - Lightcast (2023). Skills-Based Hiring and Workforce Development Report. Analysis shows upskilling existing employees is six times more cost-effective than external recruitment when accounting for total cost of hiring.
+        - McKinsey & Company (2021). Skills-Based Hiring Builds Stronger Teams. Research indicates skills-based hiring provides 5× better job performance prediction compared to traditional education and experience-based hiring.
+        - LinkedIn (2022). Workplace Learning Report: Internal Mobility and Retention. Study of global workforce data shows employees with internal career moves achieve 70% retention rates versus 45% for those without mobility opportunities.
+        - Gallup (2022). State of the Global Workplace: Learning and Development Impact. Survey research indicates 71% of employees who receive targeted upskilling report higher job satisfaction and engagement levels.
+        - Additional Industry References: HSBC (2023) internal talent marketplace outcomes; Amazon (2023) Upskilling 2025 program results; ING (2022) workforce planning capabilities research; Unilever (2020) COVID-19 redeployment case study.

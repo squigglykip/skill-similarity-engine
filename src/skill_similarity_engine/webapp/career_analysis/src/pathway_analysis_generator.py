@@ -78,7 +78,7 @@ class PathwayAnalysisGenerator:
     
     def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None,
                  similarity_range: tuple = (0.4, 0.9), include_organisational_deployment: bool = False, top_n: int = 3,
-                 tie_breaking_options: Optional[Dict] = None) -> Dict:
+                 tie_breaking_options: Optional[Dict] = None, output_format: str = 'document') -> Dict:
         """Generate pathway analysis content with mode support."""
         
         # Load appropriate template for mode
@@ -98,8 +98,11 @@ class PathwayAnalysisGenerator:
             
             analyzer = SpecificTransitionAnalyzer(self.db)
             
-            if isinstance(job_to, str) and ',' in job_to:
-                # Multiple targets
+            if isinstance(job_to, list):
+                # Multiple targets - already a list
+                analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to, similarity_range)
+            elif isinstance(job_to, str) and ',' in job_to:
+                # Multiple targets - comma-separated string
                 job_to_list = [j.strip() for j in job_to.split(',')]
                 analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
             else:
@@ -116,7 +119,7 @@ class PathwayAnalysisGenerator:
                 opportunities = self._convert_specific_to_opportunities(analysis_data, job_from, include_organisational_deployment)
             
             # Use the same rich content generation as discovery mode
-            content = self._generate_content_sections(opportunities)
+            content = self._generate_content_sections(opportunities, output_format)
             
             # Get section title using template rendering (like Strategic Recommendations)
             section_title = self._get_template_section_title(analysis_data, analysis_mode)
@@ -148,7 +151,7 @@ class PathwayAnalysisGenerator:
                 opportunities.append(opportunity_analysis)
             
             # Generate content sections with pathway count context
-            content = self._generate_content_sections(opportunities)
+            content = self._generate_content_sections(opportunities, output_format)
             
             # Create dynamic section title with template variables
             title_template = Template(f'Pathway Analysis: Top {top_n} Strategic Opportunities')
@@ -693,7 +696,7 @@ class PathwayAnalysisGenerator:
                 'target_growth_trajectory': 'Growth analysis requires historical data'
             }
     
-    def _generate_content_sections(self, opportunities: List[Dict]) -> Dict:
+    def _generate_content_sections(self, opportunities: List[Dict], output_format: str = 'document') -> Dict:
         """Generate content for the pathway analysis section."""
         template_sections = self.template_data.get('pathway_analysis', {})
         opportunity_template = template_sections.get('opportunity_template', {})
@@ -710,20 +713,20 @@ class PathwayAnalysisGenerator:
                 # Generate content for this opportunity using Current Role Context pattern
                 opportunity_content = {
                     'header': Template(opportunity_template.get('header', '')).render(**opportunity_variables),
-                    'opportunity_overview': self._create_opportunity_overview_section(opportunity_variables),
+                    'opportunity_overview': self._create_opportunity_overview_section(opportunity_variables, output_format),
                     'strategic_positioning': {
                         'title': opportunity_template.get('strategic_positioning', {}).get('title', ''),
                         'content_type': opportunity_template.get('strategic_positioning', {}).get('content_type', 'paragraph'),
                         'content': Template(opportunity_template.get('strategic_positioning', {}).get('content', '')).render(**opportunity_variables)
                     },
-                    'skills_transition_analysis': self._create_skills_transition_section(opportunity_variables),
+                    'skills_transition_analysis': self._create_skills_transition_section(opportunity_variables, output_format),
                     'business_case': {
                         'title': opportunity_template.get('business_case', {}).get('title', ''),
                         'content_type': opportunity_template.get('business_case', {}).get('content_type', 'mixed'),
                         'bold_labels': opportunity_template.get('business_case', {}).get('bold_labels', []),
                         'content': Template(opportunity_template.get('business_case', {}).get('content', '')).render(**opportunity_variables)
                     },
-                    'implementation_roadmap': self._create_implementation_roadmap_section(opportunity_variables)
+                    'implementation_roadmap': self._create_implementation_roadmap_section(opportunity_variables, output_format)
                 }
                 
                 content['opportunities'].append(opportunity_content)
@@ -734,7 +737,7 @@ class PathwayAnalysisGenerator:
         
         return content
     
-    def _create_opportunity_overview_section(self, variables: Dict) -> Dict:
+    def _create_opportunity_overview_section(self, variables: Dict, output_format: str = 'document') -> Dict:
         """Create opportunity overview section with table following Current Role Context pattern."""
         try:
             # Try relative import first, then absolute import
@@ -743,8 +746,8 @@ class PathwayAnalysisGenerator:
             except ImportError:
                 from formatter import ContentFormatter
             
-            # Create the table content
-            table_content = self._create_opportunity_overview_table(variables)
+            # Create the table content with specified format
+            table_content = self._create_opportunity_overview_table(variables, output_format)
             
             return {
                 'title': 'Opportunity Overview',
@@ -758,7 +761,7 @@ class PathwayAnalysisGenerator:
                 'content': "Table generation failed"
             }
 
-    def _create_skills_transition_section(self, variables: Dict) -> Dict:
+    def _create_skills_transition_section(self, variables: Dict, output_format: str = 'document') -> Dict:
         """Create skills transition section with table following Current Role Context pattern."""
         try:
             # Try relative import first, then absolute import
@@ -767,8 +770,8 @@ class PathwayAnalysisGenerator:
             except ImportError:
                 from formatter import ContentFormatter
             
-            # Create the table content
-            table_content = self._create_skills_development_table(variables)
+            # Create the table content with specified format
+            table_content = self._create_skills_development_table(variables, output_format)
             
             return {
                 'title': 'Skills Transition Analysis',
@@ -782,7 +785,7 @@ class PathwayAnalysisGenerator:
                 'content': "Table generation failed"
             }
 
-    def _create_implementation_roadmap_section(self, variables: Dict) -> Dict:
+    def _create_implementation_roadmap_section(self, variables: Dict, output_format: str = 'document') -> Dict:
         """Create implementation roadmap section with table following Current Role Context pattern."""
         try:
             # Try relative import first, then absolute import
@@ -791,8 +794,8 @@ class PathwayAnalysisGenerator:
             except ImportError:
                 from formatter import ContentFormatter
             
-            # Create the table content
-            table_content = self._create_implementation_timeline_table(variables)
+            # Create the table content with specified format
+            table_content = self._create_implementation_timeline_table(variables, output_format)
             
             return {
                 'title': 'Implementation Roadmap',
@@ -806,8 +809,8 @@ class PathwayAnalysisGenerator:
                 'content': "Table generation failed"
             }
 
-    def _create_opportunity_overview_table(self, variables: Dict):
-        """Create opportunity overview table using the exact pattern from Current Role Context."""
+    def _create_opportunity_overview_table(self, variables: Dict, output_format: str = 'document'):
+        """Create opportunity overview table with format-aware output."""
         try:
             # Try relative import first, then absolute import
             try:
@@ -828,15 +831,27 @@ class PathwayAnalysisGenerator:
             if variables.get('include_organisational_deployment', False):
                 rows.append(["Career Growth", f"{variables.get('target_division_count', 0)} divisions", variables.get('strategic_importance_assessment', 'Unknown')])
             
-            # Use exact same pattern as ContentFormatter.create_skills_analysis_table
-            return ContentFormatter.create_table(headers, rows, 'compact')
+            if output_format == 'web':
+                return {
+                    'type': 'structured_overview_table',
+                    'headers': headers,
+                    'rows': rows,
+                    'metadata': {'table_style': 'compact'}
+                }
+            else:
+                return ContentFormatter.create_table(headers, rows, 'compact', output_format)
             
         except ImportError:
             # Fallback - return text representation
             return "Table creation failed - ContentFormatter not available"
     
-    def _create_skills_development_table(self, variables: Dict):
-        """Create skills gap analysis table using actual database taxonomy."""
+    def _create_skills_development_table(self, variables: Dict, output_format: str = 'document'):
+        """Create skills gap analysis table using actual database taxonomy.
+        
+        Args:
+            variables: Template variables containing skills data
+            output_format: 'document' for ContentFormatter table, 'web' for structured data
+        """
         try:
             # Try relative import first, then absolute import
             try:
@@ -912,19 +927,55 @@ class PathwayAnalysisGenerator:
                     }
             
             # Build table rows from domains
+            structured_rows = []
             for domain_name, domain_data in domains_to_show.items():
                 current_skills = domain_data['current_skills']  # Show actual skills or empty
                 required_skills = domain_data['required_skills']  # Show actual skills or empty
                 gap_assessment = domain_data['gap_assessment']
                 
-                rows.append([
-                    domain_name,
-                    current_skills,
-                    required_skills,
-                    gap_assessment
-                ])
+                # For web format, calculate intelligent gap assessment
+                if output_format == 'web':
+                    # Count new skills required for this category
+                    new_skills_count = len([s for s in required_skills.split('\n') if s.strip().startswith('•')]) if required_skills else 0
+                    
+                    if new_skills_count == 0:
+                        gap_assessment = '<span class="text-green-600 font-medium">Strong foundation - ready for transition</span>'
+                    elif new_skills_count <= 3:
+                        gap_assessment = '<span class="text-yellow-600 font-medium">Moderate foundation - some development needed</span>'
+                    else:
+                        gap_assessment = '<span class="text-red-600 font-medium">Limited foundation - significant development required</span>'
+                
+                if output_format == 'web':
+                    # Return structured data for web
+                    structured_rows.append({
+                        'category': domain_name,
+                        'current_skills': current_skills,
+                        'required_skills': required_skills,
+                        'gap_assessment': gap_assessment
+                    })
+                else:
+                    # Traditional row format for document generation
+                    rows.append([
+                        domain_name,
+                        current_skills,
+                        required_skills,
+                        gap_assessment
+                    ])
             
-            # Add comprehensive summary row for business leaders
+            # Return structured data for web format
+            if output_format == 'web':
+                return {
+                    'type': 'structured_skills_table',
+                    'headers': headers,
+                    'rows': structured_rows,
+                    'metadata': {
+                        'total_categories': len(structured_rows),
+                        'categories_with_current_skills': len([r for r in structured_rows if r['current_skills']]),
+                        'categories_with_new_skills': len([r for r in structured_rows if r['required_skills']])
+                    }
+                }
+            
+            # Add comprehensive summary row for business leaders (document format only)
             if len(rows) > 0:
                 transferable_count = len([d for d in domains_to_show.values() if d['current_skills']])
                 required_count = len([d for d in domains_to_show.values() if d['required_skills']])
@@ -951,8 +1002,13 @@ class PathwayAnalysisGenerator:
                 'formatting': {}
             }
     
-    def _create_implementation_timeline_table(self, variables: Dict):
-        """Create implementation timeline table using the exact pattern from Current Role Context."""
+    def _create_implementation_timeline_table(self, variables: Dict, output_format: str = 'document'):
+        """Create implementation timeline table using the exact pattern from Current Role Context.
+        
+        Args:
+            variables: Template variables containing timeline data
+            output_format: 'document' for ContentFormatter table, 'web' for structured data
+        """
         try:
             # Try relative import first, then absolute import
             try:
@@ -962,12 +1018,56 @@ class PathwayAnalysisGenerator:
             
             headers = ["Phase", "Timeline", "Key Activities", "Success Measures"]
             
-            rows = [
-                ["Getting Started", "Months 1-2", "Career conversations, skills assessment, mentor assignment", "Development plan approved"],
-                ["Building Skills", "Months 3-4", "Technical training, workshops, shadowing programs", f"{variables.get('specialized_skills_count', 'N/A')} competencies acquired"],
-                ["Applying Learning", "Months 5-6", "Cross-functional projects, progress reviews", "Practical application demonstrated"],
-                ["Full Transition", "Month 7+", "Role transition, ongoing mentorship", "Performance targets achieved"]
+            # Define the rows
+            rows_data = [
+                {
+                    'phase': 'Getting Started',
+                    'timeline': 'Months 1-2',
+                    'key_activities': 'Career conversations, skills assessment, mentor assignment',
+                    'success_measures': 'Development plan approved'
+                },
+                {
+                    'phase': 'Building Skills',
+                    'timeline': 'Months 3-4',
+                    'key_activities': 'Technical training, workshops, shadowing programs',
+                    'success_measures': f"{variables.get('specialized_skills_count', 'N/A')} competencies acquired"
+                },
+                {
+                    'phase': 'Applying Learning',
+                    'timeline': 'Months 5-6',
+                    'key_activities': 'Cross-functional projects, progress reviews',
+                    'success_measures': 'Practical application demonstrated'
+                },
+                {
+                    'phase': 'Full Transition',
+                    'timeline': 'Month 7+',
+                    'key_activities': 'Role transition, ongoing mentorship',
+                    'success_measures': 'Performance targets achieved'
+                }
             ]
+            
+            # Return structured data for web format
+            if output_format == 'web':
+                return {
+                    'type': 'structured_timeline_table',
+                    'headers': headers,
+                    'rows': rows_data,
+                    'metadata': {
+                        'total_phases': len(rows_data),
+                        'estimated_duration': '7+ months',
+                        'specialized_skills_count': variables.get('specialized_skills_count', 'N/A')
+                    }
+                }
+            
+            # Traditional row format for document generation
+            rows = []
+            for row_data in rows_data:
+                rows.append([
+                    row_data['phase'],
+                    row_data['timeline'],
+                    row_data['key_activities'],
+                    row_data['success_measures']
+                ])
             
             # Use exact same pattern as ContentFormatter.create_skills_analysis_table
             return ContentFormatter.create_table(headers, rows, 'compact')
@@ -1074,7 +1174,10 @@ class PathwayAnalysisGenerator:
                 variables['source_job_logical_display_name'] = opportunity['specific_analysis_data']['source_job'].get('logical_display_name', 'Professional Role')
             
             if 'target_job' in opportunity['specific_analysis_data']:
-                variables['target_job_logical_name'] = opportunity['specific_analysis_data']['target_job'].get('logical_display_name', variables.get('target_job_logical_display_name', 'Target Role'))
+                # Set both variable names that templates might use
+                target_display_name = opportunity['specific_analysis_data']['target_job'].get('logical_display_name', variables.get('target_job_logical_display_name', 'Target Role'))
+                variables['target_job_logical_name'] = target_display_name
+                variables['target_job_logical_display_name'] = target_display_name
             
             if 'transition_metrics' in opportunity['specific_analysis_data']:
                 variables['transition_similarity'] = opportunity['specific_analysis_data']['transition_metrics'].get('similarity_score', variables.get('similarity_score', 0))
@@ -1235,7 +1338,9 @@ class PathwayAnalysisGenerator:
             
             # Handle single target logical name for template
             if analysis_data.get('analysis_mode') == 'specific_single':
-                template_variables['target_job_logical_name'] = analysis_data['target_job']['logical_display_name']
+                target_display_name = analysis_data['target_job']['logical_display_name']
+                template_variables['target_job_logical_name'] = target_display_name
+                template_variables['target_job_logical_display_name'] = target_display_name
             
             # Check if title is a Jinja2 template
             if isinstance(title_template, str) and ('{{' in title_template or '{%' in title_template):

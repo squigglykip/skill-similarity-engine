@@ -483,7 +483,7 @@ class StrategicRecommendationsGenerator:
                         }
                     
                     # Handle mixed content with formatting metadata
-                    elif content_type in ['mixed', 'numbered_list'] and formatter_available:
+                    elif content_type in ['mixed', 'numbered_list', 'bullet_list'] and formatter_available:
                         if content_template:
                             template = Template(content_template)
                             rendered_content = template.render(**template_variables)
@@ -506,6 +506,18 @@ class StrategicRecommendationsGenerator:
                                         {
                                             'content_type': 'numbered_list',
                                             'bold_numbered_headers': bold_numbered_headers,
+                                            'small_italic_text': small_italic_text
+                                        }
+                                    )
+                                }
+                            elif content_type == 'bullet_list':
+                                # Handle bullet list content
+                                content_sections[section_key] = {
+                                    'title': title,
+                                    'content': ContentFormatter.create_formatted_content(
+                                        rendered_content.strip(),
+                                        {
+                                            'content_type': 'bullet_list',
                                             'small_italic_text': small_italic_text
                                         }
                                     )
@@ -579,8 +591,11 @@ class StrategicRecommendationsGenerator:
                 
                 analyzer = SpecificTransitionAnalyzer(self.db)
                 
-                if isinstance(job_to, str) and ',' in job_to:
-                    # Multiple targets
+                if isinstance(job_to, list):
+                    # Multiple targets - already a list
+                    analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to, similarity_range)
+                elif isinstance(job_to, str) and ',' in job_to:
+                    # Multiple targets - comma-separated string
                     job_to_list = [j.strip() for j in job_to.split(',')]
                     analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
                 else:
@@ -634,9 +649,14 @@ class StrategicRecommendationsGenerator:
             # Generate content sections
             content_sections = self._generate_content_sections(template_variables)
             
+            # Extract section title from YAML template
+            strategic_config = self.template_data.get('strategic_recommendations', {})
+            section_config = strategic_config.get('section_config', {})
+            section_title = section_config.get('title', 'Strategic Recommendations')
+            
             # Return structured result
             result = {
-                'section_title': 'Strategic Recommendations',
+                'section_title': section_title,
                 'content': content_sections,
                 'template_variables': template_variables,
                 'database_values': db_values,

@@ -2,11 +2,17 @@
 # Based on career_analysis_example_gold_standard.md lines 91-174
 
 current_role_context:
-  section_title: "Current Role Context"
+  section_title: "Current Role Context: {{source_job_logical_display_name}}"
   
   section_config:
-    title: "Current Role Context"
+    title: "Current Role Context: {{source_job_logical_display_name}}"
     references_start: 17
+
+  role_identification:
+    title: "Role Analysis Overview"
+    content_type: "paragraph"
+    content: |
+      This analysis focuses on **{{source_job_logical_display_name}}** (Job ID: {{source_job_id}}) within NAB's organisational structure. The following assessment provides comprehensive context for strategic career planning and transition analysis.
 
   profile_overview:
     title: "{{source_job_logical_display_name}} Profile"

@@ -86,7 +86,7 @@ class ExecutiveSummaryGenerator:
             return self.template_data  # Fallback to standard template
     
     def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None, 
-                 similarity_range: tuple = (0.4, 0.9), top_n: int = 3) -> Dict:
+                 similarity_range: tuple = (0.4, 0.9), top_n: int = 3, tie_breaking_options: Optional[Dict] = None) -> Dict:
         """Generate executive summary content for a given source job with mode support."""
         
         # Step 1: Get database-derived values
@@ -106,8 +106,11 @@ class ExecutiveSummaryGenerator:
                 from specific_transition_analyzer import SpecificTransitionAnalyzer
             analyzer = SpecificTransitionAnalyzer(self.db)
             
-            if isinstance(job_to, str) and ',' in job_to:
-                # Multiple targets
+            if isinstance(job_to, list):
+                # Multiple targets - already a list
+                analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to, similarity_range)
+            elif isinstance(job_to, str) and ',' in job_to:
+                # Multiple targets - comma-separated string
                 job_to_list = [j.strip() for j in job_to.split(',')]
                 analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
             else:
@@ -118,7 +121,7 @@ class ExecutiveSummaryGenerator:
             pathways_data = self._convert_specific_to_pathways(analysis_data)
         else:
             # Default: Top N pathways analysis
-            pathways_data = self._get_top_pathways(job_from, limit=top_n)
+            pathways_data = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options)
             analysis_data = None
         
         # Step 3: Calculate dynamic thresholds and descriptors
@@ -136,8 +139,14 @@ class ExecutiveSummaryGenerator:
         # Step 5: Generate content sections
         content = self._generate_content_sections(template_variables)
         
+        # Extract section title from YAML template
+        template_data = self._load_specific_template() if analysis_mode == 'specific' else self._load_template()
+        executive_config = template_data.get('executive_summary', {})
+        section_config = executive_config.get('section_config', {})
+        section_title = section_config.get('title', 'Executive Summary')
+        
         return {
-            'section_title': 'Executive Summary',
+            'section_title': section_title,
             'content': content,
             'references': self._generate_references(job_from, pathways_data),
             'template_variables': template_variables  # For debugging
@@ -214,13 +223,13 @@ class ExecutiveSummaryGenerator:
         
         return values
     
-    def _get_top_pathways(self, job_from: str, limit: int = 3) -> List[Dict]:
+    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None) -> List[Dict]:
         """Get top similarity pathways with consistent ordering."""
         
         try:
             # Use centralized pathway ordering for consistency across all sections
             from pathway_ordering_utils import get_consistent_pathways
-            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True)
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True, tie_breaking_options=tie_breaking_options)
             
         except ImportError:
             print("⚠️ PathwayOrderingUtils not available, using fallback method")

@@ -112,8 +112,11 @@ class ConclusionGenerator:
             
             analyzer = SpecificTransitionAnalyzer(self.db)
             
-            if isinstance(job_to, str) and ',' in job_to:
-                # Multiple targets
+            if isinstance(job_to, list):
+                # Multiple targets - already a list
+                analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to, similarity_range)
+            elif isinstance(job_to, str) and ',' in job_to:
+                # Multiple targets - comma-separated string
                 job_to_list = [j.strip() for j in job_to.split(',')]
                 analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
             else:
@@ -174,10 +177,15 @@ class ConclusionGenerator:
         content = self._generate_content_sections(template_variables)
         logger.info("Generated conclusion content sections")
         
+        # Extract section title from YAML template
+        conclusion_config = self.template_data.get('conclusion', {})
+        section_config = conclusion_config.get('section_config', {})
+        section_title = section_config.get('title', 'Conclusion')
+        
         logger.info("Conclusion generation completed successfully")
         
         return {
-            'section_title': 'Conclusion',
+            'section_title': section_title,
             'content': content,
             'references': self._generate_references(),
             'template_variables': template_variables  # For debugging

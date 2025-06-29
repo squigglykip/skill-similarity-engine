@@ -446,6 +446,8 @@ class SpecificTransitionAnalyzer:
                 'rank': i,
                 'job_id': analysis['target_job']['job_id'],
                 'logical_display_name': analysis['target_job']['logical_display_name'],
+                'target_job_logical_name': analysis['target_job']['logical_display_name'],  # Add for template compatibility
+                'target_job_logical_display_name': analysis['target_job']['logical_display_name'],  # Add for template compatibility
                 'similarity_score': analysis['transition_metrics']['similarity_score'],
                 'strategic_priority': 'primary' if i == 1 else 'secondary' if i <= 3 else 'alternative',
                 'recommendation_rationale': self._generate_recommendation_rationale(analysis, i)
