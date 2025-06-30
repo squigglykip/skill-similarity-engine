@@ -938,14 +938,7 @@ class CurrentRoleContextGenerator:
     def _generate_core_competency_foundation(self, core_config: Dict, variables: Dict) -> Dict:
         """Generate structured core competency foundation content with Skills Analysis Table."""
         
-        # 🔍 DEBUG: Check ContentFormatter availability at runtime
-        print(f"🔍 DEBUG: ContentFormatter type: {type(ContentFormatter)}")
-        print(f"🔍 DEBUG: ContentFormatter value: {ContentFormatter}")
-        print(f"🔍 DEBUG: ContentFormatter is None: {ContentFormatter is None}")
-        print(f"🔍 DEBUG: not ContentFormatter: {not ContentFormatter}")
-        
         if not ContentFormatter:
-            print("🔍 DEBUG: Taking fallback path because ContentFormatter is falsy")
             # Fallback to legacy approach - create meaningful content instead of empty template
 
             
@@ -1003,11 +996,21 @@ class CurrentRoleContextGenerator:
             # Create intro paragraph
             intro_content = ContentFormatter.create_paragraph(intro_text, [])
             
-            # Create Skills Analysis Table using the new method
-            skills_table = ContentFormatter.create_skills_analysis_table(
-                skill_categories, 
-                total_skills, 
-                skills_overlap_job_count
+            # Create Skills Analysis Table using the new method - USE WEB FORMAT
+            # Note: For web preview, we need structured table data, not markdown text
+            headers = ['Skill Type', 'Skill Count', 'All Skills']
+            rows = []
+            for category in skill_categories:
+                skill_type = category.get('name', 'Other')
+                skill_count = category.get('skill_count', 0)
+                skill_list = category.get('skill_list', '')
+                rows.append([skill_type, str(skill_count), skill_list])
+            
+            skills_table = ContentFormatter.create_table(
+                headers=headers,
+                rows=rows,
+                table_style='compact',
+                output_format='web'  # 🔧 KEY FIX: Use web format for structured data
             )
             
             # Return both intro and table as a list
@@ -1024,10 +1027,21 @@ class CurrentRoleContextGenerator:
             # Use fallback data to create proper content list
             intro_content = ContentFormatter.create_paragraph(intro_text, [])
             
-            skills_table = ContentFormatter.create_skills_analysis_table(
-                fallback_skills['skill_categories'], 
-                fallback_skills['total_skills'], 
-                fallback_skills['skills_overlap_job_count']
+            # Create fallback skills table with web format
+            fallback_categories = fallback_skills['skill_categories']
+            headers = ['Skill Type', 'Skill Count', 'All Skills']
+            rows = []
+            for category in fallback_categories:
+                skill_type = category.get('name', 'Other')
+                skill_count = category.get('skill_count', 0)
+                skill_list = category.get('skill_list', '')
+                rows.append([skill_type, str(skill_count), skill_list])
+                
+            skills_table = ContentFormatter.create_table(
+                headers=headers,
+                rows=rows,
+                table_style='compact',
+                output_format='web'  # 🔧 KEY FIX: Use web format for structured data
             )
             
             result = {

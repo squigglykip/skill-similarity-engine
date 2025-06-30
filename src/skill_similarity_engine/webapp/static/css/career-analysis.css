@@ -341,4 +341,166 @@
 .slider-thumb-red::-moz-range-thumb:active {
     transform: scale(1.15);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* =================================================================
+   Skills Pills and Expandable Functionality (Tailwind-based)
+   ================================================================= */
+
+/* Skills container for grouping pills */
+.skills-container {
+    @apply flex flex-wrap gap-1 items-center;
+}
+
+/* Individual skill pill styling */
+.skill-pill {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full;
+    @apply bg-blue-100 text-blue-800 border border-blue-200;
+    @apply transition-colors duration-200;
+}
+
+.skill-pill:hover {
+    @apply bg-blue-200 text-blue-900;
+}
+
+/* Expand/Collapse button for skills */
+.skills-expand-btn {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full;
+    @apply bg-red-100 text-red-800 border border-red-200;
+    @apply cursor-pointer hover:bg-red-200 hover:text-red-900;
+    @apply transition-all duration-200 ml-1;
+}
+
+.skills-expand-btn:hover {
+    @apply shadow-sm transform scale-105;
+}
+
+/* =================================================================
+   Table Enhancement Classes (Tailwind-based)
+   ================================================================= */
+
+/* Fixed table layout for consistent column widths */
+.table-fixed {
+    @apply table-fixed w-full;
+}
+
+/* Responsive table container without horizontal scroll */
+.table-container {
+    @apply w-full overflow-visible;
+}
+
+/* Table cell content wrapping */
+.table-cell-wrap {
+    @apply break-words align-top;
+}
+
+/* Skills column specific styling */
+.skills-column {
+    @apply w-3/5 min-w-0; /* 60% width with min-width for flex */
+}
+
+/* Other table columns */
+.table-col-narrow {
+    @apply w-1/5; /* 20% width for skill type and count columns */
+}
+
+/* =================================================================
+   Responsive Adjustments for Skills (Mobile-first)
+   ================================================================= */
+
+@media (max-width: 768px) {
+    .skills-container {
+        @apply gap-1;
+    }
+    
+    .skill-pill {
+        @apply text-xs px-2 py-1;
+    }
+    
+    .skills-expand-btn {
+        @apply text-xs px-2 py-1;
+    }
+    
+    .skills-column {
+        @apply w-full; /* Full width on mobile */
+    }
+    
+    .table-col-narrow {
+        @apply w-auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .skills-container {
+        @apply flex-col items-start gap-1;
+    }
+    
+    .skill-pill {
+        @apply w-full justify-center;
+    }
+    
+    .skills-expand-btn {
+        @apply w-full justify-center mt-1;
+    }
+}
+
+/* =================================================================
+   Animation for Skills Expand/Collapse
+   ================================================================= */
+
+.skills-fade-in {
+    animation: skillsFadeIn 0.3s ease-in-out;
+}
+
+.skills-fade-out {
+    animation: skillsFadeOut 0.3s ease-in-out;
+}
+
+@keyframes skillsFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes skillsFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+}
+
+/* =================================================================
+   Table Structure Enhancements
+   ================================================================= */
+
+/* Enhanced table styling for better readability */
+.enhanced-table {
+    @apply w-full border-collapse table-fixed;
+}
+
+.enhanced-table th {
+    @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+    @apply border-b border-gray-200 bg-gray-50;
+}
+
+.enhanced-table td {
+    @apply px-4 py-3 border-b border-gray-200 align-top;
+}
+
+.enhanced-table tr:hover {
+    @apply bg-gray-50;
+}
+
+/* Remove any remaining horizontal scroll containers */
+.no-scroll {
+    @apply overflow-visible;
 } 

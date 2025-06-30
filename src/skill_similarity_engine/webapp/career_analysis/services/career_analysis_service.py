@@ -356,6 +356,56 @@ class CareerAnalysisService:
                         logger.info(f"🎯 About to continue - skipping normal processing")
                         continue  # Skip the normal processing below
                     
+                    # 🔧 FIX: Special handling for Core Competency Foundation with mixed content (intro + table)
+                    elif subsection_key == 'core_competency_foundation':
+                        logger.info(f"🔧 CHECKING Core Competency Foundation condition")
+                        logger.info(f"🔧 subsection_key: '{subsection_key}'")
+                        logger.info(f"🔧 section_title: '{section_title}'")
+                        logger.info(f"🔧 section_title.lower(): '{section_title.lower()}'")
+                        logger.info(f"🔧 'current role context' in section_title.lower(): {'current role context' in section_title.lower()}")
+                        
+                        if 'current role context' in section_title.lower():
+                            logger.info(f"🔧 TRIGGERED special handling for Core Competency Foundation with structured content")
+                            logger.info(f"🔧 Content list length: {len(content_data)}")
+                            logger.info(f"🔧 Content data items: {[type(item) for item in content_data]}")
+                            
+                            # Keep the content as a structured array instead of converting to text
+                            # This preserves the separation between intro paragraph and table
+                            structured_content = []
+                            for i, item in enumerate(content_data):
+                                logger.info(f"🔧 Processing item {i}: type={type(item)}, keys={list(item.keys()) if isinstance(item, dict) else 'Not dict'}")
+                                if isinstance(item, dict):
+                                    if item.get('type') == 'structured_table':
+                                        # Preserve structured table for frontend
+                                        structured_content.append(item)
+                                        logger.info(f"🔧 Preserved structured table with {len(item.get('headers', []))} headers")
+                                    elif 'text' in item:
+                                        # Convert ContentFormatter paragraph to simple text item
+                                        structured_content.append({
+                                            'type': 'formatted_content',
+                                            'content_type': item.get('content_type', 'paragraph'),
+                                            'text': item['text']
+                                        })
+                                        logger.info(f"🔧 Preserved paragraph content: {item['text'][:50]}...")
+                                    else:
+                                        structured_content.append(item)
+                                        logger.info(f"🔧 Preserved other dict item with keys: {list(item.keys())}")
+                                else:
+                                    structured_content.append({'type': 'text', 'text': str(item)})
+                                    logger.info(f"🔧 Converted non-dict item to text: {str(item)[:50]}...")
+                            
+                            subsections[subsection_key] = {
+                                'title': title,
+                                'content': structured_content,  # Keep as structured array
+                                'formatting': {'content_type': 'structured_mixed'},
+                                'type': 'structured_mixed_content'  # Special type for frontend
+                            }
+                            logger.info(f"🔧 Stored Core Competency Foundation as structured content with {len(structured_content)} items")
+                            logger.info(f"🔧 Final subsection type: {subsections[subsection_key]['type']}")
+                            continue  # Skip normal processing
+                        else:
+                            logger.info(f"🔧 Section title doesn't match - falling through to normal processing")
+                    
                     # List of ContentFormatter objects - extract and combine
                     logger.debug(f"DEBUG: Processing ContentFormatter list for {subsection_key}, length: {len(content_data)}")
                     actual_content = self._extract_from_content_list(content_data)
@@ -545,8 +595,13 @@ class CareerAnalysisService:
                     logger.debug(f"DEBUG: Item {i} text length: {len(text_content)}")
                     logger.debug(f"DEBUG: Item {i} text preview: {text_content[:100]}...")
                     combined_text.append(text_content)
+                elif item.get('type') == 'structured_table' and 'headers' in item and 'rows' in item:
+                    # Structured table from ContentFormatter (web format) - convert to markdown for text extraction
+                    logger.debug(f"DEBUG: Item {i} is structured table with {len(item['headers'])} headers and {len(item['rows'])} rows")
+                    table_text = self._convert_structured_table_to_text(item)
+                    combined_text.append(table_text)
                 else:
-                    logger.warning(f"WARNING: Dict item {i} has no 'text' key: {item}")
+                    logger.warning(f"WARNING: Dict item {i} has no 'text' key and is not a structured table: {item}")
             elif isinstance(item, str):
                 # Plain string
                 logger.debug(f"DEBUG: Item {i} is string, length: {len(item)}")
@@ -561,6 +616,37 @@ class CareerAnalysisService:
         logger.debug(f"DEBUG: FINAL combined text length: {len(result)}")
         logger.debug(f"DEBUG: FINAL combined text preview: {result[:200]}...")
         return result
+    
+    def _convert_structured_table_to_text(self, table_item: dict) -> str:
+        """Convert a structured table to markdown text format for legacy text processing."""
+        try:
+            headers = table_item.get('headers', [])
+            rows = table_item.get('rows', [])
+            
+            if not headers or not rows:
+                return "Empty table"
+            
+            # Create markdown table
+            table_lines = []
+            
+            # Headers
+            table_lines.append(" | ".join(headers))
+            
+            # Separator
+            table_lines.append("|".join(["-" * len(header) for header in headers]))
+            
+            # Rows
+            for row in rows:
+                if isinstance(row, list):
+                    table_lines.append(" | ".join(str(cell) for cell in row))
+                else:
+                    table_lines.append(str(row))
+            
+            return "\n".join(table_lines)
+            
+        except Exception as e:
+            logger.warning(f"Failed to convert structured table to text: {e}")
+            return f"Table conversion error: {e}"
     
     def _extract_formatting_from_list(self, content_list: list) -> dict:
         """Extract formatting metadata from the first ContentFormatter object in the list."""

@@ -638,10 +638,129 @@ SkillEngine.CareerAnalysis = {
      * Format Core Competency Foundation subsection with skills table
      */
     formatCoreCompetencyFoundation(title, subsectionData) {
-        const content = subsectionData.content || '';
+        let content = subsectionData.content || '';
         
-        // Extract key information from the content
-        const skillsMatch = content.match(/(\d+)\s+prescribed\s+skills\s+across\s+(\d+)\s+strategic\s+capability\s+areas/i);
+        // 🔧 FIX: Handle new structured content type from backend
+        console.log('🔧 DEBUG: formatCoreCompetencyFoundation called');
+        console.log('🔧 DEBUG: subsectionData.type:', subsectionData.type);
+        console.log('🔧 DEBUG: content type:', typeof content);
+        console.log('🔧 DEBUG: content:', content);
+        
+        let introText = '';
+        let tableContent = '';
+        
+        // 🔧 WORKAROUND: Handle case where backend sends string content but we need to parse it as structured
+        if (subsectionData.type === 'formatted_content' && typeof content === 'string' && content.includes('prescribed skills across')) {
+            console.log('🔧 DEBUG: Detected Core Competency Foundation string content - attempting to parse as structured');
+            
+            // Split the content into intro text and table parts
+            const parts = content.split('\n\n');
+            let foundIntro = false;
+            let tableStarted = false;
+            
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i].trim();
+                console.log(`🔧 DEBUG: Processing part ${i}:`, part.substring(0, 50) + '...');
+                
+                // Look for the intro text (contains "prescribed skills across")
+                if (part.includes('prescribed skills across') && !foundIntro) {
+                    introText = part;
+                    foundIntro = true;
+                    console.log('🔧 DEBUG: Found intro in string content:', introText.substring(0, 50) + '...');
+                }
+                // Look for table content (contains headers like "Skill Type" or markdown table indicators)
+                else if ((part.includes('|') && part.includes('Skill Type')) || 
+                         (part.includes('Specialised Skill') && part.includes('Common Skill'))) {
+                    // This looks like table content
+                    tableContent = part;
+                    tableStarted = true;
+                    console.log('🔧 DEBUG: Found table in string content');
+                }
+                // If we've started a table, continue adding to it
+                else if (tableStarted && part.includes('|')) {
+                    tableContent += '\n' + part;
+                }
+            }
+            
+            // If we didn't find clear separation, try a different approach
+            if (!foundIntro && !tableStarted) {
+                console.log('🔧 DEBUG: Falling back to regex parsing');
+                
+                // Use regex to extract the intro sentence
+                const introMatch = content.match(/(.*?prescribed skills across.*?strategic capability areas[:.!]?)/i);
+                if (introMatch) {
+                    introText = introMatch[1].trim();
+                    console.log('🔧 DEBUG: Extracted intro via regex:', introText.substring(0, 50) + '...');
+                    
+                    // The rest should be table content
+                    const remainingContent = content.substring(introMatch[0].length).trim();
+                    if (remainingContent && remainingContent.length > 0) {
+                        tableContent = remainingContent;
+                        console.log('🔧 DEBUG: Extracted table via regex');
+                    }
+                }
+            }
+        }
+        // Check for new structured mixed content type
+        else if (subsectionData.type === 'structured_mixed_content' && Array.isArray(content)) {
+            console.log('🔧 DEBUG: Processing structured_mixed_content with', content.length, 'items');
+            
+            // Extract intro text and table from structured content
+            content.forEach((item, index) => {
+                console.log(`🔧 DEBUG: Item ${index}:`, item);
+                
+                if (item && typeof item === 'object') {
+                    // Check for paragraph content (intro text)
+                    if (item.type === 'formatted_content' && item.content_type === 'paragraph') {
+                        introText = item.text || '';
+                        console.log('🔧 DEBUG: Found intro text:', introText.substring(0, 50) + '...');
+                    }
+                    // Check for structured table
+                    else if (item.type === 'structured_table' && item.headers && item.rows) {
+                        tableContent = item;
+                        console.log('🔧 DEBUG: Found structured table with', item.headers.length, 'headers and', item.rows.length, 'rows');
+                    }
+                }
+            });
+        } 
+        // Handle legacy structured content array from ContentFormatter
+        else if (Array.isArray(content)) {
+            console.log('🔧 DEBUG: Processing legacy array content with', content.length, 'items');
+            
+            // Extract intro text and table from structured content
+            content.forEach((item, index) => {
+                if (item && typeof item === 'object') {
+                    // Check for paragraph content (intro text)
+                    if (item.type === 'formatted_content' && item.content_type === 'paragraph') {
+                        introText = item.text || '';
+                    }
+                    // Check for table content
+                    else if (item.type === 'structured_table' || (item.headers && item.rows)) {
+                        tableContent = item;
+                    }
+                    // Check for formatted table content
+                    else if (item.type === 'formatted_content' && item.content_type === 'table') {
+                        tableContent = item.text || '';
+                    }
+                } else if (typeof item === 'string') {
+                    // Fallback: treat string items as content
+                    if (item.includes('prescribed skills across')) {
+                        introText = item;
+                    } else if (item.includes('|')) {
+                        tableContent = item;
+                    }
+                }
+            });
+            
+            // Use introText for skills match, combine for full content if needed
+            content = introText || content.join('\n\n');
+        } else {
+            // Handle legacy string content
+            content = content.toString();
+        }
+        
+        // Extract key information from the intro text
+        const skillsMatch = (introText || content).match(/(\d+)\s+prescribed\s+skills\s+across\s+(\d+)\s+strategic\s+capability\s+areas/i);
         
         let html = `
             <div class="mb-8">
@@ -679,10 +798,33 @@ SkillEngine.CareerAnalysis = {
             `;
         }
         
+        // 🔧 FIX: Add intro text as separate paragraph BEFORE the table
+        if (introText && introText.trim()) {
+            console.log('🔧 DEBUG: Adding intro text paragraph');
+            html += `
+                <div class="mb-4 p-4 bg-white rounded-lg border border-blue-200">
+                    <p class="text-gray-700 leading-relaxed">${introText}</p>
+                </div>
+            `;
+        }
+        
         // Format the table content
-        if (content.includes('|')) {
+        if (tableContent) {
+            console.log('🔧 DEBUG: Rendering table content');
+            if (typeof tableContent === 'object' && tableContent.headers && tableContent.rows) {
+                // Handle structured table from ContentFormatter
+                html += this.formatStructuredSkillsTable(tableContent);
+            } else if (typeof tableContent === 'string' && tableContent.includes('|')) {
+                // Handle legacy markdown table format
+                html += this.formatMarkdownStyleTable(tableContent);
+            } else {
+                html += `<div class="text-gray-700">${tableContent}</div>`;
+            }
+        } else if (content.includes('|')) {
+            // Fallback for legacy content
             html += this.formatMarkdownStyleTable(content);
-        } else {
+        } else if (!introText) {
+            // Only show content if we haven't already shown intro text
             html += `<div class="text-gray-700">${content}</div>`;
         }
         
@@ -713,8 +855,8 @@ SkillEngine.CareerAnalysis = {
                             <p class="text-sm text-green-700">Current role distribution across NAB</p>
                         </div>
                     </div>
-                    <div class="text-gray-700 space-y-2">
-                        ${this.formatBulletList(content)}
+                    <div class="text-gray-700 space-y-4">
+                        ${this.formatOrganisationalDeploymentContent(content)}
                     </div>
                 </div>
             </div>
@@ -722,7 +864,84 @@ SkillEngine.CareerAnalysis = {
     },
 
     /**
-     * Format Strategic Intelligence Metrics subsection with metrics table
+     * Format organisational deployment content with proper separation of bullet points and table
+     */
+    formatOrganisationalDeploymentContent(content) {
+        if (!content) return '';
+        
+        const lines = content.split('\n').filter(line => line.trim());
+        let bulletPoints = [];
+        let tableLines = [];
+        let inTable = false;
+        
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            
+            // Skip table separator lines
+            if (trimmed.match(/^[\-\|\s]+$/)) {
+                return;
+            }
+            
+            // Detect table header (Division | Positions | Primary Business Unit)
+            if (trimmed.includes('Division') && trimmed.includes('Positions') && trimmed.includes('Primary Business Unit')) {
+                inTable = true;
+                tableLines.push(trimmed);
+                return;
+            }
+            
+            // If we're in table mode and line has pipes, it's a table row
+            if (inTable && trimmed.includes('|') && trimmed.split('|').length >= 3) {
+                tableLines.push(trimmed);
+                return;
+            }
+            
+            // If it's not a table line and we have content, it's a bullet point
+            if (trimmed && !inTable) {
+                bulletPoints.push(trimmed);
+            }
+        });
+        
+        let html = '';
+        
+        // Add bullet points first
+        if (bulletPoints.length > 0) {
+            html += '<ul class="space-y-2 mb-4">';
+            bulletPoints.forEach(point => {
+                html += `<li class="flex items-start">
+                    <span class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                    <span class="text-sm text-gray-700 leading-relaxed">${point}</span>
+                </li>`;
+            });
+            html += '</ul>';
+        }
+        
+        // Add table if we have table content
+        if (tableLines.length > 0) {
+            // Create proper markdown table format with separator line
+            const headerLine = tableLines[0];
+            const dataLines = tableLines.slice(1);
+            
+            // Create separator line based on header columns
+            const headerColumns = headerLine.split('|').map(h => h.trim()).filter(h => h);
+            const separatorLine = '|' + headerColumns.map(() => '--------').join('|') + '|';
+            
+            // Construct complete markdown table
+            const completeTable = [
+                headerLine,
+                separatorLine,
+                ...dataLines
+            ].join('\n');
+            
+            html += `<div class="mt-4">
+                ${this.formatMarkdownStyleTable(completeTable)}
+            </div>`;
+        }
+        
+        return html;
+    },
+
+    /**
+     * Format Strategic Intelligence Metrics subsection with enhanced layout
      */
     formatStrategicIntelligenceMetrics(title, subsectionData) {
         const content = subsectionData.content || '';
@@ -731,7 +950,7 @@ SkillEngine.CareerAnalysis = {
             <div class="mb-8">
                 <h3 class="text-xl font-epilogue font-semibold text-gray-800 mb-4">${title}</h3>
                 <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                    <div class="flex items-center mb-4">
+                    <div class="flex items-center mb-6">
                         <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center mr-3">
                             <i class="fas fa-chart-line text-white text-sm"></i>
                         </div>
@@ -742,38 +961,37 @@ SkillEngine.CareerAnalysis = {
                     </div>
         `;
         
-        // Split content into description and table parts
+        // Split content and handle more simply
         const sections = content.split('\n\n');
-        const descriptionSections = [];
         let tableSection = '';
+        let bulletContent = '';
         
         sections.forEach(section => {
-            if (section.includes('Metric') && section.includes('Score') && section.includes('Assessment')) {
-                tableSection = section;
-            } else if (section.trim()) {
-                descriptionSections.push(section.trim());
+            const trimmed = section.trim();
+            if (trimmed.includes('Metric') && trimmed.includes('Score') && trimmed.includes('Assessment')) {
+                tableSection = trimmed;
+            } else if (trimmed) {
+                bulletContent += (bulletContent ? '\n\n' : '') + trimmed;
             }
         });
         
-        // Add description text
-        if (descriptionSections.length > 0) {
+        // Add bullet point content (simplified)
+        if (bulletContent) {
             html += `
-                <div class="mb-4 text-gray-700">
-                    ${descriptionSections.map(section => {
-                        // Check if section contains bullet points
-                        if (section.includes('• ')) {
-                            return this.formatBulletList(section);
-                        } else {
-                            return `<p class="mb-2">${section}</p>`;
-                        }
-                    }).join('')}
+                <div class="mb-6">
+                    ${this.formatBulletList(bulletContent)}
                 </div>
             `;
         }
         
         // Add metrics table
         if (tableSection) {
-            html += this.formatMarkdownStyleTable(tableSection);
+            html += `
+                <div class="mb-4">
+                    <h5 class="text-md font-semibold text-purple-900 mb-4">Current Metrics Assessment</h5>
+                    ${this.formatMarkdownStyleTable(tableSection)}
+                </div>
+            `;
         }
         
         // Add context note
@@ -1729,6 +1947,43 @@ SkillEngine.CareerAnalysis = {
      */
     formatStructuredSkillsTable(tableData) {
         return this.formatStructuredTable(tableData, 'structured_skills_table');
+    },
+
+    /**
+     * Format skills list with expandable functionality
+     */
+    formatSkillsWithExpandable(skillsText, maxSkills = 3) {
+        if (!skillsText || typeof skillsText !== 'string') {
+            return skillsText || '';
+        }
+
+        // Split skills by common delimiters
+        const skills = skillsText.split(/[,|;]/).map(skill => skill.trim()).filter(skill => skill.length > 0);
+        
+        if (skills.length <= maxSkills) {
+            // If we have few skills, just show them all
+            return skills.map(skill => `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${skill}</span>`).join('');
+        }
+
+        // Show first few skills + expandable button
+        const visibleSkills = skills.slice(0, maxSkills);
+        const hiddenSkills = skills.slice(maxSkills);
+        const uniqueId = `skills-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        return `
+            <div class="skills-container">
+                <div class="visible-skills">
+                    ${visibleSkills.map(skill => `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${skill}</span>`).join('')}
+                    <button onclick="this.style.display='none'; document.getElementById('${uniqueId}').style.display='inline'" 
+                            class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-2 py-1 rounded-full mr-1 mb-1 cursor-pointer transition-colors">
+                        +${hiddenSkills.length} more
+                    </button>
+                </div>
+                <div id="${uniqueId}" class="hidden-skills" style="display: none;">
+                    ${hiddenSkills.map(skill => `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${skill}</span>`).join('')}
+                </div>
+            </div>
+        `;
     },
 
     /**
@@ -3048,7 +3303,7 @@ SkillEngine.CareerAnalysis = {
     },
 
     /**
-     * Format markdown-style table with proper styling
+     * Format markdown-style table with proper styling and expandable skills
      */
     formatMarkdownStyleTable(content) {
         const lines = content.split('\n').filter(line => line.trim());
@@ -3070,15 +3325,28 @@ SkillEngine.CareerAnalysis = {
         
         if (headers.length === 0) return `<p class="text-gray-700">${content}</p>`;
         
+        // Check if this is a skills table (has "All Skills" column)
+        const isSkillsTable = headers.some(header => header.toLowerCase().includes('all skills') || header.toLowerCase().includes('skills'));
+        const skillsColumnIndex = headers.findIndex(header => header.toLowerCase().includes('all skills') || header.toLowerCase().includes('skills'));
+        
         let html = `
-            <div class="overflow-x-auto my-4">
-                <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-sm">
+            <div class="my-4 w-full">
+                <table class="w-full bg-white border border-gray-300 rounded-lg shadow-sm table-fixed">
                     <thead class="bg-gray-50">
                         <tr>
         `;
         
-        headers.forEach(header => {
-            html += `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">${header}</th>`;
+        headers.forEach((header, index) => {
+            // Set column widths for better layout
+            let widthClass = '';
+            if (isSkillsTable) {
+                if (index === 0) widthClass = 'w-1/5'; // Skill Type
+                else if (index === 1) widthClass = 'w-1/6'; // Skill Count
+                else if (index === skillsColumnIndex) widthClass = 'w-3/5'; // All Skills (widest)
+                else widthClass = 'w-1/5'; // Default
+            }
+            
+            html += `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 ${widthClass}">${header}</th>`;
         });
         
         html += `</tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
@@ -3089,7 +3357,15 @@ SkillEngine.CareerAnalysis = {
             
             row.forEach((cell, cellIndex) => {
                 const cellClass = cellIndex === 0 ? 'font-medium text-gray-900' : 'text-gray-700';
-                html += `<td class="px-6 py-4 whitespace-nowrap text-sm ${cellClass}">${cell || '-'}</td>`;
+                let cellContent = cell || '-';
+                
+                // Apply expandable skills formatting to the skills column
+                if (isSkillsTable && cellIndex === skillsColumnIndex && cellContent !== '-') {
+                    cellContent = this.formatSkillsWithExpandable(cellContent, 3);
+                }
+                
+                // Use proper text wrapping classes and remove whitespace-nowrap
+                html += `<td class="px-4 py-3 text-sm ${cellClass} align-top break-words">${cellContent}</td>`;
             });
             
             html += `</tr>`;
@@ -3206,18 +3482,61 @@ SkillEngine.CareerAnalysis = {
     formatBulletList(content) {
         if (!content) return '';
         
-        const lines = content.split('\n').filter(line => line.trim());
+        const lines = content.split('\n').filter(line => {
+            const trimmed = line.trim();
+            // Filter out empty lines
+            if (!trimmed) return false;
+            
+            // Filter out table separator lines (like ---------|---------|-------)
+            if (trimmed.match(/^[\-\|\s]+$/)) return false;
+            
+            // Filter out markdown table headers that don't start with bullet points
+            if (trimmed.includes('|') && trimmed.split('|').length > 2 && 
+                !trimmed.startsWith('-') && !trimmed.startsWith('•') && 
+                !trimmed.toLowerCase().includes('division') && 
+                !trimmed.toLowerCase().includes('business')) {
+                return false;
+            }
+            
+            return true;
+        });
+        
         let html = '<ul class="space-y-3">';
         
         lines.forEach(line => {
             const trimmedLine = line.trim();
+            
+            // Handle explicit bullet points
             if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
-                const cleanLine = trimmedLine.replace(/^[-•]\s*/, '');
+                const cleanLine = trimmedLine.replace(/^[-•]\s*/, '').trim();
                 html += `<li class="flex items-start">
                     <span class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                     <span class="text-sm text-gray-700 leading-relaxed">${cleanLine}</span>
                 </li>`;
-            } else if (trimmedLine) {
+            } 
+            // Handle table-like content with pipes (divisional deployment)
+            else if (trimmedLine.includes('|') && trimmedLine.split('|').length >= 3) {
+                // Parse as table row for divisional deployment
+                const cells = trimmedLine.split('|').map(cell => cell.trim()).filter(cell => cell);
+                if (cells.length >= 2) {
+                    // Format as structured bullet point
+                    const division = cells[0];
+                    const positions = cells[1];
+                    const businessUnit = cells.length > 2 ? cells[2] : '';
+                    
+                    let displayText = `${division} | ${positions}`;
+                    if (businessUnit) {
+                        displayText += ` | ${businessUnit}`;
+                    }
+                    
+                    html += `<li class="flex items-start">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span class="text-sm text-gray-700 leading-relaxed">${displayText}</span>
+                    </li>`;
+                }
+            }
+            // Handle regular content lines as bullet points
+            else if (trimmedLine) {
                 html += `<li class="flex items-start">
                     <span class="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                     <span class="text-sm text-gray-700 leading-relaxed">${trimmedLine}</span>
