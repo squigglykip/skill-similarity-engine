@@ -22,7 +22,7 @@ except ImportError:
 try:
     # Add the parent directory to import the formatter
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from formatter import DocumentFormatter as NABDocumentFormatter
+    from skill_similarity_engine.webapp.career_analysis.formatter import DocumentFormatter as NABDocumentFormatter
 except ImportError:
     try:
         from ..formatter import DocumentFormatter as NABDocumentFormatter

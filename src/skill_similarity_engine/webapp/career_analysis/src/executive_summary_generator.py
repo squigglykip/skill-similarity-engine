@@ -22,17 +22,13 @@ except ImportError:
         DatabaseReferenceCalculator = None
 
 # Import ContentFormatter for structured content generation
+ContentFormatter = None
 try:
     from ..formatter import ContentFormatter
 except ImportError:
-    # Handle direct script execution or missing formatter
     try:
-        # Handle absolute import for test environment
-        import sys
-        from pathlib import Path
-        current_dir = Path(__file__).parent.parent
-        sys.path.insert(0, str(current_dir))
-        from formatter import ContentFormatter
+        # Try absolute import within the career_analysis package
+        from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
     except ImportError:
         ContentFormatter = None
 

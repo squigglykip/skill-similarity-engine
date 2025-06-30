@@ -16,13 +16,11 @@ logger = logging.getLogger(__name__)
 # Import SQL query modules and JobDisplayManager from utilities
 try:
     from ..sql import query_loader, DatabaseReferenceCalculator
-    from ..formatter import ContentFormatter
     from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
 except ImportError:
     # Handle direct script execution
     try:
         from sql import query_loader, DatabaseReferenceCalculator
-        from ..formatter import ContentFormatter
         # Try importing JobDisplayManager with path adjustment
         try:
             from skill_similarity_engine.utils.display import JobDisplayManager, DisplayFormat
@@ -37,7 +35,19 @@ except ImportError:
         DatabaseReferenceCalculator = None
         JobDisplayManager = None
         DisplayFormat = None
+
+# Import ContentFormatter with proper fallback logic
+ContentFormatter = None
+try:
+    from ..formatter import ContentFormatter
+except ImportError:
+    try:
+        # Try absolute import within the career_analysis package
+        from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+    except ImportError:
         ContentFormatter = None
+
+# Remove duplicate ContentFormatter import - it's already imported above in the main import block
 
 class CurrentRoleContextGenerator:
     """Generates current role context content using template-driven approach with logical role support."""
@@ -928,9 +938,14 @@ class CurrentRoleContextGenerator:
     def _generate_core_competency_foundation(self, core_config: Dict, variables: Dict) -> Dict:
         """Generate structured core competency foundation content with Skills Analysis Table."""
         
-
+        # 🔍 DEBUG: Check ContentFormatter availability at runtime
+        print(f"🔍 DEBUG: ContentFormatter type: {type(ContentFormatter)}")
+        print(f"🔍 DEBUG: ContentFormatter value: {ContentFormatter}")
+        print(f"🔍 DEBUG: ContentFormatter is None: {ContentFormatter is None}")
+        print(f"🔍 DEBUG: not ContentFormatter: {not ContentFormatter}")
         
         if not ContentFormatter:
+            print("🔍 DEBUG: Taking fallback path because ContentFormatter is falsy")
             # Fallback to legacy approach - create meaningful content instead of empty template
 
             

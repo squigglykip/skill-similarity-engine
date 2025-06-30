@@ -392,21 +392,15 @@ class StrategicRecommendationsGenerator:
             from jinja2 import Template
             
             # Import ContentFormatter for table support
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
-                formatter_available = True
             except ImportError:
                 try:
-                    # Try absolute import as fallback
-                    import sys
-                    from pathlib import Path
-                    current_dir = Path(__file__).parent.parent
-                    sys.path.insert(0, str(current_dir))
-                    from formatter import ContentFormatter
-                    formatter_available = True
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
                 except ImportError:
-                    formatter_available = False
-                    logger.warning("ContentFormatter not available, falling back to basic formatting")
+                    ContentFormatter = None
             
             # Get strategic recommendations configuration
             strategic_config = self.template_data.get('strategic_recommendations', {})
@@ -429,7 +423,7 @@ class StrategicRecommendationsGenerator:
                     content_type = section_config.get('content_type', 'mixed')
                     
                     # Handle table-based content with ContentFormatter
-                    if content_type == 'table' and formatter_available:
+                    if content_type == 'table' and ContentFormatter:
                         # Get table configuration from new template structure
                         headers = section_config.get('table_headers', section_config.get('headers', []))
                         rows_template = section_config.get('content', section_config.get('rows', []))
@@ -483,7 +477,7 @@ class StrategicRecommendationsGenerator:
                         }
                     
                     # Handle mixed content with formatting metadata
-                    elif content_type in ['mixed', 'numbered_list', 'bullet_list'] and formatter_available:
+                    elif content_type in ['mixed', 'numbered_list', 'bullet_list'] and ContentFormatter:
                         if content_template:
                             template = Template(content_template)
                             rendered_content = template.render(**template_variables)

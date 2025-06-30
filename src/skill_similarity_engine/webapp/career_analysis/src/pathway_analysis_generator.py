@@ -740,11 +740,22 @@ class PathwayAnalysisGenerator:
     def _create_opportunity_overview_section(self, variables: Dict, output_format: str = 'document') -> Dict:
         """Create opportunity overview section with table following Current Role Context pattern."""
         try:
-            # Try relative import first, then absolute import
+            # Import ContentFormatter with proper fallback
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
             except ImportError:
-                from formatter import ContentFormatter
+                try:
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+                except ImportError:
+                    ContentFormatter = None
+            
+            if ContentFormatter is None:
+                return {
+                    'title': 'Opportunity Overview',
+                    'content': "ContentFormatter not available - table generation disabled"
+                }
             
             # Create the table content with specified format
             table_content = self._create_opportunity_overview_table(variables, output_format)
@@ -764,11 +775,22 @@ class PathwayAnalysisGenerator:
     def _create_skills_transition_section(self, variables: Dict, output_format: str = 'document') -> Dict:
         """Create skills transition section with table following Current Role Context pattern."""
         try:
-            # Try relative import first, then absolute import
+            # Import ContentFormatter with proper fallback
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
             except ImportError:
-                from formatter import ContentFormatter
+                try:
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+                except ImportError:
+                    ContentFormatter = None
+            
+            if ContentFormatter is None:
+                return {
+                    'title': 'Skills Transition Analysis',
+                    'content': "ContentFormatter not available - table generation disabled"
+                }
             
             # Create the table content with specified format
             table_content = self._create_skills_development_table(variables, output_format)
@@ -788,11 +810,22 @@ class PathwayAnalysisGenerator:
     def _create_implementation_roadmap_section(self, variables: Dict, output_format: str = 'document') -> Dict:
         """Create implementation roadmap section with table following Current Role Context pattern."""
         try:
-            # Try relative import first, then absolute import
+            # Import ContentFormatter with proper fallback
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
             except ImportError:
-                from formatter import ContentFormatter
+                try:
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+                except ImportError:
+                    ContentFormatter = None
+            
+            if ContentFormatter is None:
+                return {
+                    'title': 'Implementation Roadmap',
+                    'content': "ContentFormatter not available - table generation disabled"
+                }
             
             # Create the table content with specified format
             table_content = self._create_implementation_timeline_table(variables, output_format)
@@ -812,11 +845,19 @@ class PathwayAnalysisGenerator:
     def _create_opportunity_overview_table(self, variables: Dict, output_format: str = 'document'):
         """Create opportunity overview table with format-aware output."""
         try:
-            # Try relative import first, then absolute import
+            # Import ContentFormatter with proper fallback
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
             except ImportError:
-                from formatter import ContentFormatter
+                try:
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+                except ImportError:
+                    ContentFormatter = None
+            
+            if ContentFormatter is None:
+                return "ContentFormatter not available - table generation disabled"
             
             headers = ["Metric", "Value", "Assessment"]
             
@@ -853,11 +894,22 @@ class PathwayAnalysisGenerator:
             output_format: 'document' for ContentFormatter table, 'web' for structured data
         """
         try:
-            # Try relative import first, then absolute import
+            # Import ContentFormatter with proper fallback
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
             except ImportError:
-                from formatter import ContentFormatter
+                try:
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+                except ImportError:
+                    ContentFormatter = None
+            
+            if ContentFormatter is None:
+                return {
+                    'text': 'Skills development table generation failed',
+                    'formatting': {}
+                }
             
             headers = ["Category", "Current Skills Applicable for New Role", "New Skills Required", "Gap Assessment"]
             rows = []
@@ -1010,11 +1062,19 @@ class PathwayAnalysisGenerator:
             output_format: 'document' for ContentFormatter table, 'web' for structured data
         """
         try:
-            # Try relative import first, then absolute import
+            # Import ContentFormatter with proper fallback
+            ContentFormatter = None
             try:
                 from ..formatter import ContentFormatter
             except ImportError:
-                from formatter import ContentFormatter
+                try:
+                    # Try absolute import within the career_analysis package
+                    from skill_similarity_engine.webapp.career_analysis.formatter import ContentFormatter
+                except ImportError:
+                    ContentFormatter = None
+            
+            if ContentFormatter is None:
+                return "ContentFormatter not available - table generation disabled"
             
             headers = ["Phase", "Timeline", "Key Activities", "Success Measures"]
             
