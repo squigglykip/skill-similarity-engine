@@ -26,7 +26,7 @@ class PathwayOrderingManager:
         self.display_manager = JobDisplayManager(db_connection) if JobDisplayManager else None
         
     def get_top_pathways_ordered(self, job_from: str, limit: int = 3, executive_refs: bool = True, 
-                                tie_breaking_options: Optional[Dict] = None) -> List[Dict]:
+                                tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None) -> List[Dict]:
         """
         Get top similarity pathways with consistent ordering for all Career Transition Analysis sections.
         
@@ -40,10 +40,13 @@ class PathwayOrderingManager:
             List of pathway dictionaries with consistent ordering and complete metadata
         """
         try:
+            # Apply similarity range filtering if provided
+            similarity_min, similarity_max = similarity_range if similarity_range else (0.0, 0.99)
+            
             # Build dynamic ORDER BY clause based on user preferences
             order_clause = self._build_order_clause(job_from, tie_breaking_options or {})
             
-            # Build enhanced query with tie-breaking support
+            # Build enhanced query with tie-breaking support and similarity range filtering
             query = f"""
             SELECT 
                 js.job_to,
@@ -66,12 +69,14 @@ class PathwayOrderingManager:
             JOIN jobs j ON js.job_to = j.JobProfileID
             JOIN jobs source_j ON js.job_from = source_j.JobProfileID
             WHERE js.job_from = ?
+              AND js.similarity_score >= ?  -- Apply similarity minimum from slider
+              AND js.similarity_score <= ?  -- Apply similarity maximum from slider
               AND js.similarity_score < 1.0  -- Exclude 100% matches
             {order_clause}
             LIMIT ?
             """
             
-            cursor = self.db.execute(query, (job_from, limit))
+            cursor = self.db.execute(query, (job_from, similarity_min, similarity_max, limit))
             results = cursor.fetchall()
             
             pathways = []
@@ -419,7 +424,7 @@ class PathwayOrderingManager:
 
 # Convenience function for easy imports
 def get_consistent_pathways(db_connection, job_from: str, limit: int = 3, executive_refs: bool = True, 
-                          tie_breaking_options: Optional[Dict] = None) -> List[Dict]:
+                          tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None) -> List[Dict]:
     """
     Convenience function to get consistently ordered pathways.
     
@@ -434,7 +439,7 @@ def get_consistent_pathways(db_connection, job_from: str, limit: int = 3, execut
         List of consistently ordered pathway dictionaries
     """
     manager = PathwayOrderingManager(db_connection)
-    return manager.get_top_pathways_ordered(job_from, limit, executive_refs, tie_breaking_options)
+    return manager.get_top_pathways_ordered(job_from, limit, executive_refs, tie_breaking_options, similarity_range)
 
 def get_specific_job_pathways(db_connection, job_from: str, target_job_list: List[str], executive_refs: bool = True) -> List[Dict]:
     """

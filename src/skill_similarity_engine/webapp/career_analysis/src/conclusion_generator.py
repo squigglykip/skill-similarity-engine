@@ -124,7 +124,7 @@ class ConclusionGenerator:
                 analysis_data = analyzer.analyze_single_transition(job_from, job_to, similarity_range)
             
             # Get database values
-            db_values = self._get_database_summary(job_from, top_n)
+            db_values = self._get_database_summary(job_from, top_n, similarity_range)
             
             # Get pathway and strategic context (but use specific data)
             pathway_summary = self._get_pathway_analysis_summary(job_from)
@@ -157,8 +157,8 @@ class ConclusionGenerator:
                 })
         else:
             # Default: Discovery mode
-            # Step 1: Get database-derived analysis summary
-            db_values = self._get_database_summary(job_from, top_n)
+            # Step 1: Get database-derived analysis summary with similarity range filtering
+            db_values = self._get_database_summary(job_from, top_n, similarity_range)
             logger.info(f"Retrieved database summary for conclusion: {len(db_values)} metrics")
             
             # Step 2: Get pathway analysis summary
@@ -191,7 +191,7 @@ class ConclusionGenerator:
             'template_variables': template_variables  # For debugging
         }
     
-    def _get_database_summary(self, job_from: str, top_n: int = 3) -> Dict:
+    def _get_database_summary(self, job_from: str, top_n: int = 3, similarity_range: tuple = (0.0, 1.0)) -> Dict:
         """Get high-level database summary for conclusion synthesis."""
         try:
             # Get source job logical display name
@@ -203,14 +203,18 @@ class ConclusionGenerator:
             # Get total job count
             total_jobs = self.db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
             
-            # Get pathway count and similarity range
+            # Get pathway count and similarity range with filtering
+            similarity_min, similarity_max = similarity_range
             pathways = self.db.execute("""
-                SELECT similarity_score
-                FROM career_pathways
-                WHERE source_job_id = ?
-                ORDER BY similarity_score DESC
+                SELECT js.similarity_score
+                FROM job_similarities js
+                WHERE js.job_from = ?
+                  AND js.similarity_score >= ?
+                  AND js.similarity_score <= ?
+                  AND js.similarity_score < 1.0
+                ORDER BY js.similarity_score DESC
                 LIMIT ?
-            """, (job_from, top_n)).fetchall()
+            """, (job_from, similarity_min, similarity_max, top_n)).fetchall()
             
             if pathways:
                 similarity_scores = [p[0] * 100 for p in pathways]  # Convert to percentage

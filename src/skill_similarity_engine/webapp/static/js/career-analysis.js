@@ -407,8 +407,8 @@ SkillEngine.CareerAnalysis = {
         // Include discovery-specific parameters only if in discovery mode
         if (analysisMode === 'top_matches') {
             formData.top_n = parseInt(document.getElementById('topN')?.value) || 3;
-            formData.similarity_min = parseInt(document.getElementById('similarityMin')?.value) || 40;
-            formData.similarity_max = parseInt(document.getElementById('similarityMax')?.value) || 90;
+            formData.similarity_min = parseInt(document.getElementById('similarityMin')?.value) || 0;
+            formData.similarity_max = parseInt(document.getElementById('similarityMax')?.value) || 95;
             
             // Add tie-breaking options
             formData.tie_breaking_options = {
@@ -528,6 +528,12 @@ SkillEngine.CareerAnalysis = {
     parseStructuredContent(content) {
         let html = '';
         
+        // 🚨 SPECIAL CASE: Check for no_results section first
+        if (content.no_results) {
+            console.log('🚫 DEBUG: Detected no_results section - showing clean no-results message');
+            return this.formatNoResultsMessage(content.no_results);
+        }
+        
         // Section order matching Word document structure
         const sectionOrder = [
             { key: 'executive_summary', defaultTitle: 'Executive Summary', icon: 'fas fa-chart-line' },
@@ -616,6 +622,9 @@ SkillEngine.CareerAnalysis = {
             } else if (subsectionKey === 'opportunities') {
                 // Special handling for pathway analysis opportunities
                 html += this.formatPathwayOpportunities(title, subsectionData);
+            } else if (subsectionKey === 'error') {
+                // Special handling for pathway analysis errors (e.g., no results found)
+                html += this.formatPathwayError(title, subsectionData);
             } else {
                 // Generic subsection formatting
                 html += this.formatGenericSubsection(title, subsectionData);
@@ -926,6 +935,154 @@ SkillEngine.CareerAnalysis = {
         
         html += `</div>`;
         return html;
+    },
+
+    /**
+     * Format Pathway Analysis error messages (e.g., no results found)
+     */
+    formatPathwayError(title, subsectionData) {
+        const content = subsectionData.content || '';
+        
+        // Check if this is a "no results found" type error
+        const isNoResultsError = content.includes('No career pathways found') || 
+                                content.includes('no opportunities') || 
+                                content.includes('no results');
+        
+        let html = `
+            <div class="space-y-6">
+        `;
+        
+        if (isNoResultsError) {
+            // Style as an informational message rather than an error
+            html += `
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-search text-amber-600 text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-epilogue font-semibold text-amber-900 mb-2">
+                            No Career Pathways Found
+                        </h3>
+                        <p class="text-amber-800 mb-4 max-w-md">
+                            No opportunities were found within the selected similarity range. 
+                            Try adjusting your similarity criteria to explore more options.
+                        </p>
+                        <div class="bg-white border border-amber-200 rounded-lg p-4 max-w-lg">
+                            <h4 class="font-semibold text-amber-900 mb-2">
+                                <i class="fas fa-lightbulb text-amber-600 mr-2"></i>
+                                Suggestions:
+                            </h4>
+                            <ul class="text-sm text-amber-800 space-y-1 text-left">
+                                <li>• Expand your similarity range (try 0-80% for broader results)</li>
+                                <li>• Lower the minimum similarity threshold</li>
+                                <li>• Consider that this may indicate a highly specialised role</li>
+                                <li>• Review if this is the correct source job profile</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Generic error formatting
+            html += `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-red-900">Analysis Error</h3>
+                            <p class="text-red-800 mt-1">${content}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `
+            </div>
+        `;
+        
+        return html;
+    },
+
+    /**
+     * Format a clean no-results message for the entire preview area
+     */
+    formatNoResultsMessage(noResultsSection) {
+        const subsections = noResultsSection.subsections || {};
+        const noResultsData = subsections.no_results_found || {};
+        const content = noResultsData.content || 'No career opportunities were found within the selected similarity range.';
+        
+        // Extract suggestions from the content
+        const suggestions = [
+            'Expand your similarity range (try 0-80% for broader results)',
+            'Lower the minimum similarity threshold',
+            'Consider that this may indicate a highly specialised role',
+            'Review if this is the correct source job profile'
+        ];
+        
+        return `
+            <div class="flex items-center justify-center min-h-96">
+                <div class="text-center max-w-2xl mx-auto px-8">
+                    <!-- Icon and main message -->
+                    <div class="mb-8">
+                        <div class="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-search text-amber-600 text-4xl"></i>
+                        </div>
+                        <h2 class="text-3xl font-epilogue font-bold text-gray-900 mb-4">
+                            No Career Pathways Found
+                        </h2>
+                        <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                            No opportunities were found within your selected similarity range. 
+                            This suggests the current criteria may be too restrictive for meaningful career transitions.
+                        </p>
+                    </div>
+                    
+                    <!-- Suggestions card -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-8 mb-8">
+                        <h3 class="text-xl font-epilogue font-semibold text-amber-900 mb-4 flex items-center justify-center">
+                            <i class="fas fa-lightbulb text-amber-600 mr-3"></i>
+                            What You Can Try
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                            ${suggestions.map(suggestion => `
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    <span class="text-amber-800">${suggestion}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Action buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button onclick="window.SkillEngine.CareerAnalysis.resetSimilaritySliders()" 
+                                class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                            <i class="fas fa-sliders-h mr-2"></i>
+                            Reset Similarity Range
+                        </button>
+                        <button onclick="window.SkillEngine.CareerAnalysis.expandSimilarityRange()" 
+                                class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium">
+                            <i class="fas fa-expand-arrows-alt mr-2"></i>
+                            Try Broader Range (0-80%)
+                        </button>
+                    </div>
+                    
+                    <!-- Help text -->
+                    <div class="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center justify-center mb-3">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            <span class="font-semibold text-blue-900">Understanding Similarity Ranges</span>
+                        </div>
+                        <p class="text-blue-800 text-sm leading-relaxed">
+                            Career transitions typically occur between 25-75% similarity. Higher ranges (80%+) indicate very similar roles 
+                            with minimal change, while lower ranges (below 25%) may represent significant career pivots requiring substantial retraining.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
     },
 
     /**
@@ -4238,7 +4395,7 @@ SkillEngine.CareerAnalysis = {
     setupTargetJobSelector() {
         this.targetJobSelector = {
             selectedJobs: [],
-            maxJobs: 5,
+            maxJobs: 999, // Effectively unlimited for comparison analysis
             
             addJob(jobId, displayName) {
                 if (this.selectedJobs.find(job => job.id === jobId)) {
@@ -4246,10 +4403,7 @@ SkillEngine.CareerAnalysis = {
                     return;
                 }
                 
-                if (this.selectedJobs.length >= this.maxJobs) {
-                    SkillEngine.CareerAnalysis.showValidationMessage(`Maximum ${this.maxJobs} target jobs allowed for comparison`, 'error');
-                    return;
-                }
+                // Removed maxJobs limit check - now supports unlimited comparisons
                 
                 this.selectedJobs.push({ id: jobId, name: displayName });
                 this.updateUI();
@@ -4442,6 +4596,40 @@ SkillEngine.CareerAnalysis = {
         
         if (display) {
             display.textContent = `${minValue}% - ${maxValue}%`;
+        }
+    },
+
+    /**
+     * Reset similarity sliders to default values
+     */
+    resetSimilaritySliders() {
+        const minSlider = document.getElementById('similarityMin');
+        const maxSlider = document.getElementById('similarityMax');
+        
+        if (minSlider && maxSlider) {
+            minSlider.value = 0;
+            maxSlider.value = 95;
+            this.updateSimilarityDisplay();
+            
+            // Show a brief success message
+            this.showAlert('Similarity range reset to 0%-95%', 'success');
+        }
+    },
+
+    /**
+     * Expand similarity range to broader settings (0-80%)
+     */
+    expandSimilarityRange() {
+        const minSlider = document.getElementById('similarityMin');
+        const maxSlider = document.getElementById('similarityMax');
+        
+        if (minSlider && maxSlider) {
+            minSlider.value = 0;
+            maxSlider.value = 80;
+            this.updateSimilarityDisplay();
+            
+            // Show a brief success message
+            this.showAlert('Similarity range expanded to 0%-80% for broader results', 'success');
         }
     }
 };

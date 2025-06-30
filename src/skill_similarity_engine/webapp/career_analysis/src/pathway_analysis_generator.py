@@ -133,7 +133,7 @@ class PathwayAnalysisGenerator:
             }
         else:
             # Default: Top N pathways analysis
-            top_pathways = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options)
+            top_pathways = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range)
             
             if not top_pathways:
                 return {
@@ -165,12 +165,12 @@ class PathwayAnalysisGenerator:
                 'references': self._generate_references()
             }
     
-    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None) -> List[Dict]:
+    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None) -> List[Dict]:
         """Get top similarity pathways with consistent ordering across all Career Transition Analysis sections."""
         try:
             # Use centralized pathway ordering for consistency with Executive Summary
             from pathway_ordering_utils import get_consistent_pathways
-            return get_consistent_pathways(self.db, job_from, limit, executive_refs=False, tie_breaking_options=tie_breaking_options)
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=False, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range)
             
         except ImportError:
             print("⚠️ PathwayOrderingUtils not available, using fallback method")

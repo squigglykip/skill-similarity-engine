@@ -11,7 +11,7 @@ SkillEngine.SearchModule = {
         searchDelay: 300,
         maxResults: 10,
         minQueryLength: 2,
-        apiEndpoint: '/api/whitepaper-jobs', // Use the enhanced endpoint
+        apiEndpoint: '/api/career-analysis-jobs', // Use the enhanced endpoint
         keyboardNavigation: true,
         showDetailedResults: true
     },

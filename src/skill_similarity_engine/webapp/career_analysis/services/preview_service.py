@@ -83,7 +83,8 @@ class PreviewService:
                 'success': True,
                 'content': processed_content,
                 'metadata': preview_metadata,
-                'preview_ready': True
+                'preview_ready': True,
+                'no_results': result.get('no_results', False)  # Pass through no_results flag
             }
             
         except Exception as e:

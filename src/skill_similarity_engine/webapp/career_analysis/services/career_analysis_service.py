@@ -7,6 +7,7 @@ and provides proper separation between web preview and document generation modes
 
 from typing import Dict, List, Optional, Any
 import logging
+from datetime import datetime
 from pathlib import Path
 
 # Import existing generators - use absolute imports to avoid relative import issues
@@ -163,6 +164,26 @@ class CareerAnalysisService:
                 tie_breaking_options=tie_breaking_options,
                 output_format=output_mode  # Pass web/document format to generator
             )
+            
+            # 🚨 EARLY DETECTION: Check if pathway analysis found no opportunities
+            logger.info(f"🔍 DEBUG: Checking pathway result for opportunities...")
+            logger.info(f"🔍 DEBUG: Pathway result type: {type(pathway_result)}")
+            if isinstance(pathway_result, dict):
+                logger.info(f"🔍 DEBUG: Pathway result keys: {list(pathway_result.keys())}")
+                content = pathway_result.get('content', {})
+                if isinstance(content, dict):
+                    logger.info(f"🔍 DEBUG: Pathway result content keys: {list(content.keys())}")
+                else:
+                    logger.info(f"🔍 DEBUG: Pathway content is not a dict: {type(content)}")
+            else:
+                logger.info(f"🔍 DEBUG: Pathway result is not a dict: {pathway_result}")
+            
+            if self._has_no_opportunities(pathway_result):
+                logger.info("🚫 No career pathways found within similarity range - returning simplified no-results response")
+                return self._create_no_results_response(job_from, similarity_min, similarity_max, output_mode)
+            else:
+                logger.info("✅ Opportunities found - continuing with full analysis")
+            
             # Use the section title from the generator, with intelligent fallback
             pathway_title = pathway_result.get('section_title')
             if not isinstance(pathway_title, str) or not pathway_title:
@@ -666,8 +687,104 @@ class CareerAnalysisService:
             
             logger.debug(f"DEBUG: Successfully formatted {len(formatted_opportunities)} opportunities")
             return formatted_opportunities
-            
+        
         except Exception as e:
             logger.error(f"ERROR: Failed to format opportunities for web: {e}", exc_info=True)
             # Return original data as fallback
             return opportunities_list
+    
+    def _has_no_opportunities(self, pathway_result: Dict[str, Any]) -> bool:
+        """
+        Check if the pathway analysis result indicates no opportunities were found.
+        
+        Args:
+            pathway_result: Result from pathway generator
+            
+        Returns:
+            True if no opportunities found, False otherwise
+        """
+        try:
+            content = pathway_result.get('content', {})
+            
+            # Check for error subsection (indicates no results)
+            if 'error' in content:
+                logger.info("🔍 Found 'error' subsection - no opportunities detected")
+                return True
+            
+            # Check for empty opportunities list
+            opportunities = content.get('opportunities', [])
+            if isinstance(opportunities, list):
+                has_opportunities = len(opportunities) > 0
+                logger.info(f"🔍 Found {len(opportunities)} opportunities in list")
+                return not has_opportunities
+            elif isinstance(opportunities, dict):
+                # Handle case where opportunities is a dict with content
+                opp_content = opportunities.get('content', [])
+                if isinstance(opp_content, list):
+                    has_opportunities = len(opp_content) > 0
+                    logger.info(f"🔍 Found {len(opp_content)} opportunities in dict content")
+                    return not has_opportunities
+            
+            # Default: assume opportunities exist if we can't clearly determine otherwise
+            logger.info("🔍 Could not clearly determine opportunity count - assuming opportunities exist")
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking for opportunities: {e}")
+            return False
+    
+    def _create_no_results_response(self, job_from: str, similarity_min: int, similarity_max: int, output_mode: str) -> Dict[str, Any]:
+        """
+        Create a simplified response when no career opportunities are found.
+        
+        Args:
+            job_from: Source job ID
+            similarity_min: Minimum similarity percentage
+            similarity_max: Maximum similarity percentage
+            output_mode: 'web' or 'document'
+            
+        Returns:
+            Simplified response with no-results message
+        """
+        # Create a single, clean "no results found" section
+        no_results_content = {
+            'no_results_found': {
+                'title': 'No Career Pathways Found',
+                'content': f"No career opportunities were found within the {similarity_min}%-{similarity_max}% similarity range.\n\n" +
+                          "This could mean:\n" +
+                          "• The similarity range is too narrow\n" +
+                          "• No suitable career transitions exist within this range\n" +
+                          "• Try adjusting the similarity range to explore more options\n\n" +
+                          "**Suggestion:** Consider expanding your similarity range (e.g., 0%-60%) to discover more career opportunities.",
+                'formatting': {'content_type': 'informational_message'},
+                'type': 'formatted_content'
+            }
+        }
+        
+        sections = {
+            'no_results': {
+                'title': 'Career Transition Analysis Results',
+                'section_title': 'Career Transition Analysis Results',
+                'section_key': 'no_results',
+                'subsections': no_results_content
+            }
+        }
+        
+        # Create metadata
+        metadata = {
+            'job_from': job_from,
+            'similarity_range': f"{similarity_min}%-{similarity_max}%",
+            'analysis_type': 'no_results_found',
+            'timestamp': str(datetime.now()),
+            'status': 'no_opportunities_found'
+        }
+        
+        logger.info(f"✅ Created no-results response for job {job_from} with range {similarity_min}%-{similarity_max}%")
+        
+        return {
+            'success': True,
+            'sections': sections,
+            'metadata': metadata,
+            'output_mode': output_mode,
+            'no_results': True  # Flag to help frontend identify this response type
+        }
