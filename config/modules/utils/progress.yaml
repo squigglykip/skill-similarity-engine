@@ -1,0 +1,48 @@
+# =============================================================================
+# Utils Module - Progress Tracking Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - utils.progress section
+# Controls progress reporting, display settings, and time formatting
+
+# Default logging intervals
+default_log_interval: 100
+simple_log_interval: 10
+
+# Progress display settings
+bar_width: 50
+progress_bar_char: "█"
+empty_bar_char: " "
+progress_update_interval: 1.0
+clear_line_width: 80
+
+# Memory tracking in progress
+memory_tracking_enabled: true
+memory_check_interval: 1.0
+
+# Time formatting
+time_format:
+  show_hours: true
+  show_minutes: true
+  show_seconds: true
+  decimal_places: 2
+
+# Performance monitoring
+performance:
+  # Memory usage tracking
+  track_memory_usage: true
+  memory_snapshot_interval: 5.0
+  
+  # Object tracking
+  track_largest_objects: true
+  largest_objects_count: 10
+  object_tracking_enabled: false
+
+# Display utilities
+display:
+  # String formatting
+  max_parameter_string_length: 50
+  truncation_suffix: "..."
+  
+  # Separator settings
+  default_separator_char: "="
+  default_separator_length: 80 

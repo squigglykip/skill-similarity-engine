@@ -1,9 +1,0 @@
-﻿-- Similarity threshold calculations
--- Get similarity distribution for threshold setting
-SELECT 
-    similarity_score,
-    COUNT(*) as frequency,
-    NTILE(100) OVER (ORDER BY similarity_score) as percentile
-FROM job_similarities
-WHERE similarity_score > 0;
-

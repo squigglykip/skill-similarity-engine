@@ -36,7 +36,7 @@
     background: var(--slider-thumb-color);
     cursor: pointer;
     border-radius: var(--border-radius-full);
-    border: 2px solid #ffffff;
+    border: var(--button-border-white);
     box-shadow: var(--shadow-md);
     transition: all var(--transition-base);
 }
@@ -49,16 +49,16 @@
 .similarity-slider::-moz-range-thumb {
     width: 20px;
     height: 20px;
-    background: #3b82f6;
+    background: var(--color-blue-500);
     cursor: pointer;
     border-radius: 50%;
-    border: 2px solid #ffffff;
+    border: var(--button-border-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease-in-out;
 }
 
 .similarity-slider::-moz-range-thumb:hover {
-    background: #2563eb;
+    background: var(--color-blue-600);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -76,13 +76,13 @@
 }
 
 .similarity-chart-container:hover {
-    border-color: #cbd5e1;
+    border-color: var(--color-slate-300);
 }
 
 .chart-title {
     font-size: 12px;
     font-weight: 600;
-    color: #475569;
+    color: var(--color-slate-600);
     margin-bottom: 12px;
     text-align: center;
     text-transform: uppercase;
@@ -92,7 +92,7 @@
 /* Chart SVG styling */
 .distribution-svg {
     border-radius: 4px;
-    background: #ffffff;
+    background: var(--color-white);
 }
 
 .distribution-curve {
@@ -162,13 +162,13 @@
 }
 
 .similar-job-item:hover {
-    border-color: #9ca3af;
-    background-color: #f9fafb;
+    border-color: var(--color-gray-400);
+    background-color: var(--color-gray-50);
     transform: translateX(4px);
 }
 
 .similarity-score-badge {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: var(--gradient-blue-primary);
     color: white;
     font-weight: 600;
     padding: 0.25rem 0.5rem;
@@ -185,8 +185,8 @@
 }
 
 .skill-category-card:hover {
-    border-color: #d1d5db;
-    background-color: #f9fafb;
+    border-color: var(--color-gray-300);
+    background-color: var(--color-gray-50);
 }
 
 .skill-badge {
@@ -237,7 +237,7 @@
 }
 
 .loading-shimmer {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background: var(--gradient-shimmer);
     background-size: 400% 100%;
     animation: shimmer 1.2s ease-in-out infinite;
 }
@@ -247,11 +247,11 @@
    ================================================================= */
 
 .welcome-state-icon {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    background: var(--gradient-blue-light);
     transition: all 0.3s ease-in-out;
 }
 
 .welcome-state-icon:hover {
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+    background: var(--gradient-blue-medium);
     transform: scale(1.05);
 } 

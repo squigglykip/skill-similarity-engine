@@ -1,0 +1,31 @@
+# =============================================================================
+# Logging Module Configuration - Directory Structure
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (logging.directories section)
+# Purpose: Logging directory structure and run management
+# Module: src/logging/
+# =============================================================================
+
+# Directory structure configuration
+directories:
+  # Root log directory (relative to project root)
+  log_root: "log"
+  relative_path_from_logging_module: "../../../log"
+  
+  # Run directory configuration
+  run_directory_format: "run_{timestamp}"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  
+  # Standard run subdirectories
+  run_subdirectories:
+    - "logs"
+    - "errors" 
+    - "checkpoints"
+    - "progress"
+    - "validation"
+    - "metrics"
+    
+  # Directory creation settings
+  create_run_subdirs: true
+  make_dirs_exist_ok: true 

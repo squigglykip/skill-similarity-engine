@@ -48,7 +48,7 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo and brand -->
                 <div class="flex items-center">
-                    <a href="{{ url_for('index') }}" class="font-epilogue font-bold text-xl text-white hover:text-red-600 transition-colors">
+                    <a href="{{ url_for('main.index') }}" class="font-epilogue font-bold text-xl text-white hover:text-red-600 transition-colors">
                         <!-- Network/connections icon representing insights -->
                         <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -60,19 +60,19 @@
                 <!-- Desktop Navigation -->
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="{{ url_for('index') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <a href="{{ url_for('main.index') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Dashboard
                         </a>
-                        <a href="{{ url_for('job_search') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <a href="{{ url_for('job_explorer.job_search') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Job Explorer
                         </a>
-                        <a href="{{ url_for('career_pathways') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <a href="{{ url_for('career_pathways.career_pathways') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Career Pathways
                         </a>
-                        <a href="{{ url_for('career_analysis') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <a href="{{ url_for('career_analysis.career_analysis') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Career Transition Analysis
                         </a>
-                        <!-- <a href="{{ url_for('components') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <!-- <a href="{{ url_for('main.components') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                             Components
                         </a> -->
                     </div>
@@ -97,11 +97,11 @@
         <!-- Mobile Navigation Menu -->
         <div class="md:hidden hidden" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 bg-black border-t border-gray-800">
-                <a href="{{ url_for('index') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Dashboard</a>
-                <a href="{{ url_for('job_search') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Job Explorer</a>
-                <a href="{{ url_for('career_pathways') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Career Pathways</a>
-                <a href="{{ url_for('career_analysis') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Career Transition Analysis</a>
-                <a href="{{ url_for('components') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Components</a>
+                <a href="{{ url_for('main.index') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Dashboard</a>
+                <a href="{{ url_for('job_explorer.job_search') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Job Explorer</a>
+                <a href="{{ url_for('career_pathways.career_pathways') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Career Pathways</a>
+                <a href="{{ url_for('career_analysis.career_analysis') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Career Transition Analysis</a>
+                <a href="{{ url_for('main.components') }}" class="text-gray-300 hover:text-white block px-3 py-2 text-base font-medium">Components</a>
             </div>
         </div>
     </nav>

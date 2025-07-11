@@ -3,15 +3,17 @@ Data normalisation strategies for skill proficiency levels.
 
 This module provides various methods for normalising skill data, including
 min-max scaling, boolean normalisation, and TF-IDF style weighting.
+
+Architecture: Configuration-Driven Design Pattern following PTH's enterprise patterns
 """
 
 import math
 from collections import Counter
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
-from ..config.settings import get_config
+from ..config.architectural_config_manager import get_config_manager
 from ..models.jobs import Job, JobArchitecture
 from ..models.skills import Skill, SkillTaxonomy
 
@@ -29,27 +31,38 @@ class MinMaxScaler:
     
     def __init__(
         self, 
-        min_value: int = 0,
-        max_value: int = 5,
-        target_min: float = 0.0,
-        target_max: float = 1.0
+        min_value: Optional[int] = None,
+        max_value: Optional[int] = None,
+        target_min: Optional[float] = None,
+        target_max: Optional[float] = None
     ):
         """
-        Initialize the min-max scaler.
+        Initialize the min-max scaler using architectural configuration.
         
         Args:
-            min_value: Minimum proficiency value
-            max_value: Maximum proficiency value
-            target_min: Target minimum value after scaling
-            target_max: Target maximum value after scaling
+            min_value: Minimum proficiency value (default: from configuration)
+            max_value: Maximum proficiency value (default: from configuration)
+            target_min: Target minimum value after scaling (default: from configuration)
+            target_max: Target maximum value after scaling (default: from configuration)
         """
-        self.min_value = min_value
-        self.max_value = max_value
-        self.target_min = target_min
-        self.target_max = target_max
+        # Load configuration values
+        try:
+            config_manager = get_config_manager()
+            scaling_config = config_manager.get_nested_value('data', 'normalisation', 'min_max_scaling', default={})
+            
+            self.min_value = min_value if min_value is not None else scaling_config.get('min_value', 0)
+            self.max_value = max_value if max_value is not None else scaling_config.get('max_value', 5)
+            self.target_min = target_min if target_min is not None else scaling_config.get('target_min', 0.0)
+            self.target_max = target_max if target_max is not None else scaling_config.get('target_max', 1.0)
+        except Exception:
+            # Fallback to hardcoded defaults if configuration unavailable
+            self.min_value = min_value if min_value is not None else 0
+            self.max_value = max_value if max_value is not None else 5
+            self.target_min = target_min if target_min is not None else 0.0
+            self.target_max = target_max if target_max is not None else 1.0
         
         # Check for division by zero
-        if max_value == min_value:
+        if self.max_value == self.min_value:
             raise ValueError("Min and max values cannot be equal")
     
     def scale(self, value: int) -> float:
@@ -93,14 +106,21 @@ class BooleanNormaliser:
         threshold: Minimum proficiency value to be considered as having the skill
     """
     
-    def __init__(self, threshold: int = 1):
+    def __init__(self, threshold: Optional[int] = None):
         """
-        Initialize the boolean normaliser.
+        Initialize the boolean normaliser using architectural configuration.
         
         Args:
-            threshold: Minimum proficiency value to be considered as having the skill
+            threshold: Minimum proficiency value to be considered as having the skill (default: from configuration)
         """
-        self.threshold = threshold
+        # Load threshold from configuration
+        try:
+            config_manager = get_config_manager()
+            boolean_config = config_manager.get_nested_value('data', 'normalisation', 'boolean_normalisation', default={})
+            self.threshold = threshold if threshold is not None else boolean_config.get('threshold', 1)
+        except Exception:
+            # Fallback to default if configuration unavailable
+            self.threshold = threshold if threshold is not None else 1
     
     def normalise(self, value: int) -> float:
         """
@@ -227,7 +247,29 @@ class CategoryWeighter:
         
         if importance_weights is None:
             # Use weights from configuration if not provided
-            self.importance_weights = get_config().normalisation.importance_weights
+            try:
+                config_manager = get_config_manager()
+                normalisation_config = config_manager.get_nested_value('data', 'normalisation', default={})
+                self.importance_weights = normalisation_config.get('importance_weights', {
+                    "Technical": 1.0,
+                    "Soft": 1.0,
+                    "Domain": 1.0,
+                    "Methodology": 1.0,
+                    "Tool": 1.0,
+                    "Certification": 1.0,
+                    "Other": 1.0
+                })
+            except Exception:
+                # Fallback to default weights if configuration unavailable
+                self.importance_weights = {
+                    "Technical": 1.0,
+                    "Soft": 1.0,
+                    "Domain": 1.0,
+                    "Methodology": 1.0,
+                    "Tool": 1.0,
+                    "Certification": 1.0,
+                    "Other": 1.0
+                }
         else:
             self.importance_weights = importance_weights
     
@@ -310,12 +352,20 @@ class SkillNormaliser:
         self.skill_taxonomy = skill_taxonomy
         self.job_architecture = job_architecture
         
-        config = get_config().normalisation
-        
-        # Use configuration values if not provided
-        self.use_min_max_scaling = use_min_max_scaling if use_min_max_scaling is not None else config.use_min_max_scaling
-        self.use_boolean_normalisation = use_boolean_normalisation if use_boolean_normalisation is not None else config.use_boolean_normalisation
-        self.use_tfidf_weighting = use_tfidf_weighting if use_tfidf_weighting is not None else config.use_tfidf_weighting
+        # Load configuration values
+        try:
+            config_manager = get_config_manager()
+            normalisation_config = config_manager.get_nested_value('data', 'normalisation', default={})
+            
+            # Use configuration values if not provided
+            self.use_min_max_scaling = use_min_max_scaling if use_min_max_scaling is not None else normalisation_config.get('use_min_max_scaling', True)
+            self.use_boolean_normalisation = use_boolean_normalisation if use_boolean_normalisation is not None else normalisation_config.get('use_boolean_normalisation', False)
+            self.use_tfidf_weighting = use_tfidf_weighting if use_tfidf_weighting is not None else normalisation_config.get('use_tfidf_weighting', True)
+        except Exception:
+            # Fallback to defaults if configuration unavailable
+            self.use_min_max_scaling = use_min_max_scaling if use_min_max_scaling is not None else True
+            self.use_boolean_normalisation = use_boolean_normalisation if use_boolean_normalisation is not None else False
+            self.use_tfidf_weighting = use_tfidf_weighting if use_tfidf_weighting is not None else True
         
         # Initialize normalisers
         self.min_max_scaler = MinMaxScaler()

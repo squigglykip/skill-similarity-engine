@@ -1,0 +1,43 @@
+# =============================================================================
+# API Module - Lightcast Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - api.lightcast section
+# Controls Lightcast Skills API integration and settings
+
+# API endpoints
+base_url: "https://emsiservices.com/skills"
+auth_url: "https://auth.emsicloud.com/connect/token"
+
+# Authentication
+default_scope: "emsi_open"
+default_credentials_file: "credentials.json"
+
+# Rate limiting and timeouts
+rate_limit_requests_per_second: 5
+min_request_interval_seconds: 0.2
+token_expiry_buffer_minutes: 5
+
+# API limits
+max_skills_per_request: 100000
+fallback_skills_limit: 50000
+default_page_size: 1000
+
+# File extraction configuration
+output_file_extension: ".csv"
+use_timestamp_in_output: true
+csv_quoting_mode: "QUOTE_ALL"
+
+# Standard output filenames
+standard_files:
+  status: "status.csv"
+  metadata: "meta.csv"
+  versions: "versions.csv"
+  version_latest: "version_latest.csv"
+  skills_comprehensive: "skills_comprehensive_all_versions.csv"
+
+# Search paths for credentials file
+credentials_search_paths:
+  - "."
+  - "credentials.json"
+  - "src/skill_similarity_engine/api/credentials.json"
+  - "config/credentials.json" 

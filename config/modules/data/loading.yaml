@@ -1,0 +1,31 @@
+# =============================================================================
+# Data Module Configuration - Data Loading
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (data.loading section)
+# Purpose: Data loading performance settings and chunk sizes
+# Module: src/data/
+# =============================================================================
+
+# Data loading performance settings
+loading:
+  # Default chunk sizes for different operations
+  chunk_sizes:
+    default: 10000
+    skill_taxonomy: 5000
+    job_architecture: 8000
+    employee_data: 10000
+    large_datasets: 15000
+    memory_constrained: 2000
+  
+  # Progress tracking settings
+  progress_tracking:
+    show_progress_bars: true
+    update_frequency: 1000
+    log_progress: true
+  
+  # Validation settings
+  validation:
+    enable_by_default: true
+    log_validation_failures: true
+    continue_on_validation_error: true 

@@ -1,0 +1,346 @@
+# =============================================================================
+# Operational Configuration
+# =============================================================================
+# 
+# Runtime configuration for workforce intelligence processing.
+# Contains performance settings, validation rules, and operational parameters.
+# 
+# Architecture: Environment-Driven Configuration Pattern
+# Source: Adapted from Position Transition History (PTH) best practices
+# =============================================================================
+
+# =============================================================================
+# Data Processing Configuration
+# =============================================================================
+
+# Date Handling
+date_processing:
+  default_date_format: "%d/%m/%Y"        # DD/MM/YYYY for Australian context
+  output_date_format: "%Y-%m-%d"         # ISO format for internal processing
+  alternative_date_formats: 
+    - "%Y-%m-%d"
+    - "%d/%m/%Y" 
+    - "%m/%d/%Y"
+    - "%d-%m-%Y"
+  timezone: "Australia/Sydney"           # Default timezone for processing
+
+# File Processing
+file_processing:
+  default_encoding: "utf-8"
+  chunk_size: 50000                      # Rows per chunk for memory management
+  large_file_threshold: 100000           # Use chunking above this row count
+  max_file_size_mb: 500                  # Maximum file size to process
+  backup_processed_files: true           # Keep backup copies
+  temp_directory: "temp/"                # Temporary processing directory
+
+# Data Quality
+data_quality:
+  null_representations: 
+    - ""
+    - "nan" 
+    - "null"
+    - "NULL"
+    - "NaN"
+    - "None"
+    - "n/a"
+    - "N/A"
+  boolean_true_values: 
+    - "TRUE"
+    - "True"
+    - "true"
+    - "1"
+    - "Y"
+    - "Yes"
+    - "yes"
+  boolean_false_values: 
+    - "FALSE"
+    - "False"
+    - "false"
+    - "0"
+    - "N"
+    - "No"
+    - "no"
+
+# =============================================================================
+# Business Logic Configuration
+# =============================================================================
+
+# ID Validation Ranges (based on actual data analysis)
+id_validation:
+  employee_number_range: [10000000, 50000000]      # 8-digit employee IDs
+  position_number_range: [50000000, 99999999]      # 8-digit position numbers  
+  pos_id_lookup_key_range: [1000000000, 999999999999]  # Scientific notation range
+  cost_centre_range: [1000, 99999]                 # Cost centre number range
+
+# Organisational Context
+organisational_context:
+  default_country: "AU"
+  supported_countries: 
+    - "AU"  # Australia
+    - "NZ"  # New Zealand
+    - "IN"  # India
+    - "VN"  # Vietnam
+    - "UK"  # United Kingdom
+    - "US"  # United States
+    - "CN"  # China
+    - "HK"  # Hong Kong
+    - "SG"  # Singapore
+    - "JP"  # Japan
+  default_currency: "AUD"
+  fiscal_year_start_month: 7              # July (Australian FY)
+
+# Skills Intelligence Configuration  
+skills_intelligence:
+  min_skill_similarity: 0.3              # Minimum similarity for recommendations
+  max_career_recommendations: 10         # Top N career suggestions
+  skill_versions_to_include: [9.31]      # Active skill library versions
+  similarity_algorithms:
+    - "cosine"                            # Cosine similarity (default)
+    - "jaccard"                           # Jaccard similarity
+    - "euclidean"                         # Euclidean distance
+  default_algorithm: "cosine"
+
+# Movement Analysis (PTH Integration)
+movement_analysis:
+  min_movement_frequency: 2              # Minimum frequency for career pathways
+  movement_detection_window: 52          # Weeks to analyse for transitions
+  min_position_tenure: 4                 # Minimum weeks in position
+  max_position_tenure: 520               # Maximum weeks in position (10 years)
+  ignore_temporary_positions: true       # Exclude positions < min_tenure
+  track_lateral_moves: true              # Include lateral career moves
+  track_promotions: true                 # Include promotion moves
+  track_department_changes: true         # Include department transitions
+
+# =============================================================================
+# Performance Configuration
+# =============================================================================
+
+# Performance Optimisation
+performance:
+  # Chunk sizes for different operations
+  chunk_sizes:
+    default: 10000
+    movement_analysis: 50000            # Larger chunks for movement detection
+    similarity_calculation: 5000        # Smaller chunks for memory-intensive operations
+    data_loading: 25000                 # Medium chunks for file loading
+    data_export: 20000                  # Export chunk size
+    
+  # Parallel worker configuration
+  parallel_workers:
+    default: null                       # Auto-detect CPU cores
+    movement_analysis: 4                # Optimal for I/O intensive operations
+    similarity_calculation: 8           # Optimal for CPU intensive operations
+    data_loading: 2                     # Conservative for file I/O
+    
+  # Memory limits (MB)
+  memory_limits:
+    movement_analysis: 8000             # 8GB for movement analysis
+    similarity_calculation: 12000       # 12GB for similarity calculations
+    default: 4000                       # 4GB general operations
+    data_loading: 2000                  # 2GB for data loading
+    
+  # Adaptive processing settings
+  adaptive_chunking:
+    enabled: true
+    memory_threshold_percent: 80.0      # Reduce chunk size above this
+    growth_factor: 1.5                  # Increase chunk size factor
+    shrink_factor: 0.5                  # Decrease chunk size factor
+    min_chunk_size: 100
+    max_chunk_size: 100000
+    
+  # Progress tracking settings
+  progress_tracking:
+    enabled: true
+    log_interval: 1000                  # Log progress every N items
+    memory_tracking: true               # Track memory usage
+    show_tqdm: true                     # Show visual progress bars
+    update_frequency: 0.1               # Update frequency in seconds
+    
+  # Checkpointing for long operations
+  checkpointing:
+    enabled: true
+    interval: 10000                     # Save checkpoint every N items
+    cleanup_on_success: true           # Remove checkpoints when complete
+    checkpoint_directory: "checkpoints/"
+    max_checkpoint_age_hours: 24       # Auto-cleanup old checkpoints
+
+# Caching
+caching:
+  enabled: true
+  cache_directory: "cache/"
+  max_cache_size_mb: 1000               # 1GB cache limit
+  cache_expiry_hours: 24                # Auto-expire cache entries
+  cache_compression: true               # Compress cached data
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+
+# Database Configuration
+database:
+  # SQLite specific settings
+  sqlite_pragmas:
+    journal_mode: "WAL"                 # Write-Ahead Logging for performance
+    synchronous: "NORMAL"               # Balance safety/performance
+    temp_store: "MEMORY"                # Use memory for temp tables
+    cache_size: -64000                  # 64MB cache
+    page_size: 4096                     # Page size in bytes
+    mmap_size: 268435456                # 256MB memory-mapped I/O
+  
+  # Data Pipeline Settings
+  enable_foreign_key_constraints: true
+  validate_data_integrity: true
+  log_data_quality_issues: true
+  auto_create_indexes: true
+  batch_insert_size: 10000
+  
+  # Connection pooling
+  connection_pool:
+    enabled: true
+    max_connections: 10
+    connection_timeout: 30              # Seconds
+    
+  # Backup settings
+  backup:
+    enabled: true
+    backup_directory: "backups/"
+    auto_backup_interval_hours: 24
+    max_backup_files: 7                 # Keep 7 days of backups
+
+# =============================================================================
+# Validation Configuration
+# =============================================================================
+
+# Enhanced Validation Rules (PTH Integration)
+validation:
+  # Core validation settings
+  enabled: true
+  strict_mode: false                    # false = warnings, true = errors
+  
+  # Data type validation
+  enforce_data_types: true
+  auto_convert_types: true              # Attempt automatic type conversion
+  
+  # Required field validation
+  check_required_fields: true
+  allow_partial_records: false          # All required fields must be present
+  
+  # Referential integrity
+  check_foreign_keys: true
+  validate_lookups: true                # Validate lookup key consistency
+  
+  # Temporal validation (movement analysis specific)
+  temporal_validation:
+    enabled: true
+    check_date_sequences: true          # Ensure dates are in logical order
+    allow_future_dates: false           # Disallow dates in the future
+    max_date_gap_days: 365             # Flag gaps longer than 1 year
+    check_tenure_consistency: true     # Validate position tenure logic
+    
+  # Business rule validation
+  business_rules:
+    enabled: true
+    validate_employee_position_consistency: true  # Employee-position mapping
+    check_organisational_hierarchy: true          # Org unit parent-child logic
+    validate_movement_patterns: true              # Movement detection logic
+    check_skill_job_relationships: true           # Skills-job mapping validation
+    
+  # Data quality thresholds
+  quality_thresholds:
+    min_data_completeness: 0.95         # 95% of fields must be populated
+    max_duplicate_rate: 0.05            # <5% duplicate records allowed
+    max_error_rate: 0.10                # <10% validation errors allowed
+    min_unique_values_ratio: 0.01       # Min ratio for categorical fields
+
+# =============================================================================
+# Logging and Monitoring Configuration
+# =============================================================================
+
+# Logging and Monitoring
+logging:
+  level: "INFO"                         # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Performance logging
+  enable_performance_logging: true
+  performance_log_level: "DEBUG"
+  
+  # Memory logging
+  enable_memory_logging: true
+  memory_log_interval: 30               # Log memory usage every 30 seconds
+  
+  # Validation logging
+  log_validation_failures: true
+  max_validation_errors_logged: 100    # Prevent log flooding
+  
+  # File logging
+  log_to_file: true
+  log_directory: "logs/"
+  log_file_max_size_mb: 100
+  log_file_backup_count: 5
+  log_rotation: "daily"                 # daily, weekly, monthly
+  
+  # Console logging
+  log_to_console: true
+  console_log_level: "INFO"
+
+# Monitoring
+monitoring:
+  enabled: true
+  
+  # Performance monitoring
+  track_processing_time: true
+  track_memory_usage: true
+  track_cpu_usage: true
+  track_disk_usage: true
+  
+  # Alerts
+  enable_alerts: false                  # Disable by default
+  alert_thresholds:
+    max_processing_time_minutes: 60
+    max_memory_usage_percent: 90
+    max_cpu_usage_percent: 95
+    max_disk_usage_percent: 85
+    
+  # Metrics export
+  export_metrics: false                 # For production monitoring
+  metrics_export_interval: 60          # Seconds
+
+# =============================================================================
+# Environment Configuration
+# =============================================================================
+
+# Environment settings
+environment:
+  # Development settings
+  development:
+    debug_mode: true
+    verbose_logging: true
+    skip_validation: false
+    use_sample_data: false
+    
+  # Production settings  
+  production:
+    debug_mode: false
+    verbose_logging: false
+    skip_validation: false
+    use_sample_data: false
+    enable_monitoring: true
+    
+  # Testing settings
+  testing:
+    debug_mode: true
+    verbose_logging: false
+    skip_validation: true
+    use_sample_data: true
+
+# Feature flags
+feature_flags:
+  enable_movement_analysis: true        # PTH integration
+  enable_skill_similarity: true        # SSE core functionality
+  enable_career_recommendations: true  # AI-driven recommendations
+  enable_parallel_processing: true     # Multi-threading
+  enable_caching: true                 # Performance optimization
+  enable_data_validation: true         # Data quality checks
+  enable_progress_reporting: true      # User feedback
+  experimental_features: false         # Bleeding edge features 

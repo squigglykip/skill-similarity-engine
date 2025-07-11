@@ -1,0 +1,28 @@
+{
+  "analysis_info": {
+    "run_timestamp": "2025-07-11 21:14:42",
+    "run_id": "20250711_211442",
+    "analysis_type": "workforce_movement_analysis",
+    "version": "1.0"
+  },
+  "configuration": {
+    "memory_monitoring": true,
+    "memory_warning_threshold_mb": 1000,
+    "export_individual_movements": true,
+    "export_movement_summary": true,
+    "parquet_compression": "snappy"
+  },
+  "data_processing": {
+    "total_movements": 92107,
+    "total_employees": 157891,
+    "total_positions": 0,
+    "analysis_period": {
+      "start": "",
+      "end": ""
+    }
+  },
+  "system_info": {
+    "memory_initial_mb": 82.08984375,
+    "quarter": "2025-Q3"
+  }
+}

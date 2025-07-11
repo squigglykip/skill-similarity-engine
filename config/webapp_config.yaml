@@ -1,0 +1,318 @@
+# =============================================================================
+# Webapp Module Configuration (Phase 1.4.8 - Webapp Module Refactoring)
+# =============================================================================
+# 
+# This configuration file contains all externalized parameters for the webapp module,
+# following the hybrid configuration architecture approach that maintains
+# architectural consistency while respecting webapp domain boundaries.
+
+webapp:
+  # ==========================================================================
+  # Core Application Settings
+  # ==========================================================================
+  core:
+    # Database configuration
+    database:
+      default_model_version: "2025-Q2"
+      business_context_filename: "business_context.sqlite"
+      connection_timeout_seconds: 30
+      retry_attempts: 3
+      
+    # API endpoint defaults and thresholds
+    api:
+      # Job sampling and search limits
+      default_job_limit: 20
+      default_search_limit: 10
+      sample_jobs_limit: 20
+      search_results_limit: 10
+      
+      # Similarity thresholds and defaults
+      default_similarity_threshold: 0.5
+      max_similarity_threshold: 0.99
+      min_similarity_threshold: 0.1
+      pathway_similarity_threshold: 0.6
+      cross_family_similarity_threshold: 0.4
+      
+      # Pagination and result limits
+      max_pathways_display: 12
+      default_pathways_limit: 12
+      workforce_analysis_limit: 15
+      
+    # Performance and caching settings
+    performance:
+      max_depth_default: 3
+      max_results_default: 10
+      max_results_export: 6
+      cache_timeout_seconds: 3600
+      pagination_size: 50
+      query_timeout_seconds: 30
+      
+    # Route and response configuration
+    routes:
+      error_response_format: "json"
+      cors_enabled: false
+      debug_mode: false
+      
+  # ==========================================================================
+  # Career Analysis Subsystem Configuration
+  # ==========================================================================
+  career_analysis:
+    # Analysis parameters and limits
+    analysis:
+      max_pathways_analysis: 5
+      default_pathways_analysis: 3
+      min_similarity_threshold: 0.1
+      max_similarity_threshold: 0.99
+      confidence_high_threshold: 0.8
+      confidence_medium_threshold: 0.6
+      
+    # Content generation settings
+    content_generation:
+      reference_numbering_start: 1
+      max_reference_number: 999
+      cache_timeout_seconds: 3600
+      template_cache_enabled: true
+      
+    # Document styling configuration
+    document_styling:
+      # Font families
+      fonts:
+        heading: "Epilogue"
+        primary: "Source Sans Pro"
+        mono: "Monaco"
+      
+      # Font sizes (in points)
+      font_sizes:
+        cover_title: 42
+        cover_subtitle: 28
+        h1: 22
+        h2: 14
+        h3: 13
+        body: 11
+        table_header: 9
+        table_body: 9
+        caption: 9
+        
+        # Legacy size mappings
+        size_4xl: 42
+        size_3xl: 28
+        size_2xl: 22
+        size_xl: 14
+        size_lg: 13
+        size_base: 11
+        size_sm: 11
+        size_xs: 9
+      
+      # Color palette (RGB values)
+      colors:
+        nab_black: [0, 0, 0]
+        nab_red: [220, 38, 38]
+        blue_600: [37, 99, 235]
+        blue_700: [29, 78, 216]
+        gray_600: [75, 85, 99]
+        gray_700: [55, 65, 81]
+        gray_800: [31, 41, 55]
+        gray_900: [17, 24, 39]
+        white: [255, 255, 255]
+      
+      # Spacing values (in points)
+      spacing:
+        spacing_1: 4
+        spacing_2: 8
+        spacing_3: 12
+        spacing_4: 16
+        spacing_5: 20
+        spacing_6: 24
+        spacing_8: 32
+        spacing_10: 40
+        spacing_12: 48
+        spacing_16: 64
+      
+      # Line height values
+      line_height:
+        tight: 1.25
+        normal: 1.5
+        relaxed: 1.75
+    
+    # File and directory paths
+    paths:
+      templates_dir: "templates"
+      sections_templates_dir: "templates/sections"
+      narratives_templates_dir: "templates/narratives"
+      audiences_templates_dir: "templates/audiences"
+      scenarios_templates_dir: "templates/scenarios"
+      output_dir: "output"
+    
+    # Output format configuration
+    output:
+      supported_formats:
+        - "word"
+        - "pdf"
+        - "powerpoint"
+        - "html"
+        - "markdown"
+      
+      default_format: "word"
+      default_audience: "business_leaders"
+      default_scenario: "skills_gap_analysis"
+      
+      # File naming patterns
+      file_patterns:
+        word: "career_analysis_{job_name}_{timestamp}.docx"
+        pdf: "career_analysis_{job_name}_{timestamp}.pdf"
+        powerpoint: "career_analysis_summary_{job_name}_{timestamp}.pptx"
+        html: "career_analysis_{job_name}_{timestamp}.html"
+        markdown: "career_analysis_{job_name}_{timestamp}.md"
+    
+    # Section configuration
+    sections:
+      order:
+        - "executive_summary"
+        - "current_role_context"
+        - "pathway_analysis"
+        - "strategic_recommendations"
+        - "conclusion"
+      
+      titles:
+        executive_summary: "Executive Summary"
+        current_role_context: "Current Role Context"
+        pathway_analysis: "Pathway Analysis: Top 3 Strategic Opportunities"
+        strategic_recommendations: "Strategic Recommendations"
+        conclusion: "Conclusion"
+    
+    # Validation and quality control
+    validation:
+      min_job_id_length: 1
+      max_job_id_length: 50
+      similarity_range_min: 0
+      similarity_range_max: 100
+      top_n_min: 1
+      top_n_max: 10
+      
+    # Logging configuration
+    logging:
+      level: "INFO"
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      
+  # ==========================================================================
+  # Frontend Configuration
+  # ==========================================================================
+  frontend:
+    # JavaScript configuration
+    javascript:
+      # API settings
+      api_timeout_ms: 10000
+      retry_attempts: 3
+      
+      # Cache and performance
+      cache_duration_ms: 300000
+      debounce_delay_ms: 300
+      
+      # UI defaults
+      default_similarity_threshold: 0.5
+      max_results_per_page: 50
+      search_min_characters: 2
+      
+      # Animation and interaction
+      animation_duration_ms: 300
+      tooltip_delay_ms: 500
+      loading_spinner_delay_ms: 200
+    
+    # CSS and styling configuration
+    css:
+      variables:
+        # Primary colors
+        primary_color: "#dc2626"
+        secondary_color: "#1d4ed8"
+        success_color: "#059669"
+        warning_color: "#d97706"
+        danger_color: "#dc2626"
+        
+        # Typography
+        font_heading: "Epilogue"
+        font_primary: "Source Sans Pro"
+        font_mono: "Monaco"
+        
+        # Spacing
+        spacing_base: "1rem"
+        spacing_small: "0.5rem"
+        spacing_large: "1.5rem"
+        spacing_xl: "2rem"
+        
+        # Layout
+        max_width: "1200px"
+        sidebar_width: "250px"
+        header_height: "60px"
+        
+      # Component styling
+      components:
+        border_radius: "0.375rem"
+        box_shadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)"
+        transition_duration: "0.15s"
+        
+  # ==========================================================================
+  # Database Query Configuration
+  # ==========================================================================
+  database:
+    # Query result limits
+    query_limits:
+      default_limit: 50
+      search_limit: 10
+      pathways_limit: 12
+      workforce_limit: 15
+      export_limit: 6
+      
+    # Similarity configuration for queries
+    similarity_config:
+      default_threshold: 0.5
+      pathway_threshold: 0.6
+      high_similarity: 0.8
+      cross_family_threshold: 0.4
+      
+    # Performance settings
+    performance:
+      max_depth: 3
+      max_results: 10
+      timeout_seconds: 30
+      connection_pool_size: 5
+      
+    # Query optimization
+    optimization:
+      use_indexes: true
+      cache_prepared_statements: true
+      explain_analyze_threshold_ms: 1000
+
+  # ==========================================================================
+  # Static Resource Configuration
+  # ==========================================================================
+  static:
+    # Asset optimization
+    optimization:
+      minify_css: false
+      minify_js: false
+      compress_images: true
+      cache_bust_enabled: true
+      
+    # CDN and external resources
+    external:
+      font_cdn: "https://fonts.googleapis.com"
+      icon_library: "heroicons"
+      
+  # ==========================================================================
+  # Development and Debugging
+  # ==========================================================================
+  development:
+    debug:
+      enabled: false
+      log_sql_queries: false
+      show_template_errors: true
+      
+    # Testing configuration
+    testing:
+      mock_data_enabled: false
+      performance_monitoring: false
+      
+    # Hot reload and development server
+    server:
+      auto_reload: true
+      debug_toolbar: false 

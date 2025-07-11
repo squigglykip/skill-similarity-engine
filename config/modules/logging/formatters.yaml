@@ -1,0 +1,31 @@
+# =============================================================================
+# Logging Module Configuration - Formatters
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (logging.formatters section)
+# Purpose: Log message formatting configuration
+# Module: src/logging/
+# =============================================================================
+
+# Formatter configuration
+formatters:
+  # Available formatter types
+  available_types: ["console", "detailed", "json"]
+  default_formatter: "console"
+  
+  # Console formatter settings
+  console:
+    format_string: "%(asctime)s - %(levelname)s - %(message)s"
+    date_format: "%Y-%m-%d %H:%M:%S"
+    
+  # Detailed formatter settings  
+  detailed:
+    format_string: "%(asctime)s - %(levelname)s - %(name)s - %(module)s:%(lineno)d - %(message)s"
+    date_format: "%Y-%m-%d %H:%M:%S"
+    
+  # JSON formatter settings
+  json:
+    include_fields: ["time", "level", "name", "message", "module", "line"]
+    date_format: "%Y-%m-%d %H:%M:%S"
+    ensure_ascii: false
+    indent: null 

@@ -1,0 +1,22 @@
+# =============================================================================
+# Analysis Module - Workforce Analysis Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - workforce_analysis section
+# Controls workforce planning analysis and reporting
+
+# Reporting limits
+max_skills_in_report: 20
+critical_skill_threshold: 3.0
+department_skill_coverage_threshold: 75.0
+
+# Priority labels
+priority_labels:
+  high: "High"
+  medium: "Medium"
+  low: "Low"
+
+# Status labels
+status_labels:
+  above_required: "Above required"
+  meets_required: "Meets required"
+  not_required: "Not required for target role" 

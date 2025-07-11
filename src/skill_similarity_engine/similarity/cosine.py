@@ -16,15 +16,21 @@ from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similar
 import logging
 
 from ..config.settings import ConfigManager
+from ..config.architectural_config_manager import get_config_manager
 from ..models.employees import Employee, EmployeeDatabase
 from ..models.jobs import Job, JobArchitecture, RoleTrack
 from ..models.skills import Skill, SkillTaxonomy
 
-# Constants for similarity calculations
-MAX_SENIORITY_DIFFERENCE = 6  # Maximum difference between seniority levels (1-7)
-MAX_LOCATION_SIMILARITY = 1.0  # Maximum similarity score for location
+# Get configuration for similarity constants
+config_manager = get_config_manager()
+cosine_config = config_manager.get_similarity_cosine_config()
 
-logger = logging.getLogger("skill_similarity_engine")
+# Constants from configuration - no hardcoded values
+MAX_SENIORITY_DIFFERENCE = cosine_config.get('max_seniority_difference', 6)
+MAX_LOCATION_SIMILARITY = cosine_config.get('max_location_similarity', 1.0)
+
+# Get logger name from configuration
+logger = logging.getLogger(cosine_config.get('logger_name', 'skill_similarity_engine'))
 
 @dataclass
 class TfidfVectorizer:
@@ -202,6 +208,10 @@ class CosineSimilarityCalculator:
         # Fit the vectorizer on the job architecture
         self.vectorizer.fit(self.job_architecture)
         
+        # Get progress logging configuration
+        cosine_config = config_manager.get_similarity_cosine_config()
+        progress_log_interval = cosine_config.get('progress_log_interval', 1000)
+        
         # Pre-compute vectors for all jobs
         logger.info("Pre-computing job vectors...")
         jobs_processed = 0
@@ -210,7 +220,7 @@ class CosineSimilarityCalculator:
         for job_id, job in self.job_architecture.jobs.items():
             self.job_vectors[job_id] = self.vectorizer.transform_job(job)
             jobs_processed += 1
-            if jobs_processed % 1000 == 0:  # Log progress every 1000 jobs
+            if jobs_processed % progress_log_interval == 0:  # Use configured interval
                 logger.info(f"Processed {jobs_processed}/{total_jobs} jobs ({(jobs_processed/total_jobs)*100:.1f}%)")
         
         logger.info(f"Completed pre-computing vectors for {total_jobs} jobs")

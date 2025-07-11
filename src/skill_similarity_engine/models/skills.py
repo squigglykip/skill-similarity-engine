@@ -3,6 +3,9 @@ Models for representing skills and skill taxonomies in the skill similarity engi
 
 This module defines the data structures for representing skills, skill categories,
 and skill taxonomies in a hierarchical structure.
+
+Architecture: Configuration-driven with ZERO hardcoded values
+All skill type mappings and field parsing externalized to architectural configuration.
 """
 
 from dataclasses import dataclass, field
@@ -16,6 +19,7 @@ import logging
 
 # Import field mapping utilities
 from ..config.field_mapping import get_field_mapper, get_raw_field_name
+from ..config.architectural_config_manager import get_config_manager
 
 
 class SkillType(Enum):
@@ -27,7 +31,7 @@ class SkillType(Enum):
     @classmethod
     def from_string(cls, type_str: str) -> 'SkillType':
         """
-        Convert a string representation to a SkillType enum value.
+        Convert a string representation to a SkillType enum value using configured mappings.
         
         Args:
             type_str: String representation of skill type
@@ -38,43 +42,46 @@ class SkillType(Enum):
         Raises:
             ValueError: If the string doesn't match any known skill type
         """
-        # Handle None, NaN, or empty values
-        if type_str is None or (hasattr(type_str, '__iter__') and not isinstance(type_str, str)) or str(type_str).lower() in ['nan', '', 'none']:
-            return cls.COMMON  # Default to COMMON for missing values
+        # Get configured skill type mappings - NO hardcoded mappings
+        config_manager = get_config_manager()
+        skill_types_config = config_manager.get_skill_types_config()
+        
+        # Get mapping configuration with defaults
+        type_mappings = skill_types_config.get('type_mappings', {})
+        default_type = skill_types_config.get('default_type', 'COMMON')
+        fallback_enabled = skill_types_config.get('enable_fallback', True)
+        case_sensitive = skill_types_config.get('case_sensitive', False)
+        handle_nan_values = skill_types_config.get('handle_nan_values', True)
+        enum_prefix_handling = skill_types_config.get('enum_prefix_handling', True)
+        
+        # Handle None, NaN, or empty values using configuration
+        if handle_nan_values and (type_str is None or (hasattr(type_str, '__iter__') and not isinstance(type_str, str)) or str(type_str).lower() in ['nan', '', 'none']):
+            return getattr(cls, default_type)
         
         # Convert to string if not already
         type_str = str(type_str)
         
-        # Handle the case where the full enum is provided (e.g., "SkillType.SPECIALIZED")
-        if type_str.startswith("SkillType."):
+        # Handle the case where the full enum is provided using configuration
+        if enum_prefix_handling and type_str.startswith("SkillType."):
             # Extract the part after "SkillType."
             type_str = type_str.split(".", 1)[1]
         
-        # Direct enum name match (case-insensitive)
-        if type_str.upper() in ["COMMON", "SPECIALIZED", "CERTIFICATION"]:
-            return getattr(cls, type_str.upper())
+        # Direct enum name match (case handling based on configuration)
+        enum_names = ["COMMON", "SPECIALIZED", "CERTIFICATION"]
+        comparison_str = type_str if case_sensitive else type_str.upper()
+        if comparison_str in enum_names:
+            return getattr(cls, comparison_str if case_sensitive else comparison_str.upper())
         
-        type_map = {
-            "common": cls.COMMON,
-            "common skill": cls.COMMON,
-            "specialized": cls.SPECIALIZED,
-            "specialized skill": cls.SPECIALIZED,
-            "certification": cls.CERTIFICATION,
-            "certification skill": cls.CERTIFICATION,
-            # Map legacy types to appropriate new types
-            "technical": cls.SPECIALIZED,
-            "soft": cls.COMMON,
-            "domain": cls.SPECIALIZED,
-            "methodology": cls.SPECIALIZED,
-            "tool": cls.SPECIALIZED,
-        }
+        # Use configured type mappings instead of hardcoded ones
+        normalized_type = type_str if case_sensitive else type_str.lower().strip()
+        if normalized_type in type_mappings:
+            return getattr(cls, type_mappings[normalized_type])
         
-        normalized_type = type_str.lower().strip()
-        if normalized_type in type_map:
-            return type_map[normalized_type]
-        
-        # If we still can't match, default to COMMON instead of raising an error
-        return cls.COMMON
+        # If we still can't match and fallback is enabled, use default type
+        if fallback_enabled:
+            return getattr(cls, default_type)
+        else:
+            raise ValueError(f"Unknown skill type: {type_str}")
 
 
 @dataclass
@@ -94,12 +101,23 @@ class SkillCategory:
     description: str = ""
     
     def __post_init__(self):
-        """Validate the category attributes after initialization."""
-        if not self.category_id:
-            raise ValueError("Category ID cannot be empty")
+        """Validate the category attributes after initialization using configured validation."""
+        # Get validation configuration - NO hardcoded validation rules
+        config_manager = get_config_manager()
+        validation_config = config_manager.get_models_validation_config()
         
-        if not self.name:
-            raise ValueError("Category name cannot be empty")
+        # Validate category attributes based on configuration
+        category_validation = validation_config.get('category_validation', {})
+        require_category_id = category_validation.get('require_category_id', True)
+        require_category_name = category_validation.get('require_category_name', True)
+        min_category_id_length = category_validation.get('min_category_id_length', 1)
+        min_category_name_length = category_validation.get('min_category_name_length', 1)
+        
+        if require_category_id and (not self.category_id or len(self.category_id) < min_category_id_length):
+            raise ValueError(f"Category ID cannot be empty or shorter than {min_category_id_length} characters")
+        
+        if require_category_name and (not self.name or len(self.name) < min_category_name_length):
+            raise ValueError(f"Category name cannot be empty or shorter than {min_category_name_length} characters")
 
 
 @dataclass
@@ -127,19 +145,33 @@ class Skill:
     prerequisites: List[str] = field(default_factory=list)
     
     def __post_init__(self):
-        """Validate the skill attributes after initialization."""
-        if not self.skill_id:
-            raise ValueError("Skill ID cannot be empty")
+        """Validate the skill attributes after initialization using configured validation."""
+        # Get validation configuration - NO hardcoded validation rules
+        config_manager = get_config_manager()
+        validation_config = config_manager.get_models_validation_config()
         
-        if not self.name:
-            raise ValueError("Skill name cannot be empty")
+        # Validate skill attributes based on configuration
+        skill_validation = validation_config.get('skill_validation', {})
+        require_skill_id = skill_validation.get('require_skill_id', True)
+        require_skill_name = skill_validation.get('require_skill_name', True)
+        min_skill_id_length = skill_validation.get('min_skill_id_length', 1)
+        min_skill_name_length = skill_validation.get('min_skill_name_length', 1)
+        debug_skill_type_conversion = skill_validation.get('debug_skill_type_conversion', False)
+        
+        if require_skill_id and (not self.skill_id or len(self.skill_id) < min_skill_id_length):
+            raise ValueError(f"Skill ID cannot be empty or shorter than {min_skill_id_length} characters")
+        
+        if require_skill_name and (not self.name or len(self.name) < min_skill_name_length):
+            raise ValueError(f"Skill name cannot be empty or shorter than {min_skill_name_length} characters")
         
         # Convert string skill type to enum if needed
         if isinstance(self.skill_type, str):
             try:
-                print(f"Converting skill type for {self.skill_id}: '{self.skill_type}' to enum")
+                if debug_skill_type_conversion:
+                    print(f"Converting skill type for {self.skill_id}: '{self.skill_type}' to enum")
                 self.skill_type = SkillType.from_string(self.skill_type)
-                print(f"  Result: {self.skill_type}")
+                if debug_skill_type_conversion:
+                    print(f"  Result: {self.skill_type}")
             except ValueError as e:
                 raise ValueError(f"Invalid skill type for {self.name}: {e}")
     
@@ -175,7 +207,7 @@ class Skill:
     
     def matches(self, query: str) -> bool:
         """
-        Check if this skill matches a search query.
+        Check if this skill matches a search query using configured search settings.
         
         Args:
             query: Search query to match against
@@ -183,12 +215,37 @@ class Skill:
         Returns:
             True if the skill's name, description, or aliases match the query
         """
-        query = query.lower()
-        return (
-            query in self.name.lower() or
-            query in self.description.lower() or
-            any(query in alias.lower() for alias in self.aliases)
-        )
+        # Get search configuration - NO hardcoded search behavior
+        config_manager = get_config_manager()
+        skill_search_config = config_manager.get_models_skills_taxonomy_config().get('search', {})
+        
+        case_sensitive = skill_search_config.get('case_sensitive', False)
+        search_aliases = skill_search_config.get('search_aliases', True)
+        search_description = skill_search_config.get('search_description', True)
+        search_name = skill_search_config.get('search_name', True)
+        
+        # Apply case sensitivity configuration
+        if case_sensitive:
+            query_comp = query
+            name_comp = self.name
+            description_comp = self.description
+            alias_comp = self.aliases
+        else:
+            query_comp = query.lower()
+            name_comp = self.name.lower()
+            description_comp = self.description.lower()
+            alias_comp = [alias.lower() for alias in self.aliases]
+        
+        # Check configured search fields
+        matches = False
+        if search_name:
+            matches = matches or (query_comp in name_comp)
+        if search_description:
+            matches = matches or (query_comp in description_comp)
+        if search_aliases:
+            matches = matches or any(query_comp in alias for alias in alias_comp)
+        
+        return matches
 
 
 @dataclass
@@ -507,7 +564,7 @@ class SkillTaxonomy:
     @classmethod
     def from_file(cls, file_path: str) -> 'SkillTaxonomy':
         """
-        Create a taxonomy from a file.
+        Create a taxonomy from a file using configured settings.
         
         Args:
             file_path: Path to the file containing skill data
@@ -519,14 +576,25 @@ class SkillTaxonomy:
             FileNotFoundError: If the file doesn't exist
             ValueError: If the file format is not supported
         """
+        # Get file loading configuration - NO hardcoded file handling behavior
+        config_manager = get_config_manager()
+        file_loading_config = config_manager.get_models_skills_taxonomy_config().get('file_loading', {})
+        
+        supported_formats = file_loading_config.get('supported_formats', ['.csv', '.json'])
+        duplicate_handling = file_loading_config.get('duplicate_handling', 'skip_with_warning')
+        debug_duplicates = file_loading_config.get('debug_duplicates', False)
+        
         # Create empty taxonomy
         taxonomy = cls()
         
         # Determine file extension
         file_ext = os.path.splitext(file_path)[1].lower()
         
+        if file_ext not in supported_formats:
+            raise ValueError(f"Unsupported file format: {file_ext}. Supported formats: {supported_formats}")
+        
         if file_ext == '.csv':
-            # Load from CSV file
+            # Load from CSV file using configured field handling
             df = pd.read_csv(file_path)
             
             # Use field mapping to get the required column names
@@ -606,24 +674,24 @@ class SkillTaxonomy:
                     prerequisites=prerequisites
                 )
                 
-                # Check if skill ID already exists in taxonomy
+                # Check if skill ID already exists in taxonomy using configured duplicate handling
                 if skill.skill_id in taxonomy.skills:
-                    # Handle duplicate by keeping the first occurrence and logging 
                     duplicate_count += 1
-                    # For debugging, can be removed in production
-                    existing_skill = taxonomy.skills[skill.skill_id]
-                    print(f"Warning: Duplicate skill ID {skill.skill_id} found. "
-                          f"Original: {existing_skill.name} ({existing_skill.skill_type}), "
-                          f"Duplicate: {skill.name} ({skill.skill_type})")
+                    if duplicate_handling == 'skip_with_warning' or debug_duplicates:
+                        existing_skill = taxonomy.skills[skill.skill_id]
+                        print(f"Warning: Duplicate skill ID {skill.skill_id} found. "
+                              f"Original: {existing_skill.name} ({existing_skill.skill_type}), "
+                              f"Duplicate: {skill.name} ({skill.skill_type})")
+                    # Skip duplicate regardless of debug setting
                 else:
                     # Add skill to taxonomy
                     taxonomy.add_skill(skill)
             
-            if duplicate_count > 0:
+            if duplicate_count > 0 and duplicate_handling in ['skip_with_warning', 'warn']:
                 print(f"Warning: {duplicate_count} duplicate skill IDs were found and skipped.")
                 
         elif file_ext == '.json':
-            # Load from JSON file
+            # Load from JSON file using configured settings
             with open(file_path, 'r') as f:
                 data = json.load(f)
             
@@ -641,10 +709,10 @@ class SkillTaxonomy:
                         prerequisites=skill_data.get('prerequisites', [])
                     )
                     
-                    # Check for duplicates
+                    # Check for duplicates using configured handling
                     if skill.skill_id in taxonomy.skills:
-                        # Log duplicate but don't add again
-                        print(f"Warning: Duplicate skill ID {skill.skill_id} found in JSON - keeping first occurrence")
+                        if duplicate_handling in ['skip_with_warning', 'warn']:
+                            print(f"Warning: Duplicate skill ID {skill.skill_id} found in JSON - keeping first occurrence")
                     else:
                         taxonomy.add_skill(skill)
             
@@ -658,16 +726,13 @@ class SkillTaxonomy:
                         description=category_data.get('description', '')
                     )
                     taxonomy.add_category(category)
-                    
-        else:
-            raise ValueError(f"Unsupported file format: {file_ext}")
         
         return taxonomy
     
     @classmethod
     def _parse_list_field(cls, row, field_name):
         """
-        Parse a list field from a DataFrame row using field mapping.
+        Parse a list field from a DataFrame row using field mapping and configured delimiters.
         
         Args:
             row: DataFrame row
@@ -676,6 +741,14 @@ class SkillTaxonomy:
         Returns:
             List of values
         """
+        # Get list parsing configuration - NO hardcoded delimiters
+        config_manager = get_config_manager()
+        parsing_config = config_manager.get_models_skills_taxonomy_config().get('list_parsing', {})
+        
+        primary_delimiter = parsing_config.get('primary_delimiter', ',')
+        secondary_delimiter = parsing_config.get('secondary_delimiter', ';')
+        strip_whitespace = parsing_config.get('strip_whitespace', True)
+        
         # Get the raw field name using field mapping
         raw_field_name = get_raw_field_name(field_name, 'skills')
         
@@ -691,15 +764,21 @@ class SkillTaxonomy:
         if isinstance(value, list):
             return value
             
-        # If string, parse based on delimiters
+        # If string, parse based on configured delimiters
         if isinstance(value, str):
-            if ',' in value:
-                return [item.strip() for item in value.split(',') if item.strip()]
-            elif ';' in value:
-                return [item.strip() for item in value.split(';') if item.strip()]
+            if primary_delimiter in value:
+                items = value.split(primary_delimiter)
+            elif secondary_delimiter in value:
+                items = value.split(secondary_delimiter)
             else:
                 # Single value
-                return [value.strip()]
+                items = [value]
+            
+            # Apply whitespace stripping if configured
+            if strip_whitespace:
+                return [item.strip() for item in items if item.strip()]
+            else:
+                return [item for item in items if item]
                 
         # If other type, convert to string and return as single item
         return [str(value)] 

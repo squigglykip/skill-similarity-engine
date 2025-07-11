@@ -72,22 +72,21 @@ ORDER BY
 -- query_name: get_skill_gaps_between_jobs
 -- Find skill gaps between two specific jobs
 SELECT 
-    s.skill_name,
-    s.skill_category,
-    s.skill_subcategory,
-    job1_skills.proficiency_level as job1_proficiency,
-    job2_skills.proficiency_level as job2_proficiency,
+    s.Skill_Name as skill_name,
+    s.Category as skill_category,
+    s.Subcategory as skill_subcategory,
+    'N/A' as job1_proficiency,
+    'N/A' as job2_proficiency,
     CASE 
-        WHEN job1_skills.skills_skill_id IS NULL THEN 'Missing in Job 1'
-        WHEN job2_skills.skills_skill_id IS NULL THEN 'Missing in Job 2'
-        WHEN job1_skills.proficiency_level != job2_skills.proficiency_level THEN 'Different Proficiency'
+        WHEN job1_skills.Skill_ID IS NULL THEN 'Missing in Job 1'
+        WHEN job2_skills.Skill_ID IS NULL THEN 'Missing in Job 2'
         ELSE 'Same Requirement'
     END as gap_type
 FROM skills s
-LEFT JOIN job_skills job1_skills ON s.id = job1_skills.skills_skill_id AND job1_skills.job_id = ?
-LEFT JOIN job_skills job2_skills ON s.id = job2_skills.skills_skill_id AND job2_skills.job_id = ?
-WHERE job1_skills.skills_skill_id IS NOT NULL OR job2_skills.skills_skill_id IS NOT NULL
-ORDER BY s.skill_category, gap_type, s.skill_name;
+LEFT JOIN job_skills job1_skills ON s.Skill_ID = job1_skills.Skill_ID AND job1_skills.JobProfileID = ?
+LEFT JOIN job_skills job2_skills ON s.Skill_ID = job2_skills.Skill_ID AND job2_skills.JobProfileID = ?
+WHERE job1_skills.Skill_ID IS NOT NULL OR job2_skills.Skill_ID IS NOT NULL
+ORDER BY s.Category, gap_type, s.Skill_Name;
 
 -- query_name: get_transferable_skills
 -- Find skills that are common across multiple job families

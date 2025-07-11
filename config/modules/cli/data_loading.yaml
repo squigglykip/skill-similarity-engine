@@ -1,0 +1,59 @@
+# =============================================================================
+# CLI Module Configuration - Data Loading
+# =============================================================================
+# 
+# Configuration for CLI data loading commands following SSE architectural patterns
+# Module: src/cli/commands/data_commands.py
+# =============================================================================
+
+# Data loading command configuration
+data_loading:
+  # Header and display settings
+  header_text: "DATA LOADING & VALIDATION (SIMPLIFIED ARCHITECTURE)"
+  summary_pause_seconds: 1.5
+  
+  # Default processing options
+  defaults:
+    chunked_enabled: true
+    chunk_size: 10000
+    schema_validation_enabled: false
+    verbose_logging_enabled: false
+  
+  # Skills update configuration
+  skills_updates:
+    auto_check_enabled: true
+    prompt_user: true
+    
+  # File paths and discovery
+  file_discovery:
+    # Default file paths (relative to project root)
+    default_skills_file: "data/skills_library/skills_comprehensive_all_versions.csv"
+    default_job_skills_file: "data/input_data/job_skill_mapping.csv"
+    
+    # Alternative search paths
+    skills_search_paths:
+      - "data/skills_library/skills_comprehensive_all_versions.csv"
+      - "skills_library/skills_comprehensive_all_versions.csv"
+      
+    job_skills_search_paths:
+      - "data/input_data/job_skill_mapping.csv"
+      - "input_data/job_skill_mapping.csv"
+  
+  # Progress and feedback
+  progress:
+    show_step_numbers: true
+    detailed_output: true
+    success_indicators: "✅"
+    error_indicators: "❌"
+    warning_indicators: "⚠️"
+    info_indicators: "📊"
+    
+  # Data loading steps configuration
+  steps:
+    skills_taxonomy:
+      name: "Loading skill taxonomy"
+      disable_validation_for_comprehensive: true
+      
+    job_architecture:
+      name: "Auto-generating job architecture from job-skill mapping"
+      auto_generate_from_mapping: true 

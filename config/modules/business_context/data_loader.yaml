@@ -1,0 +1,46 @@
+# =============================================================================
+# Business Context Module - Data Loader Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - business_context.data_loading section
+# Controls data loading, validation, and quality thresholds
+
+# Chunk sizes for large datasets
+default_chunk_size: 1000
+skills_chunk_size: 10000
+similarity_chunk_size: 50000
+
+# Default data source file paths (relative to data root)
+default_data_sources:
+  jobs:
+    file_path: "job_architecture/dummy_job_architecture.csv"
+    table_name: "jobs"
+  skills:
+    file_path: "skills_library/lightcast_skills_comprehensive.csv"
+    table_name: "skills"
+    chunk_size: 10000
+  job_skills:
+    file_path: "input_data/job_skill_mapping.csv"
+    table_name: "job_skills"
+  positions:
+    file_path: "workforce_context/dummy_workforce_context.csv"
+    table_name: "positions"
+
+# Data validation thresholds
+expected_minimums:
+  jobs: 500
+  skills: 1000
+  job_skills: 10000
+  positions: 1000
+
+# Coverage thresholds (percentages)
+coverage_thresholds:
+  job_similarity_coverage_min: 95.0
+  job_skills_coverage_min: 90.0
+  job_position_coverage_min: 50.0
+
+# Data quality thresholds
+quality_thresholds:
+  max_null_percentage_default: 25.0
+  max_null_percentage_positions: 50.0  # More lenient for dummy data
+  min_job_function_diversity: 3
+  min_skill_category_diversity: 5 

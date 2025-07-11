@@ -1,0 +1,98 @@
+# =============================================================================
+# CLI Module Configuration - Precompute Commands
+# =============================================================================
+# 
+# Configuration for CLI precompute commands following SSE architectural patterns
+# Module: src/cli/commands/precompute_commands.py
+# =============================================================================
+
+# Precompute command configuration
+precompute:
+  # Header and display settings
+  similarity_matrix:
+    header_text: "SIMILARITY MATRIX GENERATION"
+    completion_text: "GENERATION COMPLETE!"
+    ready_text: "Similarity matrix and career pathways ready!"
+    
+  movement_analysis:
+    header_text: "MOVEMENT ANALYSIS GENERATION"
+    completion_text: "MOVEMENT ANALYSIS COMPLETE!"
+    ready_text: "Movement analysis data ready for analytics!"
+    description: "This will analyse workforce transition patterns and generate movement data."
+  
+  # Default processing options
+  defaults:
+    # Output format defaults
+    output_parquet: true
+    output_csv: true
+    
+    # Processing defaults
+    chunk_size: 1000
+    enable_checkpoints: true
+    estimate_runtime: true
+    
+    # File naming and output
+    use_quarterly_structure: true
+    include_metadata: true
+    
+  # Runtime estimation configuration
+  runtime_estimation:
+    show_estimates: true
+    show_memory_estimates: true
+    show_file_size_estimates: true
+    csv_bytes_per_comparison: 0.000040  # ~40 bytes per comparison in CSV
+    parquet_compression_ratio: 0.1      # Parquet typically 10x smaller than CSV
+    
+  # User prompts and messages
+  prompts:
+    output_formats:
+      parquet_prompt: "Generate Parquet file (recommended for primary storage)?"
+      csv_prompt: "Generate CSV file (required for Power BI cloud ingestion)?"
+      
+    processing:
+      chunk_size_prompt: "Initial chunk size for processing"
+      checkpoints_prompt: "Enable checkpointing for resumable processing?"
+      runtime_estimate_prompt: "Show runtime estimate before proceeding?"
+      proceed_prompt: "🚀 Proceed with similarity matrix generation?"
+      movement_proceed_prompt: "🚀 Proceed with movement analysis?"
+      
+  # Progress and feedback indicators
+  progress:
+    success_icon: "✅"
+    error_icon: "❌"
+    warning_icon: "⚠️"
+    info_icon: "📊"
+    rocket_icon: "🚀"
+    gear_icon: "⚙️"
+    folder_icon: "📁"
+    package_icon: "📦"
+    file_icon: "📄"
+    summary_icon: "📋"
+    celebration_icon: "🎉"
+    
+  # Error messages and warnings
+  messages:
+    no_output_format_error: "At least one output format must be selected."
+    operation_cancelled: "Operation cancelled by user"
+    user_cancelled_after_estimates: "User chose not to proceed after seeing estimates"
+    missing_architecture_error: "Job architecture data is required"
+    empty_architecture_error: "Architecture data is empty or invalid"
+    missing_architecture_detail: "Missing 'architecture' argument - load data first"
+    
+  # File extensions and patterns
+  files:
+    parquet_extension: ".parquet"
+    csv_extension: ".csv"
+    json_extension: ".json"
+    checkpoint_extension: ".json"
+    
+    similarity_matrix_parquet: "job_similarity_matrix.parquet"
+    similarity_matrix_csv: "job_similarity_matrix.csv"
+    metadata_file: "metadata.json"
+    checkpoint_file: "checkpoint.json"
+    
+    movement_files:
+      employee_movements_parquet: "employee_movements.parquet"
+      employee_movements_csv: "employee_movements.csv"
+      movement_summary_parquet: "movement_summary.parquet"
+      movement_summary_csv: "movement_summary.csv" 

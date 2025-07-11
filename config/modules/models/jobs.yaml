@@ -1,0 +1,52 @@
+# =============================================================================
+# Models Module - Jobs Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - models.job_architecture section
+# Controls job architecture model, validation, and parsing settings
+
+# Validation settings
+validation:
+  require_job_id: true
+  require_title: true
+  require_department: true
+
+# Value ranges
+ranges:
+  seniority_min: 1
+  seniority_max: 7
+  proficiency_min: 0
+  proficiency_max: 5
+
+# Default values
+defaults:
+  seniority: 3
+  role_track: 'INDIVIDUAL_CONTRIBUTOR'
+  min_proficiency: 1
+  location: ""
+  level: "MID_LEVEL"
+
+# Job level numeric mappings
+level_mappings:
+  Entry: 1
+  Associate: 2
+  Mid-level: 3
+  Senior: 4
+  Lead: 5
+  Manager: 6
+  Director: 7
+  Executive: 8
+
+# Role level calculation method
+role_level_calculation:
+  method: 'multiply'  # 'multiply' or 'add'
+  max_role_level: 56  # 8 levels * 7 seniority = 56
+
+# Parsing configuration
+parsing:
+  skills_delimiter: ','
+  skill_proficiency_separator: ':'
+
+# File format support
+file_formats:
+  csv_extensions: ['.csv']
+  excel_extensions: ['.xlsx', '.xls'] 

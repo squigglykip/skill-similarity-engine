@@ -143,7 +143,7 @@
 div#pathway-job-dropdown div.search-result-item div.search-result-meta,
 div#pathway-job-dropdown .search-result-item .search-result-meta {
     font-size: 0.75rem !important; /* 12px */
-    color: #6b7280 !important; /* gray-500 */
+    color: var(--color-gray-500) !important;
     font-weight: 400 !important;
 }
 
@@ -152,7 +152,7 @@ div#pathway-job-dropdown .search-result-item .search-result-meta span,
 div#pathway-job-dropdown div.search-result-item div.search-result-meta span.search-result-function,
 div#pathway-job-dropdown .search-result-item .search-result-meta span.search-result-function {
     font-size: 0.7rem !important; /* Even smaller - 11.2px */
-    color: #6b7280 !important; /* gray-500 */
+    color: var(--color-gray-500) !important;
     font-weight: 400 !important;
 }
 
@@ -160,7 +160,7 @@ div#pathway-job-dropdown div.search-result-item div.search-result-meta span stro
 div#pathway-job-dropdown .search-result-item .search-result-meta span strong,
 div#pathway-job-dropdown div.search-result-item div.search-result-meta span.search-result-function strong,
 div#pathway-job-dropdown .search-result-item .search-result-meta span.search-result-function strong {
-    color: #4b5563 !important; /* gray-600 */
+    color: var(--color-gray-600) !important;
     font-weight: 500 !important;
     font-size: 0.7rem !important; /* Ensure strong text is also small */
 }
@@ -168,13 +168,13 @@ div#pathway-job-dropdown .search-result-item .search-result-meta span.search-res
 /* Additional ultra-specific targeting */
 #pathway-job-dropdown [data-job-id] .search-result-meta span.search-result-function {
     font-size: 0.65rem !important; /* Even smaller - 10.4px */
-    color: #6b7280 !important; /* gray-500 */
+    color: var(--color-gray-500) !important;
     font-weight: 400 !important;
     line-height: 1.2 !important;
 }
 
 #pathway-job-dropdown [data-job-id] .search-result-meta span.search-result-function strong {
-    color: #4b5563 !important; /* gray-600 */
+    color: var(--color-gray-600) !important;
     font-weight: 500 !important;
     font-size: 0.65rem !important; /* Match parent */
 }
@@ -215,7 +215,7 @@ div#pathway-job-dropdown .search-result-item .search-result-meta span.search-res
     padding: var(--spacing-4);
     text-align: center;
     color: var(--color-error);
-    background-color: #fef2f2;
+    background-color: var(--color-red-50);
     border-left: 3px solid var(--color-error);
 }
 

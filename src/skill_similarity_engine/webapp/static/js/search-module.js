@@ -139,7 +139,7 @@ SkillEngine.SearchModule = {
             const response = await fetch(url);
             const data = await response.json();
 
-            if (data.success && data.jobs) {
+            if (data.jobs && Array.isArray(data.jobs)) {
                 instance.state.lastQuery = query;
                 instance.state.lastResults = data.jobs;
                 instance.state.selectedIndex = -1;
@@ -318,8 +318,12 @@ SkillEngine.SearchModule = {
     selectResult(instance, item) {
         const jobId = item.dataset.jobId;
         const displayTitle = item.dataset.displayTitle;
+        const itemIndex = parseInt(item.dataset.index);
         
         console.log(`✅ Selected job: ${jobId} - ${displayTitle}`);
+        
+        // Get the full job data from the last results
+        const jobData = instance.state.lastResults[itemIndex] || {};
         
         // Update input field
         instance.elements.input.value = displayTitle;
@@ -337,6 +341,9 @@ SkillEngine.SearchModule = {
             instance.callbacks.onSelect({
                 jobId: jobId,
                 displayTitle: displayTitle,
+                jobFunction: jobData.function || 'Unknown',
+                subFunction: jobData.sub_function || jobData.function_id || 'N/A',
+                jobData: jobData,
                 element: item
             });
         }
@@ -346,7 +353,8 @@ SkillEngine.SearchModule = {
             detail: {
                 jobId: jobId,
                 jobName: displayTitle,
-                instanceId: instance.id
+                instanceId: instance.id,
+                jobData: jobData
             }
         }));
     },

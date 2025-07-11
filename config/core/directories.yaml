@@ -1,0 +1,46 @@
+# =============================================================================
+# Core - Directory and Path Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - directories and files sections
+# Controls all path configurations and directory structure
+
+# Core data directories
+data_root: "data"
+config_root: "config"
+output_root: "output"
+models_root: "models"
+logs_root: "logs"
+
+# Specific data subdirectories
+colleague_positions: "data/colleague_positions_history"
+positions_history: "data/positions_history"
+skills_library: "data/skills_library"
+job_architecture: "data/job_architecture"
+input_data: "data/input_data"
+precomputed: "data/precomputed"
+workforce_context: "data/workforce_context"
+
+# Output subdirectories
+transformed_data: "data/transformed"
+similarity_output: "output/similarity"
+analysis_output: "output/analysis"
+
+# Core data files
+files:
+  skills_comprehensive: "skills_library/skills_comprehensive_all_versions.csv"
+  job_skill_mapping: "input_data/job_skill_mapping.csv"
+  job_architecture: "job_architecture/dummy_job_architecture.csv"
+  workforce_context: "workforce_context/dummy_workforce_context.csv"
+  
+  # Configuration files
+  data_sources: "config/data_sources.yaml"
+  field_mappings: "config/data_field_mappings.yaml"
+  operational_config: "config/operational_config.yaml"
+  hris_config: "config/hris_config.yaml"
+  similarity_enhancement: "config/similarity_enhancement_factors.yaml"
+  data_validation_schema: "config/data_validation_schema.yaml"
+  
+  # Default output files
+  jobs_csv: "data/jobs.csv"
+  skills_csv: "data/skills.csv"
+  employees_csv: "data/employees.csv" 

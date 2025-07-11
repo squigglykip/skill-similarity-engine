@@ -1,0 +1,36 @@
+# =============================================================================
+# Models Module - Employees Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - models.employee_model section
+# Controls employee model validation, parsing, and data handling
+
+# Validation settings
+validation:
+  require_employee_id: true
+  require_name: true
+  require_current_job: true
+
+# Value ranges
+ranges:
+  proficiency_min: 0
+  proficiency_max: 5
+
+# Default values
+defaults:
+  min_proficiency: 1
+  min_proficiency_ratio: 0.7
+  eligibility_ratio: 0.8
+
+# Parsing configuration
+parsing:
+  skills_delimiter: ','
+  skill_proficiency_separator: ':'
+
+# File format support
+file_formats:
+  csv_extensions: ['.csv']
+  excel_extensions: ['.xlsx', '.xls']
+
+# Data validation
+validate_proficiency_on_add: true
+validate_proficiency_on_update: true 

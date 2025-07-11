@@ -1,0 +1,28 @@
+# =============================================================================
+# Error Handling Module - Checkpoints Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - error_handling.checkpoints section
+# Controls checkpoint creation, naming, and management
+
+# Default checkpoint settings
+auto_checkpoint_interval: 100
+checkpoint_file_extension: ".checkpoint"
+default_checkpoint_dir: "checkpoints"
+create_dir_if_missing: true
+
+# Checkpoint naming patterns
+naming:
+  run_prefix: "run_"
+  date_format: "%Y%m%d_%H%M%S"
+  batch_checkpoint_filename: "batch_checkpoint.json"
+
+# Directory structure configuration
+directories:
+  # Log directory structure
+  log_root: "logs"
+  checkpoint_subdir: "checkpoints"
+  error_reports_subdir: "error_reports"
+  
+  # Run directory patterns
+  run_directory_format: "run_{timestamp}"
+  incomplete_run_detection: true 

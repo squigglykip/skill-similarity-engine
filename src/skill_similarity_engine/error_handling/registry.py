@@ -2,7 +2,80 @@
 from datetime import datetime
 import json
 import csv
-from skill_similarity_engine.error_handling.core import EngineError, ErrorCategory, ErrorSeverity
+from typing import Optional, Dict, Any, List
+
+# Import architectural configuration manager
+try:
+    from ..config.architectural_config_manager import get_config_manager
+except ImportError:
+    # Fallback if architectural config unavailable
+    get_config_manager = None
+
+# Import error types with fallback
+try:
+    from .core import EngineError, ErrorCategory, ErrorSeverity
+except ImportError:
+    # Basic fallback definitions for standalone usage
+    from enum import Enum
+    
+    class ErrorSeverity(Enum):
+        INFO = "info"
+        WARNING = "warning"
+        ERROR = "error"
+        CRITICAL = "critical"
+    
+    class ErrorCategory(Enum):
+        DATA = "data"
+        VALIDATION = "validation"
+        PROCESSING = "processing"
+        SYSTEM = "system"
+        UNKNOWN = "unknown"
+    
+    class EngineError(Exception):
+        def __init__(self, message, category=None, severity=None, context=None):
+            super().__init__(message)
+            self.category = category or ErrorCategory.UNKNOWN
+            self.severity = severity or ErrorSeverity.ERROR
+            self.context = context or {}
+
+
+def _get_registry_config():
+    """Get error registry configuration from architectural config manager."""
+    if get_config_manager is None:
+        # Fallback configuration
+        return {
+            'export_formats': ['json', 'csv'],
+            'default_export_format': 'json',
+            'export_directory': 'error_reports',
+            'auto_categorise_errors': True,
+            'log_all_registrations': True,
+            'max_errors_per_category': 1000,
+            'error_summary_threshold': 50
+        }
+    
+    try:
+        config_manager = get_config_manager()
+        return config_manager.get_nested_value('error_handling', 'registry', default={
+            'export_formats': ['json', 'csv'],
+            'default_export_format': 'json',
+            'export_directory': 'error_reports',
+            'auto_categorise_errors': True,
+            'log_all_registrations': True,
+            'max_errors_per_category': 1000,
+            'error_summary_threshold': 50
+        })
+    except Exception:
+        # Fallback if configuration loading fails
+        return {
+            'export_formats': ['json', 'csv'],
+            'default_export_format': 'json',
+            'export_directory': 'error_reports',
+            'auto_categorise_errors': True,
+            'log_all_registrations': True,
+            'max_errors_per_category': 1000,
+            'error_summary_threshold': 50
+        }
+
 
 class ErrorContext:
     """

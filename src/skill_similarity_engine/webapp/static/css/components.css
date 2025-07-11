@@ -8,7 +8,7 @@
    ================================================================= */
 
 .component-showcase {
-    background: linear-gradient(135deg, var(--color-gray-50) 0%, #ffffff 100%);
+    background: var(--gradient-white-to-gray);
     border: 1px solid var(--color-gray-200);
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-6);
@@ -111,7 +111,7 @@
 }
 
 .btn-showcase-primary:hover {
-    background: linear-gradient(135deg, var(--color-nab-red-dark) 0%, #991b1b 100%);
+    background: var(--gradient-nab-primary);
     transform: translateY(-1px);
     box-shadow: var(--shadow-lg);
 }
@@ -186,7 +186,7 @@
 }
 
 .card-demo-metric:hover {
-    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    background: var(--gradient-white-to-red);
 }
 
 .card-demo-data {
@@ -197,7 +197,7 @@
 }
 
 .card-demo-data:hover {
-    background: linear-gradient(135deg, #ffffff 0%, var(--color-gray-50) 100%);
+    background: var(--gradient-white-to-gray);
 }
 
 .card-demo-similarity {
@@ -208,7 +208,7 @@
 }
 
 .card-demo-similarity:hover {
-    background: linear-gradient(135deg, #ffffff 0%, var(--color-blue-50) 100%);
+    background: var(--gradient-white-to-blue);
 }
 
 /* =================================================================

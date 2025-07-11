@@ -1,0 +1,44 @@
+# =============================================================================
+# Models Module - Skills Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - models.skills_taxonomy and skill_types sections
+# Controls skills taxonomy model, parsing, and skill type mappings
+
+# Skill type mappings
+skill_types:
+  # Canonical skill types
+  canonical_types: ["COMMON", "SPECIALIZED", "CERTIFICATION"]
+  
+  # Mapping from string representations to canonical types
+  type_mappings:
+    "common": "COMMON"
+    "common skill": "COMMON"
+    "specialized": "SPECIALIZED" 
+    "specialized skill": "SPECIALIZED"
+    "certification": "CERTIFICATION"
+    "certification skill": "CERTIFICATION"
+    "technical": "SPECIALIZED"
+    "soft": "COMMON"
+    "domain": "SPECIALIZED"
+    "methodology": "SPECIALIZED"
+    "tool": "SPECIALIZED"
+  
+  # Default skill type for unknown/missing values
+  default_skill_type: "COMMON"
+
+# Skills taxonomy settings
+skills_taxonomy:
+  # CSV parsing settings
+  list_field_delimiters: [",", ";"]
+  duplicate_handling: "skip_duplicates"  # or "overwrite", "error"
+  log_duplicates: true
+  
+  # File type support
+  supported_file_types: [".csv", ".json", ".xlsx", ".xls"]
+  
+  # Field parsing defaults
+  field_parsing:
+    string_list_separator: ","
+    alternative_separator: ";"
+    strip_whitespace: true
+    skip_empty_items: true 

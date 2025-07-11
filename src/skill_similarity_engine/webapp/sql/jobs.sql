@@ -3,15 +3,26 @@
 -- Queries for job information, job families, and job relationships
 -- =================================================================
 
+-- query_name: get_sample_jobs
+-- Get a sample of jobs for display
+SELECT 
+    JobProfileID as id,
+    JobProfile as job_title,
+    JobFunction as job_function,
+    JobFunctionID as job_function_id,
+    ManagementLevel as management_level
+FROM jobs
+ORDER BY JobProfile
+LIMIT ?;
+
 -- query_name: get_job_functions
 -- Get all job functions with job counts
 SELECT 
-    JobFunction as job_function,
-    COUNT(*) as job_count,
-    COUNT(DISTINCT CASE WHEN similarity_score >= 0.8 THEN job_to END) as high_similarity_jobs
+    JobFunctionID,
+    JobFunction,
+    COUNT(*) as job_count
 FROM jobs j
-LEFT JOIN job_similarities js ON j.JobProfileID = js.job_from
-GROUP BY JobFunction
+GROUP BY JobFunctionID, JobFunction
 ORDER BY job_count DESC;
 
 -- query_name: get_jobs_in_function

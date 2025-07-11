@@ -2,6 +2,8 @@
 Command-line interface for configuration management.
 
 This module provides CLI commands for viewing and manipulating configuration.
+
+NO HARDCODED VALUES - All configuration externalized following PTH philosophy.
 """
 
 import json
@@ -12,6 +14,7 @@ from typing import Optional
 import click
 import yaml
 
+from ..config.architectural_config_manager import get_config_manager
 from ..config.settings import load_config, get_config
 
 
@@ -25,7 +28,7 @@ def config_group():
 @click.option(
     "--format",
     type=click.Choice(["json", "yaml"]),
-    default="yaml",
+    default=None,  # Will be set from configuration
     help="Output format"
 )
 @click.option(
@@ -33,13 +36,20 @@ def config_group():
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
     help="Configuration file path"
 )
-def view_config(format: str, config_file: Optional[str]):
+def view_config(format: Optional[str], config_file: Optional[str]):
     """
     View the current configuration.
     
     If --config-file is provided, the configuration will be loaded from that file.
     Otherwise, the default configuration will be used.
     """
+    # Use architectural configuration manager for defaults
+    config_manager = get_config_manager()
+    
+    # Get default format from configuration if not specified
+    if format is None:
+        format = config_manager.get_nested_value('cli', 'output_formats', 'default', default='yaml')
+    
     if config_file:
         load_config(config_file)
     
@@ -51,7 +61,7 @@ def view_config(format: str, config_file: Optional[str]):
     
     # Output in specified format
     if format == "json":
-        click.echo(json.dumps(config_dict, indent=2))
+        click.echo(json.dumps(config_dict, indent=2, default=str))
     else:  # yaml
         click.echo(yaml.safe_dump(config_dict, default_flow_style=False, sort_keys=False))
 
@@ -81,48 +91,17 @@ def init_config(output_file: str, force: bool):
         output_path.parent.mkdir(parents=True)
     
     if force or not output_path.exists():
+        # Get configuration template from architectural configuration (NO hardcoded values)
+        config_manager = get_config_manager()
+        template_config = config_manager.get_nested_value('cli', 'default_config_template', default={})
+        
+        # Generate configuration content from template
+        config_content = "# Main configuration file for the Skill Similarity Engine\n"
+        config_content += "# This file contains all settings for the application\n\n"
+        config_content += yaml.safe_dump(template_config, default_flow_style=False, sort_keys=False)
+        
         with open(output_path, "w") as f:
-            f.write("""# Main configuration file for the Skill Similarity Engine
-# This file contains all settings for the application
-
-# Version information
-version: "0.1.0"
-
-# Directory paths
-data_dir: "./data"
-output_dir: "./output"
-
-# Normalisation settings
-normalisation:
-  min_max_scaling: true
-  boolean_normalisation: false
-  tfidf_weighting: true
-
-# Similarity calculation settings
-similarity:
-  method: "cosine"
-  threshold: 0.7
-
-# Gap analysis settings
-gap_analysis:
-  min_proficiency_ratio: 0.65
-  min_gap_threshold: 0.2
-  category_weights:
-    technical: 0.6
-    soft: 0.3
-    domain: 0.1
-
-# Opportunity identification settings
-opportunity:
-  high_similarity_threshold: 0.8
-  critical_skill_gap_threshold: 0.4
-
-# Future extensions (all disabled by default)
-future_extensions:
-  seniority_weight: 0.0
-  role_track_weight: 0.0
-  location_weight: 0.0
-""")
+            f.write(config_content)
         click.echo(f"Created configuration file: {output_path}")
     else:
         click.echo(f"Skipped existing file: {output_path}")

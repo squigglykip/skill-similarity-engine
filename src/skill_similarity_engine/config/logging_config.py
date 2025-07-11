@@ -2,6 +2,8 @@
 Logging configuration for the skill similarity engine.
 
 This module provides a central configuration for logging throughout the application.
+
+Architecture: Configuration-Driven Design Pattern following PTH's enterprise patterns
 """
 
 import os
@@ -11,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 from .settings import get_config
+from .architectural_config_manager import get_config_manager
 
 def setup_logging(
     log_level: Optional[str] = None,
@@ -32,11 +35,21 @@ def setup_logging(
     Returns:
         Configured logger instance
     """
-    # Get logging configuration from config
+    # Get logging configuration from multiple sources
     config = get_config().logging
     
-    # Use provided values or defaults from config
-    log_level = log_level or config.level
+    # Load defaults from architectural config manager
+    try:
+        arch_config_manager = get_config_manager()
+        arch_logging_config = arch_config_manager.get_nested_value(
+            'configuration_management', 'logging', default={}
+        )
+        default_level = arch_logging_config.get('default_level', 'INFO')
+    except Exception:
+        default_level = 'INFO'
+    
+    # Use provided values or defaults from config (with architectural fallback)
+    log_level = log_level or config.level or default_level
     log_file = log_file or config.log_file
     log_dir = log_dir or config.log_dir
     console_output = console_output if console_output is not None else config.console_output
@@ -46,7 +59,8 @@ def setup_logging(
     logger = logging.getLogger("skill_similarity_engine")
     
     # Set the logging level
-    level = getattr(logging, log_level.upper(), logging.INFO)
+    level_name = (log_level or default_level).upper()
+    level = getattr(logging, level_name, logging.INFO)
     logger.setLevel(level)
     
     # Clear existing handlers

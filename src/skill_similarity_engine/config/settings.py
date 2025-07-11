@@ -177,9 +177,30 @@ class HRISAdapterConfig:
     """Configuration settings for the HRIS adapter."""
     
     def __init__(self):
-        """Initialize with default HRIS adapter settings."""
-        # Default configuration file path (can be overridden)
-        self.default_config_path = "config/hris_config.yaml"
+        """Initialize with HRIS adapter settings from architectural configuration."""
+        # Load settings from architectural config manager
+        try:
+            from .architectural_config_manager import get_config_manager
+            config_manager = get_config_manager()
+            
+            # Configuration file path (externalized)
+            config_filename = config_manager.get_nested_value(
+                'configuration_management', 'file_discovery', 'default_filenames', 'hris_config',
+                default="hris_config.yaml"
+            )
+            config_root = config_manager.get_directory('config_root')
+            self.default_config_path = str(config_root / config_filename)
+            
+            # Output directory (externalized)
+            self.output_dir = config_manager.get_nested_value(
+                'configuration_management', 'legacy_data_sources', 'output_dir',
+                default="data/transformed"
+            )
+            
+        except Exception:
+            # Fallback values if architectural config unavailable
+            self.default_config_path = "config/hris_config.yaml"
+            self.output_dir = "data/transformed"
         
         # Default file format settings
         self.file_format = "csv"
@@ -190,9 +211,6 @@ class HRISAdapterConfig:
         # Transformation options
         self.use_binary_skills = False
         self.default_proficiency = 3
-        
-        # Output directory for transformed files
-        self.output_dir = "data/transformed"
 
 
 @dataclass
@@ -255,11 +273,25 @@ class DataSourceConfig:
     """Configuration settings for data sources."""
     
     def __init__(self):
-        """Initialize with default data source settings."""
-        # Data source paths
-        self.jobs_file = "data/jobs.csv"
-        self.skills_file = "data/skills.csv"
-        self.employees_file = "data/employees.csv"
+        """Initialize with data source settings from architectural configuration."""
+        # Load paths from architectural config manager
+        try:
+            from .architectural_config_manager import get_config_manager
+            config_manager = get_config_manager()
+            legacy_data_sources = config_manager.get_nested_value(
+                'configuration_management', 'legacy_data_sources', default={}
+            )
+            
+            # Data source paths (externalized)
+            self.jobs_file = legacy_data_sources.get('jobs_file', "data/jobs.csv")
+            self.skills_file = legacy_data_sources.get('skills_file', "data/skills.csv")
+            self.employees_file = legacy_data_sources.get('employees_file', "data/employees.csv")
+            
+        except Exception:
+            # Fallback values if architectural config unavailable
+            self.jobs_file = "data/jobs.csv"
+            self.skills_file = "data/skills.csv"
+            self.employees_file = "data/employees.csv"
         
         # Data source options
         self.encoding = "utf-8"

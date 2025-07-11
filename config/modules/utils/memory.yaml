@@ -1,0 +1,58 @@
+# =============================================================================
+# Utils Module - Memory Management Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - utils.memory section
+# Controls memory monitoring, thresholds, and garbage collection strategies
+
+# System memory thresholds
+system_reserve_mb: 2000.0
+default_memory_limit_mb: null  # null = auto-detect 80% of system
+memory_threshold_percent: 80.0
+target_memory_percent: 70.0
+critical_memory_percent: 85.0
+emergency_memory_percent: 95.0
+
+# Memory monitoring settings
+check_interval_seconds: 1.0
+averaging_window_samples: 5
+
+# Garbage collection strategy
+gc_at_warning: false
+gc_at_critical: true
+gc_full_at_emergency: true
+
+# Memory pressure detection
+pressure_threshold_percent: 80.0
+
+# Memory conversion constants
+bytes_to_mb_divisor: 1048576  # 1024 * 1024
+
+# Performance thresholds
+slow_operation_threshold_seconds: 5.0
+memory_leak_threshold_mb: 100.0
+
+# Memory dashboard configuration
+dashboard:
+  # History settings
+  max_history_snapshots: 1000
+  
+  # Chart settings
+  chart_width: 12
+  chart_height: 4
+  chart_dpi: 300
+  
+  # Snapshot intervals
+  plot_generation_interval: 10  # Generate plot every N snapshots
+  csv_export_interval: 50       # Export CSV every N snapshots
+  
+  # Prediction settings
+  default_prediction_window: 20
+  min_samples_for_prediction: 5
+  polynomial_degree_max: 3
+  prediction_sample_threshold: 10
+  
+  # Memory thresholds for alerts
+  memory_alert_thresholds:
+    - 8192   # 8 GB
+    - 16384  # 16 GB
+    - 32768  # 32 GB 

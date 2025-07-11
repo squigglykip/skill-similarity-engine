@@ -3,13 +3,18 @@ Field mapping utility for the Skill Similarity Engine.
 
 This module provides functionality for loading and accessing field mappings 
 that decouple canonical variable names used in code from raw data column names.
+
+Architecture: Configuration-Driven Design Pattern following PTH's enterprise patterns
 """
 
 import os
 import yaml
 import logging
+from pathlib import Path
 from typing import Dict, List, Optional, Union, Any
 from functools import lru_cache
+
+from .architectural_config_manager import get_config_manager
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +40,27 @@ class FieldMapper:
         """
         self.config_path = config_path or self._find_config_path()
         self.config = self._load_config()
-        self.case_sensitive = self.config.get('field_name_alternatives', {}).get('case_sensitive', False)
-        self.enable_fallback = self.config.get('field_name_alternatives', {}).get('enable_fallback', True)
-        self.log_fallback_usage = self.config.get('field_name_alternatives', {}).get('log_fallback_usage', True)
+        
+        # Load configuration settings from architectural config manager
+        config_manager = get_config_manager()
+        fallback_config = config_manager.get_nested_value(
+            'configuration_management', 'fallback_handling', default={}
+        )
+        logging_config = config_manager.get_nested_value(
+            'configuration_management', 'logging', default={}
+        )
+        
+        # Configuration-driven settings (no hardcoded defaults)
+        self.case_sensitive = fallback_config.get('case_sensitive', 
+                                                self.config.get('field_name_alternatives', {}).get('case_sensitive', False))
+        self.enable_fallback = fallback_config.get('enable_fallback',
+                                                 self.config.get('field_name_alternatives', {}).get('enable_fallback', True))
+        self.log_fallback_usage = logging_config.get('log_fallback_usage',
+                                                    self.config.get('field_name_alternatives', {}).get('log_fallback_usage', True))
         
     def _find_config_path(self) -> str:
         """
-        Find the field mapping config file by searching upwards from current directory.
+        Find the field mapping config file using architectural configuration manager.
         
         Returns:
             Path to the field mapping configuration file
@@ -49,30 +68,43 @@ class FieldMapper:
         Raises:
             FieldMappingError: If the config file cannot be found
         """
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Search upwards for the config directory
-        while current_dir != os.path.dirname(current_dir):  # Stop at root
-            config_path = os.path.join(current_dir, 'config', 'field_mapping.yaml')
-            if os.path.exists(config_path):
-                return config_path
-            current_dir = os.path.dirname(current_dir)
-        
-        # Try relative to the settings file
         try:
-            from .settings import get_config
-            main_config = get_config()
-            if hasattr(main_config, 'field_mapping_file'):
-                relative_path = os.path.join(
-                    os.path.dirname(current_dir), 
-                    main_config.field_mapping_file
-                )
-                if os.path.exists(relative_path):
-                    return relative_path
-        except ImportError:
-            pass
-        
-        raise FieldMappingError("Could not find field_mapping.yaml configuration file")
+            # Use architectural config manager for path discovery
+            config_manager = get_config_manager()
+            search_paths = config_manager.get_nested_value(
+                'configuration_management', 'file_discovery', 'config_search_paths',
+                default=['config', '../config', '../../config']
+            )
+            
+            field_mapping_filename = config_manager.get_nested_value(
+                'configuration_management', 'file_discovery', 'default_filenames', 'field_mapping',
+                default='field_mapping.yaml'
+            )
+            
+            # Search in configured paths (relative to project root)
+            # Navigate from src/skill_similarity_engine/config/ back to project root
+            project_root = Path(__file__).parent.parent.parent.parent
+            for search_path in search_paths:
+                config_path = project_root / search_path / field_mapping_filename
+                if config_path.exists():
+                    return str(config_path)
+            
+            # Fallback to legacy settings if available
+            try:
+                from .settings import get_config
+                main_config = get_config()
+                if hasattr(main_config, 'field_mapping_file'):
+                    legacy_path = Path(main_config.field_mapping_file)
+                    if legacy_path.exists():
+                        return str(legacy_path)
+            except ImportError:
+                pass
+            
+            raise FieldMappingError(f"Could not find {field_mapping_filename} in any configured search path")
+            
+        except Exception as e:
+            logger.error(f"Error finding config path: {e}")
+            raise FieldMappingError(f"Configuration path discovery failed: {e}")
     
     def _load_config(self) -> Dict[str, Any]:
         """

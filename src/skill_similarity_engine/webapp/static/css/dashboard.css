@@ -63,7 +63,7 @@
 }
 
 .metric-card-red:hover {
-    background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    background: var(--gradient-white-to-red);
 }
 
 .metric-card-blue {
@@ -71,7 +71,7 @@
 }
 
 .metric-card-blue:hover {
-    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    background: var(--gradient-white-to-blue);
 }
 
 .metric-card-green {
@@ -79,15 +79,15 @@
 }
 
 .metric-card-green:hover {
-    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+    background: var(--gradient-white-to-green);
 }
 
 .metric-card-purple {
-    border-left: 4px solid #8b5cf6;
+    border-left: var(--border-width-4) solid var(--color-violet-600);
 }
 
 .metric-card-purple:hover {
-    background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+    background: var(--gradient-white-to-purple);
 }
 
 /* =================================================================
@@ -118,7 +118,7 @@
 }
 
 .metric-icon-purple {
-    background: #8b5cf6;
+    background: var(--color-violet-600);
     color: white;
 }
 
@@ -238,7 +238,7 @@
 }
 
 .action-button-secondary:hover {
-    background: linear-gradient(135deg, var(--color-nab-red-dark) 0%, #991b1b 100%);
+    background: var(--gradient-nab-primary);
     transform: translateY(-1px);
     box-shadow: var(--shadow-lg);
 }
@@ -277,13 +277,13 @@
 }
 
 .status-badge-primary {
-    background: #fef2f2;
+    background: var(--color-red-50);
     color: var(--color-nab-red-dark);
 }
 
 .status-badge-coming-soon {
-    background: #fff7ed;
-    color: #ea580c;
+    background: var(--color-orange-50);
+    color: var(--color-orange-600);
 }
 
 .status-badge-database {
@@ -306,13 +306,13 @@
    ================================================================= */
 
 .platform-overview {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    background: var(--gradient-white-to-slate);
     border: 1px solid var(--color-gray-200);
 }
 
 .platform-explanation {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    border-left: 4px solid #10b981;
+    background: var(--gradient-green-dashboard);
+    border-left: var(--border-width-4) solid var(--color-success);
     position: relative;
 }
 

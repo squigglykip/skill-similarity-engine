@@ -154,7 +154,7 @@
                 
                 <!-- Action Button -->
                 <div class="relative mt-auto">
-                    <a href="{{ url_for('job_search') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-blue-500/25">
+                    <a href="{{ url_for('job_explorer.job_search') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-blue-500/25">
                         <span>Browse Jobs</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
@@ -207,7 +207,7 @@
                 
                 <!-- Action Button -->
                 <div class="relative mt-auto">
-                    <a href="{{ url_for('career_pathways') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-xl hover:from-purple-700 hover:to-purple-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-purple-500/25">
+                    <a href="{{ url_for('career_pathways.career_pathways') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-xl hover:from-purple-700 hover:to-purple-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-purple-500/25">
                         <span>Start Exploring</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
@@ -263,7 +263,7 @@
                 
                 <!-- Action Button -->
                 <div class="relative mt-auto">
-                    <a href="{{ url_for('career_analysis') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-red-500/25">
+                    <a href="{{ url_for('career_analysis.career_analysis') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-red-500/25">
                         <span>Generate Reports</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
@@ -700,7 +700,7 @@
                                 </div>
                             </button>
                         </div>
-                        <a href="{{ url_for('career_pathways') }}" class="text-red-600 hover:text-red-700 text-sm font-source font-medium transition-colors duration-200">
+                        <a href="{{ url_for('career_pathways.career_pathways') }}" class="text-red-600 hover:text-red-700 text-sm font-source font-medium transition-colors duration-200">
                             Explore Pathways →
                         </a>
                     </div>
@@ -1060,7 +1060,7 @@
             <div>
                 <p class="text-sm font-source text-blue-800">
                     <strong>Development Environment</strong> - 
-                    <a href="{{ url_for('components') }}" class="text-blue-700 underline hover:text-blue-900 transition-colors">
+                    <a href="{{ url_for('main.components') }}" class="text-blue-700 underline hover:text-blue-900 transition-colors">
                         View Component Library
                     </a> to see available UI components for prototyping.
                 </p>

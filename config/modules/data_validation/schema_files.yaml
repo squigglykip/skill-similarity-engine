@@ -1,0 +1,27 @@
+# =============================================================================
+# Data Validation Configuration - Schema Files
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (data_validation.schema_files section)
+# Purpose: Schema file configuration and discovery settings
+# Module: src/data_validation/
+# =============================================================================
+
+# Schema file configuration
+schema_files:
+  # Default schema file names
+  default_schema_filename: "data_validation_schema.yaml"
+  
+  # Search paths for schema files
+  schema_search_paths:
+    - "config"
+    - "../config"
+    - "../../config"
+    - "../../../config"
+    - "../../../../config"
+  
+  # Alternative schema file names to search for
+  alternative_schema_names:
+    - "data_validation_schema.yaml"
+    - "validation_schema.yaml"
+    - "schema.yaml" 

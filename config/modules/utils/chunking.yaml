@@ -1,0 +1,25 @@
+# =============================================================================
+# Utils Module - Chunking Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - utils.chunking section
+# Controls adaptive chunking strategies for memory-efficient processing
+
+# Default chunk sizes
+initial_chunk_size: 1000
+min_chunk_size: 100
+max_chunk_size: 10000
+
+# Growth and shrink factors
+growth_factor: 1.5
+shrink_factor: 0.5
+
+# Memory-based chunking
+target_chunk_memory_mb: 500.0
+
+# Matrix chunking specific settings
+matrix:
+  initial_chunk_size: 1000
+  min_chunk_size: 100
+  max_chunk_size: 5000
+  memory_threshold_percent: 80.0
+  target_memory_percent: 70.0 

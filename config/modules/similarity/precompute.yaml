@@ -1,0 +1,24 @@
+# =============================================================================
+# Similarity Module - Precompute Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - similarity_module.precompute section
+# Controls precomputation settings for similarity matrices
+
+# Chunk size configuration
+initial_chunk_size: 1000
+min_chunk_size: 100
+max_chunk_size: 5000
+adaptive_chunking: true
+
+# Memory management
+memory_threshold_percent: 80.0
+target_memory_percent: 70.0
+memory_warning_threshold: 1000      # MB - warn above this usage
+
+# Performance settings
+max_workers: null                    # Auto-detect CPU cores
+
+# Output configuration (from other sections)
+enable_checkpointing: true
+checkpoint_interval: 1000
+output_dir: "data/precomputed" 

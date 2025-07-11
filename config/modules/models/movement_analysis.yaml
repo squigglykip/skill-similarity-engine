@@ -1,0 +1,63 @@
+# =============================================================================
+# Models Module - Movement Analysis Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - models.movement_analysis section
+# Controls movement detection, tracking, and analysis settings
+
+# Progress reporting
+progress_reporting_interval: 10000
+memory_usage_reporting: true
+
+# Data quality settings
+enrichment_rate_calculation: true
+enrichment_percentage_multiplier: 100
+
+# File naming patterns
+output_files:
+  employee_movements_csv: "employee_movements.csv"
+  employee_movements_parquet: "employee_movements.parquet"
+  movement_summary_csv: "movement_summary.csv"
+  movement_summary_parquet: "movement_summary.parquet"
+  metadata_json: "metadata.json"
+
+# Date format configurations
+date_formats:
+  # Internal processing formats
+  iso_format: "%Y-%m-%d"
+  timestamp_format: "%Y-%m-%d %H:%M:%S"
+  
+  # Input parsing formats (order matters - try these in sequence)
+  parsing_formats:
+    - "%Y-%m-%d"      # ISO format (preferred)
+    - "%d/%m/%Y"      # UK/AU format
+    - "%m/%d/%Y"      # US format  
+    - "%d-%m-%Y"      # European format
+    - "%Y/%m/%d"      # Alternative ISO
+  
+  # Movement tracker specific formats
+  movement_date_format: "%Y-%m-%d"
+
+# Boolean value mappings
+boolean_mappings:
+  true_values: ["TRUE", "True", "true", "T", "1", "YES", "Yes", "yes", "Y", "y"]
+  false_values: ["FALSE", "False", "false", "F", "0", "NO", "No", "no", "N", "n"]
+  default_operational_status: true
+
+# File export settings
+export_settings:
+  # Default formats and settings
+  csv_export:
+    enabled: true
+    index: false
+    encoding: "utf-8"
+  
+  parquet_export:
+    enabled: true
+    compression: "snappy"
+    index: false
+    engine: "pyarrow"
+  
+  excel_export:
+    enabled: false
+    index: false
+    sheet_name: "Sheet1" 

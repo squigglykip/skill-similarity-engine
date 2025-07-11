@@ -354,8 +354,7 @@ class DocumentFormatter:
                 'format': 'word',
                 'filename': filename,
                 'content': content_bytes,
-                'status': 'generated',
-                'buffer': buffer
+                'status': 'generated'
             }
             
         except Exception as e:

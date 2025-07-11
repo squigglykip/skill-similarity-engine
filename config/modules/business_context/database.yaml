@@ -1,0 +1,22 @@
+# =============================================================================
+# Business Context Module - Database Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - business_context.database section
+# Controls SQLite database configuration and connection settings
+
+# Database configuration
+database:
+  default_filename: "business_context.sqlite"
+  schema_version: "1.0"
+
+# File discovery configuration
+file_discovery:
+  # Search paths for models directory
+  models_search_paths:
+    - "models"
+    - "data/precomputed"
+  
+  # Search paths for configuration files  
+  config_search_paths:
+    - "config/data_sources.yaml"
+    - "config/business_context_sources.yaml" 

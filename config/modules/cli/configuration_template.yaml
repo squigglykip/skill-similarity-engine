@@ -1,0 +1,58 @@
+# =============================================================================
+# CLI Module Configuration - Configuration Template
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (cli section)
+# Purpose: CLI command configuration templates and output formatting
+# Module: src/cli/
+# =============================================================================
+
+# Default configuration template values
+default_config_template:
+  # Directory paths
+  data_dir: "./data"
+  output_dir: "./output"
+  
+  # Application settings
+  version: "0.1.0"
+  
+  # Normalisation settings
+  normalisation:
+    min_max_scaling: true
+    boolean_normalisation: false
+    tfidf_weighting: true
+  
+  # Similarity calculation settings
+  similarity:
+    method: "cosine"
+    threshold: 0.7
+  
+  # Gap analysis settings
+  gap_analysis:
+    min_proficiency_ratio: 0.65
+    min_gap_threshold: 0.2
+    category_weights:
+      technical: 0.6
+      soft: 0.3
+      domain: 0.1
+  
+  # Opportunity identification settings
+  opportunity:
+    high_similarity_threshold: 0.8
+    critical_skill_gap_threshold: 0.4
+  
+  # Future extensions (all disabled by default)
+  future_extensions:
+    seniority_weight: 0.0
+    role_track_weight: 0.0
+    location_weight: 0.0
+
+# CLI output formatting
+output_formats:
+  default: "yaml"
+  supported: ["json", "yaml"]
+
+# Configuration file settings
+config_files:
+  default_filename: "config.yaml"
+  backup_extension: ".backup" 

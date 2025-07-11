@@ -3,6 +3,8 @@ Skills Library Updater
 
 Integrates the Lightcast API client and endpoint extractor to update the skills library
 data used by the skill similarity engine.
+
+NO HARDCODED VALUES - All configuration externalized following PTH philosophy.
 """
 
 import json
@@ -14,24 +16,40 @@ from typing import Optional, Dict, Any
 from .lightcast_client import LightcastSkillsClient
 from .endpoint_extractor import EndpointExtractor
 from ..utils.progress import ProgressTracker
+from ..config.architectural_config_manager import get_config_manager
 
 
 class SkillsLibraryUpdater:
     """Updates the skills library from Lightcast API"""
     
     def __init__(self, 
-                 credentials_file: str = "credentials.json",
-                 skills_library_dir: str = "data/skills_library"):
+                 credentials_file: Optional[str] = None,
+                 skills_library_dir: Optional[str] = None):
         """
-        Initialize the skills library updater
+        Initialize the skills library updater (configuration-driven paths)
         
         Args:
-            credentials_file: Path to Lightcast API credentials
-            skills_library_dir: Directory containing skills library files
+            credentials_file: Path to Lightcast API credentials (uses config default if None)
+            skills_library_dir: Directory containing skills library files (uses config default if None)
         """
-        self.credentials_file = credentials_file
-        self.skills_library_dir = Path(skills_library_dir)
+        # Use architectural configuration manager (NO hardcoded values)
+        config_manager = get_config_manager()
+        
+        # Get credentials file path from configuration
+        if credentials_file is None:
+            self.credentials_file = config_manager.get_nested_value('api', 'lightcast', 'default_credentials_file', default="credentials.json")
+        else:
+            self.credentials_file = credentials_file
+        
+        # Get skills library directory from configuration
+        if skills_library_dir is None:
+            skills_library_path = config_manager.get_directory('skills_library')
+            self.skills_library_dir = Path(skills_library_path)
+        else:
+            self.skills_library_dir = Path(skills_library_dir)
+            
         self.client = None
+        self.config_manager = config_manager
         
     def _ensure_credentials(self) -> bool:
         """Check if credentials file exists"""
@@ -247,12 +265,20 @@ class SkillsLibraryUpdater:
         # Ensure the skills library directory exists
         self.skills_library_dir.mkdir(parents=True, exist_ok=True)
         
-        # Define the files we want to move
+        # Define the files we want to move (from configuration)
+        standard_files = self.config_manager.get_nested_value('api', 'lightcast', 'standard_files', default={
+            'status': 'status.csv',
+            'metadata': 'meta.csv',
+            'versions': 'versions.csv',
+            'version_latest': 'version_latest.csv',
+            'skills_comprehensive': 'skills_comprehensive_all_versions.csv'
+        })
+        
         files_to_move = [
-            "meta.csv",
-            "status.csv", 
-            "versions.csv",
-            "version_latest.csv"
+            standard_files.get('metadata', 'meta.csv'),
+            standard_files.get('status', 'status.csv'),
+            standard_files.get('versions', 'versions.csv'),
+            standard_files.get('version_latest', 'version_latest.csv')
         ]
         
         # Move the comprehensive skills file (find the one with version number)

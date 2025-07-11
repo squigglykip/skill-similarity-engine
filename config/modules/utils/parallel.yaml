@@ -1,0 +1,14 @@
+# =============================================================================
+# Utils Module - Parallel Processing Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - utils.parallel section
+# Controls parallel processing, worker management, and task execution
+
+# Worker configuration
+max_workers: null  # null = auto-detect CPU count
+memory_per_worker_mb: 1000
+system_memory_usage_percent: 80.0
+
+# Task management
+work_stealing_enabled: true
+task_timeout_seconds: 300 

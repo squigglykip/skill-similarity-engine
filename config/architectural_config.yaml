@@ -1,0 +1,1398 @@
+# =============================================================================
+# Architectural Configuration - Skill Similarity Engine
+# =============================================================================
+# 
+# This configuration externalizes ALL hardcoded values from the SSE codebase
+# following PTH's enterprise-grade architectural philosophy.
+# 
+# NO hardcoded values should exist in any src/ module - everything configurable!
+# 
+# Architecture: Configuration-Driven Design Pattern
+# =============================================================================
+
+# Directory and Path Configuration
+directories:
+  # Core data directories
+  data_root: "data"
+  config_root: "config"
+  output_root: "output"
+  models_root: "models"
+  logs_root: "logs"
+  
+  # Specific data subdirectories
+  colleague_positions: "data/colleague_positions_history"
+  positions_history: "data/positions_history"
+  skills_library: "data/skills_library"
+  job_architecture: "data/job_architecture"
+  input_data: "data/input_data"
+  precomputed: "data/precomputed"
+  workforce_context: "data/workforce_context"
+  
+  # Output subdirectories
+  transformed_data: "data/transformed"
+  similarity_output: "output/similarity"
+  analysis_output: "output/analysis"
+
+# File Configuration
+files:
+  # Core data files
+  skills_comprehensive: "data/skills_library/skills_comprehensive_all_versions.csv"
+  job_skill_mapping: "data/input_data/job_skill_mapping.csv"
+  job_architecture: "data/job_architecture/dummy_job_architecture.csv"
+  workforce_context: "data/workforce_context/dummy_workforce_context.csv"
+  
+  # Configuration files
+  data_sources: "config/data_sources.yaml"
+  field_mappings: "config/data_field_mappings.yaml"
+  operational_config: "config/operational_config.yaml"
+  hris_config: "config/hris_config.yaml"
+  similarity_enhancement: "config/similarity_enhancement_factors.yaml"
+  data_validation_schema: "config/data_validation_schema.yaml"
+  
+  # Default output files
+  jobs_csv: "data/jobs.csv"
+  skills_csv: "data/skills.csv"
+  employees_csv: "data/employees.csv"
+
+# Processing Configuration
+processing:
+  # Memory management
+  default_chunk_size: 10000
+  adaptive_chunking: true
+  memory_limit_mb: 12836
+  garbage_collection_threshold: 0.8
+  
+  # Parallel processing
+  default_workers: 12  # auto-detected
+  worker_strategy: "auto"  # auto, fixed, adaptive
+  
+  # I/O settings
+  default_encoding: "utf-8"
+  default_delimiter: ","
+  file_buffer_size: 8192
+
+# Date and Time Configuration
+datetime:
+  # Standard formats across the system
+  input_date_format: "%d/%m/%Y"     # DD/MM/YYYY (UK/AU format)
+  output_date_format: "%Y-%m-%d"    # ISO format for internal processing
+  timestamp_format: "%Y%m%d_%H%M%S" # For file naming
+  
+  # Alternative date formats for parsing flexibility
+  alternative_date_formats:
+    - "%Y-%m-%d"     # ISO format
+    - "%m/%d/%Y"     # US format
+    - "%d-%m-%Y"     # European format
+    - "%Y/%m/%d"     # Alternative ISO
+
+# Data Validation Configuration
+validation:
+  # Schema validation settings
+  enable_schema_validation: false  # Disabled by default for performance
+  strict_type_checking: false
+  allow_null_values: true
+  
+  # Data quality thresholds
+  min_data_completeness: 0.8
+  max_duplicate_ratio: 0.05
+  
+  # Null value representations
+  null_representations:
+    - ""
+    - "nan"
+    - "null"
+    - "NULL" 
+    - "NaN"
+    - "None"
+  
+  # Boolean value representations
+  boolean_true_values:
+    - "TRUE"
+    - "True"
+    - "true"
+    - "1"
+    - "Y"
+    - "Yes"
+    - "yes"
+  
+  boolean_false_values:
+    - "FALSE"
+    - "False"
+    - "false"
+    - "0"
+    - "N"
+    - "No"
+    - "no"
+
+# Similarity Engine Configuration
+similarity:
+  # Core algorithm parameters
+  default_method: "cosine"
+  default_threshold: 0.5
+  top_n_results: 12
+  
+  # Matrix computation settings
+  symmetric_matrix: false
+  enable_checkpointing: true
+  checkpoint_interval: 1000
+  
+  # Performance optimisation
+  batch_size: 1000
+  use_sparse_matrices: false
+  cache_intermediate_results: true
+
+# =============================================================================
+# Utils Module Configuration (Phase 1.4.7 - Utils Module Refactoring)
+# =============================================================================
+
+# Core utilities performance and memory management
+utils:
+  # Memory management settings
+  memory:
+    # System memory thresholds
+    system_reserve_mb: 2000.0
+    default_memory_limit_mb: null  # null = auto-detect 80% of system
+    memory_threshold_percent: 80.0
+    target_memory_percent: 70.0
+    critical_memory_percent: 85.0
+    emergency_memory_percent: 95.0
+    
+    # Memory monitoring settings
+    check_interval_seconds: 1.0
+    averaging_window_samples: 5
+    
+    # Garbage collection strategy
+    gc_at_warning: false
+    gc_at_critical: true
+    gc_full_at_emergency: true
+    
+    # Memory pressure detection
+    pressure_threshold_percent: 80.0
+    
+  # Chunking strategy configuration  
+  chunking:
+    # Default chunk sizes
+    initial_chunk_size: 1000
+    min_chunk_size: 100
+    max_chunk_size: 10000
+    
+    # Growth and shrink factors
+    growth_factor: 1.5
+    shrink_factor: 0.5
+    
+    # Memory-based chunking
+    target_chunk_memory_mb: 500.0
+    
+    # Matrix chunking specific
+    matrix:
+      initial_chunk_size: 1000
+      min_chunk_size: 100
+      max_chunk_size: 5000
+      memory_threshold_percent: 80.0
+      target_memory_percent: 70.0
+      
+  # Parallel processing configuration
+  parallel:
+    # Worker configuration
+    max_workers: null  # null = auto-detect CPU count
+    memory_per_worker_mb: 1000
+    system_memory_usage_percent: 80.0
+    
+    # Task management
+    work_stealing_enabled: true
+    task_timeout_seconds: 300
+    
+  # Progress tracking configuration
+  progress:
+    # Default logging intervals
+    default_log_interval: 100
+    simple_log_interval: 10
+    
+    # Progress display settings
+    bar_width: 50
+    progress_bar_char: "█"
+    empty_bar_char: " "
+    
+    # Memory tracking in progress
+    memory_tracking_enabled: true
+    memory_check_interval: 1.0
+    
+    # Time formatting
+    time_format:
+      show_hours: true
+      show_minutes: true
+      show_seconds: true
+      decimal_places: 2
+      
+  # Performance monitoring configuration
+  performance:
+    # Memory usage tracking
+    track_memory_usage: true
+    memory_snapshot_interval: 5.0
+    
+    # Object tracking
+    track_largest_objects: true
+    largest_objects_count: 10
+    object_tracking_enabled: false
+    
+    # Memory conversion
+    bytes_to_mb_divisor: 1048576  # 1024 * 1024
+    
+    # Performance thresholds
+    slow_operation_threshold_seconds: 5.0
+    memory_leak_threshold_mb: 100.0
+    
+  # Memory dashboard configuration
+  dashboard:
+    # History settings
+    max_history_snapshots: 1000
+    
+    # Chart settings
+    chart_width: 12
+    chart_height: 4
+    chart_dpi: 300
+    
+    # Snapshot intervals
+    plot_generation_interval: 10  # Generate plot every N snapshots
+    csv_export_interval: 50       # Export CSV every N snapshots
+    
+    # Prediction settings
+    default_prediction_window: 20
+    min_samples_for_prediction: 5
+    polynomial_degree_max: 3
+    prediction_sample_threshold: 10
+    
+    # Memory thresholds for alerts
+    memory_alert_thresholds:
+      - 8192   # 8 GB
+      - 16384  # 16 GB
+      - 32768  # 32 GB
+      
+  # Display utilities configuration
+  display:
+    # String formatting
+    max_parameter_string_length: 50
+    truncation_suffix: "..."
+    
+    # Separator settings
+    default_separator_char: "="
+    default_separator_length: 80
+    
+    # Progress bar formatting
+    progress_update_interval: 1.0
+    clear_line_width: 80
+
+# Enhanced Similarity Module Configuration
+similarity_module:
+  # Core similarity algorithms
+  algorithms:
+    default_method: "cosine"
+    available_methods: ["cosine", "asymmetric", "symmetric", "jaccard", "euclidean"]
+    fallback_method: "cosine"
+  
+  # Asymmetric coverage settings
+  asymmetric:
+    default_top_n_results: 10
+    default_similarity_method: "asymmetric"
+    alternative_similarity_method: "symmetric"
+    exclude_self_comparison: true
+  
+  # Cosine similarity settings
+  cosine:
+    # Core constants
+    max_seniority_difference: 6          # Maximum difference between seniority levels (1-7)
+    max_location_similarity: 1.0         # Maximum similarity score for location
+    
+    # TF-IDF vectorization
+    idf_fallback_value: 1.0             # Fallback IDF value for unknown skills
+    tf_smoothing_factor: 1               # TF calculation smoothing
+    vector_normalization: true           # Normalize vectors after TF-IDF
+    
+    # Progress reporting
+    progress_log_interval: 1000          # Log progress every N jobs processed
+    progress_percentage_precision: 1     # Decimal places for progress percentage
+    
+    # Result limits
+    default_top_n_similar_jobs: 5
+    default_top_n_similar_employees: 5
+    default_top_n_suitable_jobs: 5
+    default_top_n_suitable_employees: 5
+    
+    # Matrix computation
+    matrix_chunk_size: 1000              # Chunk size for similarity matrix computation
+    enable_vector_caching: true          # Cache computed vectors
+    
+    # Enhancement weights (delegated to external config)
+    use_enhancement_factors: true        # Enable seniority/role/location enhancements
+    base_skill_weight: 1.0              # Weight for base skill similarity
+  
+  # Precomputation settings
+  precompute:
+    # Chunk size configuration
+    initial_chunk_size: 1000
+    min_chunk_size: 100
+    max_chunk_size: 5000
+    adaptive_chunking: true
+    
+    # Memory management
+    memory_threshold_percent: 80.0
+    target_memory_percent: 70.0
+    memory_warning_threshold: 1000      # MB - warn above this usage
+    
+    # Performance settings
+    max_workers: null                    # Auto-detect CPU cores
+    memory_limit_mb: null                # Auto-detect memory limit
+    enable_checkpointing: true
+    checkpoint_interval: 10              # Save checkpoint every N chunks
+    
+    # Output configuration
+    default_output_dir: "data/precomputed"
+    export_formats: ["csv", "parquet"]
+    compression_format: "snappy"
+    
+    # Career pathways generation
+    career_pathways:
+      top_n_pathways: 12                 # Top N most similar jobs per source job
+      min_similarity_threshold: 0.01     # Minimum similarity to include (lowered from 0.15)
+      lateral_move_similarity_threshold: 0.8  # Threshold for lateral vs progression moves
+      cross_family_difficulty_penalty: 1.2    # 20% penalty for cross-family moves
+      max_difficulty_score: 1.0          # Cap difficulty at this value
+      
+      # Shared skills estimation
+      shared_skills_multiplier: 20        # Approximate shared skills = similarity * this
+      
+      # Progress reporting
+      progress_log_interval: 2000         # Log progress every N pathway records
+    
+    # Runtime estimation
+    estimation:
+      sample_size_max: 100               # Maximum sample size for runtime estimation
+      sample_comparisons_max: 1000       # Stop estimation after N comparisons
+      percentage_multiplier: 100         # For percentage calculations
+      time_unit_conversion: 1000         # ms conversion factor
+      
+    # Career move classification
+    move_classification:
+      lateral_similarity_threshold: 0.8   # Same family, high similarity = lateral
+      progression_similarity_max: 0.8     # Same family, lower similarity = progression
+      cross_family_move_type: "cross_family"
+      lateral_move_type: "lateral"
+      progression_move_type: "progression"
+  
+  # Logging configuration
+  logging:
+    logger_name: "skill_similarity_engine"
+    log_initialization: true
+    log_vector_computation: true
+    log_progress_updates: true
+    log_matrix_calculations: true
+    
+    # Log level overrides for specific operations
+    vectorizer_log_level: "INFO"
+    calculator_log_level: "INFO"
+    precompute_log_level: "INFO"
+  
+  # Validation and error handling
+  validation:
+    require_valid_job_ids: true
+    require_valid_employee_ids: true
+    validate_similarity_range: [0.0, 1.0]
+    check_vector_dimensions: true
+    
+    # Error handling strategies
+    handle_missing_skills: "ignore"      # Options: ignore, warn, error
+    handle_empty_jobs: "return_zero"     # Options: return_zero, warn, error
+    handle_invalid_weights: "use_default" # Options: use_default, warn, error
+
+# Movement Analysis Configuration
+movement_analysis:
+  # Detection parameters
+  min_movement_frequency: 2
+  detection_window_weeks: 52
+  min_position_tenure_weeks: 4
+  
+  # Export settings
+  export_csv: true
+  export_parquet: true
+  include_metadata: true
+  
+  # Analysis depth
+  track_lateral_movements: true
+  track_promotions: true
+  track_department_changes: true
+  
+  # Quality thresholds
+  min_confidence_score: 0.7
+  exclude_temporary_assignments: true
+
+# Logging Configuration
+logging:
+  # Core logging settings
+  default_level: "INFO"
+  console_output: true
+  file_output: true
+  
+  # File settings
+  log_directory: "logs"
+  log_filename: "skill_similarity_engine.log"
+  max_file_size_mb: 10
+  backup_count: 5
+  
+  # Formatter settings
+  timestamp_format: "%Y-%m-%d %H:%M:%S"
+  message_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Database Configuration
+database:
+  # SQLite settings
+  default_db_name: "business_context.db"
+  enable_foreign_keys: true
+  journal_mode: "WAL"
+  synchronous: "NORMAL"
+  
+  # Connection settings
+  timeout_seconds: 30
+  isolation_level: null
+  check_same_thread: false
+
+# Model Versioning Configuration
+versioning:
+  # Output structure
+  quarterly_structure: true
+  current_quarter: "2025-Q3"
+  timestamp_directories: true
+  
+  # Retention policy
+  keep_versions: 4  # quarters
+  auto_cleanup: false
+  archive_old_versions: true
+
+# Models Configuration
+models:
+  # Core model directory settings
+  directories:
+    base_models_dir: "models"
+    current_symlink_name: "current"
+    similarity_matrices_subdir: "similarity_matrices"
+    metadata_subdir: "metadata"
+    validation_subdir: "validation"
+    exports_subdir: "exports"
+    powerbi_ready_subdir: "exports/powerbi_ready"
+    department_analyses_subdir: "exports/department_analyses"
+    movement_analysis_subdir: "movement_analysis"
+  
+  # Output types configuration
+  output_types:
+    similarity_matrix: "similarity_matrix"
+    business_context: "business_context"
+    movement_analysis: "movement_analysis"
+    skills_analysis: "skills_analysis"
+  
+  # File patterns and extensions
+  file_patterns:
+    job_similarity_matrix_parquet: "job_similarity_matrix.parquet"
+    job_similarity_matrix_csv: "job_similarity_matrix.csv"
+    business_context_db: "business_context.sqlite"
+    precompute_pattern: "precompute_*"
+    movement_analysis_pattern: "movement_analysis_*"
+  
+  # Versioning patterns
+  versioning_patterns:
+    quarterly_pattern: "%Y-Q%q"  # e.g., 2025-Q3
+    timestamp_pattern: "%Y%m%d_%H%M%S"
+    date_stamp_pattern: "%Y%m%d"
+    run_directory_format: "run_{timestamp}"
+  
+  # Year and quarter validation
+  validation:
+    min_year: 1900
+    max_year: 2100
+    valid_quarters: [1, 2, 3, 4]
+    win_error_symlink: 1314  # Windows privilege error for symlinks
+  
+  # Skill type mappings
+  skill_types:
+    # Canonical skill types
+    canonical_types: ["COMMON", "SPECIALIZED", "CERTIFICATION"]
+    
+    # Mapping from string representations to canonical types
+    type_mappings:
+      "common": "COMMON"
+      "common skill": "COMMON"
+      "specialized": "SPECIALIZED" 
+      "specialized skill": "SPECIALIZED"
+      "certification": "CERTIFICATION"
+      "certification skill": "CERTIFICATION"
+      "technical": "SPECIALIZED"
+      "soft": "COMMON"
+      "domain": "SPECIALIZED"
+      "methodology": "SPECIALIZED"
+      "tool": "SPECIALIZED"
+    
+    # Default skill type for unknown/missing values
+    default_skill_type: "COMMON"
+  
+  # Date format configurations
+  date_formats:
+    # Internal processing formats
+    iso_format: "%Y-%m-%d"
+    timestamp_format: "%Y-%m-%d %H:%M:%S"
+    
+    # Input parsing formats (order matters - try these in sequence)
+    parsing_formats:
+      - "%Y-%m-%d"      # ISO format (preferred)
+      - "%d/%m/%Y"      # UK/AU format
+      - "%m/%d/%Y"      # US format  
+      - "%d-%m-%Y"      # European format
+      - "%Y/%m/%d"      # Alternative ISO
+    
+    # Movement tracker specific formats
+    movement_date_format: "%Y-%m-%d"
+  
+  # Boolean value mappings
+  boolean_mappings:
+    true_values: ["TRUE", "True", "true", "T", "1", "YES", "Yes", "yes", "Y", "y"]
+    false_values: ["FALSE", "False", "false", "F", "0", "NO", "No", "no", "N", "n"]
+    default_operational_status: true
+  
+  # File export settings
+  export_settings:
+    # Default formats and settings
+    csv_export:
+      enabled: true
+      index: false
+      encoding: "utf-8"
+    
+    parquet_export:
+      enabled: true
+      compression: "snappy"
+      index: false
+      engine: "pyarrow"
+    
+    excel_export:
+      enabled: false
+      index: false
+      sheet_name: "Sheet1"
+  
+  # Movement analysis specific settings
+  movement_analysis:
+    # Progress reporting
+    progress_reporting_interval: 10000
+    memory_usage_reporting: true
+    
+    # Data quality settings
+    enrichment_rate_calculation: true
+    enrichment_percentage_multiplier: 100
+    
+    # File naming patterns
+    output_files:
+      employee_movements_csv: "employee_movements.csv"
+      employee_movements_parquet: "employee_movements.parquet"
+      movement_summary_csv: "movement_summary.csv"
+      movement_summary_parquet: "movement_summary.parquet"
+      metadata_json: "metadata.json"
+  
+  # Skills taxonomy settings
+  skills_taxonomy:
+    # CSV parsing settings
+    list_field_delimiters: [",", ";"]
+    duplicate_handling: "skip_duplicates"  # or "overwrite", "error"
+    log_duplicates: true
+    
+    # File type support
+    supported_file_types: [".csv", ".json", ".xlsx", ".xls"]
+    
+    # Field parsing defaults
+    field_parsing:
+      string_list_separator: ","
+      alternative_separator: ";"
+      strip_whitespace: true
+      skip_empty_items: true
+  
+  # Job architecture settings
+  job_architecture:
+    # Validation settings
+    validation:
+      require_job_id: true
+      require_title: true
+      require_department: true
+    
+    # Value ranges
+    ranges:
+      seniority_min: 1
+      seniority_max: 7
+      proficiency_min: 0
+      proficiency_max: 5
+    
+    # Default values
+    defaults:
+      seniority: 3
+      role_track: 'INDIVIDUAL_CONTRIBUTOR'
+      min_proficiency: 1
+      location: ""
+      level: "MID_LEVEL"
+    
+    # Job level numeric mappings
+    level_mappings:
+      Entry: 1
+      Associate: 2
+      Mid-level: 3
+      Senior: 4
+      Lead: 5
+      Manager: 6
+      Director: 7
+      Executive: 8
+    
+    # Role level calculation method
+    role_level_calculation:
+      method: 'multiply'  # 'multiply' or 'add'
+      max_role_level: 56  # 8 levels * 7 seniority = 56
+    
+    # Parsing configuration
+    parsing:
+      skills_delimiter: ','
+      skill_proficiency_separator: ':'
+    
+    # File format support
+    file_formats:
+      csv_extensions: ['.csv']
+      excel_extensions: ['.xlsx', '.xls']
+  
+  # Employee model settings
+  employee_model:
+    # Validation settings
+    validation:
+      require_employee_id: true
+      require_name: true
+      require_current_job: true
+    
+    # Value ranges
+    ranges:
+      proficiency_min: 0
+      proficiency_max: 5
+    
+    # Default values
+    defaults:
+      min_proficiency: 1
+      min_proficiency_ratio: 0.7
+      eligibility_ratio: 0.8
+    
+    # Parsing configuration
+    parsing:
+      skills_delimiter: ','
+      skill_proficiency_separator: ':'
+    
+    # File format support
+    file_formats:
+      csv_extensions: ['.csv']
+      excel_extensions: ['.xlsx', '.xls']
+    
+    # Data validation
+    validate_proficiency_on_add: true
+    validate_proficiency_on_update: true
+
+# Error Handling Configuration
+error_handling:
+  # Failure behaviour
+  fail_fast: false
+  retry_attempts: 3
+  retry_delay_seconds: 1
+  
+  # Recovery settings
+  enable_graceful_degradation: true
+  fallback_to_defaults: true
+  log_all_errors: true
+
+# Performance Monitoring Configuration
+performance:
+  # Monitoring settings
+  enable_memory_monitoring: true
+  enable_timing_metrics: true
+  enable_progress_tracking: true
+  
+  # Resource limits
+  max_memory_usage_gb: 12
+  max_processing_time_hours: 2
+  
+  # Reporting
+  performance_log_interval: 100  # iterations
+  memory_check_interval: 50     # iterations
+
+# Environment Configuration
+environment:
+  # Runtime environment
+  development_mode: false
+  debug_mode: false
+  test_mode: false
+  
+  # Feature flags
+  enable_experimental_features: false
+  enable_advanced_analytics: true
+  enable_web_interface: true
+
+# Integration Configuration
+integration:
+  # External systems
+  enable_hris_adapter: true
+  enable_api_endpoints: true
+  enable_web_app: true
+  
+  # Data sources
+  support_multiple_schemas: true
+  auto_detect_schema: false
+  validate_schema_compatibility: true
+
+# Gap Analysis Configuration
+gap_analysis:
+  # Proficiency thresholds
+  min_proficiency_ratio: 0.8
+  skill_difficulty_factor: 1.0
+  min_gap_threshold: 0.2
+  
+  # Skill development effort calculation
+  base_difficulty_multiplier: 0.5
+  max_difficulty_scale: 5.0
+  default_category_weight: 1.0
+  
+  # Priority thresholds for development effort
+  high_priority_threshold: 3.0
+  medium_priority_threshold: 1.0
+  
+  # Reskilling calculation
+  max_reskilling_scale: 4.0  # Scale 1-5
+  min_reskilling_score: 1.0
+  coverage_percentage_base: 100.0
+  
+  # Category weights for development effort calculation
+  category_weights:
+    "CERTIFICATION": 0.8
+    "COMMON": 1.0
+    "SPECIALIZED": 1.2
+    "Technical": 1.0
+    "Soft": 1.0
+    "Domain": 1.2
+    "Methodology": 1.2
+    "Tool": 1.2
+    "Certification": 0.8
+    "Unknown": 1.0
+
+# Team Analysis Configuration
+team_analysis:
+  # Coverage weights
+  fully_covered_weight: 1.0
+  partially_covered_weight: 0.5
+  coverage_partial_multiplier: 0.5
+  
+  # Difficulty labels
+  reskilling_difficulty_levels:
+    1: "Very Easy"
+    2: "Easy"
+    3: "Moderate"
+    4: "Difficult"
+    5: "Very Difficult"
+
+# Workforce Analysis Configuration
+workforce_analysis:
+  # Reporting limits
+  max_skills_in_report: 20
+  critical_skill_threshold: 3.0
+  department_skill_coverage_threshold: 75.0
+  
+  # Priority labels
+  priority_labels:
+    high: "High"
+    medium: "Medium"
+    low: "Low"
+  
+  # Status labels
+  status_labels:
+    above_required: "Above required"
+    meets_required: "Meets required"
+    not_required: "Not required for target role"
+
+# API Configuration (Lightcast Skills API)
+api:
+  # Lightcast API configuration
+  lightcast:
+    # API endpoints
+    base_url: "https://emsiservices.com/skills"
+    auth_url: "https://auth.emsicloud.com/connect/token"
+    
+    # Authentication
+    default_scope: "emsi_open"
+    default_credentials_file: "credentials.json"
+    
+    # Rate limiting and timeouts
+    rate_limit_requests_per_second: 5
+    min_request_interval_seconds: 0.2
+    token_expiry_buffer_minutes: 5
+    
+    # API limits
+    max_skills_per_request: 100000
+    fallback_skills_limit: 50000
+    default_page_size: 1000
+    
+    # File extraction configuration
+    output_file_extension: ".csv"
+    use_timestamp_in_output: true
+    csv_quoting_mode: "QUOTE_ALL"
+    
+    # Standard output filenames
+    standard_files:
+      status: "status.csv"
+      metadata: "meta.csv"
+      versions: "versions.csv"
+      version_latest: "version_latest.csv"
+      skills_comprehensive: "skills_comprehensive_all_versions.csv"
+    
+    # Search paths for credentials file
+    credentials_search_paths:
+      - "."
+      - "credentials.json"
+      - "src/skill_similarity_engine/api/credentials.json"
+      - "config/credentials.json"
+
+# Business Context Database Configuration
+business_context:
+  # Database configuration
+  database:
+    default_filename: "business_context.sqlite"
+    schema_version: "1.0"
+    
+  # Data loading configuration
+  data_loading:
+    # Chunk sizes for large datasets
+    default_chunk_size: 1000
+    skills_chunk_size: 10000
+    similarity_chunk_size: 50000
+    
+    # Default data source file paths (relative to data root)
+    default_data_sources:
+      jobs:
+        file_path: "job_architecture/dummy_job_architecture.csv"
+        table_name: "jobs"
+      skills:
+        file_path: "skills_library/lightcast_skills_comprehensive.csv"
+        table_name: "skills"
+        chunk_size: 10000
+      job_skills:
+        file_path: "input_data/job_skill_mapping.csv"
+        table_name: "job_skills"
+      positions:
+        file_path: "workforce_context/dummy_workforce_context.csv"
+        table_name: "positions"
+    
+    # Data validation thresholds
+    expected_minimums:
+      jobs: 500
+      skills: 1000
+      job_skills: 10000
+      positions: 1000
+    
+    # Coverage thresholds (percentages)
+    coverage_thresholds:
+      job_similarity_coverage_min: 95.0
+      job_skills_coverage_min: 90.0
+      job_position_coverage_min: 50.0
+    
+    # Data quality thresholds
+    quality_thresholds:
+      max_null_percentage_default: 25.0
+      max_null_percentage_positions: 50.0  # More lenient for dummy data
+      min_job_function_diversity: 3
+      min_skill_category_diversity: 5
+  
+  # File discovery configuration
+  file_discovery:
+    # Search paths for models directory
+    models_search_paths:
+      - "models"
+      - "data/precomputed"
+    
+    # Search paths for configuration files  
+    config_search_paths:
+      - "config/data_sources.yaml"
+      - "config/business_context_sources.yaml"
+
+# CLI Configuration
+cli:
+  # Default configuration template values
+  default_config_template:
+    # Directory paths
+    data_dir: "./data"
+    output_dir: "./output"
+    
+    # Application settings
+    version: "0.1.0"
+    
+    # Normalisation settings
+    normalisation:
+      min_max_scaling: true
+      boolean_normalisation: false
+      tfidf_weighting: true
+    
+    # Similarity calculation settings
+    similarity:
+      method: "cosine"
+      threshold: 0.7
+    
+    # Gap analysis settings
+    gap_analysis:
+      min_proficiency_ratio: 0.65
+      min_gap_threshold: 0.2
+      category_weights:
+        technical: 0.6
+        soft: 0.3
+        domain: 0.1
+    
+    # Opportunity identification settings
+    opportunity:
+      high_similarity_threshold: 0.8
+      critical_skill_gap_threshold: 0.4
+    
+    # Future extensions (all disabled by default)
+    future_extensions:
+      seniority_weight: 0.0
+      role_track_weight: 0.0
+      location_weight: 0.0
+  
+  # CLI output formatting
+  output_formats:
+    default: "yaml"
+    supported: ["json", "yaml"]
+  
+  # Configuration file settings
+  config_files:
+    default_filename: "config.yaml"
+    backup_extension: ".backup"
+
+# Configuration Module Settings
+configuration_management:
+  # Configuration file discovery and naming
+  file_discovery:
+    # Search patterns for configuration files
+    config_search_paths:
+      - "config"
+      - "../config"
+      - "../../config"
+      - "../../../config"
+      - "../../../../config"
+    
+    # Default configuration filenames
+    default_filenames:
+      field_mapping: "field_mapping.yaml"
+      data_field_mappings: "data_field_mappings.yaml"
+      operational_config: "operational_config.yaml"
+      data_sources: "data_sources.yaml"
+      data_sources_legacy: "data_sources_legacy.yaml"
+      hris_config: "hris_config.yaml"
+      similarity_enhancement_factors: "similarity_enhancement_factors.yaml"
+      main_config: "config.yaml"
+    
+    # File extensions to search for
+    supported_extensions: [".yaml", ".yml", ".json"]
+  
+  # Logging configuration for config modules
+  logging:
+    default_level: "INFO"
+    log_warnings: true
+    log_fallback_usage: true
+    debug_config_loading: false
+  
+  # Fallback and error handling
+  fallback_handling:
+    enable_fallback: true
+    case_sensitive: false
+    use_defaults_on_missing: true
+    log_missing_configs: true
+  
+  # Default data source paths (legacy compatibility)
+  legacy_data_sources:
+    jobs_file: "data/jobs.csv"
+    skills_file: "data/skills.csv"
+    employees_file: "data/employees.csv"
+    output_dir: "data/transformed"
+  
+  # Default performance settings for config loading
+  performance:
+    chunk_size_default: 10000
+    cache_configs: true
+    lazy_loading: true
+
+# Data Module Configuration
+data:
+  # Data loading performance settings
+  loading:
+    # Default chunk sizes for different operations
+    chunk_sizes:
+      default: 10000
+      skill_taxonomy: 5000
+      job_architecture: 8000
+      employee_data: 10000
+      large_datasets: 15000
+      memory_constrained: 2000
+    
+    # Progress tracking settings
+    progress_tracking:
+      show_progress_bars: true
+      update_frequency: 1000
+      log_progress: true
+    
+    # Validation settings
+    validation:
+      enable_by_default: true
+      log_validation_failures: true
+      continue_on_validation_error: true
+  
+  # Data normalisation configuration
+  normalisation:
+    # Min-max scaling settings
+    min_max_scaling:
+      enabled: true
+      min_value: 0
+      max_value: 5
+      target_min: 0.0
+      target_max: 1.0
+    
+    # Boolean normalisation settings
+    boolean_normalisation:
+      enabled: false
+      threshold: 1
+    
+    # TF-IDF weighting settings
+    tfidf_weighting:
+      enabled: true
+      smoothing_factor: 1
+      log_base: "natural"  # "natural" or "log10"
+    
+    # Category weighting settings
+    category_weighting:
+      enabled: true
+      default_weight: 1.0
+      # Category-specific weights (can be overridden)
+      importance_weights:
+        technical: 1.0
+        soft: 0.8
+        domain: 0.9
+        leadership: 1.1
+        other: 1.0
+  
+  # Data export settings
+  export:
+    default_format: "csv"
+    supported_formats: ["csv", "excel", "parquet", "json"]
+    excel_settings:
+      default_sheet_names:
+        skills: "Skills"
+        categories: "Categories"
+        jobs: "Jobs"
+        job_skills: "JobSkills"
+        employees: "Employees"
+        employee_skills: "EmployeeSkills"
+    
+    # File naming conventions
+    naming:
+      timestamp_format: "%Y%m%d_%H%M%S"
+      include_timestamp: true
+      backup_extension: ".backup"
+
+# Data Validation Configuration
+data_validation:
+  # Schema file configuration
+  schema_files:
+    # Default schema file names
+    default_schema_filename: "data_validation_schema.yaml"
+    
+    # Search paths for schema files
+    schema_search_paths:
+      - "config"
+      - "../config"
+      - "../../config"
+      - "../../../config"
+      - "../../../../config"
+    
+    # Alternative schema file names to search for
+    alternative_schema_names:
+      - "data_validation_schema.yaml"
+      - "validation_schema.yaml"
+      - "schema.yaml"
+  
+  # Validation behaviour configuration
+  validation_behaviour:
+    # Default validation settings
+    strict_mode: false
+    fail_fast: false
+    log_validation_failures: true
+    continue_on_validation_error: true
+    
+    # Field name normalisation
+    normalise_field_names: true
+    case_sensitive_field_matching: false
+    
+    # Error handling
+    max_validation_errors: 1000
+    error_summary_threshold: 50
+
+# Error Handling Configuration
+error_handling:
+  # Checkpoint configuration
+  checkpoints:
+    # Default checkpoint settings
+    auto_checkpoint_interval: 100
+    checkpoint_file_extension: ".checkpoint"
+    default_checkpoint_dir: "checkpoints"
+    create_dir_if_missing: true
+    
+    # Checkpoint naming patterns
+    naming:
+      run_prefix: "run_"
+      date_format: "%Y%m%d_%H%M%S"
+      batch_checkpoint_filename: "batch_checkpoint.json"
+  
+  # Recovery and retry configuration
+  recovery:
+    # Retry mechanism defaults
+    max_retry_attempts: 3
+    initial_delay_seconds: 1.0
+    backoff_factor: 2.0
+    
+    # Circuit breaker defaults
+    circuit_breaker:
+      failure_threshold: 3
+      recovery_timeout_seconds: 10
+      
+    # Recovery strategy defaults
+    enable_fallback: true
+    escalate_after_fallback: false
+    log_recovery_attempts: true
+  
+  # Error registry configuration
+  registry:
+    # Export settings
+    export_formats: ["json", "csv"]
+    default_export_format: "json"
+    export_directory: "error_reports"
+    
+    # Error categorisation
+    auto_categorise_errors: true
+    log_all_registrations: true
+    
+    # Error filtering and limits
+    max_errors_per_category: 1000
+    error_summary_threshold: 50
+  
+  # Directory structure configuration
+  directories:
+    # Log directory structure
+    log_root: "logs"
+    checkpoint_subdir: "checkpoints"
+    error_reports_subdir: "error_reports"
+    
+    # Run directory patterns
+    run_directory_format: "run_{timestamp}"
+    incomplete_run_detection: true
+
+# Logging Configuration
+logging:
+  # Core logging settings
+  core:
+    # Default logger configuration
+    default_logger_name: "skill_similarity_engine"
+    default_log_level: "INFO"
+    environment_variable: "LOG_LEVEL"
+    
+    # Log file settings
+    default_log_filename: "engine.log"
+    create_dirs_if_missing: true
+    
+  # Directory structure configuration
+  directories:
+    # Root log directory (relative to project root)
+    log_root: "log"
+    relative_path_from_logging_module: "../../../log"
+    
+    # Run directory configuration
+    run_directory_format: "run_{timestamp}"
+    timestamp_format: "%Y%m%d_%H%M%S"
+    
+    # Standard run subdirectories
+    run_subdirectories:
+      - "logs"
+      - "errors" 
+      - "checkpoints"
+      - "progress"
+      - "validation"
+      - "metrics"
+      
+    # Directory creation settings
+    create_run_subdirs: true
+    make_dirs_exist_ok: true
+  
+  # Formatter configuration
+  formatters:
+    # Available formatter types
+    available_types: ["console", "detailed", "json"]
+    default_formatter: "console"
+    
+    # Console formatter settings
+    console:
+      format_string: "%(asctime)s - %(levelname)s - %(message)s"
+      date_format: "%Y-%m-%d %H:%M:%S"
+      
+    # Detailed formatter settings  
+    detailed:
+      format_string: "%(asctime)s - %(levelname)s - %(name)s - %(module)s:%(lineno)d - %(message)s"
+      date_format: "%Y-%m-%d %H:%M:%S"
+      
+    # JSON formatter settings
+    json:
+      include_fields: ["time", "level", "name", "message", "module", "line"]
+      date_format: "%Y-%m-%d %H:%M:%S"
+      ensure_ascii: false
+      indent: null
+  
+  # Handler configuration
+  handlers:
+    # Console handler defaults
+    console:
+      enabled: true
+      stream_type: "stderr"  # or "stdout"
+      
+    # File handler defaults
+    file:
+      enabled_by_default: false
+      mode: "a"  # append mode
+      encoding: "utf-8"
+      
+  # Structured logging configuration
+  structured:
+    # Log level validation
+    valid_levels: ["debug", "info", "warning", "error", "critical"]
+    default_structured_level: "info"
+    
+    # Context field limits
+    max_context_fields: 20
+    max_field_length: 1000
+
+# Security Configuration (future extension)
+security:
+  # Data protection
+  anonymize_employee_data: false
+  encrypt_sensitive_fields: false
+  audit_data_access: false
+  
+  # Access control
+  require_authentication: false
+  role_based_access: false
+  api_key_authentication: false
+
+# Models Configuration
+models:
+  # Core model directory settings
+  directories:
+    base_models_dir: "models"
+    current_symlink_name: "current"
+    similarity_matrices_subdir: "similarity_matrices"
+    metadata_subdir: "metadata"
+    validation_subdir: "validation"
+    exports_subdir: "exports"
+    powerbi_ready_subdir: "exports/powerbi_ready"
+    department_analyses_subdir: "exports/department_analyses"
+    movement_analysis_subdir: "movement_analysis"
+  
+  # Export configuration
+  export_settings:
+    parquet_export:
+      index: false
+      compression: "snappy"
+      engine: "pyarrow"
+    csv_export:
+      index: false
+      encoding: "utf-8"
+  
+  # Date format configuration
+  date_formats:
+    movement_date_format: "%Y-%m-%d"
+    iso_format: "%Y-%m-%d"
+    run_timestamp_format: "%Y%m%d_%H%M%S"
+    metadata_timestamp_format: "%Y-%m-%d %H:%M:%S"
+  
+  # Movement analysis specific configuration
+  movement_analysis:
+    progress_reporting_interval: 10000
+    memory_usage_reporting: true
+    enrichment_rate_calculation: true
+    enrichment_percentage_multiplier: 100
+    include_arterial_routes: true
+    min_arterial_frequency: 2
+    calculate_movement_metrics: true
+    include_journey_analysis: true
+  
+  # Precompute configuration
+  precompute:
+    enable_memory_monitoring: true
+    memory_warning_threshold_mb: 1000
+    export_individual_movements: true
+    export_movement_summary: true
+    export_metadata: true
+  
+  # Skill type configuration
+  skill_types:
+    # Type mappings for string to enum conversion
+    type_mappings:
+      "common": "COMMON"
+      "common skill": "COMMON"
+      "specialized": "SPECIALIZED"
+      "specialized skill": "SPECIALIZED"
+      "certification": "CERTIFICATION"
+      "certification skill": "CERTIFICATION"
+      "technical": "SPECIALIZED"
+      "soft": "COMMON"
+      "domain": "SPECIALIZED"
+      "methodology": "SPECIALIZED"
+      "tool": "SPECIALIZED"
+    
+    # Default configuration
+    default_type: "COMMON"
+    enable_fallback: true
+    case_sensitive: false
+    handle_nan_values: true
+    enum_prefix_handling: true
+  
+  # Validation configuration
+  validation:
+    # Category validation rules
+    category_validation:
+      require_category_id: true
+      require_category_name: true
+      min_category_id_length: 1
+      min_category_name_length: 1
+    
+    # Skill validation rules
+    skill_validation:
+      require_skill_id: true
+      require_skill_name: true
+      min_skill_id_length: 1
+      min_skill_name_length: 1
+      debug_skill_type_conversion: false
+  
+  # Skills taxonomy configuration
+  skills_taxonomy:
+    # Search configuration
+    search:
+      case_sensitive: false
+      search_aliases: true
+      search_description: true
+      search_name: true
+    
+    # File loading configuration
+    file_loading:
+      supported_formats: [".csv", ".json"]
+      duplicate_handling: "skip_with_warning"  # options: skip_with_warning, warn, error, replace
+      debug_duplicates: false
+    
+    # List parsing configuration
+    list_parsing:
+      primary_delimiter: ","
+      secondary_delimiter: ";"
+      strip_whitespace: true 

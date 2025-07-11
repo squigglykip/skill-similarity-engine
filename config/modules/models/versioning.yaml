@@ -1,0 +1,46 @@
+# =============================================================================
+# Models Module - Versioning Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - models.directories, versioning_patterns, validation
+# Controls quarterly model versioning and directory management
+
+# Core model directory settings
+directories:
+  base_models_dir: "models"
+  current_symlink_name: "current"
+  similarity_matrices_subdir: "similarity_matrices"
+  metadata_subdir: "metadata"
+  validation_subdir: "validation"
+  exports_subdir: "exports"
+  powerbi_ready_subdir: "exports/powerbi_ready"
+  department_analyses_subdir: "exports/department_analyses"
+  movement_analysis_subdir: "movement_analysis"
+
+# Output types configuration
+output_types:
+  similarity_matrix: "similarity_matrix"
+  business_context: "business_context"
+  movement_analysis: "movement_analysis"
+  skills_analysis: "skills_analysis"
+
+# File patterns and extensions
+file_patterns:
+  job_similarity_matrix_parquet: "job_similarity_matrix.parquet"
+  job_similarity_matrix_csv: "job_similarity_matrix.csv"
+  business_context_db: "business_context.sqlite"
+  precompute_pattern: "precompute_*"
+  movement_analysis_pattern: "movement_analysis_*"
+
+# Versioning patterns
+versioning_patterns:
+  quarterly_pattern: "%Y-Q%q"  # e.g., 2025-Q3
+  timestamp_pattern: "%Y%m%d_%H%M%S"
+  date_stamp_pattern: "%Y%m%d"
+  run_directory_format: "run_{timestamp}"
+
+# Year and quarter validation
+validation:
+  min_year: 1900
+  max_year: 2100
+  valid_quarters: [1, 2, 3, 4]
+  win_error_symlink: 1314  # Windows privilege error for symlinks 

@@ -1,0 +1,37 @@
+# =============================================================================
+# Analysis Module - Gap Analysis Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - gap_analysis section
+# Controls skills gap analysis parameters and calculations
+
+# Proficiency thresholds
+min_proficiency_ratio: 0.8
+skill_difficulty_factor: 1.0
+min_gap_threshold: 0.2
+
+# Skill development effort calculation
+base_difficulty_multiplier: 0.5
+max_difficulty_scale: 5.0
+default_category_weight: 1.0
+
+# Priority thresholds for development effort
+high_priority_threshold: 3.0
+medium_priority_threshold: 1.0
+
+# Reskilling calculation
+max_reskilling_scale: 4.0  # Scale 1-5
+min_reskilling_score: 1.0
+coverage_percentage_base: 100.0
+
+# Category weights for development effort calculation
+category_weights:
+  "CERTIFICATION": 0.8
+  "COMMON": 1.0
+  "SPECIALIZED": 1.2
+  "Technical": 1.0
+  "Soft": 1.0
+  "Domain": 1.2
+  "Methodology": 1.2
+  "Tool": 1.2
+  "Certification": 0.8
+  "Unknown": 1.0 

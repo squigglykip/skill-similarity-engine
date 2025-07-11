@@ -1,0 +1,17 @@
+# =============================================================================
+# Core - Date and Time Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - datetime section
+# Controls date formats and parsing rules across the system
+
+# Standard formats across the system
+input_date_format: "%d/%m/%Y"     # DD/MM/YYYY (UK/AU format)
+output_date_format: "%Y-%m-%d"    # ISO format for internal processing
+timestamp_format: "%Y%m%d_%H%M%S" # For file naming
+
+# Alternative date formats for parsing flexibility
+alternative_date_formats:
+  - "%Y-%m-%d"     # ISO format
+  - "%m/%d/%Y"     # US format
+  - "%d-%m-%Y"     # European format
+  - "%Y/%m/%d"     # Alternative ISO 

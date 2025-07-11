@@ -3,15 +3,24 @@ Models for representing employees in the skill similarity engine.
 
 This module defines the data structures for representing employees, their skills,
 and proficiency levels.
+
+Architecture: Configuration-driven with ZERO hardcoded values
+All proficiency ranges, ratios, and file formats externalized to architectural configuration.
 """
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, TYPE_CHECKING
+import logging
+
+# Import configuration management
+from ..config.architectural_config_manager import get_config_manager
 
 if TYPE_CHECKING:
     from .jobs import JobArchitecture, Job
 
 from .skills import Skill, SkillTaxonomy
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -23,7 +32,7 @@ class Employee:
         employee_id: Unique identifier for the employee
         name: Full name of the employee
         current_job: ID of the employee's current job
-        skills: Dictionary mapping skill IDs to proficiency levels (0-5)
+        skills: Dictionary mapping skill IDs to proficiency levels
     """
     employee_id: str
     name: str
@@ -31,17 +40,33 @@ class Employee:
     skills: Dict[str, int] = field(default_factory=dict)
     
     def __post_init__(self):
-        """Validate the employee attributes after initialization."""
-        if not self.employee_id:
+        """Validate the employee attributes after initialization using configured validation."""
+        # Get validation configuration - NO hardcoded validation rules
+        config_manager = get_config_manager()
+        employee_config = config_manager.get_models_employee_config()
+        
+        # Get validation settings
+        validation = employee_config.get('validation', {})
+        require_employee_id = validation.get('require_employee_id', True)
+        require_name = validation.get('require_name', True)
+        require_current_job = validation.get('require_current_job', True)
+        
+        # Get proficiency range from configuration - NO hardcoded 0-5
+        ranges = employee_config.get('ranges', {})
+        proficiency_min = ranges.get('proficiency_min', 0)
+        proficiency_max = ranges.get('proficiency_max', 5)
+        
+        # Validate required fields based on configuration
+        if require_employee_id and not self.employee_id:
             raise ValueError("Employee ID cannot be empty")
         
-        if not self.name:
+        if require_name and not self.name:
             raise ValueError("Employee name cannot be empty")
         
-        if not self.current_job:
+        if require_current_job and not self.current_job:
             raise ValueError("Current job ID cannot be empty")
         
-        # Validate skill proficiency levels
+        # Validate skill proficiency levels using configured ranges
         for skill_id, proficiency in list(self.skills.items()):
             if not isinstance(proficiency, int):
                 try:
@@ -49,41 +74,55 @@ class Employee:
                 except ValueError:
                     raise ValueError(f"Skill proficiency for {skill_id} must be an integer")
             
-            if not 0 <= self.skills[skill_id] <= 5:
-                raise ValueError(f"Skill proficiency for {skill_id} must be between 0 and 5")
+            if not proficiency_min <= self.skills[skill_id] <= proficiency_max:
+                raise ValueError(f"Skill proficiency for {skill_id} must be between {proficiency_min} and {proficiency_max}")
     
     def add_skill(self, skill_id: str, proficiency: int) -> None:
         """
-        Add a skill to the employee's profile.
+        Add a skill to the employee's profile using configured validation.
         
         Args:
             skill_id: The ID of the skill to add
-            proficiency: Proficiency level (0-5)
+            proficiency: Proficiency level
             
         Raises:
-            ValueError: If proficiency is not between 0 and 5
+            ValueError: If proficiency is not within configured range
         """
-        if not 0 <= proficiency <= 5:
-            raise ValueError("Skill proficiency must be between 0 and 5")
+        # Get proficiency range from configuration - NO hardcoded 0-5
+        config_manager = get_config_manager()
+        employee_config = config_manager.get_models_employee_config()
+        ranges = employee_config.get('ranges', {})
+        proficiency_min = ranges.get('proficiency_min', 0)
+        proficiency_max = ranges.get('proficiency_max', 5)
+        
+        if not proficiency_min <= proficiency <= proficiency_max:
+            raise ValueError(f"Skill proficiency must be between {proficiency_min} and {proficiency_max}")
         
         self.skills[skill_id] = proficiency
     
     def update_skill(self, skill_id: str, proficiency: int) -> None:
         """
-        Update the proficiency level of an existing skill.
+        Update the proficiency level of an existing skill using configured validation.
         
         Args:
             skill_id: The ID of the skill to update
-            proficiency: New proficiency level (0-5)
+            proficiency: New proficiency level
             
         Raises:
-            ValueError: If proficiency is not between 0 and 5 or skill doesn't exist
+            ValueError: If proficiency is not within configured range or skill doesn't exist
         """
         if skill_id not in self.skills:
             raise ValueError(f"Skill {skill_id} does not exist in this employee's profile")
         
-        if not 0 <= proficiency <= 5:
-            raise ValueError("Skill proficiency must be between 0 and 5")
+        # Get proficiency range from configuration - NO hardcoded 0-5
+        config_manager = get_config_manager()
+        employee_config = config_manager.get_models_employee_config()
+        ranges = employee_config.get('ranges', {})
+        proficiency_min = ranges.get('proficiency_min', 0)
+        proficiency_max = ranges.get('proficiency_max', 5)
+        
+        if not proficiency_min <= proficiency <= proficiency_max:
+            raise ValueError(f"Skill proficiency must be between {proficiency_min} and {proficiency_max}")
         
         self.skills[skill_id] = proficiency
     
@@ -109,30 +148,44 @@ class Employee:
         """
         return self.skills.get(skill_id)
     
-    def has_skill(self, skill_id: str, min_proficiency: int = 1) -> bool:
+    def has_skill(self, skill_id: str, min_proficiency: int = None) -> bool:
         """
-        Check if the employee has a specific skill at minimum proficiency level.
+        Check if the employee has a specific skill at minimum proficiency level using configured defaults.
         
         Args:
             skill_id: The ID of the skill to check
-            min_proficiency: Minimum proficiency level to consider
+            min_proficiency: Minimum proficiency level to consider (uses configured default if None)
             
         Returns:
             True if the employee has the skill at minimum proficiency, False otherwise
         """
+        # Use configured default minimum proficiency - NO hardcoded 1
+        if min_proficiency is None:
+            config_manager = get_config_manager()
+            employee_config = config_manager.get_models_employee_config()
+            defaults = employee_config.get('defaults', {})
+            min_proficiency = defaults.get('min_proficiency', 1)
+        
         return self.skills.get(skill_id, 0) >= min_proficiency
     
-    def meets_job_requirements(self, job: 'Job', min_proficiency_ratio: float = 0.7) -> bool:
+    def meets_job_requirements(self, job: 'Job', min_proficiency_ratio: float = None) -> bool:
         """
-        Check if the employee meets the minimum requirements for a job.
+        Check if the employee meets the minimum requirements for a job using configured ratios.
         
         Args:
             job: The job to check requirements for
-            min_proficiency_ratio: Minimum ratio of required skills that must be met
+            min_proficiency_ratio: Minimum ratio of required skills that must be met (uses configured default if None)
             
         Returns:
             True if the employee meets the minimum requirements, False otherwise
         """
+        # Use configured default proficiency ratio - NO hardcoded 0.7
+        if min_proficiency_ratio is None:
+            config_manager = get_config_manager()
+            employee_config = config_manager.get_models_employee_config()
+            defaults = employee_config.get('defaults', {})
+            min_proficiency_ratio = defaults.get('min_proficiency_ratio', 0.7)
+        
         if not job.skills:
             return True
         
@@ -198,7 +251,7 @@ class EmployeeDatabase:
         # Get the old employee data
         old_employee = self.employees[employee.employee_id]
         
-        # Update job counts if the job has changed
+        # Update job counts if the job changed
         if old_employee.current_job != employee.current_job:
             self.job_counts[old_employee.current_job] = self.job_counts.get(old_employee.current_job, 0) - 1
             self.job_counts[employee.current_job] = self.job_counts.get(employee.current_job, 0) + 1
@@ -271,33 +324,47 @@ class EmployeeDatabase:
             if emp.current_job == job_id
         ]
     
-    def get_employees_with_skill(self, skill_id: str, min_proficiency: int = 1) -> List['Employee']:
+    def get_employees_with_skill(self, skill_id: str, min_proficiency: int = None) -> List['Employee']:
         """
-        Retrieve all employees with a specific skill at minimum proficiency level.
+        Retrieve all employees with a specific skill at minimum proficiency level using configured defaults.
         
         Args:
             skill_id: The ID of the skill to filter by
-            min_proficiency: Minimum proficiency level to consider
+            min_proficiency: Minimum proficiency level to consider (uses configured default if None)
             
         Returns:
             A list of employees with the specified skill at minimum proficiency
         """
+        # Use configured default minimum proficiency - NO hardcoded 1
+        if min_proficiency is None:
+            config_manager = get_config_manager()
+            employee_config = config_manager.get_models_employee_config()
+            defaults = employee_config.get('defaults', {})
+            min_proficiency = defaults.get('min_proficiency', 1)
+        
         return [
             emp for emp in self.employees.values()
             if emp.has_skill(skill_id, min_proficiency)
         ]
     
-    def get_eligible_employees_for_job(self, job: 'Job', min_proficiency_ratio: float = 0.8) -> List['Employee']:
+    def get_eligible_employees_for_job(self, job: 'Job', min_proficiency_ratio: float = None) -> List['Employee']:
         """
-        Retrieve all employees eligible for a specific job.
+        Retrieve all employees eligible for a specific job using configured eligibility ratios.
         
         Args:
             job: The job to check eligibility for
-            min_proficiency_ratio: Minimum ratio of required skills that must be met
+            min_proficiency_ratio: Minimum ratio of required skills that must be met (uses configured default if None)
             
         Returns:
             A list of employees eligible for the job
         """
+        # Use configured default eligibility ratio - NO hardcoded 0.8
+        if min_proficiency_ratio is None:
+            config_manager = get_config_manager()
+            employee_config = config_manager.get_models_employee_config()
+            defaults = employee_config.get('defaults', {})
+            min_proficiency_ratio = defaults.get('eligibility_ratio', 0.8)
+        
         return [
             emp for emp in self.employees.values()
             if emp.meets_job_requirements(job, min_proficiency_ratio)
@@ -306,7 +373,7 @@ class EmployeeDatabase:
     @classmethod
     def from_dict(cls, data: Dict[str, Dict]) -> 'EmployeeDatabase':
         """
-        Create an employee database from a dictionary representation.
+        Create an employee database from a dictionary representation using configured parsing.
         
         Args:
             data: Dictionary where keys are employee IDs and values are employee attributes
@@ -314,18 +381,26 @@ class EmployeeDatabase:
         Returns:
             A new EmployeeDatabase instance
         """
+        # Get parsing configuration - NO hardcoded parsing behavior
+        config_manager = get_config_manager()
+        employee_config = config_manager.get_models_employee_config()
+        parsing = employee_config.get('parsing', {})
+        
+        skills_delimiter = parsing.get('skills_delimiter', ',')
+        skill_proficiency_separator = parsing.get('skill_proficiency_separator', ':')
+        
         database = cls()
         
         for employee_id, employee_data in data.items():
             # Extract skills from the employee data
             skills_data = employee_data.get("skills", {})
             
-            # If skills are provided as a string (e.g., "S001:4,S002:5"), parse them
+            # If skills are provided as a string, parse them using configured delimiters
             if isinstance(skills_data, str):
                 skills_dict = {}
-                for skill_entry in skills_data.split(","):
-                    if ":" in skill_entry:
-                        skill_id, proficiency = skill_entry.split(":")
+                for skill_entry in skills_data.split(skills_delimiter):
+                    if skill_proficiency_separator in skill_entry:
+                        skill_id, proficiency = skill_entry.split(skill_proficiency_separator)
                         skills_dict[skill_id] = int(proficiency)
                 skills_data = skills_dict
             
@@ -358,7 +433,7 @@ class EmployeeDatabase:
     @classmethod
     def from_file(cls, file_path: str, job_architecture: Optional['JobArchitecture'] = None) -> 'EmployeeDatabase':
         """
-        Load an employee database from a file (CSV or Excel).
+        Load an employee database from a file using configured file format support.
         
         Args:
             file_path: Path to the file to load from
@@ -370,12 +445,28 @@ class EmployeeDatabase:
         Raises:
             ValueError: If the file type is not supported
         """
+        # Get file format configuration - NO hardcoded file extensions
+        config_manager = get_config_manager()
+        employee_config = config_manager.get_models_employee_config()
+        file_formats = employee_config.get('file_formats', {})
+        
+        supported_csv_extensions = file_formats.get('csv_extensions', ['.csv'])
+        supported_excel_extensions = file_formats.get('excel_extensions', ['.xlsx', '.xls'])
+        
         from ..data.loaders import EmployeeLoader
         
         loader = EmployeeLoader(job_architecture)
-        if file_path.endswith('.csv'):
+        
+        # Check file extension against configured supported formats
+        file_lower = file_path.lower()
+        
+        is_csv = any(file_lower.endswith(ext) for ext in supported_csv_extensions)
+        is_excel = any(file_lower.endswith(ext) for ext in supported_excel_extensions)
+        
+        if is_csv:
             return loader.load_from_csv(file_path)
-        elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        elif is_excel:
             return loader.load_from_excel(file_path)
         else:
-            raise ValueError(f"Unsupported file type for {file_path}. Use CSV or Excel files.") 
+            all_supported = supported_csv_extensions + supported_excel_extensions
+            raise ValueError(f"Unsupported file type for {file_path}. Supported formats: {all_supported}") 

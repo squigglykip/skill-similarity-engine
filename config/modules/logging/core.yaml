@@ -1,0 +1,19 @@
+# =============================================================================
+# Logging Module Configuration - Core Settings
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (logging.core section)
+# Purpose: Core logging configuration and logger settings
+# Module: src/logging/
+# =============================================================================
+
+# Core logging settings
+core:
+  # Default logger configuration
+  default_logger_name: "skill_similarity_engine"
+  default_log_level: "INFO"
+  environment_variable: "LOG_LEVEL"
+  
+  # Log file settings
+  default_log_filename: "engine.log"
+  create_dirs_if_missing: true 

@@ -1,0 +1,295 @@
+# =============================================================================
+# Data Field Mappings Configuration
+# =============================================================================
+# 
+# Schema mappings for all workforce intelligence data sources.
+# Maps external data schemas to internal standardised field names.
+# 
+# Architecture: Configuration-Driven Data Mapping Pattern
+# Source: Adapted from Position Transition History (PTH) best practices
+# =============================================================================
+
+# =============================================================================
+# Historical Workforce Data (PTH Integration)
+# =============================================================================
+
+colleague_positions:
+  # Colleague Position History Dataset Mapping (FY2021-FY2025)
+  source_file_pattern: "colleague_positions/d_colleague_positions_fy*.csv"
+  description: "Employee-position associations over time (50K records per FY)"
+  
+  # Field Mappings: external_field_name -> internal_standardised_name
+  field_mappings:
+    "Week Ending": "week_ending"           # Temporal dimension (DD/MM/YYYY)
+    "Employee Number": "employee_number"    # Unique colleague identifier  
+    "Operational": "operational"           # Boolean operational role flag
+    "Position Start Date": "position_start_date"  # Position tenure start (nullable)
+    "PosIDLookupKey": "pos_id_lookup_key"  # Critical linking key (scientific notation)
+    "Position Number": "position_number"   # Actual position identifier
+  
+  # Data Type Configurations
+  data_types:
+    week_ending: "date_string"             # DD/MM/YYYY format
+    employee_number: "integer" 
+    operational: "boolean_from_string"     # "True"/"False" -> bool
+    position_start_date: "nullable_date_string"
+    pos_id_lookup_key: "float"            # Scientific notation handling
+    position_number: "integer"
+  
+  # Validation Rules
+  validation:
+    required_fields: ["week_ending", "employee_number", "pos_id_lookup_key", "operational"]
+    unique_constraints: []  # No uniqueness at row level (temporal data)
+    date_format: "%d/%m/%Y"
+
+positions:
+  # Position Master Data Mapping (FY2021-FY2025)
+  source_file_pattern: "positions/d_positions_fy*.csv"
+  description: "Position master data with organisational context (120K records per FY)"
+  
+  field_mappings:
+    "Week Ending": "week_ending"
+    "Position Number": "position_number"
+    "PosIDLookupKey": "pos_id_lookup_key"  # Linking key to colleague_positions
+    "Organisational Unit": "organisational_unit"
+    "Cost Centre Number": "cost_centre_number"
+    "Position Title": "position_title"
+    "People Leader": "people_leader_number"
+    "Operational": "operational"
+    "OrgUnitIDLookupKey": "org_unit_lookup_key"
+  
+  data_types:
+    week_ending: "date_string"
+    position_number: "integer"
+    pos_id_lookup_key: "float"            # Critical linking field
+    organisational_unit: "string"
+    cost_centre_number: "integer"
+    position_title: "string" 
+    people_leader_number: "nullable_float"  # Updated based on data preview (30% nulls)
+    operational: "boolean_from_string"
+    org_unit_lookup_key: "integer"
+  
+  validation:
+    required_fields: ["week_ending", "position_number", "pos_id_lookup_key", "operational"]
+    unique_constraints: []  # Time-variant data
+    date_format: "%d/%m/%Y"
+
+# =============================================================================
+# Core Business Context Data (SSE Architecture)
+# =============================================================================
+
+job_architecture:
+  # Enhanced Job Architecture Master Data
+  source_file_pattern: "job_architecture/dummy_job_architecture.csv"
+  description: "Comprehensive job architecture with 16-column schema (715 job profiles)"
+  
+  field_mappings:
+    "JobID": "job_id"                     # Job family identifier (R####)
+    "Job": "job_title"                    # Human-readable job title
+    "JobProfileID": "job_profile_id"      # Full job profile (R####.##)
+    "JobProfile": "job_profile_name"      # Full job profile name
+    "ProfileTitleSuffix": "profile_title_suffix"
+    "ManagementLevel": "management_level"
+    "JobSubFunctionID": "job_subfunction_id"
+    "JobSubFunction": "job_subfunction"
+    "JobFunctionID": "job_function_id"
+    "JobFunction": "job_function"
+    "JobCategoryID": "job_category_id"
+    "JobCategory": "job_category"
+    "Customer Facing": "customer_facing"
+    "is Banker": "is_banker"
+    "Executive Leadership Group": "executive_leadership_group"
+    "Accountability Scope": "accountability_scope"
+  
+  data_types:
+    job_id: "string"                      # Format: R####
+    job_title: "string"
+    job_profile_id: "string"              # Format: R####.##
+    job_profile_name: "string"
+    profile_title_suffix: "string"
+    management_level: "string"
+    job_subfunction_id: "string"
+    job_subfunction: "string"
+    job_function_id: "string"
+    job_function: "string"
+    job_category_id: "string"
+    job_category: "string"
+    customer_facing: "nullable_string"
+    is_banker: "nullable_string"
+    executive_leadership_group: "nullable_string"
+    accountability_scope: "nullable_string"
+  
+  validation:
+    required_fields: ["job_id", "job_profile_id", "job_title"]
+    unique_constraints: ["job_profile_id"]
+
+position_job_mapping:
+  # Position to Job Profile Mapping
+  source_file_pattern: "job_architecture_to_positions_mapping/position_job_mapping.csv"
+  description: "Links position numbers to job profiles (5K mappings)"
+  
+  field_mappings:
+    "Position_Number": "position_number"   # Links to positions data
+    "JobProfileID": "job_profile_id"      # Links to job_architecture
+  
+  data_types:
+    position_number: "integer"
+    job_profile_id: "string"
+  
+  validation:
+    required_fields: ["position_number", "job_profile_id"]
+    unique_constraints: ["position_number"]
+
+# =============================================================================
+# Skills Taxonomy & Intelligence (SSE Core)
+# =============================================================================
+
+skills_comprehensive:
+  # Comprehensive Skills Library (All Versions)
+  source_file_pattern: "skills_library/skills_comprehensive_all_versions.csv"
+  description: "Enhanced skills taxonomy with 38K+ skills across versions"
+  
+  field_mappings:
+    "id": "skill_id"
+    "name": "skill_name"
+    "category_id": "category_id"
+    "category_name": "category_name"
+    "subcategory_id": "subcategory_id" 
+    "subcategory_name": "subcategory_name"
+    "type_id": "type_id"
+    "type_name": "skill_type"
+    "source_version": "source_version"
+    "description": "skill_description"
+    "descriptionSource": "description_source"
+    "infoUrl": "info_url"
+    "isLanguage": "is_language"
+    "isSoftware": "is_software"
+    "tag_wikipediaExtract": "wikipedia_extract"
+    "tag_wikipediaUrl": "wikipedia_url"
+    "tags": "tags_json"
+  
+  data_types:
+    skill_id: "string"
+    skill_name: "string"
+    category_id: "nullable_float"
+    category_name: "nullable_string"
+    subcategory_id: "nullable_float"
+    subcategory_name: "nullable_string"
+    type_id: "string"
+    skill_type: "string"
+    source_version: "float"
+    skill_description: "nullable_string"
+    description_source: "nullable_string"
+    info_url: "string"
+    is_language: "boolean"
+    is_software: "boolean"
+    wikipedia_extract: "nullable_string"
+    wikipedia_url: "nullable_string"
+    tags_json: "string"
+  
+  validation:
+    required_fields: ["skill_id", "skill_name", "skill_type"]
+    unique_constraints: []  # Skills can appear across versions
+
+job_skill_mapping:
+  # Job-Skills Mapping for Intelligence
+  source_file_pattern: "input_data/job_skill_mapping.csv"
+  description: "Associates job profiles with required skills (40K+ mappings)"
+  
+  field_mappings:
+    "JobProfileID": "job_profile_id"
+    "Skill_ID": "skill_id"
+  
+  data_types:
+    job_profile_id: "string"
+    skill_id: "string"
+  
+  validation:
+    required_fields: ["job_profile_id", "skill_id"]
+    unique_constraints: []  # Many-to-many relationship
+
+# =============================================================================
+# Current Workforce Context (SSE Current State)
+# =============================================================================
+
+workforce_context:
+  # Current Workforce Snapshot
+  source_file_pattern: "workforce_context/dummy_workforce_context.csv"
+  description: "Current workforce context with 48-column organisational hierarchy"
+  
+  field_mappings:
+    "Week Ending": "week_ending"
+    "Position Number": "position_number"
+    "Position Name": "position_name"
+    "Employee Number": "employee_number"
+    "Employee Name": "employee_name"
+    "Email Address": "email_address"
+    "FTE (raw value in SAP)": "fte_value"
+    "Position Start Date": "position_start_date"
+    "People Leader Flag": "people_leader_flag"
+    "Salary Group": "salary_group"
+    "Location": "location"
+    "Rg": "region"
+    "Cty": "country"
+    "Global Region": "global_region"
+    "Cost Center": "cost_center"
+    "Org Unit Name": "org_unit_name"
+    "ORG_UNIT_NAME_1": "org_level_1"     # Enterprise
+    "ORG_UNIT_NAME_2": "org_level_2"     # Division
+    "ORG_UNIT_NAME_3": "org_level_3"     # Business Unit
+    "ORG_UNIT_NAME_4": "org_level_4"     # Team
+    "ORG_UNIT_NAME_5": "org_level_5"     # SubTeam
+    "ORG_UNIT_NAME_6": "org_level_6"     # Function
+    "ORG_UNIT_NAME_7": "org_level_7"     # SubFunction
+    "ORG_UNIT_NAME_8": "org_level_8"     # Squad/Pod
+    "ORG_UNIT_NAME_9": "org_level_9"     # Unit
+    "ORG_UNIT_NAME_10": "org_level_10"   # Cell/Node
+    "Gender Key": "gender"
+    "Entry": "entry_level"
+    "Employee Group": "employee_group"
+    "Employee Subgroup": "employee_subgroup"
+    "People Leader Number": "people_leader_number"
+    "People Leader Name": "people_leader_name"
+    "Operational": "operational"
+    "Bucket": "employee_bucket"           # Active, On Leave, New Starter
+  
+  data_types:
+    week_ending: "date_string"
+    position_number: "integer"
+    position_name: "string"
+    employee_number: "integer"
+    employee_name: "string"
+    email_address: "string"
+    fte_value: "float"
+    position_start_date: "date_string"
+    people_leader_flag: "string"
+    salary_group: "string"
+    location: "string"
+    region: "string"
+    country: "string"
+    global_region: "string"
+    cost_center: "string"
+    org_unit_name: "string"
+    org_level_1: "string"
+    org_level_2: "string"
+    org_level_3: "string"
+    org_level_4: "string"
+    org_level_5: "string"
+    org_level_6: "string"
+    org_level_7: "string"
+    org_level_8: "string"
+    org_level_9: "string"
+    org_level_10: "string"
+    gender: "string"
+    entry_level: "string"
+    employee_group: "string"
+    employee_subgroup: "string"
+    people_leader_number: "nullable_float"
+    people_leader_name: "nullable_string"
+    operational: "string"
+    employee_bucket: "string"
+  
+  validation:
+    required_fields: ["position_number", "employee_number", "position_name"]
+    unique_constraints: []  # Multiple records per position (temporal)
+    date_format: "%Y-%m-%d" 

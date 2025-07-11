@@ -1,0 +1,30 @@
+# =============================================================================
+# Error Handling Module - Recovery Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - error_handling.recovery section
+# Controls error recovery strategies, retry mechanisms, and circuit breakers
+
+# Retry mechanism defaults
+max_retry_attempts: 3
+initial_delay_seconds: 1.0
+backoff_factor: 2.0
+
+# Circuit breaker defaults
+circuit_breaker:
+  failure_threshold: 3
+  recovery_timeout_seconds: 10
+  
+# Recovery strategy defaults
+enable_fallback: true
+escalate_after_fallback: false
+log_recovery_attempts: true
+
+# Failure behaviour
+fail_fast: false
+retry_attempts: 3
+retry_delay_seconds: 1
+
+# Recovery settings
+enable_graceful_degradation: true
+fallback_to_defaults: true
+log_all_errors: true 

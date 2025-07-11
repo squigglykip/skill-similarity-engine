@@ -1,0 +1,21 @@
+# =============================================================================
+# Logging Module Configuration - Handlers
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (logging.handlers section)
+# Purpose: Log handler configuration for console and file output
+# Module: src/logging/
+# =============================================================================
+
+# Handler configuration
+handlers:
+  # Console handler defaults
+  console:
+    enabled: true
+    stream_type: "stderr"  # or "stdout"
+    
+  # File handler defaults
+  file:
+    enabled_by_default: false
+    mode: "a"  # append mode
+    encoding: "utf-8" 

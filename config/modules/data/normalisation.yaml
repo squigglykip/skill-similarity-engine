@@ -1,0 +1,41 @@
+# =============================================================================
+# Data Module Configuration - Data Normalisation
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (data.normalisation section)
+# Purpose: Data normalisation and transformation settings
+# Module: src/data/
+# =============================================================================
+
+# Data normalisation configuration
+normalisation:
+  # Min-max scaling settings
+  min_max_scaling:
+    enabled: true
+    min_value: 0
+    max_value: 5
+    target_min: 0.0
+    target_max: 1.0
+  
+  # Boolean normalisation settings
+  boolean_normalisation:
+    enabled: false
+    threshold: 1
+  
+  # TF-IDF weighting settings
+  tfidf_weighting:
+    enabled: true
+    smoothing_factor: 1
+    log_base: "natural"  # "natural" or "log10"
+  
+  # Category weighting settings
+  category_weighting:
+    enabled: true
+    default_weight: 1.0
+    # Category-specific weights (can be overridden)
+    importance_weights:
+      technical: 1.0
+      soft: 0.8
+      domain: 0.9
+      leadership: 1.1
+      other: 1.0 

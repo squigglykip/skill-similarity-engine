@@ -2,6 +2,8 @@
 Data loaders for importing skill taxonomy, job architecture, and employee data.
 
 This module provides functionality for loading data from CSV and Excel files.
+
+Architecture: Configuration-Driven Design Pattern following PTH's enterprise patterns
 """
 
 import os
@@ -12,9 +14,29 @@ import pandas as pd
 
 from ..config.settings import get_config, get_data_path
 from ..config.field_mapping import get_field_mapper, get_raw_field_name
+from ..config.architectural_config_manager import get_config_manager
 from ..models.employees import Employee, EmployeeDatabase
 from ..models.jobs import Job, JobArchitecture, JobLevel
 from ..models.skills import Skill, SkillCategory, SkillTaxonomy, SkillType
+
+
+def _get_chunk_size(operation_type: str = 'default') -> int:
+    """
+    Get chunk size from architectural configuration.
+    
+    Args:
+        operation_type: Type of operation (e.g., 'skill_taxonomy', 'job_architecture')
+        
+    Returns:
+        Configured chunk size
+    """
+    try:
+        config_manager = get_config_manager()
+        chunk_sizes = config_manager.get_nested_value('data', 'loading', 'chunk_sizes', default={})
+        return chunk_sizes.get(operation_type, chunk_sizes.get('default', 10000))
+    except Exception:
+        # Fallback if configuration unavailable
+        return 10000
 
 
 class SkillTaxonomyLoader:
@@ -40,7 +62,7 @@ class SkillTaxonomyLoader:
                     skills_file: str,
                     categories_file: Optional[str] = None,
                     chunked: bool = False,
-                    chunksize: int = 10000,
+                    chunksize: Optional[int] = None,
                     validate: bool = True) -> SkillTaxonomy:
         """
         Load skill taxonomy from CSV files, with optional chunked/streaming loading and validation.
@@ -49,12 +71,15 @@ class SkillTaxonomyLoader:
             skills_file: Path to the skills CSV file
             categories_file: Path to the categories CSV file (optional)
             chunked: Whether to use chunked/streaming loading (default: False)
-            chunksize: Number of rows per chunk if chunked (default: 10000)
+            chunksize: Number of rows per chunk if chunked (default: from configuration)
             validate: Whether to validate rows using the validation engine (default: True)
             
         Returns:
             Loaded skill taxonomy
         """
+        # Get chunk size from configuration if not provided
+        if chunksize is None:
+            chunksize = _get_chunk_size('skill_taxonomy')
         from skill_similarity_engine.data_validation.validators import ValidationEngine
         from skill_similarity_engine.utils.progress import ProgressTracker
         import logging
@@ -263,19 +288,30 @@ class SkillTaxonomyLoader:
     
     def load_from_excel(self,
                        excel_file: str,
-                       skills_sheet: str = "Skills",
-                       categories_sheet: Optional[str] = "Categories") -> SkillTaxonomy:
+                       skills_sheet: Optional[str] = None,
+                       categories_sheet: Optional[str] = None) -> SkillTaxonomy:
         """
         Load skill taxonomy from an Excel file.
         
         Args:
             excel_file: Path to the Excel file
-            skills_sheet: Name of the sheet containing skills data
-            categories_sheet: Name of the sheet containing categories data (optional)
+            skills_sheet: Name of the sheet containing skills data (default: from configuration)
+            categories_sheet: Name of the sheet containing categories data (default: from configuration)
             
         Returns:
             Loaded skill taxonomy
         """
+        # Get sheet names from configuration if not provided
+        if skills_sheet is None or categories_sheet is None:
+            try:
+                config_manager = get_config_manager()
+                excel_config = config_manager.get_nested_value('data', 'export', 'excel_settings', 'default_sheet_names', default={})
+                skills_sheet = skills_sheet or excel_config.get('skills', 'Skills')
+                categories_sheet = categories_sheet or excel_config.get('categories', 'Categories')
+            except Exception:
+                # Fallback to hardcoded defaults
+                skills_sheet = skills_sheet or 'Skills'
+                categories_sheet = categories_sheet or 'Categories'
         # Create empty taxonomy
         taxonomy = SkillTaxonomy()
         
@@ -376,7 +412,7 @@ class JobArchitectureLoader:
                      job_skills_file: str,
                      jobs_file: Optional[str] = None,
                      chunked: bool = False,
-                     chunksize: int = 10000,
+                     chunksize: Optional[int] = None,
                      validate: bool = True) -> JobArchitecture:
         """
         Load job architecture from CSV files, with optional chunked/streaming loading and validation.
@@ -385,12 +421,15 @@ class JobArchitectureLoader:
             job_skills_file: Path to the job skills CSV file (required)
             jobs_file: Path to the jobs CSV file (optional - if None, auto-generate from job_skills_file)
             chunked: Whether to use chunked/streaming loading (default: False)
-            chunksize: Number of rows per chunk if chunked (default: 10000)
+            chunksize: Number of rows per chunk if chunked (default: from configuration)
             validate: Whether to validate rows using the validation engine (default: True)
             
         Returns:
             Loaded job architecture
         """
+        # Get chunk size from configuration if not provided
+        if chunksize is None:
+            chunksize = _get_chunk_size('job_architecture')
         from skill_similarity_engine.data_validation.validators import ValidationEngine
         from skill_similarity_engine.utils.progress import ProgressTracker
         logger = logging.getLogger("skill_similarity_engine.data.loaders")
@@ -757,19 +796,30 @@ class JobArchitectureLoader:
 
     def load_from_excel(self,
                        excel_file: str,
-                       jobs_sheet: str = "Jobs",
-                       job_skills_sheet: Optional[str] = "JobSkills") -> JobArchitecture:
+                       jobs_sheet: Optional[str] = None,
+                       job_skills_sheet: Optional[str] = None) -> JobArchitecture:
         """
         Load job architecture from an Excel file.
         
         Args:
             excel_file: Path to the Excel file
-            jobs_sheet: Name of the sheet containing jobs data
-            job_skills_sheet: Name of the sheet containing job skills data (optional)
+            jobs_sheet: Name of the sheet containing jobs data (default: from configuration)
+            job_skills_sheet: Name of the sheet containing job skills data (default: from configuration)
             
         Returns:
             Loaded job architecture
         """
+        # Get sheet names from configuration if not provided
+        if jobs_sheet is None or job_skills_sheet is None:
+            try:
+                config_manager = get_config_manager()
+                excel_config = config_manager.get_nested_value('data', 'export', 'excel_settings', 'default_sheet_names', default={})
+                jobs_sheet = jobs_sheet or excel_config.get('jobs', 'Jobs')
+                job_skills_sheet = job_skills_sheet or excel_config.get('job_skills', 'JobSkills')
+            except Exception:
+                # Fallback to hardcoded defaults
+                jobs_sheet = jobs_sheet or 'Jobs'
+                job_skills_sheet = job_skills_sheet or 'JobSkills'
         # Create empty job architecture
         architecture = JobArchitecture()
         

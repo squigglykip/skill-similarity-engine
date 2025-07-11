@@ -2,6 +2,7 @@
 import pandas as pd
 from ..models.jobs import JobArchitecture
 from ..models.skills import SkillTaxonomy
+from ..config.architectural_config_manager import get_config_manager
 
 class AsymmetricCoverageCalculator:
     """
@@ -23,6 +24,7 @@ class AsymmetricCoverageCalculator:
             job_architecture: Job architecture containing all jobs and their skills
         """
         self.job_architecture = job_architecture
+        self.config_manager = get_config_manager()
 
     def calculate_job_coverage(self, job1_id: str, job2_id: str) -> float:
         """
@@ -140,19 +142,24 @@ class AsymmetricCoverageCalculator:
         
         return pd.DataFrame(results)
 
-    def find_most_similar_jobs(self, job_id: str, top_n: int = 10, 
+    def find_most_similar_jobs(self, job_id: str, top_n: Optional[int] = None, 
                               similarity_method: str = 'asymmetric') -> List[Dict[str, Any]]:
         """
         Find the most similar jobs to a given job.
         
         Args:
             job_id: Reference job ID
-            top_n: Number of top similar jobs to return
+            top_n: Number of top similar jobs to return (uses config default if None)
             similarity_method: 'asymmetric' (coverage) or 'symmetric' (Jaccard)
             
         Returns:
             List of dictionaries with job_id and similarity score, sorted by similarity
         """
+        # Get top_n from configuration if not provided
+        if top_n is None:
+            asymmetric_config = self.config_manager.get_similarity_asymmetric_config()
+            top_n = asymmetric_config.get('default_top_n_results', 10)
+        
         job_ids = [jid for jid in self.job_architecture.jobs.keys() if jid != job_id]
         similarities = []
         

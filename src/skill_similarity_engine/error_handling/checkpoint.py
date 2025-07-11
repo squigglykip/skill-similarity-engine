@@ -6,20 +6,63 @@ import hashlib
 from typing import Dict, Any, Optional, List, Callable
 from pathlib import Path
 
+# Import architectural configuration manager
+try:
+    from ..config.architectural_config_manager import get_config_manager
+except ImportError:
+    # Fallback if architectural config unavailable
+    get_config_manager = None
+
+
+def _get_checkpoint_config():
+    """Get checkpoint configuration from architectural config manager."""
+    if get_config_manager is None:
+        # Fallback configuration
+        return {
+            'auto_checkpoint_interval': 100,
+            'checkpoint_file_extension': '.checkpoint',
+            'default_checkpoint_dir': 'checkpoints',
+            'create_dir_if_missing': True
+        }
+    
+    try:
+        config_manager = get_config_manager()
+        return config_manager.get_nested_value('error_handling', 'checkpoints', default={
+            'auto_checkpoint_interval': 100,
+            'checkpoint_file_extension': '.checkpoint',
+            'default_checkpoint_dir': 'checkpoints',
+            'create_dir_if_missing': True
+        })
+    except Exception:
+        # Fallback if configuration loading fails
+        return {
+            'auto_checkpoint_interval': 100,
+            'checkpoint_file_extension': '.checkpoint',
+            'default_checkpoint_dir': 'checkpoints',
+            'create_dir_if_missing': True
+        }
+
+
 class Checkpoint:
     """
     Manages checkpoints for resumable processing.
     """
-    def __init__(self, checkpoint_dir: str, operation_name: str, create_dir: bool = True):
-        self.checkpoint_dir = checkpoint_dir
+    def __init__(self, checkpoint_dir: Optional[str] = None, operation_name: str = "operation", create_dir: Optional[bool] = None):
+        # Load configuration
+        config = _get_checkpoint_config()
+        
+        self.checkpoint_dir = checkpoint_dir or config.get('default_checkpoint_dir', 'checkpoints')
         self.operation_name = operation_name
-        if create_dir and not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
+        self.file_extension = config.get('checkpoint_file_extension', '.checkpoint')
+        
+        create_dir_setting = create_dir if create_dir is not None else config.get('create_dir_if_missing', True)
+        if create_dir_setting and not os.path.exists(self.checkpoint_dir):
+            os.makedirs(self.checkpoint_dir)
     def _get_checkpoint_path(self, checkpoint_id: Optional[str] = None) -> str:
         if checkpoint_id:
-            return os.path.join(self.checkpoint_dir, f"{self.operation_name}_{checkpoint_id}.checkpoint")
+            return os.path.join(self.checkpoint_dir, f"{self.operation_name}_{checkpoint_id}{self.file_extension}")
         else:
-            return os.path.join(self.checkpoint_dir, f"{self.operation_name}.checkpoint")
+            return os.path.join(self.checkpoint_dir, f"{self.operation_name}{self.file_extension}")
     def save(self, state: Dict[str, Any], checkpoint_id: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None) -> str:
         checkpoint_path = self._get_checkpoint_path(checkpoint_id)
         full_state = {
@@ -43,7 +86,7 @@ class Checkpoint:
         return os.path.exists(checkpoint_path)
     def list_checkpoints(self) -> List[str]:
         prefix = f"{self.operation_name}_"
-        suffix = ".checkpoint"
+        suffix = self.file_extension
         checkpoint_files = [
             f for f in os.listdir(self.checkpoint_dir)
             if f.startswith(prefix) and f.endswith(suffix)
@@ -64,9 +107,12 @@ class ResumableOperation:
     """
     Base class for operations that can be resumed after interruption.
     """
-    def __init__(self, checkpoint_dir: str, operation_name: str, auto_checkpoint_interval: int = 100):
+    def __init__(self, checkpoint_dir: Optional[str] = None, operation_name: str = "operation", auto_checkpoint_interval: Optional[int] = None):
+        # Load configuration
+        config = _get_checkpoint_config()
+        
         self.checkpoint = Checkpoint(checkpoint_dir, operation_name)
-        self.auto_checkpoint_interval = auto_checkpoint_interval
+        self.auto_checkpoint_interval = auto_checkpoint_interval or config.get('auto_checkpoint_interval', 100)
         self.items_since_checkpoint = 0
         self.state: Dict[str, Any] = {}
     def get_state(self) -> Dict[str, Any]:
@@ -124,10 +170,15 @@ class ResumableBatchOperation:
     Processes batches with checkpointing, allowing resumption after interruption.
     Uses JSONCheckpoint by default.
     """
-    def __init__(self, batches: List, process_fn: Callable, checkpoint_path: str = "batch_checkpoint.json"):
+    def __init__(self, batches: List, process_fn: Callable, checkpoint_path: Optional[str] = None):
+        # Load configuration
+        config = _get_checkpoint_config()
+        naming_config = config.get('naming', {})
+        
         self.batches = batches
         self.process_fn = process_fn
-        self.checkpoint = JSONCheckpoint(checkpoint_path)
+        default_path = naming_config.get('batch_checkpoint_filename', 'batch_checkpoint.json')
+        self.checkpoint = JSONCheckpoint(checkpoint_path or default_path)
         self.start_index = 0
         self._load_checkpoint()
 

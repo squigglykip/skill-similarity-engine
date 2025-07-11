@@ -1,0 +1,24 @@
+# =============================================================================
+# Data Validation Configuration - Validation Behaviour
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (data_validation.validation_behaviour section)
+# Purpose: Validation behaviour and error handling settings
+# Module: src/data_validation/
+# =============================================================================
+
+# Validation behaviour configuration
+validation_behaviour:
+  # Default validation settings
+  strict_mode: false
+  fail_fast: false
+  log_validation_failures: true
+  continue_on_validation_error: true
+  
+  # Field name normalisation
+  normalise_field_names: true
+  case_sensitive_field_matching: false
+  
+  # Error handling
+  max_validation_errors: 1000
+  error_summary_threshold: 50 

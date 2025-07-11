@@ -1,0 +1,20 @@
+# =============================================================================
+# Core - Processing Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - processing section
+# Controls memory management, parallel processing, and I/O settings
+
+# Memory management
+default_chunk_size: 10000
+adaptive_chunking: true
+memory_limit_mb: 12836
+garbage_collection_threshold: 0.8
+
+# Parallel processing
+default_workers: 12  # auto-detected
+worker_strategy: "auto"  # auto, fixed, adaptive
+
+# I/O settings
+default_encoding: "utf-8"
+default_delimiter: ","
+file_buffer_size: 8192 

@@ -3,15 +3,21 @@ Lightcast Skills API Client
 
 A comprehensive Python client for interacting with the Lightcast Skills API v2.14.0
 Supports all documented endpoints with proper authentication and error handling.
+
+NO HARDCODED VALUES - All configuration externalized following PTH philosophy.
 """
 
 import json
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
-import requests
 from dataclasses import dataclass
 from pathlib import Path
+
+import requests
+from requests.exceptions import RequestException, HTTPError
+
+from ..config.architectural_config_manager import get_config_manager
 
 
 @dataclass
@@ -57,40 +63,62 @@ class LightcastSkillsClient:
     Handles authentication, rate limiting, and provides methods for all documented endpoints.
     """
     
-    BASE_URL = "https://emsiservices.com/skills"
-    AUTH_URL = "https://auth.emsicloud.com/connect/token"
-    
-    def __init__(self, client_id: str, client_secret: str, scope: str = "emsi_open"):
+    def __init__(self, client_id: str, client_secret: str, scope: Optional[str] = None):
         """
         Initialize the Lightcast Skills API client
         
         Args:
             client_id: OAuth client ID
             client_secret: OAuth client secret
-            scope: OAuth scope (default: lightcast_open_free)
+            scope: OAuth scope (uses config default if None)
         """
+        # Use architectural configuration manager (NO hardcoded values)
+        self.config_manager = get_config_manager()
+        
+        # API endpoints from configuration
+        self.BASE_URL = self.config_manager.get_nested_value('api', 'lightcast', 'base_url', default="https://emsiservices.com/skills")
+        self.AUTH_URL = self.config_manager.get_nested_value('api', 'lightcast', 'auth_url', default="https://auth.emsicloud.com/connect/token")
+        
         self.client_id = client_id
         self.client_secret = client_secret
-        self.scope = scope
+        self.scope = scope if scope is not None else self.config_manager.get_nested_value('api', 'lightcast', 'default_scope', default="emsi_open")
         self._token: Optional[AuthToken] = None
         self._session = requests.session()
         
-        # Rate limiting (5 requests per second max)
+        # Rate limiting from configuration
+        rate_limit_rps = self.config_manager.get_nested_value('api', 'lightcast', 'rate_limit_requests_per_second', default=5)
+        self._min_request_interval = self.config_manager.get_nested_value('api', 'lightcast', 'min_request_interval_seconds', default=0.2)
         self._last_request_time = 0
-        self._min_request_interval = 0.2  # 200ms between requests
     
     @classmethod
-    def from_credentials_file(cls, filepath: Union[str, Path] = "credentials.json", **kwargs) -> "LightcastSkillsClient":
+    def from_credentials_file(cls, filepath: Optional[Union[str, Path]] = None, **kwargs) -> "LightcastSkillsClient":
         """
-        Create client from credentials file
+        Create client from credentials file (configuration-driven file discovery)
         
         Args:
-            filepath: Path to JSON credentials file
+            filepath: Path to JSON credentials file (uses config search paths if None)
             **kwargs: Additional arguments to pass to constructor
             
         Returns:
             LightcastSkillsClient instance
         """
+        # Use configuration-driven file discovery if no path provided
+        if filepath is None:
+            config_manager = get_config_manager()
+            default_filename = config_manager.get_nested_value('api', 'lightcast', 'default_credentials_file', default="credentials.json")
+            search_paths = config_manager.get_nested_value('api', 'lightcast', 'credentials_search_paths', default=["."])
+            
+            # Search for credentials file in configured paths
+            filepath = None
+            for search_path in search_paths:
+                candidate = Path(search_path) / default_filename if search_path != "." else Path(default_filename)
+                if candidate.exists():
+                    filepath = candidate
+                    break
+            
+            if filepath is None:
+                raise FileNotFoundError(f"Credentials file '{default_filename}' not found in search paths: {search_paths}")
+        
         with open(filepath, 'r') as f:
             credentials = json.load(f)
         

@@ -1,0 +1,60 @@
+# =============================================================================
+# Similarity Module - Algorithms Configuration
+# =============================================================================
+# Extracted from architectural_config.yaml - similarity_module section
+# Controls similarity algorithms, methods, and core parameters
+
+# Core similarity algorithms
+default_method: "cosine"
+available_methods: ["cosine", "asymmetric", "symmetric", "jaccard", "euclidean"]
+fallback_method: "cosine"
+
+# Core algorithm parameters (from similarity section)
+default_threshold: 0.5
+top_n_results: 12
+
+# Matrix computation settings
+symmetric_matrix: false
+enable_checkpointing: true
+checkpoint_interval: 1000
+
+# Performance optimisation
+batch_size: 1000
+use_sparse_matrices: false
+cache_intermediate_results: true
+
+# Asymmetric coverage settings
+asymmetric:
+  default_top_n_results: 10
+  default_similarity_method: "asymmetric"
+  alternative_similarity_method: "symmetric"
+  exclude_self_comparison: true
+
+# Cosine similarity settings
+cosine:
+  # Core constants
+  max_seniority_difference: 6          # Maximum difference between seniority levels (1-7)
+  max_location_similarity: 1.0         # Maximum similarity score for location
+  
+  # TF-IDF vectorization
+  idf_fallback_value: 1.0             # Fallback IDF value for unknown skills
+  tf_smoothing_factor: 1               # TF calculation smoothing
+  vector_normalization: true           # Normalize vectors after TF-IDF
+  
+  # Progress reporting
+  progress_log_interval: 1000          # Log progress every N jobs processed
+  progress_percentage_precision: 1     # Decimal places for progress percentage
+  
+  # Result limits
+  default_top_n_similar_jobs: 5
+  default_top_n_similar_employees: 5
+  default_top_n_suitable_jobs: 5
+  default_top_n_suitable_employees: 5
+  
+  # Matrix computation
+  matrix_chunk_size: 1000              # Chunk size for similarity matrix computation
+  enable_vector_caching: true          # Cache computed vectors
+  
+  # Enhancement weights (delegated to external config)
+  use_enhancement_factors: true        # Enable seniority/role/location enhancements
+  base_skill_weight: 1.0              # Weight for base skill similarity 

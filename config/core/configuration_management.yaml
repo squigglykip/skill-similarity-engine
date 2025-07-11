@@ -1,0 +1,58 @@
+# =============================================================================
+# Core Configuration Management Settings
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (configuration_management section)
+# Purpose: Configuration file discovery, loading, and management settings
+# =============================================================================
+
+# Configuration file discovery and naming
+file_discovery:
+  # Search patterns for configuration files
+  config_search_paths:
+    - "config"
+    - "../config"
+    - "../../config"
+    - "../../../config"
+    - "../../../../config"
+  
+  # Default configuration filenames
+  default_filenames:
+    field_mapping: "field_mapping.yaml"
+    data_field_mappings: "data_field_mappings.yaml"
+    operational_config: "operational_config.yaml"
+    data_sources: "data_sources.yaml"
+    data_sources_legacy: "data_sources_legacy.yaml"
+    hris_config: "hris_config.yaml"
+    similarity_enhancement_factors: "similarity_enhancement_factors.yaml"
+    main_config: "config.yaml"
+  
+  # File extensions to search for
+  supported_extensions: [".yaml", ".yml", ".json"]
+
+# Logging configuration for config modules
+logging:
+  default_level: "INFO"
+  log_warnings: true
+  log_fallback_usage: true
+  debug_config_loading: false
+
+# Fallback and error handling
+fallback_handling:
+  enable_fallback: true
+  case_sensitive: false
+  use_defaults_on_missing: true
+  log_missing_configs: true
+
+# Default data source paths (legacy compatibility)
+legacy_data_sources:
+  jobs_file: "data/jobs.csv"
+  skills_file: "data/skills.csv"
+  employees_file: "data/employees.csv"
+  output_dir: "data/transformed"
+
+# Default performance settings for config loading
+performance:
+  chunk_size_default: 10000
+  cache_configs: true
+  lazy_loading: true 

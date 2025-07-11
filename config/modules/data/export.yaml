@@ -1,0 +1,27 @@
+# =============================================================================
+# Data Module Configuration - Data Export
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (data.export section)
+# Purpose: Data export settings and file formats
+# Module: src/data/
+# =============================================================================
+
+# Data export settings
+export:
+  default_format: "csv"
+  supported_formats: ["csv", "excel", "parquet", "json"]
+  excel_settings:
+    default_sheet_names:
+      skills: "Skills"
+      categories: "Categories"
+      jobs: "Jobs"
+      job_skills: "JobSkills"
+      employees: "Employees"
+      employee_skills: "EmployeeSkills"
+  
+  # File naming conventions
+  naming:
+    timestamp_format: "%Y%m%d_%H%M%S"
+    include_timestamp: true
+    backup_extension: ".backup" 

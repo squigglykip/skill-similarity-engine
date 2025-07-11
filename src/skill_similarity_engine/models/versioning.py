@@ -5,8 +5,8 @@ This module handles the versioning strategy for precomputed similarity matrices,
 including quarterly directory management, conflict resolution for multiple runs
 within the same quarter, and maintaining symlinks to current versions.
 
-The versioning scheme follows: models/YYYY-QN/ (e.g., models/2024-Q4/)
-with support for timestamped variants within quarters for testing/comparison.
+The versioning scheme is now configuration-driven following PTH's architecture.
+NO hardcoded values - everything externalized to architectural configuration.
 """
 
 import logging
@@ -14,23 +14,47 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Optional
 
+from ..config.architectural_config_manager import get_config_manager
+
 logger = logging.getLogger(__name__)
 
 
 class ModelVersionManager:
-    """Manages model versioning and output directory structure."""
+    """Manages model versioning and output directory structure using configuration-driven approach."""
     
-    def __init__(self, base_models_dir: str = "models"):
+    def __init__(self, base_models_dir: Optional[str] = None):
         """
-        Initialize version manager.
+        Initialize version manager with configuration-driven defaults.
         
         Args:
-            base_models_dir: Base directory for all model versions
+            base_models_dir: Optional override for base directory (uses config if None)
         """
-        self.base_models_dir = Path(base_models_dir)
+        self.config_manager = get_config_manager()
+        
+        # Get directories configuration - NO hardcoded "models" directory
+        directories_config = self.config_manager.get_models_directories_config()
+        self.base_models_dir = Path(base_models_dir or directories_config.get('base_models_dir', 'models'))
+        
+        # Get output types and file patterns from configuration
+        models_config = self.config_manager.get_models_config()
+        self.output_types = models_config.get('output_types', {})
+        self.file_patterns = models_config.get('file_patterns', {})
+        
+        # Get versioning patterns from configuration
+        versioning_config = models_config.get('versioning_patterns', {})
+        self.quarterly_pattern = versioning_config.get('quarterly_pattern', '%Y-Q%q')
+        self.timestamp_pattern = versioning_config.get('timestamp_pattern', '%Y%m%d_%H%M%S')
+        self.date_stamp_pattern = versioning_config.get('date_stamp_pattern', '%Y%m%d')
+        
+        # Get validation settings from configuration
+        validation_config = self.config_manager.get_models_validation_config()
+        self.min_year = validation_config.get('min_year', 1900)
+        self.max_year = validation_config.get('max_year', 2100)
+        self.valid_quarters = validation_config.get('valid_quarters', [1, 2, 3, 4])
+        self.win_error_symlink = validation_config.get('win_error_symlink', 1314)
     
     def get_current_quarter(self) -> str:
-        """Get current quarter in YYYY-QN format."""
+        """Get current quarter using configuration format."""
         now = datetime.now()
         quarter = (now.month - 1) // 3 + 1
         return f"{now.year}-Q{quarter}"
@@ -38,18 +62,25 @@ class ModelVersionManager:
     def setup_output_directory(self, 
                               interactive: bool = True,
                               custom_path: Optional[str] = None,
-                              output_type: str = "similarity_matrix") -> Path:
+                              output_type: Optional[str] = None) -> Path:
         """
         Set up versioned output directory with conflict resolution.
         
         Args:
             interactive: Whether to prompt user for conflict resolution
             custom_path: Optional custom path (overrides quarterly logic)
-            output_type: Type of output ('similarity_matrix', 'business_context', etc.)
+            output_type: Type of output (from configuration, defaults to similarity_matrix)
             
         Returns:
             Path to the output directory to use
         """
+        # Use configured default output type if none specified
+        if output_type is None:
+            output_type = self.output_types.get('similarity_matrix', 'similarity_matrix')
+        
+        # Ensure output_type is now guaranteed to be a string
+        assert output_type is not None
+        
         if custom_path:
             quarter_dir = Path(custom_path)
             logger.info(f"Using custom output directory: {quarter_dir}")
@@ -110,7 +141,7 @@ class ModelVersionManager:
                 return quarter_dir
                 
             elif choice == '2':
-                datestamp = datetime.now().strftime("%Y%m%d")
+                datestamp = datetime.now().strftime(self.date_stamp_pattern)
                 timestamped_dir = quarter_dir.parent / f"{quarter_dir.name}_{datestamp}"
                 print(f"Using date-stamped location: {timestamped_dir}")
                 return timestamped_dir
@@ -137,21 +168,25 @@ class ModelVersionManager:
         """
         existing_outputs = []
         
-        if output_type == "similarity_matrix":
-            # Check for similarity matrix files
+        # Get file patterns from configuration
+        similarity_matrix_type = self.output_types.get('similarity_matrix', 'similarity_matrix')
+        business_context_type = self.output_types.get('business_context', 'business_context')
+        
+        if output_type == similarity_matrix_type:
+            # Check for similarity matrix files using configured patterns
             similarity_patterns = [
-                "job_similarity_matrix.parquet",
-                "job_similarity_matrix.csv",
-                "precompute_*"  # Timestamped precompute directories
+                self.file_patterns.get('job_similarity_matrix_parquet', 'job_similarity_matrix.parquet'),
+                self.file_patterns.get('job_similarity_matrix_csv', 'job_similarity_matrix.csv'),
+                self.file_patterns.get('precompute_pattern', 'precompute_*')
             ]
             
             for pattern in similarity_patterns:
                 matches = list(quarter_dir.glob(pattern))
                 existing_outputs.extend(matches)
                 
-        elif output_type == "business_context":
-            # Check for business context database
-            business_context_file = quarter_dir / "business_context.sqlite"
+        elif output_type == business_context_type:
+            # Check for business context database using configured pattern
+            business_context_file = quarter_dir / self.file_patterns.get('business_context_db', 'business_context.sqlite')
             if business_context_file.exists():
                 existing_outputs.append(business_context_file)
                 
@@ -159,20 +194,23 @@ class ModelVersionManager:
     
     def _create_directory_structure(self, output_dir: Path) -> None:
         """
-        Create the standard directory structure for model outputs.
+        Create the standard directory structure for model outputs using configuration.
         
         Args:
             output_dir: Base output directory
         """
-        directories = [
-            output_dir / "similarity_matrices",
-            output_dir / "metadata", 
-            output_dir / "validation",
-            output_dir / "exports" / "powerbi_ready",
-            output_dir / "exports" / "department_analyses"
+        # Get directory structure from configuration - NO hardcoded directory names
+        directories_config = self.config_manager.get_models_directories_config()
+        
+        subdirectories = [
+            output_dir / directories_config.get('similarity_matrices_subdir', 'similarity_matrices'),
+            output_dir / directories_config.get('metadata_subdir', 'metadata'),
+            output_dir / directories_config.get('validation_subdir', 'validation'),
+            output_dir / directories_config.get('powerbi_ready_subdir', 'exports/powerbi_ready'),
+            output_dir / directories_config.get('department_analyses_subdir', 'exports/department_analyses')
         ]
         
-        for directory in directories:
+        for directory in subdirectories:
             directory.mkdir(parents=True, exist_ok=True)
             
         logger.debug(f"Created directory structure in {output_dir}")
@@ -184,7 +222,10 @@ class ModelVersionManager:
         Args:
             quarter_dir: Directory to link to
         """
-        current_symlink = self.base_models_dir / "current"
+        # Get symlink name from configuration - NO hardcoded "current"
+        directories_config = self.config_manager.get_models_directories_config()
+        symlink_name = directories_config.get('current_symlink_name', 'current')
+        current_symlink = self.base_models_dir / symlink_name
         
         # Remove existing symlink
         if current_symlink.exists():
@@ -193,18 +234,18 @@ class ModelVersionManager:
         try:
             # Create new symlink
             current_symlink.symlink_to(quarter_dir.name, target_is_directory=True)
-            print(f"Updated 'current' symlink to point to {quarter_dir.name}")
+            print(f"Updated '{symlink_name}' symlink to point to {quarter_dir.name}")
             logger.info(f"Updated current symlink: {current_symlink} -> {quarter_dir.name}")
             
         except OSError as e:
             # Symlinks require admin privileges on Windows - this is expected behavior
-            if "WinError 1314" in str(e):
+            if str(self.win_error_symlink) in str(e):
                 # Windows privilege error - common and expected
                 logger.debug(f"Symlink creation skipped on Windows (requires admin privileges): {e}")
-                logger.info(f"Note: models/current symlink not created (Windows requires admin privileges)")
+                logger.info(f"Note: models/{symlink_name} symlink not created (Windows requires admin privileges)")
             else:
                 # Other OS errors
-                print(f"Note: Could not create symlink (models/current -> {quarter_dir.name})")
+                print(f"Note: Could not create symlink (models/{symlink_name} -> {quarter_dir.name})")
                 logger.warning(f"Symlink creation failed: {e}")
     
     def list_versions(self) -> list[Path]:
@@ -217,9 +258,13 @@ class ModelVersionManager:
         if not self.base_models_dir.exists():
             return []
         
+        # Get symlink name from configuration
+        directories_config = self.config_manager.get_models_directories_config()
+        symlink_name = directories_config.get('current_symlink_name', 'current')
+        
         versions = []
         for item in self.base_models_dir.iterdir():
-            if item.is_dir() and item.name != "current":
+            if item.is_dir() and item.name != symlink_name:
                 versions.append(item)
         
         return sorted(versions, key=lambda x: x.name)
@@ -231,7 +276,10 @@ class ModelVersionManager:
         Returns:
             Path to current version or None if not found
         """
-        current_symlink = self.base_models_dir / "current"
+        # Get symlink name from configuration
+        directories_config = self.config_manager.get_models_directories_config()
+        symlink_name = directories_config.get('current_symlink_name', 'current')
+        current_symlink = self.base_models_dir / symlink_name
         
         if current_symlink.exists():
             if current_symlink.is_symlink():
@@ -270,24 +318,24 @@ class ModelVersionManager:
                 return False
                 
             quarter = int(quarter_part[1:])
-            return 1900 <= year <= 2100 and 1 <= quarter <= 4
+            return self.min_year <= year <= self.max_year and quarter in self.valid_quarters
             
         except (ValueError, IndexError):
             return False
 
 
-def setup_model_output_directory(base_dir: str = "models", 
+def setup_model_output_directory(base_dir: Optional[str] = None, 
                                 interactive: bool = True,
                                 custom_path: Optional[str] = None,
-                                output_type: str = "similarity_matrix") -> Path:
+                                output_type: Optional[str] = None) -> Path:
     """
-    Convenience function to set up a versioned model output directory.
+    Convenience function to set up a versioned model output directory using configuration.
     
     Args:
-        base_dir: Base directory for model versions
+        base_dir: Base directory for model versions (uses config default if None)
         interactive: Whether to prompt for conflict resolution
         custom_path: Optional custom path
-        output_type: Type of output ('similarity_matrix', 'business_context', etc.)
+        output_type: Type of output (uses config default if None)
         
     Returns:
         Path to the configured output directory

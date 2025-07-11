@@ -3,6 +3,8 @@ Gap analysis for identifying skill gaps between employees and target roles.
 
 This module provides functionality for identifying skill gaps, calculating
 development effort, and generating reskilling pathways.
+
+NO HARDCODED VALUES - All configuration externalized following PTH philosophy.
 """
 
 from dataclasses import dataclass, field
@@ -12,7 +14,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from ..config.settings import get_config
+from ..config.architectural_config_manager import get_config_manager
 from ..models.employees import Employee, EmployeeDatabase
 from ..models.jobs import Job, JobArchitecture
 from ..models.skills import Skill, SkillTaxonomy
@@ -190,12 +192,16 @@ class SkillGapAnalyzer:
         self.job_architecture = job_architecture
         self.employee_database = employee_database
         
-        config = get_config().gap_analysis
+        # Use architectural configuration manager (NO hardcoded values)
+        config_manager = get_config_manager()
         
         # Use configuration values if not provided
-        self.min_proficiency_ratio = min_proficiency_ratio if min_proficiency_ratio is not None else config.min_proficiency_ratio
-        self.category_weights = category_weights if category_weights is not None else config.category_weights
-        self.skill_difficulty_factor = config.skill_difficulty_factor
+        self.min_proficiency_ratio = min_proficiency_ratio if min_proficiency_ratio is not None else config_manager.get_nested_value('gap_analysis', 'min_proficiency_ratio', default=0.8)
+        self.category_weights = category_weights if category_weights is not None else config_manager.get_nested_value('gap_analysis', 'category_weights', default={})
+        self.skill_difficulty_factor = config_manager.get_nested_value('gap_analysis', 'skill_difficulty_factor', default=1.0)
+        
+        # Store configuration for use in calculations (externalized values)
+        self.config_manager = config_manager
     
     def analyze_employee_job_gap(
         self,
@@ -421,6 +427,18 @@ class SkillGapAnalyzer:
         
         return effort
     
+    def _get_priority_label(self, development_effort: float) -> str:
+        """Get priority label based on development effort (externalized configuration)."""
+        high_threshold = self.config_manager.get_nested_value('gap_analysis', 'high_priority_threshold', default=3.0)
+        medium_threshold = self.config_manager.get_nested_value('gap_analysis', 'medium_priority_threshold', default=1.0)
+        
+        if development_effort > high_threshold:
+            return self.config_manager.get_nested_value('workforce_analysis', 'priority_labels', 'high', default="High")
+        elif development_effort > medium_threshold:
+            return self.config_manager.get_nested_value('workforce_analysis', 'priority_labels', 'medium', default="Medium")
+        else:
+            return self.config_manager.get_nested_value('workforce_analysis', 'priority_labels', 'low', default="Low")
+    
     def get_reskilling_difficulty_label(self, difficulty_score: float) -> str:
         """
         Get a human-readable label for a reskilling difficulty score.
@@ -530,7 +548,7 @@ class SkillGapAnalyzer:
                 "current_proficiency": gap.employee_proficiency,
                 "target_proficiency": gap.job_proficiency,
                 "development_effort": gap.development_effort,
-                "priority": "High" if gap.development_effort > 3 else "Medium" if gap.development_effort > 1 else "Low"
+                "priority": self._get_priority_label(gap.development_effort)
             })
         
         # Convert matching skills to maintenance tasks

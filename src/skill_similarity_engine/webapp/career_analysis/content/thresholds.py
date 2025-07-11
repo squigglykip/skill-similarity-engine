@@ -75,6 +75,51 @@ class ContentThresholds:
                 return threshold.descriptor
         return "Unknown"
 
+    @staticmethod
+    def get_timeline_estimate(similarity_score: float) -> str:
+        """Get timeline estimate based on similarity score."""
+        if similarity_score >= 0.8:
+            return "8-12"
+        elif similarity_score >= 0.6:
+            return "12-16"
+        else:
+            return "16-24"
+    
+    @staticmethod
+    def get_opportunity_descriptor(similarity_score: float) -> str:
+        """Get opportunity descriptor based on similarity score."""
+        if similarity_score >= 0.8:
+            return "excellent"
+        elif similarity_score >= 0.6:
+            return "good"
+        else:
+            return "moderate"
+    
+    @staticmethod
+    def get_skills_overlap_estimate(similarity_score: float) -> int:
+        """Get skills overlap estimate based on similarity score."""
+        return int(similarity_score * 85)  # Convert to percentage with some buffer
+    
+    @staticmethod
+    def get_development_intensity(similarity_score: float) -> str:
+        """Get development intensity based on similarity score."""
+        if similarity_score >= 0.8:
+            return "Light"
+        elif similarity_score >= 0.6:
+            return "Moderate"
+        else:
+            return "Intensive"
+    
+    @staticmethod
+    def get_support_level(similarity_score: float) -> str:
+        """Get support level based on similarity score."""
+        if similarity_score >= 0.8:
+            return "minimal"
+        elif similarity_score >= 0.6:
+            return "moderate"
+        else:
+            return "comprehensive"
+
 class ContentPersonalizer:
     """Personalizes content based on calculated data and thresholds."""
     

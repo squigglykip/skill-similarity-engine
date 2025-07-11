@@ -1,7 +1,7 @@
 ﻿from enum import Enum
-from skill_similarity_engine.logging.config import setup_logging
+import logging
 
-logger = setup_logging()
+logger = logging.getLogger(__name__)
 
 class ErrorSeverity(Enum):
     INFO = "info"

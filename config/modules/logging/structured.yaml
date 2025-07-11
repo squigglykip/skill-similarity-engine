@@ -1,0 +1,18 @@
+# =============================================================================
+# Logging Module Configuration - Structured Logging
+# =============================================================================
+# 
+# Extracted from: config/architectural_config.yaml (logging.structured section)
+# Purpose: Structured logging configuration and field limits
+# Module: src/logging/
+# =============================================================================
+
+# Structured logging configuration
+structured:
+  # Log level validation
+  valid_levels: ["debug", "info", "warning", "error", "critical"]
+  default_structured_level: "info"
+  
+  # Context field limits
+  max_context_fields: 20
+  max_field_length: 1000 
