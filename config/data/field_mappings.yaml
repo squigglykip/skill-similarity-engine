@@ -193,7 +193,7 @@ skills_comprehensive:
 
 job_skill_mapping:
   # Job-Skills Mapping for Intelligence
-  source_file_pattern: "input_data/job_skill_mapping.csv"
+  source_file_pattern: "${files.job_skill_mapping}"
   description: "Associates job profiles with required skills (40K+ mappings)"
   
   field_mappings:

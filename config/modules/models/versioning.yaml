@@ -1,8 +1,8 @@
 # =============================================================================
 # Models Module - Versioning Configuration
 # =============================================================================
-# Extracted from architectural_config.yaml - models.directories, versioning_patterns, validation
-# Controls quarterly model versioning and directory management
+# Enhanced versioning strategy: Quarterly with unified daily folders
+# NEW APPROACH: /models/2025-Q3/2025-07-10/ -> all precomputes from that day
 
 # Core model directory settings
 directories:
@@ -28,19 +28,73 @@ file_patterns:
   job_similarity_matrix_parquet: "job_similarity_matrix.parquet"
   job_similarity_matrix_csv: "job_similarity_matrix.csv"
   business_context_db: "business_context.sqlite"
+  career_pathways_parquet: "career_pathways.parquet"
+  career_pathways_csv: "career_pathways.csv"
+  employee_movements_parquet: "employee_movements.parquet"
+  movement_summary_parquet: "movement_summary.parquet"
+  metadata_json: "metadata.json"
+  
+  # Legacy patterns (for migration)
   precompute_pattern: "precompute_*"
   movement_analysis_pattern: "movement_analysis_*"
 
-# Versioning patterns
+# Enhanced versioning patterns
 versioning_patterns:
   quarterly_pattern: "%Y-Q%q"  # e.g., 2025-Q3
+  daily_pattern: "%Y-%m-%d"    # e.g., 2025-07-10
   timestamp_pattern: "%Y%m%d_%H%M%S"
   date_stamp_pattern: "%Y%m%d"
   run_directory_format: "run_{timestamp}"
+
+# Daily folder strategy configuration
+daily_folder_strategy:
+  enabled: true
+  use_quarterly_containers: true    # Keep quarterly folders as containers
+  consolidate_precomputes: true     # All precomputes from same day in one folder
+  overwrite_within_day: true        # Allow overwriting within same day
+  preserve_business_context_quarterly: true  # business_context.sqlite at quarterly level
+  
+  # Directory structure: models/2025-Q3/2025-07-10/
+  daily_folder_structure:
+    create_subdirs: false  # Put files directly in daily folder
+    preserve_legacy_structure: false  # Don't create precompute_* subdirs
+    
+  # Files that go in daily folders
+  daily_folder_files:
+    - "job_similarity_matrix.parquet"
+    - "job_similarity_matrix.csv" 
+    - "career_pathways.parquet"
+    - "career_pathways.csv"
+    - "employee_movements.parquet"
+    - "movement_summary.parquet"
+    - "metadata.json"
+    - "progress.json"
+    
+  # Files that stay at quarterly level
+  quarterly_level_files:
+    - "business_context.sqlite"
+
+# Migration and compatibility settings
+migration:
+  support_legacy_precompute_dirs: true  # Still read from precompute_* dirs
+  warn_on_legacy_access: true
+  migrate_legacy_on_access: false  # Don't auto-migrate, just warn
+  
+# Validation for daily folders
+daily_validation:
+  require_all_precomputes_same_day: true  # All precomputes must be from same daily folder
+  validate_business_context_currency: true  # Check if business_context.sqlite is current
+  warn_mixed_sources: true  # Warn if using precomputes from different days
 
 # Year and quarter validation
 validation:
   min_year: 1900
   max_year: 2100
   valid_quarters: [1, 2, 3, 4]
-  win_error_symlink: 1314  # Windows privilege error for symlinks 
+  win_error_symlink: 1314  # Windows privilege error for symlinks
+  
+  # Enhanced validation for daily folders
+  daily_folder_validation:
+    max_days_old: 90  # Warn if daily folder is > 90 days old
+    require_iso_date_format: true  # Enforce YYYY-MM-DD format
+    validate_date_logic: true  # Ensure date is valid (not future, not too old) 

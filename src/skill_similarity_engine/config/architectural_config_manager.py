@@ -359,13 +359,114 @@ class ConfigurationAdapter:
             raise ConfigurationError(f"File configuration not found: {section}.{file_key}")
     
     def get_value(self, key: str, section: str, default: Any = None) -> Any:
-        """Get configuration value with optional default."""
+        """Get configuration value with optional default and variable substitution."""
         try:
-            return self._config[section][key]
+            value = self._config[section][key]
+            # Apply variable substitution if value is a string
+            if isinstance(value, str):
+                return self._substitute_variables(value)
+            return value
         except KeyError:
             if default is not None:
                 return default
             raise ConfigurationError(f"Configuration value not found: {section}.{key}")
+    
+    def _substitute_variables(self, value: str) -> str:
+        """
+        Substitute configuration variables in the format ${section.key}.
+        
+        Args:
+            value: String that may contain variable references
+            
+        Returns:
+            String with variables substituted from configuration
+        """
+        import re
+        
+        # Pattern to match ${section.key} or ${section.subsection.key}
+        pattern = r'\$\{([^}]+)\}'
+        
+        def replace_var(match):
+            var_path = match.group(1)
+            path_parts = var_path.split('.')
+            
+            try:
+                # Navigate through configuration using path parts
+                current = self._config
+                for part in path_parts:
+                    current = current[part]
+                
+                # If the resolved value is also a string with variables, substitute recursively
+                if isinstance(current, str) and '${' in current:
+                    return self._substitute_variables(current)
+                
+                return str(current)
+            except (KeyError, TypeError):
+                logger.warning(f"Configuration variable not found: {var_path}")
+                return match.group(0)  # Return original if not found
+        
+        return re.sub(pattern, replace_var, value)
+    
+    def get_section(self, section: str) -> Dict[str, Any]:
+        """Get entire configuration section with variable substitution."""
+        try:
+            section_data = self._config[section]
+            if isinstance(section_data, dict):
+                return self._substitute_dict_variables(section_data)
+            return section_data
+        except KeyError:
+            raise ConfigurationError(f"Configuration section not found: {section}")
+    
+    def get_nested_value(self, *keys, default: Any = None) -> Any:
+        """Get nested configuration value using dot notation with variable substitution."""
+        try:
+            current = self._config
+            for key in keys:
+                current = current[key]
+            
+            # Apply variable substitution if value is a string
+            if isinstance(current, str):
+                return self._substitute_variables(current)
+            elif isinstance(current, dict):
+                # Recursively substitute variables in dictionary values
+                return self._substitute_dict_variables(current)
+            elif isinstance(current, list):
+                # Recursively substitute variables in list items
+                return self._substitute_list_variables(current)
+            
+            return current
+        except (KeyError, TypeError):
+            if default is not None:
+                return default
+            raise ConfigurationError(f"Configuration path not found: {'.'.join(keys)}")
+    
+    def _substitute_dict_variables(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Recursively substitute variables in dictionary values."""
+        result = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                result[key] = self._substitute_variables(value)
+            elif isinstance(value, dict):
+                result[key] = self._substitute_dict_variables(value)
+            elif isinstance(value, list):
+                result[key] = self._substitute_list_variables(value)
+            else:
+                result[key] = value
+        return result
+    
+    def _substitute_list_variables(self, data: List[Any]) -> List[Any]:
+        """Recursively substitute variables in list items."""
+        result = []
+        for item in data:
+            if isinstance(item, str):
+                result.append(self._substitute_variables(item))
+            elif isinstance(item, dict):
+                result.append(self._substitute_dict_variables(item))
+            elif isinstance(item, list):
+                result.append(self._substitute_list_variables(item))
+            else:
+                result.append(item)
+        return result
     
     def get_section(self, section: str) -> Dict[str, Any]:
         """Get entire configuration section."""
@@ -373,18 +474,6 @@ class ConfigurationAdapter:
             return self._config[section]
         except KeyError:
             raise ConfigurationError(f"Configuration section not found: {section}")
-    
-    def get_nested_value(self, *keys, default: Any = None) -> Any:
-        """Get nested configuration value with dot notation."""
-        try:
-            result = self._config
-            for key in keys:
-                result = result[key]
-            return result
-        except (KeyError, TypeError):
-            if default is not None:
-                return default
-            raise ConfigurationError(f"Nested configuration value not found: {'.'.join(keys)}")
 
 
 class ArchitecturalConfigManager:
@@ -784,26 +873,38 @@ class ArchitecturalConfigManager:
     
     def get_versioning_config(self) -> Dict[str, Any]:
         """Get versioning configuration - replaces hardcoded versioning parameters."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_section('versioning')
     
     def get_models_config(self) -> Dict[str, Any]:
         """Get models configuration section - replaces hardcoded model parameters."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_section('models')
     
     def get_models_directories_config(self) -> Dict[str, Any]:
         """Get models directories configuration - replaces hardcoded directory names."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_nested_value('models', 'directories', default={})
     
     def get_models_export_settings(self) -> Dict[str, Any]:
         """Get models export settings configuration - replaces hardcoded export parameters."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_nested_value('models', 'export_settings', default={})
     
     def get_skill_types_config(self) -> Dict[str, Any]:
         """Get skill types configuration - replaces hardcoded skill type mappings."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_nested_value('models', 'skill_types', default={})
     
     def get_models_date_formats(self) -> Dict[str, Any]:
         """Get models date formats configuration - replaces hardcoded date format strings."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_nested_value('models', 'date_formats', default={})
 
     def get_models_boolean_mappings(self) -> Dict[str, Any]:
@@ -833,6 +934,26 @@ class ArchitecturalConfigManager:
     def get_models_employee_config(self) -> Dict[str, Any]:
         """Get models employee configuration - replaces hardcoded employee model parameters."""
         return self._adapter.get_nested_value('models', 'employee_model', default={})
+
+    def get_models_position_history_config(self) -> Dict[str, Any]:
+        """Get models position history configuration - replaces hardcoded position history parameters."""
+        return self._adapter.get_nested_value('models', 'position_history', default={
+            'aggregation_method': 'monthly',
+            'include_current_positions': True,
+            'organizational_context_fields': [
+                'division', 'business_unit', 'team', 'location', 
+                'region', 'employee_group', 'salary_group'
+            ]
+        })
+
+    def get_models_movement_fact_config(self) -> Dict[str, Any]:
+        """Get movement fact table builder configuration."""
+        return self._adapter.get_nested_value('models', 'movement_fact', default={})
+    
+    def get_models_position_enrichment_config(self) -> Dict[str, Any]:
+        """Get position enrichment pipeline configuration."""
+        # Position enrichment config is in models module (modular config)
+        return self._adapter.get_nested_value('models', 'position_enrichment', default={})
 
     # Similarity module configurations
 
@@ -878,6 +999,8 @@ class ArchitecturalConfigManager:
 
     def get_nested_value(self, *keys, default: Any = None) -> Any:
         """Get nested configuration value - provides flexible configuration access."""
+        if self._adapter is None:
+            raise ConfigurationError("Configuration adapter not initialized")
         return self._adapter.get_nested_value(*keys, default=default)
 
     # Utility Methods

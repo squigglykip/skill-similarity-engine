@@ -1,0 +1,59 @@
+# Position Enrichment Pipeline Configuration
+# PTH integration for enriching colleague positions with actual Position Numbers
+
+# Data source paths
+data_sources:
+  colleague_positions_dir: "data/colleague_positions_history"
+  positions_history_dir: "data/positions_history"
+  colleague_positions_pattern: "d_colleague_positions_fy*.csv"
+  positions_pattern: "d_positions_fy*.csv"
+
+# Enrichment strategy
+enrichment_strategy:
+  # Primary enrichment: colleague_positions + positions via PosIDLookupKey (after field mapping)
+  merge_key: "pos_id_lookup_key"
+  position_identifier_priority: ["position_number", "pos_id_lookup_key"]
+  preserve_temporal_data: true
+  include_organizational_context: true
+
+# Field mappings for enrichment
+colleague_positions_fields:
+  week_ending: "Week Ending"
+  employee_number: "Employee Number"
+  operational: "Operational"
+  position_start_date: "Position Start Date"
+  pos_id_lookup_key: "PosIDLookupKey"
+  position_number: "Position Number"  # May be null, enriched from positions
+
+positions_fields:
+  week_ending: "Week Ending"
+  position_number: "Position Number"  # The actual position identifier we need
+  pos_id_lookup_key: "PosIDLookupKey"  # Linking key
+  organisational_unit: "Organisational Unit"
+  cost_centre_number: "Cost Centre Number"
+  position_title: "Position Title"
+  people_leader_number: "People Leader"
+  operational: "Operational"
+  org_unit_lookup_key: "OrgUnitIDLookupKey"
+
+# Data quality settings
+data_quality:
+  require_successful_enrichment_rate: 0.8  # 80% of colleague positions must be enriched
+  validate_position_number_presence: true
+  log_enrichment_failures: true
+  handle_missing_positions: "warn"  # warn, error, ignore
+
+# Performance settings
+performance:
+  chunk_size: 50000
+  enable_progress_reporting: true
+  progress_interval: 10000
+  memory_efficient_merge: true
+  cache_position_mappings: true
+
+# Temporal consistency settings
+temporal_consistency:
+  validate_date_alignment: true
+  allow_date_tolerance_days: 7  # Allow 7-day tolerance for date matching
+  prefer_exact_date_matches: true
+  handle_multiple_matches: "most_recent"  # most_recent, closest_date, error 

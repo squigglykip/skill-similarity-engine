@@ -28,7 +28,7 @@ analysis_output: "output/analysis"
 # Core data files
 files:
   skills_comprehensive: "skills_library/skills_comprehensive_all_versions.csv"
-  job_skill_mapping: "input_data/job_skill_mapping.csv"
+  job_skill_mapping: "job_skill_mapping/job_skill_mapping.csv"
   job_architecture: "job_architecture/dummy_job_architecture.csv"
   workforce_context: "workforce_context/dummy_workforce_context.csv"
   

@@ -19,6 +19,7 @@ from typing import Dict, Any, Optional
 import pandas as pd
 
 from .movement_tracker import MovementTracker
+from .movement_fact_builder import MovementFactBuilder
 from .versioning import ModelVersionManager
 from ..utils.performance import get_memory_usage, MemoryUsage
 from ..config.workforce_config_loader import get_workforce_config_loader
@@ -71,7 +72,7 @@ class MovementPrecomputer:
     def generate_movement_analysis(self, 
                                  colleague_positions_dir: str,
                                  positions_dir: str,
-                                 output_type: str = None) -> Dict[str, Any]:
+                                 output_type: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate complete movement analysis using SSE precompute patterns.
         
@@ -112,17 +113,40 @@ class MovementPrecomputer:
             movement_summary = self.movement_tracker.get_movement_summary()
             logger.info(f"✅ Detected {movement_summary['total_movements']:,} movements")
             
+            # Step 2.5: Build fact table for rich movement aggregation
+            logger.info("📊 Step 2.5: Building movement fact table...")
+            
+            # Create movement fact builder with config manager
+            fact_table_builder = MovementFactBuilder(self.config_manager)
+            
+            # Get movement data as DataFrame for fact table building
+            movement_data = []
+            for event in self.movement_tracker.movement_events:
+                movement_data.append(event.to_dict())
+            
+            if movement_data:
+                movements_df = pd.DataFrame(movement_data)
+                fact_table_df = fact_table_builder.build_fact_table_from_movements(movements_df)
+                
+                fact_table_stats = fact_table_builder.get_fact_table_summary()
+                logger.info(f"✅ Built fact table with {fact_table_stats['unique_patterns']:,} patterns")
+            else:
+                logger.warning("No movement data available for fact table generation")
+                fact_table_df = pd.DataFrame()
+                fact_table_stats = {'unique_patterns': 0}
+            
             if self.enable_memory_monitoring:
                 current_memory = get_memory_usage()
                 logger.info(f"📊 Memory usage after movement detection: {current_memory.current_process_usage_mb:.1f}MB")
             
             # Step 3: Generate outputs using versioning
             logger.info("📁 Step 3: Generating versioned outputs...")
-            output_type_str = output_type or self.movement_analysis_subdir
+            output_type_str = output_type or "movement_analysis"
             output_dir = self.version_manager.setup_output_directory(
                 interactive=False,
                 output_type=output_type_str
             )
+            logger.info(f"📁 Using daily folder strategy for movement analysis: {output_dir}")
             
             # Export results based on configuration
             exported_files = {}
@@ -138,6 +162,18 @@ class MovementPrecomputer:
                 self._export_movement_summary(str(summary_file), movement_summary)
                 exported_files['summary'] = str(summary_file)
                 logger.info(f"✅ Exported movement summary: {summary_file.name}")
+            
+            # Export fact table (rich movement aggregation)
+            if self.export_movement_summary and not fact_table_df.empty:  # Use same config flag for now
+                fact_table_file = output_dir / "movement_fact_table.parquet"
+                fact_table_df.to_parquet(str(fact_table_file), 
+                                        compression=self.parquet_compression,
+                                        engine=self.parquet_engine,
+                                        index=False)
+                exported_files['fact_table'] = str(fact_table_file)
+                logger.info(f"✅ Exported movement fact table: {fact_table_file.name}")
+            elif self.export_movement_summary:
+                logger.warning("No fact table data to export")
             
             if self.export_metadata:
                 metadata_file = output_dir / "metadata.json"
@@ -250,7 +286,7 @@ class MovementPrecomputer:
     def _export_metadata(self, output_path: str, metadata: Dict[str, Any]) -> None:
         """Export metadata to JSON file."""
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
+            json.dump(metadata, f, indent=2)
     
     def get_analysis_status(self) -> Dict[str, Any]:
         """Get current analysis status and configuration."""

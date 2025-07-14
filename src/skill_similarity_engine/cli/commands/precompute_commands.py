@@ -69,9 +69,8 @@ class SimilarityMatrixCommand(BaseCommand):
             # Print header
             self._print_header(architecture)
             
-            # Setup output directory
-            quarter_dir = setup_model_output_directory()
-            print(f"✅ Output directory ready: {quarter_dir}")
+            # Note: Output directory setup now handled by precomputer using daily folder strategy
+            print(f"📁 Using enhanced daily folder strategy for outputs")
             
             # Get output format configuration
             output_config = self._get_output_configuration(kwargs)
@@ -91,7 +90,7 @@ class SimilarityMatrixCommand(BaseCommand):
                 max_workers=None,  # Auto-detect based on CPU cores
                 memory_limit_mb=None,  # Auto-detect based on available RAM
                 enable_checkpointing=processing_config['enable_checkpoints'],
-                output_dir=str(quarter_dir)
+                output_dir="models"  # Will be handled by ModelVersionManager daily strategy
             )
             
             # Create precomputer
@@ -136,7 +135,7 @@ class SimilarityMatrixCommand(BaseCommand):
                 },
                 metadata={
                     'total_jobs': len(architecture.jobs),
-                    'output_directory': str(quarter_dir),
+                    'output_directory': str(output_path),
                     'config_used': processing_config
                 }
             )

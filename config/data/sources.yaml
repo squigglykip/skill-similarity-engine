@@ -5,12 +5,12 @@
 similarity_calculation:
   # Skills Library for Similarity Calculations
   skills_library:
-    file_path: "skills_library/skills_comprehensive_all_versions.csv"
+    file_path: "${files.skills_comprehensive}"
     description: "Comprehensive skills library with all versions for similarity calculations"
     
   # Job-Skill Mapping for Similarity Calculations  
   job_skill_mapping:
-    file_path: "input_data/job_skill_mapping.csv"
+    file_path: "${files.job_skill_mapping}"
     description: "Job-skill mapping file for auto-generating job objects in similarity calculations"
 
 data_sources:
@@ -56,9 +56,9 @@ data_sources:
 
   # Skills Library Data
   skills:
+    description: "Lightcast skills taxonomy with comprehensive coverage"
     file_path: "skills_library/skills_comprehensive_all_versions.csv"
     table_name: "skills"
-    description: "Enhanced comprehensive skills library with 18-column schema"
     expected_columns:
       - id
       - name
@@ -88,7 +88,7 @@ data_sources:
 
   # Job-Skill Mapping Data
   job_skills:
-    file_path: "input_data/job_skill_mapping.csv"
+    file_path: "${files.job_skill_mapping}"
     table_name: "job_skills"
     description: "Mapping between jobs and their required skills"
     expected_columns:
@@ -157,6 +157,108 @@ data_sources:
     # Skip derived columns since we're mapping directly from org hierarchy
     data_types:
       "Salary Group": text
+
+  # Position History Data (CSV-based from positions_history directory)
+  position_history:
+    file_pattern: "positions_history/d_positions_fy*.csv"  # Load all FY files
+    table_name: "position_history"
+    description: "Historical position data loaded from CSV files (all fiscal years)"
+    expected_columns:
+      - "Week Ending"
+      - "Position Number"
+      - "PosIDLookupKey"
+      - "Organisational Unit"
+      - "Cost Centre Number"
+      - "Position Title"
+      - "People Leader"
+      - "Operational"
+      - "OrgUnitIDLookupKey"
+    column_mapping:
+      "Week Ending": "week_ending"
+      "Position Number": "position_number"
+      "PosIDLookupKey": "position_id_lookup_key"
+      "Organisational Unit": "organisational_unit"
+      "Cost Centre Number": "cost_centre_number"
+      "Position Title": "position_title"
+      "People Leader": "people_leader"
+      "Operational": "operational"
+      "OrgUnitIDLookupKey": "org_unit_id_lookup_key"
+
+  # Workforce Context Data (CSV-based from workforce_context directory)
+  workforce_context:
+    file_path: "workforce_context/dummy_workforce_context.csv"
+    table_name: "workforce_context"
+    description: "Workforce context and organisational hierarchy data"
+    expected_columns:
+      - "Week Ending"
+      - "Position Number"
+      - "Position Name"
+      - "Employee Number"
+      - "Employee Name"
+      - "Location"
+      - "Rg"
+      - "Cty"
+      - "Employee Group"
+      - "Salary Group"
+    optional_columns:
+      - "Bucket"
+      - "Operational"
+      - "FTE (raw value in SAP)"
+      - "Position Start Date"
+      - "People Leader Flag"
+      - "Street"
+      - "Suburb"
+      - "Global Region"
+      - "Cost ctr"
+      - "Cost Center"
+      - "Org Unit Number"
+      - "Org Unit Name"
+      - "ORG_UNIT_NO_1"
+      - "ORG_UNIT_NAME_1"
+      - "ORG_UNIT_NO_2"
+      - "ORG_UNIT_NAME_2"
+      - "ORG_UNIT_NO_3"
+      - "ORG_UNIT_NAME_3"
+      - "ORG_UNIT_NO_4"
+      - "ORG_UNIT_NAME_4"
+      - "ORG_UNIT_NO_5"
+      - "ORG_UNIT_NAME_5"
+      - "ORG_UNIT_NO_6"
+      - "ORG_UNIT_NAME_6"
+      - "ORG_UNIT_NO_7"
+      - "ORG_UNIT_NAME_7"
+      - "ORG_UNIT_NO_8"
+      - "ORG_UNIT_NAME_8"
+      - "ORG_UNIT_NO_9"
+      - "ORG_UNIT_NAME_9"
+      - "ORG_UNIT_NO_10"
+      - "ORG_UNIT_NAME_10"
+      - "Email Address"
+      - "Gender Key"
+      - "Entry"
+      - "Employee Subgroup"
+      - "People Leader Number"
+      - "People Leader Name"
+    column_mapping:
+      "Week Ending": "week_ending"
+      "Position Number": "position_number"
+      "Position Name": "position_name"
+      "Employee Number": "employee_number"
+      "Employee Name": "employee_name"
+      "Location": "location"
+      "Rg": "region"
+      "Cty": "country"
+      "Employee Group": "employee_group"
+      "Salary Group": "salary_group"
+      "ORG_UNIT_NAME_2": "division"
+      "ORG_UNIT_NAME_3": "business_unit"
+      "ORG_UNIT_NAME_4": "team"
+      "ORG_UNIT_NAME_5": "sub_team"
+      "ORG_UNIT_NAME_6": "function"
+      "ORG_UNIT_NAME_7": "sub_function"
+      "ORG_UNIT_NAME_8": "org_level_8"
+      "ORG_UNIT_NAME_9": "org_level_9"
+      "ORG_UNIT_NAME_10": "org_level_10"
 
 # Data Quality Settings
 data_quality:

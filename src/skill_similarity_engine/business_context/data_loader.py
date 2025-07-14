@@ -38,6 +38,12 @@ from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
 
+from datetime import datetime
+
+from ..config.architectural_config_manager import get_config_manager
+
+from skill_similarity_engine.config.architectural_config_manager import ConfigurationAdapter
+
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +92,7 @@ class DataLoader:
 
                 'business_context', 'file_discovery', 'config_search_paths',
 
-                default=["config/data_sources.yaml"]
+                default=[]  # No hardcoded fallback - force proper config discovery
 
             )
 
@@ -106,7 +112,19 @@ class DataLoader:
 
             if self.config_path is None:
 
-                self.config_path = Path(config_search_paths[0])  # Use first as default
+                if config_search_paths:
+
+                    self.config_path = Path(config_search_paths[0])  # Use first as default
+
+                else:
+
+                    raise FileNotFoundError(
+
+                        "No configuration search paths found in architectural configuration. "
+
+                        "Please check config/architectural_config.yaml and config/modules/business_context/database.yaml"
+
+                    )
 
         else:
 
@@ -121,144 +139,47 @@ class DataLoader:
     
 
     def _load_config(self) -> Dict[str, Any]:
-
-        """Load configuration from YAML file."""
-
+        """Load configuration from YAML file with variable substitution."""
         try:
-
-            if self.config_path.exists():
-
+            if self.config_path and self.config_path.exists():
                 with open(self.config_path, 'r', encoding='utf-8') as f:
-
                     config = yaml.safe_load(f)
-
+                
+                # Use architectural configuration manager for variable substitution
+                # This allows resolving variables like ${files.job_skill_mapping}
+                full_config = self.config_manager._config  # Access the full config for variable resolution
+                adapter = ConfigurationAdapter(full_config)
+                
+                # Process variable substitution on the entire configuration
+                processed_config = adapter._substitute_dict_variables(config)
+                
                 logger.info(f"Loaded data sources configuration from {self.config_path}")
-
-                return config
-
+                return processed_config
             else:
-
                 logger.warning(f"Configuration file not found: {self.config_path}")
-
                 return self._get_default_config()
-
         except Exception as e:
-
             logger.error(f"Failed to load configuration: {e}")
-
             return self._get_default_config()
-
     
 
     def _get_default_config(self) -> Dict[str, Any]:
-
-        """Get default configuration when YAML file is not available."""
-
-        return {
-
-            'data_sources': {
-
-                'jobs': {
-
-                    'file_path': self.config_manager.get_nested_value('business_context', 'data_loading', 'default_data_sources', 'jobs', 'file_path', default='job_architecture/dummy_job_architecture.csv'),
-
-                    'column_mapping': {
-
-                        'JobProfileID': 'JobProfileID',
-
-                        'JobProfile': 'JobProfile',
-
-                        'JobID': 'JobID',
-
-                        'Job': 'Job',
-
-                        'JobFamily': 'JobFamily',
-
-                        'JobFamilyGroup': 'JobFamilyGroup'
-
-                    }
-
-                },
-
-                'skills': {
-
-                    'file_path': 'skills_library/lightcast_skills_comprehensive.csv',
-
-                    'column_mapping': {
-
-                        'skill_id': 'Skill_ID',
-
-                        'name': 'Skill_Name',
-
-                        'category': 'Category',
-
-                        'subcategory': 'Subcategory',
-
-                        'type': 'SkillType',
-
-                        'latest_version': 'Latest_Version'
-
-                    },
-
-                    'chunk_size': 10000
-
-                },
-
-                'job_skills': {
-
-                    'file_path': 'input_data/job_skill_mapping.csv',
-
-                    'column_mapping': {
-
-                        'JobProfileID': 'JobProfileID',
-
-                        'Skill_Name': 'Skill_Name',
-
-                        'Skill_ID': 'Skill_ID'
-
-                    }
-
-                },
-
-                'positions': {
-
-                    'file_path': 'workforce_context/dummy_workforce_context.csv',
-
-                    'column_mapping': {
-
-                        'Position Number': 'Position_Number',
-
-                        'JobProfileID': 'JobProfileID',
-
-                        'Employee Number': 'Employee_Number',
-
-                        'Business Unit': 'Business_Unit',
-
-                        'ORG_UNIT_NAME_1': 'Department',
-
-                        'ORG_UNIT_NAME_2': 'Team',
-
-                        'Location': 'Location',
-
-                        'State/Territory': 'State',
-
-                        'Country': 'Country',
-
-                        'Employment Type': 'Employment_Type',
-
-                        'Salary Group': 'Salary_Grade',
-
-                        'Work Pattern': 'Work_Pattern'
-
-                    }
-
-                }
-
-            },
-
-            'loading': {'default_chunk_size': 1000}
-
-        }
+        """
+        INTENTIONALLY BROKEN: No hardcoded fallback values allowed.
+        
+        This method now raises an exception to force proper configuration file discovery.
+        Following the design principle: "fully object-oriented with no hardcoded values 
+        apart from robust /config sections".
+        
+        If this method is called, it means the configuration system failed to find
+        the correct configuration file, which should be investigated and fixed.
+        """
+        raise FileNotFoundError(
+            "Configuration file not found and no hardcoded fallback allowed. "
+            f"Expected configuration file at: {self.config_path}. "
+            "Please ensure the correct configuration file exists or fix the configuration path discovery. "
+            "Design principle: No hardcoded values outside of /config sections."
+        )
 
         
 
@@ -300,7 +221,7 @@ class DataLoader:
 
         # Define loading sequence (order matters for foreign keys)
 
-        loading_sequence = ['jobs', 'skills', 'job_skills', 'positions']
+        loading_sequence = ['jobs', 'skills', 'job_skills', 'positions', 'position_history', 'workforce_context']
 
         
 
@@ -316,29 +237,39 @@ class DataLoader:
 
             dataset_config = data_sources[dataset_name]
 
-            file_path = data_root_path / dataset_config['file_path']
-
             
 
-            if file_path.exists():
-
-                logger.info(f"Loading {dataset_name} from {file_path}")
-
-                if not self._load_dataset_from_config(dataset_name, file_path, dataset_config):
-
-                    logger.error(f"Failed to load {dataset_name}")
-
-                    success = False
-
+            # Load from CSV file(s)
+            if 'file_pattern' in dataset_config:
+                # Handle multiple files with pattern
+                import glob
+                pattern = str(data_root_path / dataset_config['file_pattern'])
+                matching_files = glob.glob(pattern)
+                
+                if matching_files:
+                    logger.info(f"Loading {dataset_name} from {len(matching_files)} files matching pattern: {dataset_config['file_pattern']}")
+                    if not self._load_multiple_files_from_config(dataset_name, matching_files, dataset_config):
+                        logger.error(f"Failed to load {dataset_name}")
+                        success = False
+                    else:
+                        logger.info(f"✅ Successfully loaded {dataset_name}")
                 else:
-
-                    logger.info(f"✅ Successfully loaded {dataset_name}")
-
+                    logger.warning(f"No files found matching pattern: {pattern}")
+                    success = False
             else:
-
-                logger.warning(f"Data file not found: {file_path}")
-
-                success = False
+                # Handle single file
+                file_path = data_root_path / dataset_config['file_path']
+                
+                if file_path.exists():
+                    logger.info(f"Loading {dataset_name} from {file_path}")
+                    if not self._load_dataset_from_config(dataset_name, file_path, dataset_config):
+                        logger.error(f"Failed to load {dataset_name}")
+                        success = False
+                    else:
+                        logger.info(f"✅ Successfully loaded {dataset_name}")
+                else:
+                    logger.warning(f"Data file not found: {file_path}")
+                    success = False
 
         
 
@@ -1375,8 +1306,33 @@ class DataLoader:
         dataset_config = data_sources[dataset_name]
 
         return self._load_dataset_from_config(dataset_name, file_path_obj, dataset_config)
-
     
+    def _load_multiple_files_from_config(self, dataset_name: str, file_paths: List[str], dataset_config: Dict[str, Any]) -> bool:
+        """Load and combine multiple CSV files for a single dataset."""
+        try:
+            # Simply call the existing method for each file, letting it handle the database appending
+            total_rows_loaded = 0
+            
+            for file_path in sorted(file_paths):  # Sort to ensure consistent order
+                file_path_obj = Path(file_path)
+                logger.debug(f"Loading file: {file_path_obj.name}")
+                
+                # Use existing single-file loading method
+                if self._load_dataset_from_config(dataset_name, file_path_obj, dataset_config):
+                    # Get the row count from load_stats if available
+                    if dataset_name in self.load_stats:
+                        total_rows_loaded += self.load_stats[dataset_name].get('rows_loaded', 0)
+                else:
+                    logger.warning(f"Failed to load {file_path_obj.name}")
+            
+            logger.info(f"Loaded total of {total_rows_loaded} rows from {len(file_paths)} files")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to load multiple files for {dataset_name}: {e}")
+            return False
+    
+# Note: Dataset generation methods removed - all datasets now loaded from CSV files
 
     def _print_load_summary(self) -> None:
 
@@ -1576,7 +1532,7 @@ class DataLoader:
 
         
 
-        # Look for the most recent career pathways file
+        # Look for the most recent career pathways file with daily folder strategy
 
         models_dir = Path("models")
 
@@ -1592,7 +1548,23 @@ class DataLoader:
 
                 if quarter_dir.is_dir():
 
-                    # Look for precompute directories
+                    # Priority 1: Search in daily folders (YYYY-MM-DD format)
+
+                    import re
+
+                    for daily_dir in quarter_dir.iterdir():
+
+                        if daily_dir.is_dir() and re.match(r'^\d{4}-\d{2}-\d{2}$', daily_dir.name):
+
+                            pathways_file = daily_dir / "career_pathways.parquet"
+
+                            if pathways_file.exists():
+
+                                parquet_files.append(pathways_file)
+
+                    
+
+                    # Priority 2: Legacy precompute directories (backward compatibility)
 
                     for precompute_dir in quarter_dir.glob("precompute_*"):
 
@@ -1604,7 +1576,7 @@ class DataLoader:
 
         
 
-        # Also check data/precomputed directory
+        # Also check data/precomputed directory (legacy support)
 
         data_dir = Path("data/precomputed")
 

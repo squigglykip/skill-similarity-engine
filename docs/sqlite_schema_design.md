@@ -1,36 +1,42 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
-## Business Context Database
+## Workforce Intelligence Database
 
-**Generated**: 2025-06-21 16:33:12
-**Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q2\business_context.sqlite`
-**Database Size**: 118.95 MB
-**Last Modified**: 2025-06-21T12:32:16.231553
+**Generated**: 2025-07-13 14:37:22
+**Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q3\workforce_intelligence.sqlite`
+**Database Size**: 134.66 MB
+**SQLite Version**: 3.45.3
+**Page Size**: 4096 bytes
+**Total Pages**: 34,472
+**Foreign Keys**: Disabled
+**Last Modified**: 2025-07-13T14:35:58.577233
 
 ---
 
 ## Overview
 
 This document provides comprehensive schema documentation for the NAB Skill Similarity Engine SQLite database.
-The database integrates job architecture, skill taxonomies, workforce context, and pre-computed similarities
-to support career pathway analysis and workforce planning.
+The database integrates job architecture, skill taxonomies, workforce context, movement analysis, and pre-computed similarities
+to support career pathway analysis, workforce planning, and strategic workforce intelligence.
 
 ## Quick Reference for LLMs
 
 **Core Tables for Query Development:**
 
-- **`career_pathways`** (17,160 records) - source_job_id, target_job_id, similarity_rank, similarity_score, career_move_type
+- **`career_pathways`** (8,580 records) - source_job_id, target_job_id, similarity_rank, similarity_score, career_move_type
+- **`colleague_movements`** (92,107 records) - employee_number, jobprofile_id, movement_type, movement_date
 - **`job_similarities`** (510,510 records) - job_from, job_to, similarity_score
 - **`job_skills`** (40,170 records) - JobProfileID, Skill_ID, Skill_Weight
 - **`jobs`** (715 records) - JobProfileID, JobProfile, JobFamily, JobFamilyGroup
+- **`movement_fact`** (0 records) - movement_pattern, movement_count, month, avg_days_in_position
 - **`positions`** (35,000 records) - JobProfileID, Division, Business_Unit, Location, Team
 - **`skills`** (38,430 records) - Skill_ID, Skill_Name, Category, SkillType
 
 **Key Relationships:**
-- `jobs.JobProfileID` → `career_pathways.source_job_id/target_job_id`
-- `jobs.JobProfileID` → `job_similarities.job_from/job_to`
-- `jobs.JobProfileID` → `positions.JobProfileID`
-- `jobs.JobProfileID` → `job_skills.JobProfileID`
-- `skills.Skill_ID` → `job_skills.Skill_ID`
+- `jobs.JobProfileID` â†’ `career_pathways.source_job_id/target_job_id`
+- `jobs.JobProfileID` â†’ `job_similarities.job_from/job_to`
+- `jobs.JobProfileID` â†’ `positions.JobProfileID`
+- `jobs.JobProfileID` â†’ `job_skills.JobProfileID`
+- `skills.Skill_ID` â†’ `job_skills.Skill_ID`
 
 **Critical for D3 Tree Queries:**
 - Use `career_pathways` table for pre-computed relationships (fast!)
@@ -42,10 +48,90 @@ to support career pathway analysis and workforce planning.
 
 ## Database Statistics
 
-- **Total Tables**: 7
-- **Total Records**: 641,989
-- **Total Indexes**: 18
-- **Database Size**: 118.95 MB
+- **Total Tables**: 11
+- **Total Records**: 795,516
+- **Total Indexes**: 24
+- **Database Size**: 134.66 MB
+
+### Key Business Metrics
+
+
+### Movement Analysis Summary
+
+- **Total Movements Tracked**: 92,107
+- **Movement Types**:
+  - lateral: 92,107
+
+### Career Pathways Summary
+
+- **Total Career Pathways**: 8,580
+- **Pathway Types**:
+  - progression: 6,382 pathways (avg similarity: 0.5489)
+  - lateral: 2,198 pathways (avg similarity: 0.9987)
+
+## Relationship Analysis
+
+### Foreign Key Relationships (15)
+
+- `career_pathways.target_job_id` → `jobs.JobProfileID`
+- `career_pathways.source_job_id` → `jobs.JobProfileID`
+- `colleague_movements.jobprofile_id` → `jobs.JobProfileID`
+- `colleague_movements.employee_number` → `positions.Employee Number`
+- `job_similarities.job_to` → `jobs.JobProfileID`
+- `job_similarities.job_from` → `jobs.JobProfileID`
+- `job_skills.Skill_ID` → `skills.Skill_ID`
+- `job_skills.JobProfileID` → `jobs.JobProfileID`
+- `movement_fact.jobprofile_id` → `jobs.JobProfileID`
+- `movement_fact.employee_number` → `positions.Employee Number`
+- `position_history.jobprofile_id` → `jobs.JobProfileID`
+- `position_history.employee_number` → `positions.Employee Number`
+- `positions.JobProfileID` → `jobs.JobProfileID`
+- `workforce_context.jobprofile_id` → `jobs.JobProfileID`
+- `workforce_context.employee_number` → `positions.Employee Number`
+
+### Referential Integrity Check
+
+- ✅ **career_pathways.target_job_id**: No orphaned records
+- ✅ **career_pathways.source_job_id**: No orphaned records
+- ⚠️ **colleague_movements.jobprofile_id**: 92107 orphaned records
+- ⚠️ **colleague_movements.employee_number**: 92107 orphaned records
+- ✅ **job_similarities.job_to**: No orphaned records
+- ✅ **job_similarities.job_from**: No orphaned records
+- ⚠️ **job_skills.Skill_ID**: 125 orphaned records
+- ✅ **job_skills.JobProfileID**: No orphaned records
+- ✅ **movement_fact.jobprofile_id**: No orphaned records
+- ✅ **movement_fact.employee_number**: No orphaned records
+- ✅ **position_history.jobprofile_id**: No orphaned records
+- ✅ **position_history.employee_number**: No orphaned records
+- ✅ **positions.JobProfileID**: No orphaned records
+- ✅ **workforce_context.jobprofile_id**: No orphaned records
+- ✅ **workforce_context.employee_number**: No orphaned records
+
+## Performance Analysis
+
+### Table Size Categories
+
+**Small Tables:**
+- jobs: 715 rows
+- movement_fact: 0 rows
+- position_history: 0 rows
+- schema_metadata: 4 rows
+
+**Medium Tables:**
+- career_pathways: 8,580 rows
+- colleague_movements: 92,107 rows
+- job_skills: 40,170 rows
+- positions: 35,000 rows
+- skills: 38,430 rows
+- workforce_context: 70,000 rows
+
+**Large Tables:**
+- job_similarities: 510,510 rows
+
+### Query Optimization Recommendations
+
+- **indexing**: Large table (38,430 rows) with minimal indexing
+  - Recommendation: Consider adding indexes on frequently queried columns
 
 ## Entity Relationship Diagram
 
@@ -60,6 +146,17 @@ erDiagram
         integer shared_skills_count
         text career_move_type
         real difficulty_score
+    }
+
+    COLLEAGUE_MOVEMENTS {
+        integer movement_id PK
+        text employee_number FK
+        text jobprofile_id FK
+        text movement_type
+        date movement_date
+        date effective_date
+        date end_date
+        text change_reason
     }
 
     JOB_SIMILARITIES {
@@ -97,10 +194,33 @@ erDiagram
         text Accountability_Scope
     }
 
+    MOVEMENT_FACT {
+        integer movement_id PK
+        text employee_number FK
+        text jobprofile_id FK
+        text movement_type
+        date movement_date
+        date effective_date
+        date end_date
+        text change_reason
+        integer total_days
+        boolean is_active
+    }
+
+    POSITION_HISTORY {
+        integer history_id PK
+        text employee_number FK
+        text position_number
+        text jobprofile_id FK
+        date effective_date
+        date end_date
+        text change_type
+    }
+
     POSITIONS {
-        text Employee Number PK
-        text Position Number
-        text Position Name
+        text Employee_Number PK
+        text Position_Number
+        text Position_Name
         text JobProfileID FK
         text Division
         text Business_Unit
@@ -114,9 +234,9 @@ erDiagram
         text Location
         text Rg
         text Cty
-        text Employee Group
-        text Salary Group
-        text Employee Subgroup
+        text Employee_Group
+        text Salary_Group
+        text Employee_Subgroup
     }
 
     SCHEMA_METADATA {
@@ -148,20 +268,38 @@ erDiagram
         real Rarity_Score
     }
 
+    WORKFORCE_CONTEXT {
+        integer context_id PK
+        text employee_number FK
+        text jobprofile_id FK
+        text context_type
+        text context_value
+        date effective_date
+        date end_date
+    }
+
     JOBS ||--o{ CAREER_PATHWAYS : "target_job_id"
     JOBS ||--o{ CAREER_PATHWAYS : "source_job_id"
+    JOBS ||--o{ COLLEAGUE_MOVEMENTS : "jobprofile_id"
+    POSITIONS ||--o{ COLLEAGUE_MOVEMENTS : "employee_number"
     JOBS ||--o{ JOB_SIMILARITIES : "job_to"
     JOBS ||--o{ JOB_SIMILARITIES : "job_from"
     SKILLS ||--o{ JOB_SKILLS : "Skill_ID"
     JOBS ||--o{ JOB_SKILLS : "JobProfileID"
+    JOBS ||--o{ MOVEMENT_FACT : "jobprofile_id"
+    POSITIONS ||--o{ MOVEMENT_FACT : "employee_number"
+    JOBS ||--o{ POSITION_HISTORY : "jobprofile_id"
+    POSITIONS ||--o{ POSITION_HISTORY : "employee_number"
     JOBS ||--o{ POSITIONS : "JobProfileID"
+    JOBS ||--o{ WORKFORCE_CONTEXT : "jobprofile_id"
+    POSITIONS ||--o{ WORKFORCE_CONTEXT : "employee_number"
 ```
 
 ---
 
 ## Table Definitions
 
-### 1. **career_pathways** - 17,160 records
+### 1. **career_pathways** - 8,580 records
 
 ```sql
 CREATE TABLE career_pathways (
@@ -178,36 +316,51 @@ CREATE TABLE career_pathways (
 
 **Foreign Key Relationships:**
 
-- `target_job_id` → `jobs.JobProfileID`
-- `source_job_id` → `jobs.JobProfileID`
+- `target_job_id` â†’ `jobs.JobProfileID`
+- `source_job_id` â†’ `jobs.JobProfileID`
 
 **Column Statistics:**
 
-- **source_job_id**: 715 unique values (17,160 non-null), avg length 7.0
-- **target_job_id**: 707 unique values (17,160 non-null), avg length 7.0
-- **similarity_rank**: 24 unique values (17,160 non-null), range 1 - 24
-- **similarity_score**: 427 unique values (17,160 non-null), range 0.0882 - 1.0000, avg 0.5848
-- **skill_overlap_score**: 427 unique values (17,160 non-null), range 0.0882 - 1.0000, avg 0.5848
-- **shared_skills_count**: 18 unique values (17,160 non-null), range 1 - 20
-- **career_move_type**: 2 unique values (17,160 non-null), avg length 10.49
-- **difficulty_score**: 427 unique values (17,160 non-null), range 0.0000 - 0.9118, avg 0.4152
+- **source_job_id**: 715 unique values (8,580 non-null), avg length 7.0
+- **target_job_id**: 699 unique values (8,580 non-null), avg length 7.0
+- **similarity_rank**: 12 unique values (8,580 non-null), range 1 - 12
+- **similarity_score**: 325 unique values (8,580 non-null), range 0.1389 - 1.0000, avg 0.6641
+- **skill_overlap_score**: 325 unique values (8,580 non-null), range 0.1389 - 1.0000, avg 0.6641
+- **shared_skills_count**: 17 unique values (8,580 non-null), range 2 - 20
+- **career_move_type**: 2 unique values (8,580 non-null), avg length 9.98
+- **difficulty_score**: 325 unique values (8,580 non-null), range 0.0000 - 0.8611, avg 0.3359
+
+**Data Quality - Completeness:**
+
+- **source_job_id**: 100% complete
+- **target_job_id**: 100% complete
+- **similarity_rank**: 100% complete
+- **similarity_score**: 100% complete
+- **skill_overlap_score**: 100% complete
+- **shared_skills_count**: 100% complete
+- **career_move_type**: 100% complete
+- **difficulty_score**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
 
 **Sample Data by Column:**
 
 - **source_job_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
 - **target_job_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
 - **similarity_rank**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
-- **similarity_score**: `1.0`, `0.813953488372093`, `0.8`, `0.7954545454545454`, `0.7708333333333334`, `0.7692307692307693`, `0.7543859649122807`, `0.75`, `0.7446808510638298`, `0.7413793103448276`
-- **skill_overlap_score**: `1.0`, `0.4567901234567901`, `0.4444444444444444`, `0.3950617283950617`, `0.382716049382716`, `0.7543859649122807`, `0.6491228070175439`, `0.631578947368421`, `0.6140350877192983`, `0.5964912280701754`
-- **shared_skills_count**: `20`, `9`, `8`, `7`, `15`, `12`, `11`, `14`, `13`, `10`
+- **similarity_score**: `0.1388888888888889`, `0.1666666666666666`, `0.1875`, `0.2058823529411764`, `0.21875`, `0.2195121951219512`, `0.2222222222222222`, `0.2307692307692307`, `0.2352941176470588`, `0.2368421052631578`
+- **skill_overlap_score**: `0.1388888888888889`, `0.1666666666666666`, `0.1875`, `0.2058823529411764`, `0.21875`, `0.2195121951219512`, `0.2222222222222222`, `0.2307692307692307`, `0.2352941176470588`, `0.2368421052631578`
+- **shared_skills_count**: `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`
 - **career_move_type**: `lateral`, `progression`
-- **difficulty_score**: `0.0`, `0.5432098765432098`, `0.5555555555555556`, `0.6049382716049383`, `0.617283950617284`, `0.24561403508771928`, `0.3508771929824561`, `0.368421052631579`, `0.38596491228070173`, `0.4035087719298246`
+- **difficulty_score**: `0.0`, `0.13953488372093026`, `0.18604651162790697`, `0.19512195121951215`, `0.19999999999999996`, `0.20408163265306123`, `0.20454545454545459`, `0.2093023255813954`, `0.21568627450980393`, `0.21999999999999997`
 
 **Sample Complete Records:**
 
 **Record 1:**
-  - `source_job_id`: R0333.4
-  - `target_job_id`: R0333.5
+  - `source_job_id`: R0303.5
+  - `target_job_id`: R0303.0
   - `similarity_rank`: 1
   - `similarity_score`: 1.0
   - `skill_overlap_score`: 1.0
@@ -216,8 +369,8 @@ CREATE TABLE career_pathways (
   - `difficulty_score`: 0.0
 
 **Record 2:**
-  - `source_job_id`: R0333.4
-  - `target_job_id`: R0333.3
+  - `source_job_id`: R0303.5
+  - `target_job_id`: R0303.2
   - `similarity_rank`: 2
   - `similarity_score`: 1.0
   - `skill_overlap_score`: 1.0
@@ -226,8 +379,8 @@ CREATE TABLE career_pathways (
   - `difficulty_score`: 0.0
 
 **Record 3:**
-  - `source_job_id`: R0333.4
-  - `target_job_id`: R0333.2
+  - `source_job_id`: R0303.5
+  - `target_job_id`: R0303.3
   - `similarity_rank`: 3
   - `similarity_score`: 1.0
   - `skill_overlap_score`: 1.0
@@ -237,7 +390,95 @@ CREATE TABLE career_pathways (
 
 ---
 
-### 2. **job_similarities** - 510,510 records
+### 2. **colleague_movements** - 92,107 records
+
+```sql
+CREATE TABLE colleague_movements (
+    movement_id INTEGER PRIMARY KEY,
+    employee_number TEXT NOT NULL,
+    jobprofile_id TEXT NOT NULL,
+    movement_type TEXT NOT NULL,
+    movement_date DATE NOT NULL,
+    effective_date DATE NOT NULL,
+    end_date DATE,
+    change_reason TEXT
+);
+```
+
+**Foreign Key Relationships:**
+
+- `jobprofile_id` â†’ `jobs.JobProfileID`
+- `employee_number` â†’ `positions.Employee Number`
+
+**Column Statistics:**
+
+- **movement_id**: 92,107 unique values (92,107 non-null), range 1 - 92107
+- **employee_number**: 66,094 unique values (92,107 non-null), avg length 8.0
+- **jobprofile_id**: 26,359 unique values (92,107 non-null), avg length 8.0
+- **movement_type**: 1 unique values (92,107 non-null), avg length 7.0
+- **change_reason**: 1 unique values (92,107 non-null), avg length 18.0
+
+**Data Quality - Completeness:**
+
+- **movement_id**: 100% complete
+- **employee_number**: 100% complete
+- **jobprofile_id**: 100% complete
+- **movement_type**: 100% complete
+- **movement_date**: 100% complete
+- **effective_date**: 100% complete
+- **end_date**: 100% complete
+- **change_reason**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
+**Sample Data by Column:**
+
+- **movement_id**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+- **employee_number**: `10330906`, `10331697`, `10332430`, `10333050`, `10333149`, `10333966`, `10334641`, `10335848`, `10336114`, `10336171`
+- **jobprofile_id**: `65006738`, `65006781`, `65006796`, `65006802`, `65006819`, `65006854`, `65006855`, `65006867`, `65006872`, `65006878`
+- **movement_type**: `lateral`
+- **movement_date**: `2020-07-01`, `2020-07-08`, `2020-07-15`, `2020-07-22`, `2020-07-29`, `2020-08-05`, `2020-08-12`, `2020-08-19`, `2020-08-26`, `2020-09-02`
+- **effective_date**: `2020-07-01`, `2020-07-08`, `2020-07-15`, `2020-07-22`, `2020-07-29`, `2020-08-05`, `2020-08-12`, `2020-08-19`, `2020-08-26`, `2020-09-02`
+- **end_date**: `2020-07-01`, `2020-07-08`, `2020-07-15`, `2020-07-22`, `2020-07-29`, `2020-08-05`, `2020-08-12`, `2020-08-19`, `2020-08-26`, `2020-09-02`
+- **change_reason**: `Career Progression`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `movement_id`: 1
+  - `employee_number`: 19187289
+  - `jobprofile_id`: 65269983
+  - `movement_type`: lateral
+  - `movement_date`: 2025-01-27
+  - `effective_date`: 2025-01-27
+  - `end_date`: 2021-01-13
+  - `change_reason`: Career Progression
+
+**Record 2:**
+  - `movement_id`: 2
+  - `employee_number`: 11794546
+  - `jobprofile_id`: 65199030
+  - `movement_type`: lateral
+  - `movement_date`: 2023-03-17
+  - `effective_date`: 2023-03-17
+  - `end_date`: 2020-12-30
+  - `change_reason`: Career Progression
+
+**Record 3:**
+  - `movement_id`: 3
+  - `employee_number`: 24039423
+  - `jobprofile_id`: 65073216
+  - `movement_type`: lateral
+  - `movement_date`: 2022-11-11
+  - `effective_date`: 2022-11-11
+  - `end_date`: 2020-09-09
+  - `change_reason`: Career Progression
+
+---
+
+### 3. **job_similarities** - 510,510 records
 
 ```sql
 CREATE TABLE job_similarities (
@@ -253,8 +494,8 @@ CREATE TABLE job_similarities (
 
 **Foreign Key Relationships:**
 
-- `job_to` → `jobs.JobProfileID`
-- `job_from` → `jobs.JobProfileID`
+- `job_to` â†’ `jobs.JobProfileID`
+- `job_from` â†’ `jobs.JobProfileID`
 
 **Column Statistics:**
 
@@ -266,11 +507,25 @@ CREATE TABLE job_similarities (
 - **total_skills_from**: 0 unique values (0 non-null), range 0 - 0
 - **total_skills_to**: 0 unique values (0 non-null), range 0 - 0
 
+**Data Quality - Completeness:**
+
+- **job_from**: 100% complete
+- **job_to**: 100% complete
+- **similarity_score**: 100% complete
+- **skill_overlap_score**: 0.0% complete (510,510 null values)
+- **shared_skills_count**: 0.0% complete (510,510 null values)
+- **total_skills_from**: 0.0% complete (510,510 null values)
+- **total_skills_to**: 0.0% complete (510,510 null values)
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
 **Sample Data by Column:**
 
 - **job_from**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
 - **job_to**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
-- **similarity_score**: `1.0`, `0.8604651162790697`, `0.813953488372093`, `0.8048780487804879`, `0.8`, `0.7959183673469388`, `0.7954545454545454`, `0.7906976744186046`, `0.7843137254901961`, `0.78`
+- **similarity_score**: `0.0`, `0.0104166666666666`, `0.0106382978723404`, `0.0123456790123456`, `0.0125`, `0.0129870129870129`, `0.0131578947368421`, `0.0133333333333333`, `0.0136986301369863`, `0.0140845070422535`
 
 **Sample Complete Records:**
 
@@ -291,7 +546,7 @@ CREATE TABLE job_similarities (
 
 ---
 
-### 3. **job_skills** - 40,170 records
+### 4. **job_skills** - 40,170 records
 
 ```sql
 CREATE TABLE job_skills (
@@ -303,14 +558,24 @@ CREATE TABLE job_skills (
 
 **Foreign Key Relationships:**
 
-- `Skill_ID` → `skills.Skill_ID`
-- `JobProfileID` → `jobs.JobProfileID`
+- `Skill_ID` â†’ `skills.Skill_ID`
+- `JobProfileID` â†’ `jobs.JobProfileID`
 
 **Column Statistics:**
 
 - **JobProfileID**: 715 unique values (40,170 non-null), avg length 7.0
 - **Skill_ID**: 2,091 unique values (40,170 non-null), avg length 20.0
 - **Skill_Weight**: 1 unique values (40,170 non-null), range 1.0000 - 1.0000, avg 1.0000
+
+**Data Quality - Completeness:**
+
+- **JobProfileID**: 100% complete
+- **Skill_ID**: 100% complete
+- **Skill_Weight**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
 
 **Sample Data by Column:**
 
@@ -337,7 +602,7 @@ CREATE TABLE job_skills (
 
 ---
 
-### 4. **jobs** - 715 records
+### 5. **jobs** - 715 records
 
 ```sql
 CREATE TABLE jobs (
@@ -379,22 +644,45 @@ CREATE TABLE jobs (
 - **Executive_Leadership_Group**: 2 unique values (715 non-null), avg length 1.24
 - **Accountability_Scope**: 3 unique values (715 non-null), avg length 0.72
 
+**Data Quality - Completeness:**
+
+- **JobProfileID**: 100% complete
+- **JobProfile**: 100% complete
+- **JobID**: 100% complete
+- **Job**: 100% complete
+- **ProfileTitleSuffix**: 100% complete
+- **ManagementLevel**: 100% complete
+- **JobSubFunctionID**: 100% complete
+- **JobSubFunction**: 100% complete
+- **JobFunctionID**: 100% complete
+- **JobFunction**: 100% complete
+- **JobCategoryID**: 100% complete
+- **JobCategory**: 100% complete
+- **Customer_Facing**: 100% complete
+- **is_Banker**: 100% complete
+- **Executive_Leadership_Group**: 100% complete
+- **Accountability_Scope**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
 **Sample Data by Column:**
 
 - **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
-- **JobProfile**: `Payment Systems Analyst - 5`, `Settlement Officer - 6`, `Sales Manager - II`, `Sales Manager - 1`, `Relationship Manager - 2`, `Customer Service Representa...`, `Customer Service Representa...`, `Cloud Architect - 0`, `Digital Product Manager - III`, `Business Banker - 1`
+- **JobProfile**: `Budget Manager (Ungraded)`, `Budget Manager - 0`, `Budget Manager - 2`, `Budget Manager - 3`, `Budget Manager - 4`, `Budget Manager - 5`, `Budget Manager - 6`, `Budget Manager - 7`, `Budget Manager - II`, `Business Analyst - 0`
 - **JobID**: `R0001`, `R0002`, `R0003`, `R0005`, `R0007`, `R0009`, `R0010`, `R0022`, `R0023`, `R0025`
-- **Job**: `Payment Systems Analyst`, `Settlement Officer`, `Sales Manager`, `Relationship Manager`, `Customer Service Representa...`, `Cloud Architect`, `Digital Product Manager`, `Business Banker`, `Chief Officer`, `Data Scientist`
-- **ProfileTitleSuffix**: `Senior Manager`, `Associate`, `II`, `Team Lead`, `Senior Consultant`, `Manager`, `III`, `Consultant`, `Head of`, `Lead Consultant`
-- **ManagementLevel**: `Group 2`, `Group 1`, `Group 4`, `Group 3`, `Group 6`, `Group 5`, `Group 7`, `Group NA`
-- **JobSubFunctionID**: `JF0655`, `JF0559`, `JF0204`, `JF0778`, `JF0095`, `JF0128`, `JF0592`, `JF0888`, `JF0274`, `JF0474`
-- **JobSubFunction**: `Data Governance`, `Machine Learning`, `Investment Banking`, `Cybersecurity`, `Portfolio Management`, `Business Continuity`, `Data Management`, `Risk Management`, `Sales`, `Software Engineering`
+- **Job**: `Budget Manager`, `Business Analyst`, `Business Banker`, `Chief Officer`, `Cloud Architect`, `Compliance Officer`, `Credit Risk Manager`, `Customer Service Representa...`, `Cybersecurity Analyst`, `Data Scientist`
+- **ProfileTitleSuffix**: `Advisor`, `Analyst`, `Associate`, `Consultant`, `Group Executive`, `Head of`, `I`, `II`, `III`, `Lead Consultant`
+- **ManagementLevel**: `Group 1`, `Group 2`, `Group 3`, `Group 4`, `Group 5`, `Group 6`, `Group 7`, `Group NA`
+- **JobSubFunctionID**: `JF0002`, `JF0003`, `JF0004`, `JF0005`, `JF0007`, `JF0009`, `JF0011`, `JF0013`, `JF0020`, `JF0021`
+- **JobSubFunction**: `Account Management`, `Actuarial Services`, `Anti-Money Laundering`, `Application Support`, `Artificial Intelligence`, `Asset Management`, `Audit & Assurance`, `Basel Compliance`, `Brand Management`, `Budgeting & Forecasting`
 - **JobFunctionID**: `JF001`, `JF002`, `JF003`, `JF004`, `JF005`, `JF006`, `JF007`, `JF008`, `JF009`, `JF010`
 - **JobFunction**: `Audit & Assurance`, `Banking Services`, `Business Development`, `Customer Relations`, `Data & Analytics`, `Executive Leadership`, `Facilities & Administration`, `Finance & Treasury`, `Human Resources`, `Investment Management`
-- **JobCategoryID**: `JC2`, `JC1`, `JC3`, `JC10`
-- **JobCategory**: `Support`, `Enabling`, `Revenue Generating`, `Executive & General Management`
-- **Customer_Facing**: `Customer Facing`, `Non-Customer Facing`, ``
-- **is_Banker**: `Non-Banker`, `Banker`, ``
+- **JobCategoryID**: `JC1`, `JC10`, `JC2`, `JC3`
+- **JobCategory**: `Enabling`, `Executive & General Management`, `Revenue Generating`, `Support`
+- **Customer_Facing**: ``, `Customer Facing`, `Non-Customer Facing`
+- **is_Banker**: ``, `Banker`, `Non-Banker`
 - **Executive_Leadership_Group**: ``, `Executive Leadership Group`
 - **Accountability_Scope**: ``, `Direct`, `Supports`
 
@@ -456,7 +744,71 @@ CREATE TABLE jobs (
 
 ---
 
-### 5. **positions** - 35,000 records
+### 6. **movement_fact** - 0 records
+
+```sql
+CREATE TABLE movement_fact (
+    movement_id INTEGER PRIMARY KEY,
+    employee_number TEXT NOT NULL,
+    jobprofile_id TEXT NOT NULL,
+    movement_type TEXT NOT NULL,
+    movement_date DATE NOT NULL,
+    effective_date DATE NOT NULL,
+    end_date DATE,
+    change_reason TEXT,
+    total_days INTEGER,
+    is_active BOOLEAN
+);
+```
+
+**Foreign Key Relationships:**
+
+- `jobprofile_id` â†’ `jobs.JobProfileID`
+- `employee_number` â†’ `positions.Employee Number`
+
+**Column Statistics:**
+
+- **movement_id**: 0 unique values (0 non-null), range 0 - 0
+- **employee_number**: 0 unique values (0 non-null), avg length 0
+- **jobprofile_id**: 0 unique values (0 non-null), avg length 0
+- **movement_type**: 0 unique values (0 non-null), avg length 0
+- **change_reason**: 0 unique values (0 non-null), avg length 0
+- **total_days**: 0 unique values (0 non-null), range 0 - 0
+
+**Sample Data by Column:**
+
+
+### 7. **position_history** - 0 records
+
+```sql
+CREATE TABLE position_history (
+    history_id INTEGER PRIMARY KEY,
+    employee_number TEXT NOT NULL,
+    position_number TEXT NOT NULL,
+    jobprofile_id TEXT,
+    effective_date DATE NOT NULL,
+    end_date DATE,
+    change_type TEXT
+);
+```
+
+**Foreign Key Relationships:**
+
+- `jobprofile_id` â†’ `jobs.JobProfileID`
+- `employee_number` â†’ `positions.Employee Number`
+
+**Column Statistics:**
+
+- **history_id**: 0 unique values (0 non-null), range 0 - 0
+- **employee_number**: 0 unique values (0 non-null), avg length 0
+- **position_number**: 0 unique values (0 non-null), avg length 0
+- **jobprofile_id**: 0 unique values (0 non-null), avg length 0
+- **change_type**: 0 unique values (0 non-null), avg length 0
+
+**Sample Data by Column:**
+
+
+### 8. **positions** - 35,000 records
 
 ```sql
 CREATE TABLE positions (
@@ -484,7 +836,7 @@ CREATE TABLE positions (
 
 **Foreign Key Relationships:**
 
-- `JobProfileID` → `jobs.JobProfileID`
+- `JobProfileID` â†’ `jobs.JobProfileID`
 
 **Column Statistics:**
 
@@ -508,27 +860,53 @@ CREATE TABLE positions (
 - **Salary Group**: 9 unique values (35,000 non-null), avg length 7.0
 - **Employee Subgroup**: 3 unique values (35,000 non-null), avg length 8.01
 
+**Data Quality - Completeness:**
+
+- **Employee Number**: 100% complete
+- **Position Number**: 100% complete
+- **Position Name**: 100% complete
+- **JobProfileID**: 100% complete
+- **Division**: 100% complete
+- **Business_Unit**: 100% complete
+- **Team**: 100% complete
+- **SubTeam**: 100% complete
+- **Function**: 100% complete
+- **SubFunction**: 100% complete
+- **Org_Level_8**: 100% complete
+- **Org_Level_9**: 100% complete
+- **Org_Level_10**: 100% complete
+- **Location**: 100% complete
+- **Rg**: 100% complete
+- **Cty**: 100% complete
+- **Employee Group**: 100% complete
+- **Salary Group**: 100% complete
+- **Employee Subgroup**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
 **Sample Data by Column:**
 
 - **Employee Number**: `100000`, `100001`, `100002`, `100003`, `100004`, `100005`, `100006`, `100007`, `100008`, `100009`
-- **Position Number**: `50003311`, `50003667`, `50000226`, `50004844`, `50003090`, `50002029`, `50001106`, `50000237`, `50002938`, `50001289`
-- **Position Name**: `Investment Principal Specia...`, `Operations Vice President`, `Audit General Manager`, `Strategy Executive Manager`, `Customer Principal Developer`, `Product Consultant`, `Markets Lead Engineer`, `Legal Executive Advisor`, `Customer Senior Engineer`, `Technology Manager`
+- **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **Position Name**: `Analytics Advisor`, `Analytics Analyst`, `Analytics Associate`, `Analytics Consultant`, `Analytics Developer`, `Analytics Director`, `Analytics Engineer`, `Analytics Executive Advisor`, `Analytics Executive Director`, `Analytics Executive Manager`
 - **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
 - **Division**: `Business & Private Banking`, `Corporate & Institutional B...`, `Customer Banking & Wealth`, `Group Functions`, `NAB Ventures`, `Technology`
 - **Business_Unit**: `Business Banking`, `Corporate Banking`, `Finance`, `Human Resources`, `Legal & Compliance`, `NAB Ventures`, `Personal Banking`, `Risk Management`, `Technology`, `Wealth Management`
 - **Team**: `Business Banking Operations`, `Corporate Banking Operations`, `Finance Strategy`, `Human Resources Strategy`, `Legal & Compliance Strategy`, `NAB Ventures Operations`, `Personal Banking Operations`, `Risk Management Strategy`, `Technology Operations`, `Wealth Management Operations`
-- **SubTeam**: `Team 15`, `Team 05`, `Team 27`, `Team 04`, `Team 17`, `Team 18`, `Team 06`, `Team 25`, `Team 20`, `Team 30`
+- **SubTeam**: `Team 01`, `Team 02`, `Team 03`, `Team 04`, `Team 05`, `Team 06`, `Team 07`, `Team 08`, `Team 09`, `Team 10`
 - **Function**: `Squad A`, `Squad B`, `Squad C`, `Squad D`, `Squad E`, `Squad F`, `Squad G`, `Squad H`, `Squad I`, `Squad J`
-- **SubFunction**: `Pod 15`, `Pod 19`, `Pod 9`, `Pod 17`, `Pod 18`, `Pod 1`, `Pod 13`, `Pod 5`, `Pod 8`, `Pod 11`
-- **Org_Level_8**: `Unit 038`, `Unit 003`, `Unit 030`, `Unit 025`, `Unit 028`, `Unit 039`, `Unit 026`, `Unit 036`, `Unit 006`, `Unit 009`
-- **Org_Level_9**: `Cell 11`, `Cell 30`, `Cell 22`, `Cell 13`, `Cell 25`, `Cell 17`, `Cell 09`, `Cell 01`, `Cell 18`, `Cell 28`
-- **Org_Level_10**: `Node 024`, `Node 037`, `Node 092`, `Node 077`, `Node 023`, `Node 034`, `Node 010`, `Node 084`, `Node 098`, `Node 032`
+- **SubFunction**: `Pod 1`, `Pod 10`, `Pod 11`, `Pod 12`, `Pod 13`, `Pod 14`, `Pod 15`, `Pod 16`, `Pod 17`, `Pod 18`
+- **Org_Level_8**: `Unit 001`, `Unit 002`, `Unit 003`, `Unit 004`, `Unit 005`, `Unit 006`, `Unit 007`, `Unit 008`, `Unit 009`, `Unit 010`
+- **Org_Level_9**: `Cell 01`, `Cell 02`, `Cell 03`, `Cell 04`, `Cell 05`, `Cell 06`, `Cell 07`, `Cell 08`, `Cell 09`, `Cell 10`
+- **Org_Level_10**: `Node 001`, `Node 002`, `Node 003`, `Node 004`, `Node 005`, `Node 006`, `Node 007`, `Node 008`, `Node 009`, `Node 010`
 - **Location**: `Adelaide`, `Brisbane City`, `Docklands`, `Parramatta`, `Perth`, `Sydney`
-- **Rg**: `SA`, `QLD`, `VIC`, `NSW`, `WA`
+- **Rg**: `NSW`, `QLD`, `SA`, `VIC`, `WA`
 - **Cty**: `AU`
-- **Employee Group**: `Fixed Term`, `Permanent`, `Casual`, `Contractor`
-- **Salary Group**: `Group 7`, `Group 2`, `Group 5`, `External`, `Group 1`, `Group 4`, `Group 6`, `Group 3`, `Casual`
-- **Employee Subgroup**: `Full Time`, `Casual`, `Part Time`
+- **Employee Group**: `Casual`, `Contractor`, `Fixed Term`, `Permanent`
+- **Salary Group**: `Casual`, `External`, `Group 1`, `Group 2`, `Group 3`, `Group 4`, `Group 5`, `Group 6`, `Group 7`
+- **Employee Subgroup**: `Casual`, `Full Time`, `Part Time`
 
 **Sample Complete Records:**
 
@@ -597,7 +975,7 @@ CREATE TABLE positions (
 
 ---
 
-### 6. **schema_metadata** - 4 records
+### 9. **schema_metadata** - 4 records
 
 ```sql
 CREATE TABLE schema_metadata (
@@ -613,32 +991,42 @@ CREATE TABLE schema_metadata (
 - **value**: 4 unique values (4 non-null), avg length 27.5
 - **created_at**: 1 unique values (4 non-null), avg length 26.0
 
+**Data Quality - Completeness:**
+
+- **key**: 100% complete
+- **value**: 100% complete
+- **created_at**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
 **Sample Data by Column:**
 
 - **key**: `created_date`, `purpose`, `schema_version`, `source_document`
-- **value**: `1.0`, `2025-06-21T12:31:51.523720`, `docs/sqlite_schema_design.md`, `NAB Skill Similarity Engine...`
-- **created_at**: `2025-06-21T12:31:51.523720`
+- **value**: `1.0`, `2025-07-13T14:35:39.658922`, `NAB Skill Similarity Engine...`, `docs/sqlite_schema_design.md`
+- **created_at**: `2025-07-13T14:35:39.658922`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `key`: schema_version
   - `value`: 1.0
-  - `created_at`: 2025-06-21T12:31:51.523720
+  - `created_at`: 2025-07-13T14:35:39.658922
 
 **Record 2:**
   - `key`: created_date
-  - `value`: 2025-06-21T12:31:51.523720
-  - `created_at`: 2025-06-21T12:31:51.523720
+  - `value`: 2025-07-13T14:35:39.658922
+  - `created_at`: 2025-07-13T14:35:39.658922
 
 **Record 3:**
   - `key`: source_document
   - `value`: docs/sqlite_schema_design.md
-  - `created_at`: 2025-06-21T12:31:51.523720
+  - `created_at`: 2025-07-13T14:35:39.658922
 
 ---
 
-### 7. **skills** - 38,430 records
+### 10. **skills** - 38,430 records
 
 ```sql
 CREATE TABLE skills (
@@ -686,19 +1074,46 @@ CREATE TABLE skills (
 - **Market_Demand**: 1 unique values (38,430 non-null), avg length 0
 - **Rarity_Score**: 1 unique values (38,430 non-null), range 0.0000 - 0.0000, avg 0.0000
 
+**Data Quality - Completeness:**
+
+- **Skill_ID**: 100% complete
+- **Skill_Name**: 100% complete
+- **Category**: 100% complete
+- **Subcategory**: 100% complete
+- **SkillType**: 100% complete
+- **Latest_Version**: 100% complete
+- **category_id**: 100% complete
+- **description**: 100% complete
+- **descriptionSource**: 0.0% complete (38,430 null values)
+- **Info_URL**: 100% complete
+- **Is_Language**: 100% complete
+- **isSoftware**: 0.0% complete (38,430 null values)
+- **subcategory_id**: 100% complete
+- **tag_wikipediaExtract**: 0.0% complete (38,430 null values)
+- **tag_wikipediaUrl**: 0.0% complete (38,430 null values)
+- **tags**: 0.0% complete (38,430 null values)
+- **type_id**: 100% complete
+- **type_name**: 0.0% complete (38,430 null values)
+- **Market_Demand**: 100% complete
+- **Rarity_Score**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
 **Sample Data by Column:**
 
 - **Skill_ID**: `BGS1024316C916ACCFA3`, `BGS105C99F084505B956`, `BGS1080D1F8CED414379`, `BGS10AB6DEBB81A2E88C`, `BGS10B5E145CA48862FC`, `BGS10CBE4935DDCAE5AD`, `BGS10EE289B9FDE2C4B1`, `BGS10F3F05054C5731C2`, `BGS10F94E4049444B523`, `BGS110587665F051DF29`
-- **Skill_Name**: `DX Spectrum`, `Microsoft Sysprep`, `Application Remediation`, `Clinical Assay`, `Welding Tips`, `Apoptosis`, `Investment Account Management`, `GPS Data`, `Bill Of Materials`, `Video Remote Interpreting (...`
+- **Skill_Name**: `.NET Assemblies`, `.NET Development`, `.NET Framework`, `.NET Framework 1`, `.NET Framework 3`, `.NET Framework 4`, `.NET MAUI (Multi-Platform A...`, `.NET Reflector`, `.NET Remoting`, `.htaccess Files`
 - **Category**: ``, `Administration`, `Agriculture, Horticulture, ...`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Economics, Policy, and Soci...`, `Education and Training`
-- **Subcategory**: ``, `Administrative Support and ...`, `Dictation`, `Document Management`, `Office Management`, `Office and Productivity Equ...`, `Office and Productivity Sof...`, `Scheduling`, `Agricultural Management and...`, `Agricultural Research and A...`
-- **SkillType**: `Specialized Skill`, `Common Skill`, `Certification`
-- **Latest_Version**: `8.5`, `9.31`, `8.4`, `8.2`, `8.6`, `8.11`, `8.27`, `8.3`, `8.8`, `8.9`
-- **category_id**: `17`, `30`, `21`, `13`, `32`, `14`, `12`, `4`, `16`, `23`
-- **description**: ``, `Microsoft Sysprep is a util...`, `Application Remediation ref...`, `Clinical Assay refers to a ...`, `Welding Tips refers to the ...`, `Apoptosis is a process of p...`, `Investment Account Manageme...`, `GPS Data refers to informat...`, `A Bill of Materials (BOM) i...`, `Video Remote Interpreting (...`
+- **Subcategory**: ``, `Account Management`, `Accounting and Finance Soft...`, `Accounts Payable and Receiv...`, `Administrative Support and ...`, `Advanced Customer Service`, `Advanced Patient Care`, `Advertising`, `Aerospace Engineering`, `Agile Software Development`
+- **SkillType**: `Certification`, `Common Skill`, `Specialized Skill`
+- **Latest_Version**: `8.0`, `8.1`, `8.11`, `8.12`, `8.13`, `8.14`, `8.15`, `8.16`, `8.17`, `8.18`
+- **category_id**: `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`
+- **description**: ``, `'Autoroll' refers to TV-sig...`, `'National Lifeguard’ is a l...`, `.NET Assemblies refer to th...`, `.NET Development refers to ...`, `.NET Framework 1 is a softw...`, `.NET Framework 3 is a softw...`, `.NET Framework 4 is a softw...`, `.NET Framework is a softwar...`, `.NET MAUI is a modern, cros...`
 - **Info_URL**: `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`, `https://lightcast.io/open-s...`
 - **Is_Language**: `0`, `1`
-- **subcategory_id**: `411`, `476`, `477`, `621`, `542`, `622`, `281`, `422`, `633`, `487`
+- **subcategory_id**: `100`, `101`, `102`, `105`, `106`, `107`, `108`, `109`, `110`, `111`
 - **type_id**: `ST1`, `ST2`, `ST3`
 - **Market_Demand**: ``
 - **Rarity_Score**: ``
@@ -755,6 +1170,84 @@ CREATE TABLE skills (
 
 ---
 
+### 11. **workforce_context** - 70,000 records
+
+```sql
+CREATE TABLE workforce_context (
+    context_id INTEGER PRIMARY KEY,
+    employee_number TEXT NOT NULL,
+    jobprofile_id TEXT NOT NULL,
+    context_type TEXT NOT NULL,
+    context_value TEXT NOT NULL,
+    effective_date DATE NOT NULL,
+    end_date DATE
+);
+```
+
+**Foreign Key Relationships:**
+
+- `jobprofile_id` â†’ `jobs.JobProfileID`
+- `employee_number` â†’ `positions.Employee Number`
+
+**Column Statistics:**
+
+- **context_id**: 70,000 unique values (70,000 non-null), range 1 - 70000
+- **employee_number**: 10,000 unique values (70,000 non-null), avg length 6.0
+- **jobprofile_id**: 617 unique values (70,000 non-null), avg length 7.0
+- **context_type**: 7 unique values (70,000 non-null), avg length 9.29
+- **context_value**: 47 unique values (70,000 non-null), avg length 12.3
+
+**Data Quality - Completeness:**
+
+- **context_id**: 100% complete
+- **employee_number**: 100% complete
+- **jobprofile_id**: 100% complete
+- **context_type**: 100% complete
+- **context_value**: 100% complete
+- **effective_date**: 100% complete
+- **end_date**: 0.0% complete (70,000 null values)
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
+**Sample Data by Column:**
+
+- **context_id**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+- **employee_number**: `100000`, `100001`, `100002`, `100003`, `100004`, `100005`, `100006`, `100007`, `100008`, `100009`
+- **jobprofile_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
+- **context_type**: `business_unit`, `division`, `employee_group`, `location`, `region`, `salary_group`, `team`
+- **context_value**: `Adelaide`, `Brisbane City`, `Business & Private Banking`, `Business Banking`, `Business Banking Operations`, `Casual`, `Contractor`, `Corporate & Institutional B...`, `Corporate Banking`, `Corporate Banking Operations`
+- **effective_date**: `2025-07-13`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `context_id`: 1
+  - `employee_number`: 100000
+  - `jobprofile_id`: R0242.3
+  - `context_type`: division
+  - `context_value`: Corporate & Institutional Banking
+  - `effective_date`: 2025-07-13
+
+**Record 2:**
+  - `context_id`: 2
+  - `employee_number`: 100000
+  - `jobprofile_id`: R0242.3
+  - `context_type`: business_unit
+  - `context_value`: Technology
+  - `effective_date`: 2025-07-13
+
+**Record 3:**
+  - `context_id`: 3
+  - `employee_number`: 100000
+  - `jobprofile_id`: R0242.3
+  - `context_type`: team
+  - `context_value`: Business Banking Operations
+  - `effective_date`: 2025-07-13
+
+---
+
 ## Key Data Distributions
 
 Top values for important categorical columns:
@@ -802,6 +1295,11 @@ Top values for important categorical columns:
 - **Analysis**: 1,262 records
 - **Law, Regulation, and Compliance**: 1,134 records
 - **Manufacturing and Production**: 1,111 records
+- **Design**: 873 records
+- **Marketing and Public Relations**: 714 records
+- **Transportation, Supply Chain, and Logistics**: 698 records
+- **Maintenance, Repair, and Facility Services**: 678 records
+- **Architecture and Construction**: 590 records
 
 ### skills.SkillType
 
@@ -811,8 +1309,12 @@ Top values for important categorical columns:
 
 ### career_pathways.career_move_type
 
-- **progression**: 14,962 records
+- **progression**: 6,382 records
 - **lateral**: 2,198 records
+
+### colleague_movements.movement_type
+
+- **lateral**: 92,107 records
 
 ## Database Indexes
 
@@ -838,6 +1340,18 @@ CREATE INDEX idx_career_pathways_source ON career_pathways(source_job_id, simila
 **idx_career_pathways_target**
 ```sql
 CREATE INDEX idx_career_pathways_target ON career_pathways(target_job_id, similarity_rank)
+```
+
+### colleague_movements table indexes
+
+**idx_colleague_movements_employee**
+```sql
+CREATE INDEX idx_colleague_movements_employee ON colleague_movements(employee_number)
+```
+
+**idx_colleague_movements_job**
+```sql
+CREATE INDEX idx_colleague_movements_job ON colleague_movements(jobprofile_id)
 ```
 
 ### job_similarities table indexes
@@ -881,6 +1395,18 @@ CREATE INDEX idx_jobs_function ON jobs(JobFunction)
 CREATE INDEX idx_jobs_function_id ON jobs(JobFunctionID)
 ```
 
+### position_history table indexes
+
+**idx_position_history_employee**
+```sql
+CREATE INDEX idx_position_history_employee ON position_history(employee_number)
+```
+
+**idx_position_history_job**
+```sql
+CREATE INDEX idx_position_history_job ON position_history(jobprofile_id)
+```
+
 ### positions table indexes
 
 **idx_positions_business_unit**
@@ -919,6 +1445,151 @@ CREATE INDEX idx_positions_team ON positions(Team)
 ```sql
 CREATE INDEX idx_skills_category ON skills(Category, Subcategory)
 ```
+
+### workforce_context table indexes
+
+**idx_workforce_context_employee**
+```sql
+CREATE INDEX idx_workforce_context_employee ON workforce_context(employee_number)
+```
+
+**idx_workforce_context_job**
+```sql
+CREATE INDEX idx_workforce_context_job ON workforce_context(jobprofile_id)
+```
+
+## Data Distribution Analysis
+
+Key data patterns and distributions across business tables:
+
+### jobs Distribution
+
+**JobProfile** (20 unique values):
+
+- Cloud Architect - 4: 9 (7.6%)
+- Financial Controller - 3: 8 (6.7%)
+- Digital Product Manager - 3: 7 (5.9%)
+- Payment Systems Analyst - 0: 6 (5.0%)
+- Operations Analyst - 5: 6 (5.0%)
+- Legal Counsel - 4: 6 (5.0%)
+- HR Business Partner - 3: 6 (5.0%)
+- Financial Analyst - 0: 6 (5.0%)
+- Cybersecurity Analyst - 3: 6 (5.0%)
+- Credit Risk Manager - 3: 6 (5.0%)
+
+
+### skills Distribution
+
+**Skill_Name** (20 unique values):
+
+- z/OS: 1 (5.0%)
+- xVal: 1 (5.0%)
+- watchOS: 1 (5.0%)
+- vMix (Software): 1 (5.0%)
+- tvOS: 1 (5.0%)
+- t-SNE (t-distributed Stochastic Neighbor Embedding): 1 (5.0%)
+- spatialNET: 1 (5.0%)
+- shRNA: 1 (5.0%)
+- qTest: 1 (5.0%)
+- phpList: 1 (5.0%)
+
+**Category** (20 unique values):
+
+- Information Technology: 10,628 (29.8%)
+- Health Care: 3,737 (10.5%)
+- : 3,377 (9.5%)
+- Engineering: 2,202 (6.2%)
+- Science and Research: 1,833 (5.1%)
+- Finance: 1,621 (4.5%)
+- Business: 1,538 (4.3%)
+- Media and Communications: 1,432 (4.0%)
+- Analysis: 1,262 (3.5%)
+- Law, Regulation, and Compliance: 1,134 (3.2%)
+
+**SkillType** (3 unique values):
+
+- Specialized Skill: 34,406 (89.5%)
+- Certification: 3,525 (9.2%)
+- Common Skill: 499 (1.3%)
+
+
+### positions Distribution
+
+**Division** (6 unique values):
+
+- Technology: 6,144 (17.6%)
+- Customer Banking & Wealth: 5,913 (16.9%)
+- Corporate & Institutional Banking: 5,835 (16.7%)
+- Group Functions: 5,798 (16.6%)
+- NAB Ventures: 5,677 (16.2%)
+- Business & Private Banking: 5,633 (16.1%)
+
+**Business_Unit** (10 unique values):
+
+- Personal Banking: 3,724 (10.6%)
+- Corporate Banking: 3,645 (10.4%)
+- NAB Ventures: 3,597 (10.3%)
+- Technology: 3,553 (10.2%)
+- Legal & Compliance: 3,531 (10.1%)
+- Wealth Management: 3,528 (10.1%)
+- Human Resources: 3,508 (10.0%)
+- Business Banking: 3,322 (9.5%)
+- Finance: 3,322 (9.5%)
+- Risk Management: 3,270 (9.3%)
+
+**Location** (6 unique values):
+
+- Brisbane City: 6,261 (17.9%)
+- Adelaide: 6,115 (17.5%)
+- Parramatta: 5,942 (17.0%)
+- Docklands: 5,608 (16.0%)
+- Sydney: 5,542 (15.8%)
+- Perth: 5,532 (15.8%)
+
+
+### career_pathways Distribution
+
+**career_move_type** (2 unique values):
+
+- progression: 6,382 (74.4%)
+- lateral: 2,198 (25.6%)
+
+**similarity_score** (20 unique values):
+
+- 1.0: 2,182 (57.5%)
+- 0.5: 405 (10.7%)
+- 0.6666666666666666: 113 (3.0%)
+- 0.5172413793103449: 102 (2.7%)
+- 0.5769230769230769: 93 (2.5%)
+- 0.6428571428571429: 91 (2.4%)
+- 0.625: 66 (1.7%)
+- 0.62: 66 (1.7%)
+- 0.6481481481481481: 64 (1.7%)
+- 0.6: 64 (1.7%)
+
+
+### job_similarities Distribution
+
+**similarity_score** (20 unique values):
+
+- 0.4: 10,572 (8.0%)
+- 0.0: 9,896 (7.5%)
+- 0.3333333333333333: 9,790 (7.4%)
+- 0.3448275862068966: 8,623 (6.5%)
+- 0.3793103448275862: 8,297 (6.3%)
+- 0.3636363636363636: 7,276 (5.5%)
+- 0.4081632653061224: 7,030 (5.3%)
+- 0.4285714285714285: 6,923 (5.3%)
+- 0.3620689655172414: 6,867 (5.2%)
+- 0.396551724137931: 6,398 (4.9%)
+
+
+### colleague_movements Distribution
+
+**movement_type** (1 unique values):
+
+- lateral: 92,107 (100.0%)
+
 
 ## Common Query Patterns
 
@@ -985,10 +1656,19 @@ LIMIT 12;
 
 ## Usage in Development
 
-This schema documentation should be used to:
-1. **Inform LLMs** about database structure and relationships
-2. **Guide query development** for webapp endpoints
-3. **Validate data integrity** during pipeline updates
-4. **Plan schema evolution** for future requirements
+This comprehensive schema documentation should be used to:
+1. **Inform LLMs** about database structure, relationships, and data patterns
+2. **Guide query development** for webapp endpoints with performance considerations
+3. **Validate data integrity** during pipeline updates and data quality checks
+4. **Plan schema evolution** for future requirements and optimizations
+5. **Understand business context** through movement analysis and career pathways
+6. **Optimize performance** using the query recommendations and size analysis
 
-**Last Updated**: 2025-06-21 16:33:12
+## Analysis Summary
+
+- **Database Analysis Date**: 2025-07-13 14:37:22
+- **Tables Analyzed**: 11
+- **Relationships Mapped**: 15
+- **Performance Recommendations**: 1
+- **Data Quality Checks**: Completeness, duplicates, referential integrity
+- **Business Insights**: Movement patterns, career pathways, skill distributions

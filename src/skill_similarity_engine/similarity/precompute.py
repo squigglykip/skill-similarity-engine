@@ -177,18 +177,24 @@ class SimilarityMatrixPrecomputer:
         logger.info(f"Estimated memory per chunk: {self.matrix_chunker.estimate_memory_requirements():.2f} MB")
     
     def _setup_output_directory(self, run_name: Optional[str] = None) -> Path:
-        """Setup output directory for this precomputation run"""
-        if run_name is None:
-            # Get date format from configuration
-            date_formats = self.config_manager.get_models_date_formats()
-            date_format = date_formats.get('filename_date_format', '%Y%m%d')
-            datestamp = datetime.now().strftime(date_format)
-            run_name = f"precompute_{datestamp}"
+        """
+        Setup output directory for this precomputation run.
         
-        output_path = Path(self.config.output_dir) / run_name
-        output_path.mkdir(parents=True, exist_ok=True)
+        UPDATED: Now uses ModelVersionManager's daily folder strategy instead of 
+        creating its own timestamped subdirectory.
+        """
+        # NEW APPROACH: Use ModelVersionManager's daily folder strategy
+        from ..models.versioning import ModelVersionManager
         
-        # Setup progress and checkpoint tracking
+        version_manager = ModelVersionManager()
+        output_path = version_manager.setup_output_directory(
+            interactive=False,  # Non-interactive for precompute
+            output_type="similarity_matrix"
+        )
+        
+        logger.info(f"Using daily folder strategy for similarity matrix output: {output_path}")
+
+        # Setup progress and checkpoint tracking in the daily folder
         if self.config.enable_checkpointing:
             self.progress_tracker = SimpleProgressTracker(
                 output_file=output_path / "progress.json"
@@ -196,7 +202,7 @@ class SimilarityMatrixPrecomputer:
             self.checkpoint_manager = SimpleCheckpointManager(
                 checkpoint_file=output_path / "checkpoint.json"
             )
-        
+
         return output_path
     
     def _process_chunk(self, chunk: MatrixChunk) -> pd.DataFrame:

@@ -43,8 +43,15 @@ class ModelVersionManager:
         # Get versioning patterns from configuration
         versioning_config = models_config.get('versioning_patterns', {})
         self.quarterly_pattern = versioning_config.get('quarterly_pattern', '%Y-Q%q')
+        self.daily_pattern = versioning_config.get('daily_pattern', '%Y-%m-%d')
         self.timestamp_pattern = versioning_config.get('timestamp_pattern', '%Y%m%d_%H%M%S')
         self.date_stamp_pattern = versioning_config.get('date_stamp_pattern', '%Y%m%d')
+        
+        # Get daily folder strategy configuration
+        self.daily_strategy = models_config.get('daily_folder_strategy', {})
+        self.daily_enabled = self.daily_strategy.get('enabled', True)
+        self.consolidate_precomputes = self.daily_strategy.get('consolidate_precomputes', True)
+        self.overwrite_within_day = self.daily_strategy.get('overwrite_within_day', True)
         
         # Get validation settings from configuration
         validation_config = self.config_manager.get_models_validation_config()
@@ -59,20 +66,47 @@ class ModelVersionManager:
         quarter = (now.month - 1) // 3 + 1
         return f"{now.year}-Q{quarter}"
     
+    def get_current_daily_folder(self) -> str:
+        """Get current daily folder name using configuration format."""
+        now = datetime.now()
+        return now.strftime(self.daily_pattern)
+    
+    def get_daily_output_directory(self, 
+                                 custom_quarter: Optional[str] = None,
+                                 custom_daily: Optional[str] = None) -> Path:
+        """
+        Get the daily output directory path following the new strategy.
+        
+        Args:
+            custom_quarter: Optional custom quarter (default: current quarter)
+            custom_daily: Optional custom daily folder (default: today)
+            
+        Returns:
+            Path to daily directory: models/2025-Q3/2025-07-10/
+        """
+        quarter = custom_quarter or self.get_current_quarter()
+        daily = custom_daily or self.get_current_daily_folder()
+        
+        return self.base_models_dir / quarter / daily
+    
     def setup_output_directory(self, 
                               interactive: bool = True,
                               custom_path: Optional[str] = None,
                               output_type: Optional[str] = None) -> Path:
         """
-        Set up versioned output directory with conflict resolution.
+        Set up versioned output directory with enhanced daily folder strategy.
+        
+        NEW BEHAVIOR: Returns daily folder path for precompute outputs, quarterly for business_context
         
         Args:
             interactive: Whether to prompt user for conflict resolution
-            custom_path: Optional custom path (overrides quarterly logic)
+            custom_path: Optional custom path (overrides daily/quarterly logic)
             output_type: Type of output (from configuration, defaults to similarity_matrix)
             
         Returns:
-            Path to the output directory to use
+            Path to the appropriate output directory:
+            - Daily folder for precomputes: models/2025-Q3/2025-07-10/
+            - Quarterly folder for business_context: models/2025-Q3/
         """
         # Use configured default output type if none specified
         if output_type is None:
@@ -82,26 +116,129 @@ class ModelVersionManager:
         assert output_type is not None
         
         if custom_path:
-            quarter_dir = Path(custom_path)
-            logger.info(f"Using custom output directory: {quarter_dir}")
+            output_dir = Path(custom_path)
+            logger.info(f"Using custom output directory: {output_dir}")
+            return output_dir
+        
+        # NEW STRATEGY: Check if daily folder strategy is enabled and determine output level
+        if self.daily_enabled and self._should_use_daily_folder(output_type):
+            # Use daily folder for precompute outputs
+            output_dir = self.get_daily_output_directory()
+            logger.info(f"Using daily folder strategy: {output_dir}")
+            
+            # Handle conflicts at daily level if interactive
+            if output_dir.exists() and interactive and not self.overwrite_within_day:
+                output_dir = self._handle_daily_directory_conflict(output_dir, output_type)
+                
         else:
+            # Use quarterly folder for business_context or when daily strategy disabled
             current_quarter = self.get_current_quarter()
-            quarter_dir = self.base_models_dir / current_quarter
-            logger.info(f"Default output location: {quarter_dir}")
+            output_dir = self.base_models_dir / current_quarter
+            logger.info(f"Using quarterly folder: {output_dir}")
+            
+            # Handle conflicts at quarterly level if interactive
+            if output_dir.exists() and interactive:
+                output_dir = self._handle_directory_conflict(output_dir, output_type)
         
-        # Handle conflicts if directory exists and has conflicting output type
-        if quarter_dir.exists() and interactive:
-            quarter_dir = self._handle_directory_conflict(quarter_dir, output_type)
+        # Create appropriate directory structure
+        if self.daily_enabled and self._should_use_daily_folder(output_type):
+            self._create_daily_directory_structure(output_dir)
+        else:
+            # Only create subdirectories for precompute output types, not business_context
+            if output_type != self.output_types.get('business_context', 'business_context'):
+                self._create_directory_structure(output_dir)
+            else:
+                # For business_context, just create the main directory without subdirectories
+                output_dir.mkdir(parents=True, exist_ok=True)
+                logger.debug(f"Created business context directory without subdirectories: {output_dir}")
         
-        # Create directory structure
-        self._create_directory_structure(quarter_dir)
+        # Update current symlink for quarterly directories
+        quarterly_dir = output_dir if not self._should_use_daily_folder(output_type) else output_dir.parent
+        if quarterly_dir.parent == self.base_models_dir:
+            self._update_current_symlink(quarterly_dir)
         
-        # Update current symlink if this is a quarterly version
-        if not custom_path and quarter_dir.parent == self.base_models_dir:
-            self._update_current_symlink(quarter_dir)
+        logger.info(f"Output directory ready: {output_dir}")
+        return output_dir
+    
+    def _should_use_daily_folder(self, output_type: str) -> bool:
+        """
+        Determine if the given output type should use daily folder strategy.
         
-        logger.info(f"Output directory ready: {quarter_dir}")
-        return quarter_dir
+        Args:
+            output_type: Type of output being generated
+            
+        Returns:
+            True if should use daily folder, False for quarterly folder
+        """
+        business_context_type = self.output_types.get('business_context', 'business_context')
+        
+        # Business context stays at quarterly level, everything else goes to daily
+        return output_type != business_context_type
+    
+    def _handle_daily_directory_conflict(self, daily_dir: Path, output_type: str) -> Path:
+        """
+        Handle conflicts when daily directory already exists.
+        
+        Args:
+            daily_dir: The conflicting daily directory path
+            output_type: Type of output being generated
+            
+        Returns:
+            Path to use (may create new daily folder with timestamp)
+        """
+        print(f"[INFO] Daily folder already exists: {daily_dir}")
+        print("Daily folder strategy allows same-day overwrites by default.")
+        
+        if self.overwrite_within_day:
+            print("[INFO] Overwriting files within same day as configured.")
+            return daily_dir
+        
+        print("\nOptions:")
+        print("1. Overwrite files in existing daily folder")
+        print("2. Create new timestamped daily folder")
+        print("3. Cancel and specify custom location")
+        
+        while True:
+            choice = input("Choose option [1/2/3]: ").strip()
+            
+            if choice == '1':
+                print("Will overwrite existing files in daily folder.")
+                return daily_dir
+                
+            elif choice == '2':
+                # Create timestamped variant of daily folder
+                timestamp = datetime.now().strftime(self.timestamp_pattern)
+                timestamped_daily = daily_dir.parent / f"{daily_dir.name}_{timestamp}"
+                print(f"Using timestamped daily folder: {timestamped_daily}")
+                return timestamped_daily
+                
+            elif choice == '3':
+                custom_path = input("Enter custom output directory: ").strip()
+                custom_dir = Path(custom_path)
+                print(f"Using custom location: {custom_dir}")
+                return custom_dir
+                
+            else:
+                print("Please enter 1, 2, or 3.")
+    
+    def _create_daily_directory_structure(self, daily_dir: Path) -> None:
+        """
+        Create the directory structure for daily folders.
+        
+        Args:
+            daily_dir: Daily directory to create (models/2025-Q3/2025-07-10/)
+        """
+        # Create the daily directory
+        daily_dir.mkdir(parents=True, exist_ok=True)
+        
+        # For daily folders, we put files directly in the folder
+        # No subdirectories needed based on the strategy
+        logger.debug(f"Created daily directory structure: {daily_dir}")
+        
+        # Ensure parent quarterly directory has the standard structure too
+        quarterly_dir = daily_dir.parent
+        if not quarterly_dir.exists() or not any(quarterly_dir.iterdir()):
+            self._create_directory_structure(quarterly_dir)
     
     def _handle_directory_conflict(self, quarter_dir: Path, output_type: str) -> Path:
         """

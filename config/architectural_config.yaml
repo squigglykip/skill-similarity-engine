@@ -35,11 +35,11 @@ directories:
 
 # File Configuration
 files:
-  # Core data files
-  skills_comprehensive: "data/skills_library/skills_comprehensive_all_versions.csv"
-  job_skill_mapping: "data/input_data/job_skill_mapping.csv"
-  job_architecture: "data/job_architecture/dummy_job_architecture.csv"
-  workforce_context: "data/workforce_context/dummy_workforce_context.csv"
+  # Core data files (reference core definitions)
+  skills_comprehensive: "${files.skills_comprehensive}"
+  job_skill_mapping: "${files.job_skill_mapping}"
+  job_architecture: "${files.job_architecture}"
+  workforce_context: "${files.workforce_context}"
   
   # Configuration files
   data_sources: "config/data_sources.yaml"
@@ -691,708 +691,135 @@ models:
     validate_proficiency_on_add: true
     validate_proficiency_on_update: true
 
-# Error Handling Configuration
-error_handling:
-  # Failure behaviour
-  fail_fast: false
-  retry_attempts: 3
-  retry_delay_seconds: 1
-  
-  # Recovery settings
-  enable_graceful_degradation: true
-  fallback_to_defaults: true
-  log_all_errors: true
-
-# Performance Monitoring Configuration
-performance:
-  # Monitoring settings
-  enable_memory_monitoring: true
-  enable_timing_metrics: true
-  enable_progress_tracking: true
-  
-  # Resource limits
-  max_memory_usage_gb: 12
-  max_processing_time_hours: 2
-  
-  # Reporting
-  performance_log_interval: 100  # iterations
-  memory_check_interval: 50     # iterations
-
-# Environment Configuration
-environment:
-  # Runtime environment
-  development_mode: false
-  debug_mode: false
-  test_mode: false
-  
-  # Feature flags
-  enable_experimental_features: false
-  enable_advanced_analytics: true
-  enable_web_interface: true
-
-# Integration Configuration
-integration:
-  # External systems
-  enable_hris_adapter: true
-  enable_api_endpoints: true
-  enable_web_app: true
-  
-  # Data sources
-  support_multiple_schemas: true
-  auto_detect_schema: false
-  validate_schema_compatibility: true
-
-# Gap Analysis Configuration
-gap_analysis:
-  # Proficiency thresholds
-  min_proficiency_ratio: 0.8
-  skill_difficulty_factor: 1.0
-  min_gap_threshold: 0.2
-  
-  # Skill development effort calculation
-  base_difficulty_multiplier: 0.5
-  max_difficulty_scale: 5.0
-  default_category_weight: 1.0
-  
-  # Priority thresholds for development effort
-  high_priority_threshold: 3.0
-  medium_priority_threshold: 1.0
-  
-  # Reskilling calculation
-  max_reskilling_scale: 4.0  # Scale 1-5
-  min_reskilling_score: 1.0
-  coverage_percentage_base: 100.0
-  
-  # Category weights for development effort calculation
-  category_weights:
-    "CERTIFICATION": 0.8
-    "COMMON": 1.0
-    "SPECIALIZED": 1.2
-    "Technical": 1.0
-    "Soft": 1.0
-    "Domain": 1.2
-    "Methodology": 1.2
-    "Tool": 1.2
-    "Certification": 0.8
-    "Unknown": 1.0
-
-# Team Analysis Configuration
-team_analysis:
-  # Coverage weights
-  fully_covered_weight: 1.0
-  partially_covered_weight: 0.5
-  coverage_partial_multiplier: 0.5
-  
-  # Difficulty labels
-  reskilling_difficulty_levels:
-    1: "Very Easy"
-    2: "Easy"
-    3: "Moderate"
-    4: "Difficult"
-    5: "Very Difficult"
-
-# Workforce Analysis Configuration
-workforce_analysis:
-  # Reporting limits
-  max_skills_in_report: 20
-  critical_skill_threshold: 3.0
-  department_skill_coverage_threshold: 75.0
-  
-  # Priority labels
-  priority_labels:
-    high: "High"
-    medium: "Medium"
-    low: "Low"
-  
-  # Status labels
-  status_labels:
-    above_required: "Above required"
-    meets_required: "Meets required"
-    not_required: "Not required for target role"
-
-# API Configuration (Lightcast Skills API)
-api:
-  # Lightcast API configuration
-  lightcast:
-    # API endpoints
-    base_url: "https://emsiservices.com/skills"
-    auth_url: "https://auth.emsicloud.com/connect/token"
+  # Position history model settings
+  position_history:
+    # Aggregation method for position history generation
+    aggregation_method: "monthly"
     
-    # Authentication
-    default_scope: "emsi_open"
-    default_credentials_file: "credentials.json"
+    # Include current positions for employees without recent movements
+    include_current_positions: true
     
-    # Rate limiting and timeouts
-    rate_limit_requests_per_second: 5
-    min_request_interval_seconds: 0.2
-    token_expiry_buffer_minutes: 5
-    
-    # API limits
-    max_skills_per_request: 100000
-    fallback_skills_limit: 50000
-    default_page_size: 1000
-    
-    # File extraction configuration
-    output_file_extension: ".csv"
-    use_timestamp_in_output: true
-    csv_quoting_mode: "QUOTE_ALL"
-    
-    # Standard output filenames
-    standard_files:
-      status: "status.csv"
-      metadata: "meta.csv"
-      versions: "versions.csv"
-      version_latest: "version_latest.csv"
-      skills_comprehensive: "skills_comprehensive_all_versions.csv"
-    
-    # Search paths for credentials file
-    credentials_search_paths:
-      - "."
-      - "credentials.json"
-      - "src/skill_similarity_engine/api/credentials.json"
-      - "config/credentials.json"
-
-# Business Context Database Configuration
-business_context:
-  # Database configuration
-  database:
-    default_filename: "business_context.sqlite"
-    schema_version: "1.0"
-    
-  # Data loading configuration
-  data_loading:
-    # Chunk sizes for large datasets
-    default_chunk_size: 1000
-    skills_chunk_size: 10000
-    similarity_chunk_size: 50000
-    
-    # Default data source file paths (relative to data root)
-    default_data_sources:
-      jobs:
-        file_path: "job_architecture/dummy_job_architecture.csv"
-        table_name: "jobs"
-      skills:
-        file_path: "skills_library/lightcast_skills_comprehensive.csv"
-        table_name: "skills"
-        chunk_size: 10000
-      job_skills:
-        file_path: "input_data/job_skill_mapping.csv"
-        table_name: "job_skills"
-      positions:
-        file_path: "workforce_context/dummy_workforce_context.csv"
-        table_name: "positions"
-    
-    # Data validation thresholds
-    expected_minimums:
-      jobs: 500
-      skills: 1000
-      job_skills: 10000
-      positions: 1000
-    
-    # Coverage thresholds (percentages)
-    coverage_thresholds:
-      job_similarity_coverage_min: 95.0
-      job_skills_coverage_min: 90.0
-      job_position_coverage_min: 50.0
-    
-    # Data quality thresholds
-    quality_thresholds:
-      max_null_percentage_default: 25.0
-      max_null_percentage_positions: 50.0  # More lenient for dummy data
-      min_job_function_diversity: 3
-      min_skill_category_diversity: 5
-  
-  # File discovery configuration
-  file_discovery:
-    # Search paths for models directory
-    models_search_paths:
-      - "models"
-      - "data/precomputed"
-    
-    # Search paths for configuration files  
-    config_search_paths:
-      - "config/data_sources.yaml"
-      - "config/business_context_sources.yaml"
-
-# CLI Configuration
-cli:
-  # Default configuration template values
-  default_config_template:
-    # Directory paths
-    data_dir: "./data"
-    output_dir: "./output"
-    
-    # Application settings
-    version: "0.1.0"
-    
-    # Normalisation settings
-    normalisation:
-      min_max_scaling: true
-      boolean_normalisation: false
-      tfidf_weighting: true
-    
-    # Similarity calculation settings
-    similarity:
-      method: "cosine"
-      threshold: 0.7
-    
-    # Gap analysis settings
-    gap_analysis:
-      min_proficiency_ratio: 0.65
-      min_gap_threshold: 0.2
-      category_weights:
-        technical: 0.6
-        soft: 0.3
-        domain: 0.1
-    
-    # Opportunity identification settings
-    opportunity:
-      high_similarity_threshold: 0.8
-      critical_skill_gap_threshold: 0.4
-    
-    # Future extensions (all disabled by default)
-    future_extensions:
-      seniority_weight: 0.0
-      role_track_weight: 0.0
-      location_weight: 0.0
-  
-  # CLI output formatting
-  output_formats:
-    default: "yaml"
-    supported: ["json", "yaml"]
-  
-  # Configuration file settings
-  config_files:
-    default_filename: "config.yaml"
-    backup_extension: ".backup"
-
-# Configuration Module Settings
-configuration_management:
-  # Configuration file discovery and naming
-  file_discovery:
-    # Search patterns for configuration files
-    config_search_paths:
-      - "config"
-      - "../config"
-      - "../../config"
-      - "../../../config"
-      - "../../../../config"
-    
-    # Default configuration filenames
-    default_filenames:
-      field_mapping: "field_mapping.yaml"
-      data_field_mappings: "data_field_mappings.yaml"
-      operational_config: "operational_config.yaml"
-      data_sources: "data_sources.yaml"
-      data_sources_legacy: "data_sources_legacy.yaml"
-      hris_config: "hris_config.yaml"
-      similarity_enhancement_factors: "similarity_enhancement_factors.yaml"
-      main_config: "config.yaml"
-    
-    # File extensions to search for
-    supported_extensions: [".yaml", ".yml", ".json"]
-  
-  # Logging configuration for config modules
-  logging:
-    default_level: "INFO"
-    log_warnings: true
-    log_fallback_usage: true
-    debug_config_loading: false
-  
-  # Fallback and error handling
-  fallback_handling:
-    enable_fallback: true
-    case_sensitive: false
-    use_defaults_on_missing: true
-    log_missing_configs: true
-  
-  # Default data source paths (legacy compatibility)
-  legacy_data_sources:
-    jobs_file: "data/jobs.csv"
-    skills_file: "data/skills.csv"
-    employees_file: "data/employees.csv"
-    output_dir: "data/transformed"
-  
-  # Default performance settings for config loading
-  performance:
-    chunk_size_default: 10000
-    cache_configs: true
-    lazy_loading: true
-
-# Data Module Configuration
-data:
-  # Data loading performance settings
-  loading:
-    # Default chunk sizes for different operations
-    chunk_sizes:
-      default: 10000
-      skill_taxonomy: 5000
-      job_architecture: 8000
-      employee_data: 10000
-      large_datasets: 15000
-      memory_constrained: 2000
-    
-    # Progress tracking settings
-    progress_tracking:
-      show_progress_bars: true
-      update_frequency: 1000
-      log_progress: true
+    # Organizational context fields to include in position history
+    organizational_context_fields:
+      - "division"
+      - "business_unit"
+      - "team"
+      - "location"
+      - "region"
+      - "employee_group"
+      - "salary_group"
     
     # Validation settings
     validation:
-      enable_by_default: true
-      log_validation_failures: true
-      continue_on_validation_error: true
-  
-  # Data normalisation configuration
-  normalisation:
-    # Min-max scaling settings
-    min_max_scaling:
-      enabled: true
-      min_value: 0
-      max_value: 5
-      target_min: 0.0
-      target_max: 1.0
+      require_employee_number: true
+      require_position_number: true
+      require_effective_date: true
+      check_date_consistency: true
+      min_position_duration_days: 1
     
-    # Boolean normalisation settings
-    boolean_normalisation:
-      enabled: false
-      threshold: 1
-    
-    # TF-IDF weighting settings
-    tfidf_weighting:
-      enabled: true
-      smoothing_factor: 1
-      log_base: "natural"  # "natural" or "log10"
-    
-    # Category weighting settings
-    category_weighting:
-      enabled: true
-      default_weight: 1.0
-      # Category-specific weights (can be overridden)
-      importance_weights:
-        technical: 1.0
-        soft: 0.8
-        domain: 0.9
-        leadership: 1.1
-        other: 1.0
-  
-  # Data export settings
-  export:
-    default_format: "csv"
-    supported_formats: ["csv", "excel", "parquet", "json"]
-    excel_settings:
-      default_sheet_names:
-        skills: "Skills"
-        categories: "Categories"
-        jobs: "Jobs"
-        job_skills: "JobSkills"
-        employees: "Employees"
-        employee_skills: "EmployeeSkills"
-    
-    # File naming conventions
-    naming:
-      timestamp_format: "%Y%m%d_%H%M%S"
-      include_timestamp: true
-      backup_extension: ".backup"
+    # Data quality settings
+    data_quality:
+      remove_duplicate_periods: true
+      merge_overlapping_periods: true
+      fill_position_gaps: false
+      validate_temporal_consistency: true
 
-# Data Validation Configuration
-data_validation:
-  # Schema file configuration
-  schema_files:
-    # Default schema file names
-    default_schema_filename: "data_validation_schema.yaml"
+  # Movement fact table builder settings
+  movement_fact:
+    # Aggregation settings - following PTH's proven patterns
+    aggregation_level: "monthly"
     
-    # Search paths for schema files
-    schema_search_paths:
-      - "config"
-      - "../config"
-      - "../../config"
-      - "../../../config"
-      - "../../../../config"
+    # PTH-style fact table generation
+    include_percentages: true
+    include_tenure_metrics: true
     
-    # Alternative schema file names to search for
-    alternative_schema_names:
-      - "data_validation_schema.yaml"
-      - "validation_schema.yaml"
-      - "schema.yaml"
-  
-  # Validation behaviour configuration
-  validation_behaviour:
-    # Default validation settings
-    strict_mode: false
-    fail_fast: false
-    log_validation_failures: true
-    continue_on_validation_error: true
+    # Position Number aggregation (not PosIDLookupKey)
+    use_position_number_aggregation: true
     
-    # Field name normalisation
-    normalise_field_names: true
-    case_sensitive_field_matching: false
+    # Fact table columns to generate
+    fact_table_columns:
+      - "Movement_Month"
+      - "Movement_Year"
+      - "From_Position"
+      - "To_Position"
+      - "Movement_Pattern"
+      - "Movement_Count"
+      - "Unique_Employees"
+      - "Monthly_Total_Movements"
+      - "Pct_Total_Movements"
+      - "Avg_Days_Between"
+      - "Min_Days_Between"
+      - "Max_Days_Between"
     
-    # Error handling
-    max_validation_errors: 1000
-    error_summary_threshold: 50
-
-# Error Handling Configuration
-error_handling:
-  # Checkpoint configuration
-  checkpoints:
-    # Default checkpoint settings
-    auto_checkpoint_interval: 100
-    checkpoint_file_extension: ".checkpoint"
-    default_checkpoint_dir: "checkpoints"
-    create_dir_if_missing: true
+    # Validation settings
+    validation:
+      require_movement_data: true
+      require_position_identifiers: true
+      require_temporal_data: true
+      min_movement_count: 1
     
-    # Checkpoint naming patterns
-    naming:
-      run_prefix: "run_"
-      date_format: "%Y%m%d_%H%M%S"
-      batch_checkpoint_filename: "batch_checkpoint.json"
-  
-  # Recovery and retry configuration
-  recovery:
-    # Retry mechanism defaults
-    max_retry_attempts: 3
-    initial_delay_seconds: 1.0
-    backoff_factor: 2.0
-    
-    # Circuit breaker defaults
-    circuit_breaker:
-      failure_threshold: 3
-      recovery_timeout_seconds: 10
-      
-    # Recovery strategy defaults
-    enable_fallback: true
-    escalate_after_fallback: false
-    log_recovery_attempts: true
-  
-  # Error registry configuration
-  registry:
-    # Export settings
-    export_formats: ["json", "csv"]
-    default_export_format: "json"
-    export_directory: "error_reports"
-    
-    # Error categorisation
-    auto_categorise_errors: true
-    log_all_registrations: true
-    
-    # Error filtering and limits
-    max_errors_per_category: 1000
-    error_summary_threshold: 50
-  
-  # Directory structure configuration
-  directories:
-    # Log directory structure
-    log_root: "logs"
-    checkpoint_subdir: "checkpoints"
-    error_reports_subdir: "error_reports"
-    
-    # Run directory patterns
-    run_directory_format: "run_{timestamp}"
-    incomplete_run_detection: true
-
-# Logging Configuration
-logging:
-  # Core logging settings
-  core:
-    # Default logger configuration
-    default_logger_name: "skill_similarity_engine"
-    default_log_level: "INFO"
-    environment_variable: "LOG_LEVEL"
-    
-    # Log file settings
-    default_log_filename: "engine.log"
-    create_dirs_if_missing: true
-    
-  # Directory structure configuration
-  directories:
-    # Root log directory (relative to project root)
-    log_root: "log"
-    relative_path_from_logging_module: "../../../log"
-    
-    # Run directory configuration
-    run_directory_format: "run_{timestamp}"
-    timestamp_format: "%Y%m%d_%H%M%S"
-    
-    # Standard run subdirectories
-    run_subdirectories:
-      - "logs"
-      - "errors" 
-      - "checkpoints"
-      - "progress"
-      - "validation"
-      - "metrics"
-      
-    # Directory creation settings
-    create_run_subdirs: true
-    make_dirs_exist_ok: true
-  
-  # Formatter configuration
-  formatters:
-    # Available formatter types
-    available_types: ["console", "detailed", "json"]
-    default_formatter: "console"
-    
-    # Console formatter settings
-    console:
-      format_string: "%(asctime)s - %(levelname)s - %(message)s"
-      date_format: "%Y-%m-%d %H:%M:%S"
-      
-    # Detailed formatter settings  
-    detailed:
-      format_string: "%(asctime)s - %(levelname)s - %(name)s - %(module)s:%(lineno)d - %(message)s"
-      date_format: "%Y-%m-%d %H:%M:%S"
-      
-    # JSON formatter settings
-    json:
-      include_fields: ["time", "level", "name", "message", "module", "line"]
-      date_format: "%Y-%m-%d %H:%M:%S"
-      ensure_ascii: false
-      indent: null
-  
-  # Handler configuration
-  handlers:
-    # Console handler defaults
-    console:
-      enabled: true
-      stream_type: "stderr"  # or "stdout"
-      
-    # File handler defaults
-    file:
-      enabled_by_default: false
-      mode: "a"  # append mode
-      encoding: "utf-8"
-      
-  # Structured logging configuration
-  structured:
-    # Log level validation
-    valid_levels: ["debug", "info", "warning", "error", "critical"]
-    default_structured_level: "info"
-    
-    # Context field limits
-    max_context_fields: 20
-    max_field_length: 1000
-
-# Security Configuration (future extension)
-security:
-  # Data protection
-  anonymize_employee_data: false
-  encrypt_sensitive_fields: false
-  audit_data_access: false
-  
-  # Access control
-  require_authentication: false
-  role_based_access: false
-  api_key_authentication: false
-
-# Models Configuration
-models:
-  # Core model directory settings
-  directories:
-    base_models_dir: "models"
-    current_symlink_name: "current"
-    similarity_matrices_subdir: "similarity_matrices"
-    metadata_subdir: "metadata"
-    validation_subdir: "validation"
-    exports_subdir: "exports"
-    powerbi_ready_subdir: "exports/powerbi_ready"
-    department_analyses_subdir: "exports/department_analyses"
-    movement_analysis_subdir: "movement_analysis"
-  
-  # Export configuration
-  export_settings:
-    parquet_export:
-      index: false
-      compression: "snappy"
-      engine: "pyarrow"
-    csv_export:
-      index: false
-      encoding: "utf-8"
-  
-  # Date format configuration
-  date_formats:
-    movement_date_format: "%Y-%m-%d"
-    iso_format: "%Y-%m-%d"
-    run_timestamp_format: "%Y%m%d_%H%M%S"
-    metadata_timestamp_format: "%Y-%m-%d %H:%M:%S"
-  
-  # Movement analysis specific configuration
-  movement_analysis:
-    progress_reporting_interval: 10000
-    memory_usage_reporting: true
-    enrichment_rate_calculation: true
-    enrichment_percentage_multiplier: 100
-    include_arterial_routes: true
-    min_arterial_frequency: 2
-    calculate_movement_metrics: true
-    include_journey_analysis: true
-  
-  # Precompute configuration
-  precompute:
+    # Performance settings
+    performance:
+      enable_progress_reporting: true
+      progress_interval: 1000
     enable_memory_monitoring: true
-    memory_warning_threshold_mb: 1000
-    export_individual_movements: true
-    export_movement_summary: true
-    export_metadata: true
+      chunk_processing: true
+
+# Position enrichment pipeline settings (PTH integration)
+position_enrichment:
+  # Data source paths
+  data_sources:
+    colleague_positions_dir: "data/colleague_positions_history"
+    positions_history_dir: "data/positions_history"
+    colleague_positions_pattern: "d_colleague_positions_fy*.csv"
+    positions_pattern: "d_positions_fy*.csv"
   
-  # Skill type configuration
-  skill_types:
-    # Type mappings for string to enum conversion
-    type_mappings:
-      "common": "COMMON"
-      "common skill": "COMMON"
-      "specialized": "SPECIALIZED"
-      "specialized skill": "SPECIALIZED"
-      "certification": "CERTIFICATION"
-      "certification skill": "CERTIFICATION"
-      "technical": "SPECIALIZED"
-      "soft": "COMMON"
-      "domain": "SPECIALIZED"
-      "methodology": "SPECIALIZED"
-      "tool": "SPECIALIZED"
-    
-    # Default configuration
-    default_type: "COMMON"
-    enable_fallback: true
-    case_sensitive: false
-    handle_nan_values: true
-    enum_prefix_handling: true
+  # Enrichment strategy
+  enrichment_strategy:
+    # Primary enrichment: colleague_positions + positions via PosIDLookupKey
+    merge_key: "PosIDLookupKey"
+    position_identifier_priority: ["Position Number", "pos_id_lookup_key"]
+    preserve_temporal_data: true
+    include_organizational_context: true
   
-  # Validation configuration
-  validation:
-    # Category validation rules
-    category_validation:
-      require_category_id: true
-      require_category_name: true
-      min_category_id_length: 1
-      min_category_name_length: 1
-    
-    # Skill validation rules
-    skill_validation:
-      require_skill_id: true
-      require_skill_name: true
-      min_skill_id_length: 1
-      min_skill_name_length: 1
-      debug_skill_type_conversion: false
+  # Field mappings for enrichment
+  colleague_positions_fields:
+    week_ending: "Week Ending"
+    employee_number: "Employee Number"
+    operational: "Operational"
+    position_start_date: "Position Start Date"
+    pos_id_lookup_key: "PosIDLookupKey"
+    position_number: "Position Number"  # May be null, enriched from positions
   
-  # Skills taxonomy configuration
-  skills_taxonomy:
-    # Search configuration
-    search:
-      case_sensitive: false
-      search_aliases: true
-      search_description: true
-      search_name: true
-    
-    # File loading configuration
-    file_loading:
-      supported_formats: [".csv", ".json"]
-      duplicate_handling: "skip_with_warning"  # options: skip_with_warning, warn, error, replace
-      debug_duplicates: false
-    
-    # List parsing configuration
-    list_parsing:
-      primary_delimiter: ","
-      secondary_delimiter: ";"
-      strip_whitespace: true 
+  positions_fields:
+    week_ending: "Week Ending"
+    position_number: "Position Number"  # The actual position identifier we need
+    pos_id_lookup_key: "PosIDLookupKey"  # Linking key
+    organisational_unit: "Organisational Unit"
+    cost_centre_number: "Cost Centre Number"
+    position_title: "Position Title"
+    people_leader_number: "People Leader"
+    operational: "Operational"
+    org_unit_lookup_key: "OrgUnitIDLookupKey"
+  
+  # Data quality settings
+  data_quality:
+    require_successful_enrichment_rate: 0.8  # 80% of colleague positions must be enriched
+    validate_position_number_presence: true
+    log_enrichment_failures: true
+    handle_missing_positions: "warn"  # warn, error, ignore
+  
+  # Performance settings
+  performance:
+    chunk_size: 50000
+    enable_progress_reporting: true
+    progress_interval: 10000
+    memory_efficient_merge: true
+    cache_position_mappings: true
+  
+  # Temporal consistency settings
+  temporal_consistency:
+    validate_date_alignment: true
+    allow_date_tolerance_days: 7  # Allow 7-day tolerance for date matching
+    prefer_exact_date_matches: true
+    handle_multiple_matches: "most_recent"  # most_recent, closest_date, error 

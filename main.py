@@ -25,6 +25,7 @@ from skill_similarity_engine.cli.commands import (
 )
 from skill_similarity_engine.workflows.session_manager import get_session_manager
 from skill_similarity_engine.business_context import BusinessContextOrchestrator
+from skill_similarity_engine.config.architectural_config_manager import get_config_manager
 
 # Welcome banner
 BANNER = r'''
@@ -88,7 +89,7 @@ class ModularMenuOrchestrator:
         
         print("\nPlease select an option:")
         print("1. Precompute Skill Similarities")
-        print("2. Generate Business Context Database")
+        print("2. Generate Workforce Intelligence Database")
         print("3. Query Skill Similarities (coming soon)")
         print("0. Exit")
         
@@ -190,14 +191,35 @@ class ModularMenuOrchestrator:
             self.logger.error(f"Query command failed: {e}")
             print(f"❌ Command execution failed: {e}")
     
-    def handle_business_context(self) -> None:
-        """Handle business context database generation using existing orchestrator."""
+    def handle_workforce_intelligence(self) -> None:
+        """Handle workforce intelligence database generation using existing orchestrator."""
         try:
-            orchestrator = BusinessContextOrchestrator()
-            orchestrator.handle_business_context_menu()
+            # Get configuration paths from architectural config manager (ONLY place with config knowledge)
+            config_manager = get_config_manager()
+            config_search_paths = config_manager.get_nested_value(
+                'business_context', 'database', 'file_discovery', 'config_search_paths',
+                default=[]
+            )
+            
+            # Find the actual config file path
+            data_config_path = None
+            for search_path in config_search_paths:
+                path = Path(search_path)
+                if path.exists():
+                    data_config_path = str(path)
+                    break
+            
+            if not data_config_path:
+                print(f"❌ Configuration file not found. Searched paths: {config_search_paths}")
+                print("Please ensure config/data/sources.yaml exists.")
+                return
+            
+            # Pass explicit config path to orchestrator (dependency injection)
+            orchestrator = BusinessContextOrchestrator(data_config_path=data_config_path)
+            orchestrator.handle_workforce_intelligence_menu()
         except Exception as e:
-            self.logger.error(f"Business context menu error: {e}")
-            print(f"❌ Business context menu failed: {e}")
+            self.logger.error(f"Workforce intelligence menu error: {e}")
+            print(f"❌ Workforce intelligence menu failed: {e}")
     
     def run_precompute_menu(self) -> None:
         """Run the precompute submenu loop."""
@@ -225,7 +247,7 @@ class ModularMenuOrchestrator:
             if choice == '1':
                 self.run_precompute_menu()
             elif choice == '2':
-                self.handle_business_context()
+                self.handle_workforce_intelligence()
             elif choice == '3':
                 self.handle_query_similarities()
             elif choice == '0':

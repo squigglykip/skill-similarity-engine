@@ -61,6 +61,12 @@ class SchemaBuilder:
                 self._create_job_skills_table(conn)
                 self._create_career_pathways_table(conn)
                 
+                # Create movement analysis tables
+                self._create_colleague_movements_table(conn)
+                self._create_position_history_table(conn)
+                self._create_workforce_context_table(conn)
+                self._create_movement_fact_table(conn)
+                
                 # Create performance indexes
                 self._create_indexes(conn)
                 
@@ -77,7 +83,11 @@ class SchemaBuilder:
     
     def _drop_existing_tables(self, conn: sqlite3.Connection) -> None:
         """Drop all existing tables in dependency order."""
-        tables = ['job_skills', 'job_similarities', 'career_pathways', 'positions', 'skills', 'jobs', 'schema_metadata']
+        tables = [
+            'job_skills', 'job_similarities', 'career_pathways', 
+            'colleague_movements', 'position_history', 'workforce_context', 'movement_fact',
+            'positions', 'skills', 'jobs', 'schema_metadata'
+        ]
         
         for table in tables:
             try:
@@ -239,6 +249,96 @@ class SchemaBuilder:
         conn.execute(sql)
         logger.debug("Created career_pathways table")
     
+    def _create_colleague_movements_table(self, conn: sqlite3.Connection) -> None:
+        """Create colleague_movements table - Pre-computed colleague movement data."""
+        sql = """
+        CREATE TABLE colleague_movements (
+            movement_id INTEGER PRIMARY KEY,
+            employee_number TEXT NOT NULL,
+            jobprofile_id TEXT NOT NULL,
+            movement_type TEXT NOT NULL,
+            movement_date DATE NOT NULL,
+            effective_date DATE NOT NULL,
+            end_date DATE,
+            change_reason TEXT,
+            
+            FOREIGN KEY (employee_number) REFERENCES positions("Employee Number"),
+            FOREIGN KEY (jobprofile_id) REFERENCES jobs(JobProfileID)
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created colleague_movements table")
+
+    def _create_position_history_table(self, conn: sqlite3.Connection) -> None:
+        """Create position_history table - Historical position data from CSV files."""
+        sql = """
+        CREATE TABLE position_history (
+            week_ending DATE,
+            position_number TEXT NOT NULL,
+            position_id_lookup_key TEXT,
+            organisational_unit TEXT,
+            cost_centre_number TEXT,
+            position_title TEXT,
+            people_leader TEXT,
+            operational TEXT,
+            org_unit_id_lookup_key TEXT
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created position_history table")
+
+    def _create_workforce_context_table(self, conn: sqlite3.Connection) -> None:
+        """Create workforce_context table - Workforce context and organisational hierarchy data."""
+        sql = """
+        CREATE TABLE workforce_context (
+            week_ending DATE,
+            position_number TEXT NOT NULL,
+            position_name TEXT,
+            employee_number TEXT,
+            employee_name TEXT,
+            location TEXT,
+            region TEXT,
+            country TEXT,
+            employee_group TEXT,
+            salary_group TEXT,
+            division TEXT,
+            business_unit TEXT,
+            team TEXT,
+            sub_team TEXT,
+            function TEXT,
+            sub_function TEXT,
+            org_level_8 TEXT,
+            org_level_9 TEXT,
+            org_level_10 TEXT
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created workforce_context table")
+    
+    def _create_movement_fact_table(self, conn: sqlite3.Connection) -> None:
+        """Create movement_fact table - Aggregated movement patterns for strategic analysis."""
+        sql = """
+        CREATE TABLE movement_fact (
+            fact_id INTEGER PRIMARY KEY,
+            movement_month TEXT NOT NULL,
+            movement_year INTEGER NOT NULL,
+            from_position TEXT NOT NULL,
+            to_position TEXT NOT NULL,
+            movement_pattern TEXT NOT NULL,
+            movement_count INTEGER NOT NULL,
+            pct_total_movements REAL,
+            unique_employees INTEGER NOT NULL,
+            avg_days_between REAL,
+            monthly_total_movements INTEGER NOT NULL,
+            predominant_movement_type TEXT,
+            
+            -- Indexes for performance
+            UNIQUE(movement_month, from_position, to_position)
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created movement_fact table for aggregated movement patterns")
+    
     def _create_indexes(self, conn: sqlite3.Connection) -> None:
         """Create performance indexes for webapp queries."""
         indexes = [
@@ -268,7 +368,15 @@ class SchemaBuilder:
             # Skills analysis
             "CREATE INDEX idx_job_skills_job ON job_skills(JobProfileID);",
             "CREATE INDEX idx_job_skills_skill ON job_skills(Skill_ID);",
-            "CREATE INDEX idx_skills_category ON skills(Category, Subcategory);"
+            "CREATE INDEX idx_skills_category ON skills(Category, Subcategory);",
+
+            # Movement analysis indexes
+            "CREATE INDEX idx_colleague_movements_employee ON colleague_movements(employee_number);",
+            "CREATE INDEX idx_colleague_movements_job ON colleague_movements(jobprofile_id);",
+            "CREATE INDEX idx_position_history_employee ON position_history(employee_number);",
+            "CREATE INDEX idx_position_history_job ON position_history(jobprofile_id);",
+            "CREATE INDEX idx_workforce_context_employee ON workforce_context(employee_number);",
+            "CREATE INDEX idx_workforce_context_job ON workforce_context(jobprofile_id);",
         ]
         
         for index_sql in indexes:
@@ -304,6 +412,144 @@ class SchemaBuilder:
         )
         logger.debug("Added schema metadata")
     
+    def check_schema_version(self) -> Optional[str]:
+        """Check current schema version."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
+                )
+                result = cursor.fetchone()
+                return result[0] if result else None
+        except sqlite3.Error:
+            return None
+    
+    def migrate_schema(self, target_version: str) -> bool:
+        """Migrate schema to target version."""
+        current_version = self.check_schema_version()
+        
+        if current_version == target_version:
+            logger.info(f"Schema already at version {target_version}")
+            return True
+        
+        logger.info(f"Migrating schema from {current_version} to {target_version}")
+        
+        # Define migration paths
+        migrations = {
+            ("1.0", "1.1"): self._migrate_1_0_to_1_1,
+            ("1.1", "1.2"): self._migrate_1_1_to_1_2,
+        }
+        
+        migration_key = (current_version, target_version)
+        if migration_key in migrations:
+            return migrations[migration_key]()
+        else:
+            logger.error(f"No migration path from {current_version} to {target_version}")
+            return False
+    
+    def _migrate_1_0_to_1_1(self) -> bool:
+        """Migrate from version 1.0 to 1.1 - Add temporal tables."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Add position history table
+                conn.execute("""
+                    CREATE TABLE position_history (
+                        history_id INTEGER PRIMARY KEY,
+                        employee_number TEXT NOT NULL,
+                        position_number TEXT NOT NULL,
+                        jobprofile_id TEXT,
+                        effective_date DATE NOT NULL,
+                        end_date DATE,
+                        change_type TEXT,
+                        
+                        FOREIGN KEY (employee_number) REFERENCES positions("Employee Number"),
+                        FOREIGN KEY (jobprofile_id) REFERENCES jobs(JobProfileID)
+                    );
+                """)
+                
+                # Add org history table
+                conn.execute("""
+                    CREATE TABLE org_history (
+                        org_history_id INTEGER PRIMARY KEY,
+                        org_unit_id TEXT NOT NULL,
+                        org_unit_name TEXT NOT NULL,
+                        parent_org_unit_id TEXT,
+                        org_level INTEGER,
+                        effective_date DATE NOT NULL,
+                        end_date DATE,
+                        change_reason TEXT
+                    );
+                """)
+                
+                # Update schema version
+                conn.execute(
+                    "UPDATE schema_metadata SET value = '1.1' WHERE key = 'schema_version'"
+                )
+                
+                conn.commit()
+                logger.info("Successfully migrated to schema version 1.1")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Migration to 1.1 failed: {e}")
+            return False
+    
+    def _migrate_1_1_to_1_2(self) -> bool:
+        """Migrate from version 1.1 to 1.2 - Add ML tables."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Add ML model metadata table
+                conn.execute("""
+                    CREATE TABLE ml_models (
+                        model_id INTEGER PRIMARY KEY,
+                        model_name TEXT NOT NULL,
+                        model_type TEXT NOT NULL,
+                        version TEXT NOT NULL,
+                        parameters JSON,
+                        performance_metrics JSON,
+                        training_date DATE,
+                        is_active BOOLEAN DEFAULT 1
+                    );
+                """)
+                
+                # Add skills clustering tables
+                conn.execute("""
+                    CREATE TABLE skills_clusters (
+                        cluster_id INTEGER PRIMARY KEY,
+                        cluster_name TEXT,
+                        cluster_description TEXT,
+                        model_version TEXT,
+                        created_date DATE,
+                        
+                        FOREIGN KEY (model_version) REFERENCES ml_models(version)
+                    );
+                """)
+                
+                conn.execute("""
+                    CREATE TABLE skill_cluster_membership (
+                        skill_id TEXT,
+                        cluster_id INTEGER,
+                        membership_score REAL,
+                        
+                        PRIMARY KEY (skill_id, cluster_id),
+                        FOREIGN KEY (skill_id) REFERENCES skills(Skill_ID),
+                        FOREIGN KEY (cluster_id) REFERENCES skills_clusters(cluster_id)
+                    );
+                """)
+                
+                # Update schema version
+                conn.execute(
+                    "UPDATE schema_metadata SET value = '1.2' WHERE key = 'schema_version'"
+                )
+                
+                conn.commit()
+                logger.info("Successfully migrated to schema version 1.2")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Migration to 1.2 failed: {e}")
+            return False
+    
     def validate_schema(self) -> bool:
         """
         Validate that schema was created correctly.
@@ -314,7 +560,10 @@ class SchemaBuilder:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 # Check all required tables exist
-                required_tables = ['jobs', 'job_similarities', 'positions', 'skills', 'job_skills']
+                required_tables = [
+                    'jobs', 'job_similarities', 'positions', 'skills', 'job_skills', 'career_pathways',
+                    'colleague_movements', 'position_history', 'workforce_context', 'movement_fact'
+                ]
                 
                 cursor = conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"

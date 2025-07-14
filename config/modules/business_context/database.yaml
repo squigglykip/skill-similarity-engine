@@ -6,7 +6,7 @@
 
 # Database configuration
 database:
-  default_filename: "business_context.sqlite"
+  default_filename: "workforce_intelligence.sqlite"
   schema_version: "1.0"
 
 # File discovery configuration
@@ -18,5 +18,5 @@ file_discovery:
   
   # Search paths for configuration files  
   config_search_paths:
-    - "config/data_sources.yaml"
+    - "config/data/sources.yaml"
     - "config/business_context_sources.yaml" 
