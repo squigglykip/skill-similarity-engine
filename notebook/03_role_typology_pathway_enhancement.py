@@ -30,6 +30,7 @@ from pathlib import Path
 from scipy import stats
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -45,7 +46,13 @@ sns.set_palette("husl")
 class AnalysisConfig:
     # Database configuration
     DATABASE_PATH = 'models/2025-Q3/workforce_intelligence.sqlite'
+    # Movement data path - supports both .csv and .parquet formats
     MOVEMENT_DATA_PATH = 'data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv'
+    
+    # USAGE EXAMPLES:
+    # For CSV: 'data/movement_data.csv'
+    # For Parquet: 'data/movement_data.parquet'
+    # File format is automatically detected by extension
     
     # Primary analysis feature
     PRIMARY_FEATURE = 'from_job_sub_function'
@@ -136,6 +143,74 @@ def print_config_summary():
     print(f"   → Silo Threshold: {config['silo_diversity_threshold']:.2f}")
     print(f"   → Pathway Weights: {config['pathway_weights']}")
 
+def calculate_aggressive_recency_weight(movement_date, reference_date=None, decay_rate=0.4):
+    """
+    Aggressive decay for fast-changing banking environment
+    decay_rate=0.4 means each year back loses 60% of relevance
+    """
+    if reference_date is None:
+        reference_date = datetime.now()
+    
+    # Convert to pandas datetime for consistent handling
+    movement_date = pd.to_datetime(movement_date)
+    reference_date = pd.to_datetime(reference_date)
+    
+    # Calculate years difference
+    days_diff = (reference_date - movement_date).days
+    years_ago = days_diff / 365.25
+    
+    weight = decay_rate ** years_ago
+    
+    return max(weight, 0.05)  # Minimum weight threshold
+
+def create_clean_movement_dataset(movement_df, job_arch_df):
+    """
+    Conservative null exclusion with steep recency weighting
+    """
+    original_count = len(movement_df)
+    
+    # Step 1: Only keep movements where both positions exist in current job arch
+    clean_df = movement_df.dropna(subset=['JobProfileID_from', 'JobProfileID_to'])
+    
+    current_job_profiles = set(job_arch_df['JobProfileID'].unique())
+    clean_df = clean_df[
+        clean_df['JobProfileID_from'].isin(current_job_profiles) &
+        clean_df['JobProfileID_to'].isin(current_job_profiles)
+    ]
+    
+    # Step 2: Apply aggressive recency weighting
+    # Convert movement_date if needed
+    if 'movement_date' in clean_df.columns:
+        clean_df['recency_weight'] = clean_df['movement_date'].apply(
+            calculate_aggressive_recency_weight
+        )
+    elif 'movement_year' in clean_df.columns:
+        # Create date from year
+        clean_df['movement_date'] = pd.to_datetime(clean_df['movement_year'], format='%Y')
+        clean_df['recency_weight'] = clean_df['movement_date'].apply(
+            calculate_aggressive_recency_weight
+        )
+    else:
+        print("⚠️  No date column found, using uniform weights")
+        clean_df['recency_weight'] = 1.0
+    
+    # Step 3: Filter out movements with negligible weight
+    clean_df = clean_df[clean_df['recency_weight'] >= 0.01]
+    
+    # Simple retention reporting by year
+    if 'movement_year' in movement_df.columns:
+        print("Data retention by year:")
+        for year in sorted(movement_df['movement_year'].unique()):
+            original_year = len(movement_df[movement_df['movement_year'] == year])
+            clean_year = len(clean_df[clean_df['movement_year'] == year])
+            retention = (clean_year / original_year * 100) if original_year > 0 else 0
+            print(f"  {year}: {retention:.1f}%")
+    
+    total_retention = len(clean_df) / original_count * 100
+    print(f"Overall retention: {total_retention:.1f}%")
+    
+    return clean_df
+
 def calculate_diversity_score(transition_counts):
     """
     Calculate Shannon diversity index for transition patterns.
@@ -160,14 +235,54 @@ def calculate_diversity_score(transition_counts):
     
     return entropy / max_entropy if max_entropy > 0 else 0.0
 
-def load_movement_data():
-    """Load movement data from configured path"""
+def load_movement_data_flexible(file_path):
+    """
+    Load movement data from either CSV or Parquet format
+    Automatically detects file type based on extension
+    """
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"Movement data file not found: {file_path}")
+    
+    file_extension = file_path.suffix.lower()
+    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+    
+    print(f"📁 Loading movement data from: {file_path}")
+    print(f"📊 File size: {file_size_mb:.1f} MB")
+    print(f"📄 File type: {file_extension}")
+    
     try:
-        movement_df = pd.read_csv(AnalysisConfig.MOVEMENT_DATA_PATH)
-        print(f"📁 Loaded movement data from: {AnalysisConfig.MOVEMENT_DATA_PATH}")
-        return movement_df
+        if file_extension == '.csv':
+            # Handle CSV files with chunking for large files
+            if file_size_mb > 100:  # If larger than 100MB, use chunking
+                print(f"   → Large CSV file detected, using chunked loading...")
+                chunk_list = []
+                for chunk in pd.read_csv(file_path, chunksize=50000):
+                    chunk_list.append(chunk)
+                df = pd.concat(chunk_list, ignore_index=True)
+            else:
+                df = pd.read_csv(file_path)
+                
+        elif file_extension == '.parquet':
+            # Handle Parquet files (naturally efficient)
+            df = pd.read_parquet(file_path)
+            
+        else:
+            raise ValueError(f"Unsupported file format: {file_extension}. Supported formats: .csv, .parquet")
+        
+        print(f"✅ Successfully loaded {len(df):,} records")
+        return df
+        
+    except Exception as e:
+        raise RuntimeError(f"Failed to load movement data from {file_path}: {str(e)}")
+
+def load_movement_data():
+    """Load movement data from configured path with flexible format support"""
+    try:
+        return load_movement_data_flexible(AnalysisConfig.MOVEMENT_DATA_PATH)
     except FileNotFoundError:
-        raise FileNotFoundError(f"Could not find movement data CSV: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+        raise FileNotFoundError(f"Could not find movement data file: {AnalysisConfig.MOVEMENT_DATA_PATH}")
 
 def load_database():
     """Connect to database from configured path"""
@@ -251,6 +366,10 @@ def enrich_movement_data(movement_df, conn):
     
     print(f"✅ Enriched dataset: {len(enriched_df):,} records")
     print(f"✅ Merge success rate: {merge_success_rate*100:.1f}%")
+    
+    # Apply aggressive recency weighting and conservative null exclusion
+    print("🔄 Applying aggressive recency weighting and conservative null exclusion...")
+    enriched_df = create_clean_movement_dataset(enriched_df, jobs_df)
     
     return enriched_df
 
@@ -454,9 +573,13 @@ def main():
         
         # Calculate movement counts per job sub-function to identify top quartile
         movement_counts = analysis_df.groupby(AnalysisConfig.PRIMARY_FEATURE).size()
-        movement_counts = movement_counts.sort_values(ascending=False)
-        top_quartile_cutoff = movement_counts.quantile(0.75)
-        top_quartile_features = movement_counts[movement_counts >= top_quartile_cutoff].index.tolist()
+        # Convert to DataFrame for easier sorting
+        movement_counts_df = movement_counts.reset_index()
+        movement_counts_df.columns = [AnalysisConfig.PRIMARY_FEATURE, 'count']
+        movement_counts_df = movement_counts_df.sort_values('count', ascending=False)
+        # Get top quartile features (top 25% by movement count)
+        top_quartile_size = max(1, len(movement_counts_df) // 4)
+        top_quartile_features = movement_counts_df.head(top_quartile_size)[AnalysisConfig.PRIMARY_FEATURE].tolist()
         
         # Sample movements from top quartile features
         sampled_movements = analysis_df[
@@ -471,7 +594,7 @@ def main():
             )
         
         print(f"   → Sampled {len(sampled_movements):,} movements from {len(top_quartile_features)} top quartile features")
-        print(f"   → Top quartile cutoff: {top_quartile_cutoff:.0f} movements per feature")
+        print(f"   → Selected top {top_quartile_size} features by movement count")
         
         # Step 2: Get unique job IDs for skills lookup
         job_ids_from = set(sampled_movements['JobProfileID_from'].dropna().unique())

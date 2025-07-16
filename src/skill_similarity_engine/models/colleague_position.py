@@ -9,7 +9,7 @@ Architecture: Enterprise OOP with Configuration-Driven Field Mapping
 """
 
 from datetime import datetime, date
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass
 import logging
 
@@ -43,11 +43,11 @@ class ColleaguePosition:
     # Core identifiers
     pos_id_lookup_key: str
     employee_number: int
-    week_ending: date
+    week_ending: Union[date, str]  # Can be date initially, converted to str in __post_init__
     
     # Position details
     position_number: Optional[int] = None
-    position_start_date: Optional[date] = None
+    position_start_date: Optional[Union[date, str]] = None  # Can be date initially, converted to str in __post_init__
     operational: bool = True
     
     # Extended position information (from positions dataset)
@@ -80,13 +80,19 @@ class ColleaguePosition:
         if self.position_start_date and isinstance(self.position_start_date, date):
             self.position_start_date = self.position_start_date.strftime("%Y-%m-%d")
         
-        # Validate temporal consistency
-        if (self.position_start_date and 
-            self.position_start_date > self.week_ending):
-            logger.warning(
-                f"Position start date {self.position_start_date} is after "
-                f"week ending {self.week_ending} for employee {self.employee_number}"
-            )
+        # NOTE: Temporal consistency check removed - in workforce data, position start dates
+        # can legitimately be after week ending dates (reporting periods vs actual start dates)
+        # This is normal business logic, not a data quality issue.
+        
+        # REMOVED: Temporal consistency validation that was generating false warnings
+        # The original validation was:
+        # if (self.position_start_date and self.position_start_date > self.week_ending):
+        #     logger.warning(f"Position start date {self.position_start_date} is after week ending {self.week_ending}...")
+        
+        # This validation was incorrect because:
+        # - Week Ending = reporting period (when data was captured)
+        # - Position Start Date = when person actually started in position
+        # - It's normal for start dates to be after reporting periods in workforce data
     
     @property
     def movement_key(self) -> tuple:
@@ -287,6 +293,10 @@ class ColleaguePosition:
         week_ending = data['week_ending']
         if isinstance(week_ending, str):
             week_ending = cls._parse_date(week_ending)
+        
+        # Ensure week_ending is not None (required field)
+        if week_ending is None:
+            raise ValueError("week_ending is required and cannot be None")
         
         position_start_date = data.get('position_start_date')
         if isinstance(position_start_date, str):

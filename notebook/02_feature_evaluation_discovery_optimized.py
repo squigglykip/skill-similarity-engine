@@ -40,6 +40,7 @@ import gc
 import psutil
 import os
 from pathlib import Path
+from datetime import datetime, timedelta
 warnings.filterwarnings('ignore')
 
 # Import XGBoost with fallback
@@ -103,6 +104,116 @@ def print_memory_status():
     """Print current memory usage"""
     memory_usage = get_memory_usage()
     print(f"💾 Memory: {memory_usage['current_process_usage_mb']:.1f} MB")
+
+def load_movement_data_flexible(file_path):
+    """
+    Load movement data from either CSV or Parquet format
+    Automatically detects file type based on extension
+    """
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"Movement data file not found: {file_path}")
+    
+    file_extension = file_path.suffix.lower()
+    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+    
+    print(f"📁 Loading movement data from: {file_path}")
+    print(f"📊 File size: {file_size_mb:.1f} MB")
+    print(f"📄 File type: {file_extension}")
+    
+    try:
+        if file_extension == '.csv':
+            # Handle CSV files with chunking for large files
+            if file_size_mb > 100:  # If larger than 100MB, use chunking
+                print(f"   → Large CSV file detected, using chunked loading...")
+                chunk_list = []
+                for chunk in pd.read_csv(file_path, chunksize=50000):
+                    chunk_list.append(chunk)
+                df = pd.concat(chunk_list, ignore_index=True)
+            else:
+                df = pd.read_csv(file_path)
+                
+        elif file_extension == '.parquet':
+            # Handle Parquet files (naturally efficient)
+            df = pd.read_parquet(file_path)
+            
+        else:
+            raise ValueError(f"Unsupported file format: {file_extension}. Supported formats: .csv, .parquet")
+        
+        print(f"✅ Successfully loaded {len(df):,} records")
+        return df
+        
+    except Exception as e:
+        raise RuntimeError(f"Failed to load movement data from {file_path}: {str(e)}")
+
+def calculate_aggressive_recency_weight(movement_date, reference_date=None, decay_rate=0.4):
+    """
+    Aggressive decay for fast-changing banking environment
+    decay_rate=0.4 means each year back loses 60% of relevance
+    """
+    if reference_date is None:
+        reference_date = datetime.now()
+    
+    # Convert to pandas datetime for consistent handling
+    movement_date = pd.to_datetime(movement_date)
+    reference_date = pd.to_datetime(reference_date)
+    
+    # Calculate years difference
+    days_diff = (reference_date - movement_date).days
+    years_ago = days_diff / 365.25
+    
+    weight = decay_rate ** years_ago
+    
+    return max(weight, 0.05)  # Minimum weight threshold
+
+def create_clean_movement_dataset(movement_df, job_arch_df):
+    """
+    Conservative null exclusion with steep recency weighting
+    """
+    original_count = len(movement_df)
+    
+    # Step 1: Only keep movements where both positions exist in current job arch
+    clean_df = movement_df.dropna(subset=['JobProfileID_from', 'JobProfileID_to'])
+    
+    current_job_profiles = set(job_arch_df['JobProfileID'].unique())
+    clean_df = clean_df[
+        clean_df['JobProfileID_from'].isin(current_job_profiles) &
+        clean_df['JobProfileID_to'].isin(current_job_profiles)
+    ]
+    
+    # Step 2: Apply aggressive recency weighting
+    # Convert movement_date if needed
+    if 'movement_date' in clean_df.columns:
+        clean_df['recency_weight'] = clean_df['movement_date'].apply(
+            calculate_aggressive_recency_weight
+        )
+    elif 'movement_year' in clean_df.columns:
+        # Create date from year
+        clean_df['movement_date'] = pd.to_datetime(clean_df['movement_year'], format='%Y')
+        clean_df['recency_weight'] = clean_df['movement_date'].apply(
+            calculate_aggressive_recency_weight
+        )
+    else:
+        print("⚠️  No date column found, using uniform weights")
+        clean_df['recency_weight'] = 1.0
+    
+    # Step 3: Filter out movements with negligible weight
+    clean_df = clean_df[clean_df['recency_weight'] >= 0.01]
+    
+    # Simple retention reporting by year
+    if 'movement_year' in movement_df.columns:
+        print("Data retention by year:")
+        for year in sorted(movement_df['movement_year'].unique()):
+            original_year = len(movement_df[movement_df['movement_year'] == year])
+            clean_year = len(clean_df[clean_df['movement_year'] == year])
+            retention = (clean_year / original_year * 100) if original_year > 0 else 0
+            print(f"  {year}: {retention:.1f}%")
+    
+    total_retention = len(clean_df) / original_count * 100
+    print(f"Overall retention: {total_retention:.1f}%")
+    
+    return clean_df
 
 # =============================================================================
 # CORRECTED STATISTICAL ANALYSIS FUNCTIONS
@@ -253,16 +364,16 @@ def safe_chi_square_test(X, y, chunk_size=100000):
     
     return results
 
-def memory_efficient_cross_validation(algorithm, X, y, cv=5):
+def memory_efficient_cross_validation(algorithm, X, y, cv=5, sample_weight=None):
     """
-    Perform cross-validation with memory efficiency but proper stratification
+    Perform cross-validation with memory efficiency, proper stratification, and sample weights
     
     CHUNKING ISSUE FIXED: Cross-validation requires proper stratification across
     the entire dataset. Chunking within CV folds breaks the statistical validity
     of the validation process.
     
     SOLUTION: Use standard CV with memory monitoring and garbage collection,
-    but maintain proper fold stratification.
+    but maintain proper fold stratification and support sample weights.
     """
     from sklearn.model_selection import StratifiedKFold
     
@@ -277,8 +388,18 @@ def memory_efficient_cross_validation(algorithm, X, y, cv=5):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
-            # Fit algorithm
-            algorithm.fit(X_train, y_train)
+            # Get sample weights for training if provided
+            train_weights = sample_weight.iloc[train_idx] if sample_weight is not None else None
+            
+            # Fit algorithm with sample weights
+            if train_weights is not None and hasattr(algorithm, 'fit'):
+                try:
+                    algorithm.fit(X_train, y_train, sample_weight=train_weights)
+                except TypeError:
+                    # Algorithm doesn't support sample_weight
+                    algorithm.fit(X_train, y_train)
+            else:
+                algorithm.fit(X_train, y_train)
             
             # Evaluate on validation set
             score = algorithm.score(X_val, y_val)
@@ -299,8 +420,18 @@ def memory_efficient_cross_validation(algorithm, X, y, cv=5):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
-            # Fit algorithm
-            algorithm.fit(X_train, y_train)
+            # Get sample weights for training if provided
+            train_weights = sample_weight.iloc[train_idx] if sample_weight is not None else None
+            
+            # Fit algorithm with sample weights
+            if train_weights is not None and hasattr(algorithm, 'fit'):
+                try:
+                    algorithm.fit(X_train, y_train, sample_weight=train_weights)
+                except TypeError:
+                    # Algorithm doesn't support sample_weight
+                    algorithm.fit(X_train, y_train)
+            else:
+                algorithm.fit(X_train, y_train)
             
             # Evaluate on validation set
             score = algorithm.score(X_val, y_val)
@@ -382,36 +513,24 @@ def main():
     4. Use chunked processing for large datasets while preserving full data integrity
     """)
     
-    # Load movement data
+    # Load movement data with flexible format support (.csv or .parquet)
     movement_file_paths = [
         "data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv",
-        "../data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv"
+        "../data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv",
+        "data/synthetic_test/movement_analysis/realistic_movement_fact_table.parquet",
+        "../data/synthetic_test/movement_analysis/realistic_movement_fact_table.parquet"
     ]
     
     movement_df = None
     for movement_path in movement_file_paths:
         try:
-            # Try to load with chunking if file is large
-            if Path(movement_path).exists():
-                file_size = Path(movement_path).stat().st_size / (1024 * 1024)  # MB
-                if file_size > 100:  # If larger than 100MB, use chunking
-                    print(f"📁 Large file detected ({file_size:.1f} MB), using chunked loading...")
-                    chunk_list = []
-                    for chunk in pd.read_csv(movement_path, chunksize=50000):
-                        chunk_list.append(chunk)
-                    movement_df = pd.concat(chunk_list, ignore_index=True)
-                else:
-                    movement_df = pd.read_csv(movement_path)
-                
-                print(f"📁 Loaded movement data from: {movement_path}")
-                break
+            movement_df = load_movement_data_flexible(movement_path)
+            break
         except (FileNotFoundError, OSError):
             continue
     
     if movement_df is None:
-        raise FileNotFoundError("Could not find realistic_movement_fact_table.csv")
-    
-    print(f"📊 Movement data loaded: {len(movement_df):,} records")
+        raise FileNotFoundError("Could not find movement data file in supported formats (.csv, .parquet)")
     print_memory_status()
     
     # Connect to database
@@ -600,9 +719,13 @@ def main():
     print(f"🔍 Available features: {available_features}")
     print(f"🎯 Available targets: {available_targets}")
     
-    # Clean data for analysis
+    # Apply aggressive recency weighting and conservative null exclusion
+    print("🔄 Applying aggressive recency weighting and conservative null exclusion...")
+    clean_movements = create_clean_movement_dataset(movements_df, jobs_df)
+    
+    # Filter to only records with required analysis columns
     analysis_cols = available_features + available_targets
-    clean_movements = movements_df.dropna(subset=analysis_cols)
+    clean_movements = clean_movements.dropna(subset=analysis_cols)
     
     print(f"📊 Clean dataset: {len(clean_movements):,} records")
     print_memory_status()
@@ -762,12 +885,26 @@ def main():
                             ('classifier', algorithm)
                         ])
                     
-                    # Perform corrected cross-validation
-                    cv_scores = memory_efficient_cross_validation(pipeline, X_train_sample, y_train_sample)
+                    # Get sample weights for training if available
+                    train_sample_weights = None
+                    if 'recency_weight' in clean_movements.columns:
+                        if use_sampling and 'SVM' in alg_name:
+                            train_sample_weights = clean_movements.loc[X_train_sample.index, 'recency_weight']
+                        else:
+                            train_sample_weights = clean_movements.loc[X_train.index, 'recency_weight']
+                    
+                    # Perform corrected cross-validation with sample weights
+                    cv_scores = memory_efficient_cross_validation(pipeline, X_train_sample, y_train_sample, sample_weight=train_sample_weights)
                     cv_mean = cv_scores.mean()
                     
                     # Fit on sample data but test on full test set
-                    pipeline.fit(X_train_sample, y_train_sample)
+                    if train_sample_weights is not None:
+                        try:
+                            pipeline.fit(X_train_sample, y_train_sample, classifier__sample_weight=train_sample_weights)
+                        except TypeError:
+                            pipeline.fit(X_train_sample, y_train_sample)
+                    else:
+                        pipeline.fit(X_train_sample, y_train_sample)
                     test_score = pipeline.score(X_test, y_test)
                     
                     status = "✅ OK" if not use_sampling or 'SVM' not in alg_name else "📊 SAMPLED"
@@ -835,12 +972,26 @@ def main():
                             ('classifier', algorithm)
                         ])
                     
-                    # Perform corrected cross-validation
-                    cv_scores = memory_efficient_cross_validation(pipeline, X_train_sample, y_train_sample)
+                    # Get sample weights for training if available
+                    train_sample_weights = None
+                    if 'recency_weight' in clean_movements.columns:
+                        if use_sampling and 'SVM' in alg_name:
+                            train_sample_weights = clean_movements.loc[X_train_sample.index, 'recency_weight']
+                        else:
+                            train_sample_weights = clean_movements.loc[X_train.index, 'recency_weight']
+                    
+                    # Perform corrected cross-validation with sample weights
+                    cv_scores = memory_efficient_cross_validation(pipeline, X_train_sample, y_train_sample, sample_weight=train_sample_weights)
                     cv_mean = cv_scores.mean()
                     
                     # Fit on sample data but test on full test set
-                    pipeline.fit(X_train_sample, y_train_sample)
+                    if train_sample_weights is not None:
+                        try:
+                            pipeline.fit(X_train_sample, y_train_sample, classifier__sample_weight=train_sample_weights)
+                        except TypeError:
+                            pipeline.fit(X_train_sample, y_train_sample)
+                    else:
+                        pipeline.fit(X_train_sample, y_train_sample)
                     test_score = pipeline.score(X_test, y_test)
                     
                     status = "✅ OK" if not use_sampling or 'SVM' not in alg_name else "📊 SAMPLED"
