@@ -5,8 +5,8 @@
 data_sources:
   colleague_positions_dir: "data/colleague_positions_history"
   positions_history_dir: "data/positions_history"
-  colleague_positions_pattern: "d_colleague_positions_fy*.csv"
-  positions_pattern: "d_positions_fy*.csv"
+  colleague_positions_pattern: "${workforce_data_patterns.colleague_positions}"
+  positions_pattern: "${workforce_data_patterns.positions_history}"
 
 # Enrichment strategy
 enrichment_strategy:

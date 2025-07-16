@@ -15,7 +15,7 @@
 
 colleague_positions:
   # Colleague Position History Dataset Mapping (FY2021-FY2025)
-  source_file_pattern: "colleague_positions/d_colleague_positions_fy*.csv"
+  source_file_pattern: "colleague_positions/${workforce_data_patterns.colleague_positions}"
   description: "Employee-position associations over time (50K records per FY)"
   
   # Field Mappings: external_field_name -> internal_standardised_name
@@ -44,7 +44,7 @@ colleague_positions:
 
 positions:
   # Position Master Data Mapping (FY2021-FY2025)
-  source_file_pattern: "positions/d_positions_fy*.csv"
+  source_file_pattern: "positions/${workforce_data_patterns.positions_history}"
   description: "Position master data with organisational context (120K records per FY)"
   
   field_mappings:
@@ -80,7 +80,7 @@ positions:
 
 job_architecture:
   # Enhanced Job Architecture Master Data
-  source_file_pattern: "job_architecture/dummy_job_architecture.csv"
+  source_file_pattern: "job_architecture/${skills_data_patterns.job_architecture}"
   description: "Comprehensive job architecture with 16-column schema (715 job profiles)"
   
   field_mappings:
@@ -125,7 +125,7 @@ job_architecture:
 
 position_job_mapping:
   # Position to Job Profile Mapping
-  source_file_pattern: "job_architecture_to_positions_mapping/position_job_mapping.csv"
+  source_file_pattern: "job_architecture_to_positions_mapping/${position_mapping_patterns.position_job_mapping}"
   description: "Links position numbers to job profiles (5K mappings)"
   
   field_mappings:
@@ -146,7 +146,7 @@ position_job_mapping:
 
 skills_comprehensive:
   # Comprehensive Skills Library (All Versions)
-  source_file_pattern: "skills_library/skills_comprehensive_all_versions.csv"
+  source_file_pattern: "skills_library/${skills_data_patterns.skills_comprehensive}"
   description: "Enhanced skills taxonomy with 38K+ skills across versions"
   
   field_mappings:
@@ -214,7 +214,7 @@ job_skill_mapping:
 
 workforce_context:
   # Current Workforce Snapshot
-  source_file_pattern: "workforce_context/dummy_workforce_context.csv"
+  source_file_pattern: "workforce_context/${skills_data_patterns.workforce_context}"
   description: "Current workforce context with 48-column organisational hierarchy"
   
   field_mappings:

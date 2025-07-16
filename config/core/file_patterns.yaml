@@ -1,0 +1,102 @@
+# =============================================================================
+# Core - File Patterns Configuration
+# =============================================================================
+# Centralized file patterns and naming conventions for all data sources
+# This is the SINGLE SOURCE OF TRUTH for file patterns across the system
+
+# Historical workforce data patterns
+workforce_data_patterns:
+  # Colleague positions files (production environment naming)
+  colleague_positions: "d_colleague_position_fy*.csv"
+  
+  # Position history files
+  positions_history: "d_positions_fy*.csv"
+  
+  # Alternative patterns for different environments
+  colleague_positions_dev: "d_colleague_positions_fy*.csv"  # Development with 's'
+  positions_history_dev: "d_positions_fy*.csv"
+
+# Skills and job architecture patterns
+skills_data_patterns:
+  # Skills library files
+  skills_comprehensive: "skills_comprehensive_all_versions.csv"
+  
+  # Job-skill mapping files
+  job_skill_mapping: "job_skill_mapping.csv"
+  
+  # Job architecture files
+  job_architecture: "dummy_job_architecture.csv"
+  
+  # Workforce context files
+  workforce_context: "dummy_workforce_context.csv"
+
+# Position mapping patterns
+position_mapping_patterns:
+  # Position to job profile mapping
+  position_job_mapping: "position_job_mapping.csv"
+  
+  # Alternative mapping patterns
+  position_id_mapping: "position_id_to_job_profile.csv"
+
+# Output file patterns
+output_patterns:
+  # Movement analysis outputs
+  employee_movements_csv: "employee_movements.csv"
+  employee_movements_parquet: "employee_movements.parquet"
+  movement_summary_csv: "movement_summary.csv"
+  movement_summary_parquet: "movement_summary.parquet"
+  
+  # Similarity matrix outputs
+  job_similarity_matrix_csv: "job_similarity_matrix.csv"
+  job_similarity_matrix_parquet: "job_similarity_matrix.parquet"
+  
+  # Career pathways outputs
+  career_pathways_csv: "career_pathways.csv"
+  career_pathways_parquet: "career_pathways.parquet"
+  
+  # Metadata files
+  metadata_json: "metadata.json"
+  progress_json: "progress.json"
+  checkpoint_json: "checkpoint.json"
+
+# Database file patterns
+database_patterns:
+  # Business context database
+  business_context_db: "business_context.sqlite"
+  workforce_intelligence_db: "workforce_intelligence.sqlite"
+
+# Environment-specific overrides
+environment_overrides:
+  # Production environment uses singular form
+  production:
+    colleague_positions: "d_colleague_position_fy*.csv"
+  
+  # Development environment uses plural form
+  development:
+    colleague_positions: "d_colleague_positions_fy*.csv"
+  
+  # Testing environment
+  testing:
+    colleague_positions: "d_colleague_position_fy*.csv"
+
+# File extension patterns
+file_extensions:
+  csv: ".csv"
+  parquet: ".parquet"
+  json: ".json"
+  sqlite: ".sqlite"
+  yaml: ".yaml"
+  yml: ".yml"
+
+# Glob patterns for finding files
+glob_patterns:
+  # Find all FY files
+  all_fy_files: "*_fy*.csv"
+  
+  # Find specific patterns
+  colleague_positions_glob: "d_colleague_position*.csv"
+  positions_history_glob: "d_positions_fy*.csv"
+  
+  # Configuration files
+  config_files: "*.yaml"
+  data_files: "*.csv" 

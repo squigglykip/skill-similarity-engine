@@ -120,7 +120,8 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
         core_files = {
             'processing.yaml': ('processing',),
             'datetime.yaml': ('datetime',),
-            'configuration_management.yaml': ('configuration_management',)
+            'configuration_management.yaml': ('configuration_management',),
+            'file_patterns.yaml': ('workforce_data_patterns', 'skills_data_patterns', 'position_mapping_patterns', 'output_patterns', 'database_patterns')
         }
         
         for filename, sections in core_files.items():

@@ -490,9 +490,11 @@ models:
   
   # File patterns and extensions
   file_patterns:
-    job_similarity_matrix_parquet: "job_similarity_matrix.parquet"
-    job_similarity_matrix_csv: "job_similarity_matrix.csv"
-    business_context_db: "business_context.sqlite"
+    job_similarity_matrix_parquet: "${output_patterns.job_similarity_matrix_parquet}"
+    job_similarity_matrix_csv: "${output_patterns.job_similarity_matrix_csv}"
+    career_pathways_parquet: "${output_patterns.career_pathways_parquet}"
+    career_pathways_csv: "${output_patterns.career_pathways_csv}"
+    business_context_db: "${database_patterns.business_context_db}"
     precompute_pattern: "precompute_*"
     movement_analysis_pattern: "movement_analysis_*"
   
@@ -586,11 +588,11 @@ models:
     
     # File naming patterns
     output_files:
-      employee_movements_csv: "employee_movements.csv"
-      employee_movements_parquet: "employee_movements.parquet"
-      movement_summary_csv: "movement_summary.csv"
-      movement_summary_parquet: "movement_summary.parquet"
-      metadata_json: "metadata.json"
+      employee_movements_csv: "${output_patterns.employee_movements_csv}"
+      employee_movements_parquet: "${output_patterns.employee_movements_parquet}"
+      movement_summary_csv: "${output_patterns.movement_summary_csv}"
+      movement_summary_parquet: "${output_patterns.movement_summary_parquet}"
+      metadata_json: "${output_patterns.metadata_json}"
   
   # Skills taxonomy settings
   skills_taxonomy:
@@ -771,8 +773,8 @@ position_enrichment:
   data_sources:
     colleague_positions_dir: "data/colleague_positions_history"
     positions_history_dir: "data/positions_history"
-    colleague_positions_pattern: "d_colleague_positions_fy*.csv"
-    positions_pattern: "d_positions_fy*.csv"
+    colleague_positions_pattern: "${workforce_data_patterns.colleague_positions}"
+    positions_pattern: "${workforce_data_patterns.positions_history}"
   
   # Enrichment strategy
   enrichment_strategy:

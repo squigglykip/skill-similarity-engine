@@ -147,14 +147,19 @@ class MovementTracker:
         logger.info(f"   • Min position tenure: {self.min_position_tenure_weeks} weeks")
         logger.info(f"   • Progress reporting interval: {self.progress_reporting_interval}")
     
-    def load_from_directory(self, directory_path: str, pattern: str = "d_colleague_positions_fy*.csv") -> None:
+    def load_from_directory(self, directory_path: str, pattern: str = None) -> None:
         """
         Load colleague positions from multiple CSV files using SSE's progress tracking.
         
         Args:
             directory_path: Path to directory containing CSV files
-            pattern: Glob pattern to match CSV files
+            pattern: Glob pattern to match CSV files (if None, loads from config)
         """
+        # Get pattern from configuration if not provided
+        if pattern is None:
+            from ..config.pattern_resolver import get_workforce_pattern
+            pattern = get_workforce_pattern('colleague_positions')
+        
         directory_path = Path(directory_path)
         csv_files = list(directory_path.glob(pattern))
         
@@ -609,7 +614,7 @@ class MovementTracker:
             logger.warning(f"⚠️ {missing_count:,} positions could not be mapped to Position Numbers")
             logger.warning("   These will use PosIDLookupKey for movement tracking")
     
-    def load_with_position_enrichment(self, colleague_positions_dir: str, positions_dir: str, pattern: str = "d_colleague_positions_fy*.csv") -> None:
+    def load_with_position_enrichment(self, colleague_positions_dir: str, positions_dir: str, pattern: str = None) -> None:
         """
         Load colleague positions and enrich them with Position Numbers for accurate movement detection.
         

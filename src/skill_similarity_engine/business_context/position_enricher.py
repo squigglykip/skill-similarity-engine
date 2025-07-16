@@ -111,7 +111,11 @@ class PositionEnricher:
             
             # Get file pattern from config
             data_sources = self.enrichment_config.get('data_sources', {})
-            file_pattern = data_sources.get('colleague_positions_pattern', 'd_colleague_positions_fy*.csv')
+            # Get pattern from configuration with fallback
+            file_pattern = data_sources.get('colleague_positions_pattern')
+            if not file_pattern:
+                from ..config.pattern_resolver import get_workforce_pattern
+                file_pattern = get_workforce_pattern('colleague_positions')
             
             # Find matching files
             files = list(colleague_dir_path.glob(file_pattern))
@@ -160,7 +164,10 @@ class PositionEnricher:
             
             # Get file pattern from config
             data_sources = self.enrichment_config.get('data_sources', {})
-            file_pattern = data_sources.get('positions_pattern', 'd_positions_fy*.csv')
+            file_pattern = data_sources.get('positions_pattern')
+            if not file_pattern:
+                from ..config.pattern_resolver import get_workforce_pattern
+                file_pattern = get_workforce_pattern('positions_history')
             
             # Find matching files
             files = list(positions_dir_path.glob(file_pattern))
