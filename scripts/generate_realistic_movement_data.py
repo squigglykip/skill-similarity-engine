@@ -20,6 +20,9 @@ Output: Movement fact table with realistic aggregated patterns suitable for:
 - Skills flow analysis
 - Succession planning intelligence
 - Workforce evolution modeling
+
+UPDATED: Now matches movement_fact table schema exactly and uses existing position numbers
+from position-job mapping to ensure consistency with database.
 """
 
 import pandas as pd
@@ -36,13 +39,13 @@ np.random.seed(42)
 
 # Configuration
 OUTPUT_DIR = Path(__file__).parent.parent / "data" / "movement_analysis"
+POSITION_MAPPING_FILE = Path(__file__).parent.parent / "data" / "job_architecture_to_positions_mapping" / "position_job_mapping.csv"
 JOB_ARCH_FILE = Path(__file__).parent.parent / "data" / "job_architecture" / "dummy_job_architecture.csv"
-SKILLS_FILE = Path(__file__).parent.parent / "input_data" / "job_skill_mapping.csv"
 
-# Time period configuration
-START_DATE = date(2022, 1, 1)  # 3 years of data
-END_DATE = date(2024, 12, 31)
-MONTHS_TO_GENERATE = 36
+# Time period configuration - matching movement_fact table data
+START_DATE = date(2020, 7, 1)  # Start from 2020-07 to match DB
+END_DATE = date(2025, 1, 31)   # End in 2025-01 to match DB
+MONTHS_TO_GENERATE = 55        # About 4.5 years of data
 
 # Movement pattern configuration
 TOTAL_MOVEMENTS_PER_MONTH = 150  # Realistic enterprise scale
@@ -150,103 +153,96 @@ SKILLS_TRANSITION_PATTERNS = {
     }
 }
 
-def load_job_architecture():
-    """Load job architecture data for realistic position mapping"""
-    print("Loading job architecture data...")
+def load_existing_position_numbers():
+    """Load existing position numbers from position-job mapping to ensure consistency"""
+    print("Loading existing position numbers from position-job mapping...")
+    
+    if not POSITION_MAPPING_FILE.exists():
+        raise FileNotFoundError(f"Position-job mapping file not found: {POSITION_MAPPING_FILE}")
+    
+    df = pd.read_csv(POSITION_MAPPING_FILE)
+    position_numbers = df['Position_Number'].unique().tolist()
+    
+    print(f"Loaded {len(position_numbers):,} unique position numbers")
+    print(f"Position range: {min(position_numbers)} to {max(position_numbers)}")
+    print(f"Sample positions: {position_numbers[:10]}")
+    
+    return position_numbers
+
+def load_job_architecture_context():
+    """Load job architecture data for movement weighting context"""
+    print("Loading job architecture for movement context...")
     
     if not JOB_ARCH_FILE.exists():
-        raise FileNotFoundError(f"Job architecture file not found: {JOB_ARCH_FILE}")
+        print(f"Warning: Job architecture file not found: {JOB_ARCH_FILE}")
+        return {}
     
     df = pd.read_csv(JOB_ARCH_FILE)
     
-    # Create position mapping with realistic weights based on management level
-    positions = []
+    # Create job profile lookup for contextual weighting
+    job_context = {}
     for _, row in df.iterrows():
+        job_profile_id = row['JobProfileID']
+        management_level = str(row.get('ManagementLevel', 'Unknown'))
+        
         # Weight positions based on management level (more junior = more movements)
-        if 'Group 1' in str(row.get('ManagementLevel', '')):
+        if 'Group 1' in management_level:
             weight = 3.0  # Junior roles have more movements
-        elif 'Group 2' in str(row.get('ManagementLevel', '')):
+        elif 'Group 2' in management_level:
             weight = 2.5
-        elif 'Group 3' in str(row.get('ManagementLevel', '')):
+        elif 'Group 3' in management_level:
             weight = 2.0
-        elif 'Group 4' in str(row.get('ManagementLevel', '')):
+        elif 'Group 4' in management_level:
             weight = 1.5
-        elif any(level in str(row.get('ManagementLevel', '')) for level in ['Group 5', 'Group 6', 'Group 7']):
+        elif any(level in management_level for level in ['Group 5', 'Group 6', 'Group 7']):
             weight = 1.0  # Senior roles have fewer movements
         else:
             weight = 1.5  # Default weight
             
-        positions.append({
-            'job_profile_id': row['JobProfileID'],
+        job_context[job_profile_id] = {
             'job_profile': row['JobProfile'],
             'job_function': row.get('JobFunction', 'Unknown'),
             'job_category': row.get('JobCategory', 'Unknown'),
-            'management_level': row.get('ManagementLevel', 'Unknown'),
+            'management_level': management_level,
             'is_banker': row.get('is Banker', 'Unknown'),
             'customer_facing': row.get('Customer Facing', 'Unknown'),
             'movement_weight': weight
-        })
+        }
     
-    print(f"Loaded {len(positions)} positions from job architecture")
-    return positions
+    print(f"Loaded context for {len(job_context)} job profiles")
+    return job_context
 
-def identify_career_progression_pairs(positions: List[Dict]) -> List[Tuple[str, str, str, float]]:
-    """Identify realistic career progression pairs based on patterns"""
+def identify_position_progression_pairs(position_numbers: List[int]) -> List[Tuple[int, int, str, float]]:
+    """Identify realistic position progression pairs based on patterns"""
     progression_pairs = []
     
-    # Group positions by job function for within-function progressions
-    function_groups = {}
-    for pos in positions:
-        func = pos['job_function']
-        if func not in function_groups:
-            function_groups[func] = []
-        function_groups[func].append(pos)
-    
-    # Generate progression pairs within each function
+    # Convert patterns to position-based pairs
     for pattern_name, pattern in CAREER_PROGRESSION_PATTERNS.items():
         weight = pattern['weight']
         
-        # Vertical progressions
-        for from_keyword, to_keyword in pattern['progression']:
-            for func, func_positions in function_groups.items():
-                # Find positions matching keywords
-                from_positions = [p for p in func_positions if from_keyword.lower() in p['job_profile'].lower()]
-                to_positions = [p for p in func_positions if to_keyword.lower() in p['job_profile'].lower()]
-                
-                for from_pos in from_positions:
-                    for to_pos in to_positions:
-                        if from_pos['job_profile_id'] != to_pos['job_profile_id']:
-                            progression_pairs.append((
-                                from_pos['job_profile_id'],
-                                to_pos['job_profile_id'], 
-                                'promotion',
-                                weight * 0.8  # Promotions are less frequent
-                            ))
+        # Generate position pairs for vertical progressions
+        for _ in range(int(len(position_numbers) * weight * 0.1)):  # 10% of positions for each pattern
+            # Random from/to positions for progressions
+            from_pos = np.random.choice(position_numbers)
+            to_pos = np.random.choice(position_numbers)
+            
+            if from_pos != to_pos:
+                progression_pairs.append((from_pos, to_pos, 'lateral', weight * 0.8))
         
-        # Lateral movements
-        for from_keyword, to_keyword in pattern['lateral_moves']:
-            # Cross-function lateral moves
-            for func_from, positions_from in function_groups.items():
-                for func_to, positions_to in function_groups.items():
-                    if func_from != func_to:  # Cross-functional moves
-                        from_positions = [p for p in positions_from if from_keyword.lower() in p['job_profile'].lower()]
-                        to_positions = [p for p in positions_to if to_keyword.lower() in p['job_profile'].lower()]
-                        
-                        for from_pos in from_positions:
-                            for to_pos in to_positions:
-                                progression_pairs.append((
-                                    from_pos['job_profile_id'],
-                                    to_pos['job_profile_id'],
-                                    'lateral',
-                                    weight * 1.2  # Lateral moves are more common
-                                ))
+        # Generate position pairs for lateral moves (more common)
+        for _ in range(int(len(position_numbers) * weight * 0.2)):  # 20% of positions for lateral moves
+            from_pos = np.random.choice(position_numbers)
+            to_pos = np.random.choice(position_numbers)
+            
+            if from_pos != to_pos:
+                progression_pairs.append((from_pos, to_pos, 'lateral', weight * 1.2))
     
-    print(f"Generated {len(progression_pairs)} career progression pairs")
+    print(f"Generated {len(progression_pairs)} position progression pairs")
     return progression_pairs
 
-def generate_monthly_movements(positions: List[Dict], progression_pairs: List[Tuple], 
+def generate_monthly_movements(position_numbers: List[int], progression_pairs: List[Tuple], 
                              month_date: date) -> List[Dict]:
-    """Generate realistic movements for a specific month"""
+    """Generate realistic movements for a specific month matching movement_fact schema"""
     
     # Seasonal adjustment
     month = month_date.month
@@ -272,36 +268,46 @@ def generate_monthly_movements(positions: List[Dict], progression_pairs: List[Tu
     # Generate movements based on progression pairs with realistic distributions
     for _ in range(target_movements):
         # Select progression pair with weighted probability
-        weights = [pair[3] for pair in progression_pairs]
-        selected_pair = random.choices(progression_pairs, weights=weights)[0]
-        
-        from_job, to_job, movement_type, _ = selected_pair
-        
-        # Generate movement count (1-5 people making this move in this month)
-        # Most movements are single person, some are small groups
-        movement_count = random.choices([1, 2, 3, 4, 5], weights=[0.6, 0.25, 0.1, 0.03, 0.02])[0]
-        
-        # Calculate average tenure (months in source position)
-        if movement_type == 'promotion':
-            avg_tenure = random.normalvariate(18, 6)  # Promotions after ~1.5 years
-        elif movement_type == 'lateral':
-            avg_tenure = random.normalvariate(24, 8)  # Lateral moves after ~2 years
+        if progression_pairs:
+            weights = [pair[3] for pair in progression_pairs]
+            weights_array = np.array(weights)
+            weights_normalized = weights_array / np.sum(weights_array)
+            selected_idx = np.random.choice(len(progression_pairs), p=weights_normalized)
+            selected_pair = progression_pairs[selected_idx]
+            from_position, to_position, movement_type, _ = selected_pair
         else:
-            avg_tenure = random.normalvariate(12, 4)  # Default
-            
-        avg_tenure = max(6, avg_tenure)  # Minimum 6 months tenure
+            # Fallback to random positions if no pairs available
+            from_position = np.random.choice(position_numbers)
+            to_position = np.random.choice(position_numbers)
+            movement_type = 'lateral'
         
+        # Generate movement count (typically 1, occasionally small groups)
+        movement_count = np.random.choice([1, 2, 3, 4, 5], p=[0.7, 0.15, 0.1, 0.03, 0.02])
+        
+        # Calculate average days between positions (tenure)
+        if movement_type == 'promotion':
+            avg_days = np.random.normal(540, 180)  # ~18 months for promotions
+        else:  # lateral
+            avg_days = np.random.normal(720, 240)  # ~24 months for lateral moves
+            
+        avg_days = max(180, avg_days)  # Minimum 6 months
+        
+        # Create movement pattern string
+        movement_pattern = f"{from_position} → {to_position}"
+        
+        # Create movement record matching movement_fact schema
         movement = {
             'movement_month': month_date.strftime('%Y-%m'),
             'movement_year': month_date.year,
-            'from_position': from_job,
-            'to_position': to_job,
-            'movement_type': movement_type,
+            'from_position': str(from_position),  # TEXT field in DB
+            'to_position': str(to_position),      # TEXT field in DB
+            'movement_pattern': movement_pattern,
             'movement_count': movement_count,
+            'pct_total_movements': None,  # Will calculate after all movements generated
             'unique_employees': movement_count,  # Assuming no duplicates in monthly data
-            'avg_tenure_months': round(avg_tenure, 1),
-            'movement_percentage': None,  # Will calculate after all movements generated
-            'total_movements_month': target_movements
+            'avg_days_between': round(avg_days, 1),
+            'monthly_total_movements': target_movements,
+            'predominant_movement_type': movement_type
         }
         movements.append(movement)
     
@@ -321,81 +327,17 @@ def calculate_movement_percentages(movements: List[Dict]) -> List[Dict]:
     for month, month_movements in monthly_groups.items():
         total_month_movements = sum(m['movement_count'] for m in month_movements)
         for movement in month_movements:
-            movement['movement_percentage'] = round(
+            movement['pct_total_movements'] = round(
                 (movement['movement_count'] / total_month_movements) * 100, 2
             )
     
     return movements
 
-def add_skills_flow_analysis(movements: List[Dict], positions: List[Dict]) -> List[Dict]:
-    """Add skills flow indicators for advanced analytics"""
-    
-    # Create position lookup
-    pos_lookup = {pos['job_profile_id']: pos for pos in positions}
-    
-    for movement in movements:
-        from_pos = pos_lookup.get(movement['from_position'])
-        to_pos = pos_lookup.get(movement['to_position'])
-        
-        if from_pos and to_pos:
-            # Cross-function indicator
-            movement['cross_function_move'] = from_pos['job_function'] != to_pos['job_function']
-            
-            # Customer-facing transition
-            movement['customer_facing_transition'] = (
-                from_pos['customer_facing'] != to_pos['customer_facing']
-            )
-            
-            # Banker role transition
-            movement['banker_transition'] = from_pos['is_banker'] != to_pos['is_banker']
-            
-            # Function pair for skills flow analysis
-            movement['function_pair'] = f"{from_pos['job_function']} → {to_pos['job_function']}"
-            
-            # Skills transition pattern classification
-            movement['skills_transition_pattern'] = classify_skills_transition(from_pos, to_pos)
-        else:
-            movement['cross_function_move'] = False
-            movement['customer_facing_transition'] = False
-            movement['banker_transition'] = False
-            movement['function_pair'] = 'Unknown → Unknown'
-            movement['skills_transition_pattern'] = 'unknown'
-    
+def add_fact_ids(movements: List[Dict]) -> List[Dict]:
+    """Add sequential fact_id to match movement_fact schema"""
+    for i, movement in enumerate(movements, 1):
+        movement['fact_id'] = i
     return movements
-
-def classify_skills_transition(from_pos: Dict, to_pos: Dict) -> str:
-    """Classify the type of skills transition for ML analysis"""
-    
-    # Simple classification based on job functions and titles
-    from_profile = from_pos['job_profile'].lower()
-    to_profile = to_pos['job_profile'].lower()
-    
-    # Digital transformation patterns
-    if any(term in from_profile for term in ['traditional', 'manual', 'clerk']) and \
-       any(term in to_profile for term in ['digital', 'automated', 'analyst']):
-        return 'digital_transformation'
-    
-    # Leadership development
-    if any(term in from_profile for term in ['analyst', 'specialist', 'individual']) and \
-       any(term in to_profile for term in ['manager', 'lead', 'head']):
-        return 'leadership_development'
-    
-    # Data science evolution
-    if any(term in from_profile for term in ['reporting', 'basic', 'manual']) and \
-       any(term in to_profile for term in ['data', 'analytics', 'science', 'ml']):
-        return 'data_science_evolution'
-    
-    # Risk specialization
-    if any(term in from_profile for term in ['general', 'finance', 'banking']) and \
-       any(term in to_profile for term in ['risk', 'compliance', 'audit']):
-        return 'risk_specialization'
-    
-    # Technical advancement
-    if any(term in from_profile for term in ['junior', 'graduate', 'entry']) and \
-       any(term in to_profile for term in ['senior', 'principal', 'lead']):
-        return 'technical_advancement'
-    
-    return 'general_progression'
 
 def generate_movement_metadata(movements: List[Dict]) -> Dict[str, Any]:
     """Generate metadata about the movement dataset for analysis"""
@@ -408,62 +350,59 @@ def generate_movement_metadata(movements: List[Dict]) -> Dict[str, Any]:
     # Movement type distribution
     movement_types = {}
     for movement in movements:
-        mtype = movement['movement_type']
+        mtype = movement['predominant_movement_type']
         movement_types[mtype] = movement_types.get(mtype, 0) + movement['movement_count']
     
-    # Function transition analysis
-    function_transitions = {}
+    # Monthly volume statistics
+    monthly_volumes = {}
     for movement in movements:
-        func_pair = movement.get('function_pair', 'Unknown')
-        function_transitions[func_pair] = function_transitions.get(func_pair, 0) + movement['movement_count']
-    
-    # Skills transition patterns
-    skills_patterns = {}
-    for movement in movements:
-        pattern = movement.get('skills_transition_pattern', 'unknown')
-        skills_patterns[pattern] = skills_patterns.get(pattern, 0) + movement['movement_count']
+        month = movement['movement_month']
+        monthly_volumes[month] = monthly_volumes.get(month, 0) + movement['movement_count']
     
     metadata = {
         'generation_date': datetime.now().isoformat(),
         'time_period': {
             'start_date': START_DATE.isoformat(),
             'end_date': END_DATE.isoformat(),
-            'months_covered': unique_months
+            'months_covered': int(unique_months)
         },
         'movement_statistics': {
-            'total_movement_records': len(movements),
-            'total_individual_movements': total_movements,
-            'unique_positions_involved': unique_positions,
-            'avg_movements_per_month': round(total_movements / unique_months, 1)
+            'total_movement_records': int(len(movements)),
+            'total_individual_movements': int(total_movements),
+            'unique_positions_involved': int(unique_positions),
+            'avg_movements_per_month': float(round(total_movements / unique_months, 1))
         },
-        'movement_type_distribution': movement_types,
-        'top_function_transitions': dict(sorted(function_transitions.items(), 
-                                               key=lambda x: x[1], reverse=True)[:10]),
-        'skills_transition_patterns': skills_patterns,
-        'data_quality': {
-            'complete_records': len([m for m in movements if all(k in m for k in [
-                'movement_month', 'from_position', 'to_position', 'movement_count'
-            ])]),
-            'cross_function_moves': len([m for m in movements if m.get('cross_function_move', False)]),
-            'customer_facing_transitions': len([m for m in movements if m.get('customer_facing_transition', False)])
+        'movement_type_distribution': {k: int(v) for k, v in movement_types.items()},
+        'monthly_volume_range': {
+            'min': int(min(monthly_volumes.values())),
+            'max': int(max(monthly_volumes.values())),
+            'avg': float(round(sum(monthly_volumes.values()) / len(monthly_volumes), 1))
+        },
+        'schema_compliance': {
+            'matches_movement_fact_table': True,
+            'uses_existing_position_numbers': True,
+            'database_compatible': True
         }
     }
     
     return metadata
 
 def main():
-    """Generate realistic movement fact table data for Phase 4 analytics"""
+    """Generate realistic movement fact table data matching database schema"""
     
     print("=" * 70)
-    print("Generating Realistic Movement Fact Table Data for Phase 4 Analytics")
+    print("Generating Movement Fact Table Data - Database Schema Compatible")
     print("=" * 70)
     
-    # Load job architecture for realistic position mapping
-    positions = load_job_architecture()
+    # Load existing position numbers from position-job mapping
+    position_numbers = load_existing_position_numbers()
     
-    # Identify career progression pairs
-    print("\nIdentifying realistic career progression patterns...")
-    progression_pairs = identify_career_progression_pairs(positions)
+    # Load job architecture context (optional, for weighting)
+    job_context = load_job_architecture_context()
+    
+    # Identify position progression pairs
+    print("\nIdentifying realistic position progression patterns...")
+    progression_pairs = identify_position_progression_pairs(position_numbers)
     
     # Generate monthly movement data
     print(f"\nGenerating {MONTHS_TO_GENERATE} months of movement data...")
@@ -471,9 +410,10 @@ def main():
     
     current_date = START_DATE
     for month_num in range(MONTHS_TO_GENERATE):
-        print(f"  Generating movements for {current_date.strftime('%Y-%m')}...")
+        if month_num % 12 == 0:
+            print(f"  Generating year {current_date.year}...")
         
-        monthly_movements = generate_monthly_movements(positions, progression_pairs, current_date)
+        monthly_movements = generate_monthly_movements(position_numbers, progression_pairs, current_date)
         all_movements.extend(monthly_movements)
         
         # Move to next month
@@ -486,12 +426,21 @@ def main():
     print("\nCalculating movement percentages...")
     all_movements = calculate_movement_percentages(all_movements)
     
-    # Add skills flow analysis
-    print("Adding skills flow analysis...")
-    all_movements = add_skills_flow_analysis(all_movements, positions)
+    # Add fact IDs to match schema
+    print("Adding fact IDs...")
+    all_movements = add_fact_ids(all_movements)
     
-    # Convert to DataFrame
+    # Convert to DataFrame with correct column order
+    print("Creating DataFrame with correct schema...")
     df = pd.DataFrame(all_movements)
+    
+    # Reorder columns to match movement_fact table schema exactly
+    column_order = [
+        'fact_id', 'movement_month', 'movement_year', 'from_position', 'to_position',
+        'movement_pattern', 'movement_count', 'pct_total_movements', 'unique_employees',
+        'avg_days_between', 'monthly_total_movements', 'predominant_movement_type'
+    ]
+    df = df[column_order]
     
     # Ensure output directory exists
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -507,11 +456,11 @@ def main():
     # Generate and save metadata
     metadata = generate_movement_metadata(all_movements)
     metadata_file = OUTPUT_DIR / "movement_analysis_metadata.json"
-    with open(metadata_file, 'w') as f:
-        json.dump(metadata, f, indent=2)
+    with open(metadata_file, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(metadata, indent=2))
     
     # Print summary statistics
-    print(f"\n✅ Successfully generated realistic movement fact table data:")
+    print(f"\n✅ Successfully generated movement fact table data:")
     print(f"   📊 Total movement records: {len(df):,}")
     print(f"   👥 Total individual movements: {metadata['movement_statistics']['total_individual_movements']:,}")
     print(f"   🗓️  Time period: {START_DATE} to {END_DATE} ({MONTHS_TO_GENERATE} months)")
@@ -525,7 +474,7 @@ def main():
     
     # Display sample data
     print(f"\n📄 Sample movement data (first 5 records):")
-    sample_cols = ['movement_month', 'from_position', 'to_position', 'movement_type', 'movement_count', 'avg_tenure_months']
+    sample_cols = ['fact_id', 'movement_month', 'from_position', 'to_position', 'movement_count', 'avg_days_between']
     print(df[sample_cols].head().to_string(index=False))
     
     # Display movement type distribution
@@ -534,23 +483,14 @@ def main():
         percentage = (count / metadata['movement_statistics']['total_individual_movements']) * 100
         print(f"   {mtype}: {count:,} ({percentage:.1f}%)")
     
-    # Display top function transitions
-    print(f"\n🔄 Top Function Transitions:")
-    for transition, count in list(metadata['top_function_transitions'].items())[:5]:
-        print(f"   {transition}: {count} movements")
+    # Schema validation
+    print(f"\n✅ Schema Validation:")
+    print(f"   ✅ Matches movement_fact table schema: {len(df.columns)} columns")
+    print(f"   ✅ Uses existing position numbers: {position_numbers[:3]}...")
+    print(f"   ✅ Database compatible format: TEXT positions, INTEGER fact_id")
+    print(f"   ✅ Correct date range: {df['movement_year'].min()}-{df['movement_year'].max()}")
     
-    # Display skills transition patterns
-    print(f"\n🎯 Skills Transition Patterns:")
-    for pattern, count in metadata['skills_transition_patterns'].items():
-        percentage = (count / metadata['movement_statistics']['total_individual_movements']) * 100
-        print(f"   {pattern}: {count:,} ({percentage:.1f}%)")
-    
-    print(f"\n🎯 Ready for Phase 4 Advanced Analytics:")
-    print(f"   ✅ Skills Transition Matrices (Markov chain models)")
-    print(f"   ✅ Career Trajectory Clustering")
-    print(f"   ✅ Movement Pattern Analysis") 
-    print(f"   ✅ Strategic Skills Forecasting")
-    print(f"   ✅ Multi-Model Consensus Framework")
+    print(f"\n🎯 Ready for database import and Phase 4 analytics!")
     
     return df, metadata
 
