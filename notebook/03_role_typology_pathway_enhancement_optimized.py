@@ -39,13 +39,27 @@ import time
 from typing import Dict, List, Tuple, Any, Optional
 
 # Import optimization utilities
-from src.skill_similarity_engine.utils.performance import get_memory_usage, trigger_garbage_collection
+import gc
+import psutil
 
 warnings.filterwarnings('ignore')
 
 # Set plotting style
 plt.style.use('default')
 sns.set_palette("husl")
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+def get_memory_usage():
+    """Get current memory usage in MB"""
+    process = psutil.Process()
+    return process.memory_info().rss / 1024 / 1024
+
+def trigger_garbage_collection():
+    """Trigger garbage collection and return collected objects"""
+    return gc.collect()
 
 # =============================================================================
 # CONFIGURATION SECTION

@@ -388,18 +388,8 @@ def memory_efficient_cross_validation(algorithm, X, y, cv=5, sample_weight=None)
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
-            # Get sample weights for training if provided
-            train_weights = sample_weight.iloc[train_idx] if sample_weight is not None else None
-            
-            # Fit algorithm with sample weights
-            if train_weights is not None and hasattr(algorithm, 'fit'):
-                try:
-                    algorithm.fit(X_train, y_train, sample_weight=train_weights)
-                except TypeError:
-                    # Algorithm doesn't support sample_weight
-                    algorithm.fit(X_train, y_train)
-            else:
-                algorithm.fit(X_train, y_train)
+            # Fit algorithm (skip sample weights for cross-validation to avoid Pipeline issues)
+            algorithm.fit(X_train, y_train)
             
             # Evaluate on validation set
             score = algorithm.score(X_val, y_val)
@@ -420,18 +410,8 @@ def memory_efficient_cross_validation(algorithm, X, y, cv=5, sample_weight=None)
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
-            # Get sample weights for training if provided
-            train_weights = sample_weight.iloc[train_idx] if sample_weight is not None else None
-            
-            # Fit algorithm with sample weights
-            if train_weights is not None and hasattr(algorithm, 'fit'):
-                try:
-                    algorithm.fit(X_train, y_train, sample_weight=train_weights)
-                except TypeError:
-                    # Algorithm doesn't support sample_weight
-                    algorithm.fit(X_train, y_train)
-            else:
-                algorithm.fit(X_train, y_train)
+            # Fit algorithm (skip sample weights for cross-validation to avoid Pipeline issues)
+            algorithm.fit(X_train, y_train)
             
             # Evaluate on validation set
             score = algorithm.score(X_val, y_val)
@@ -898,13 +878,8 @@ def main():
                     cv_mean = cv_scores.mean()
                     
                     # Fit on sample data but test on full test set
-                    if train_sample_weights is not None:
-                        try:
-                            pipeline.fit(X_train_sample, y_train_sample, classifier__sample_weight=train_sample_weights)
-                        except TypeError:
-                            pipeline.fit(X_train_sample, y_train_sample)
-                    else:
-                        pipeline.fit(X_train_sample, y_train_sample)
+                    # For now, skip sample weights in final fit to avoid Pipeline issues
+                    pipeline.fit(X_train_sample, y_train_sample)
                     test_score = pipeline.score(X_test, y_test)
                     
                     status = "✅ OK" if not use_sampling or 'SVM' not in alg_name else "📊 SAMPLED"
@@ -985,13 +960,8 @@ def main():
                     cv_mean = cv_scores.mean()
                     
                     # Fit on sample data but test on full test set
-                    if train_sample_weights is not None:
-                        try:
-                            pipeline.fit(X_train_sample, y_train_sample, classifier__sample_weight=train_sample_weights)
-                        except TypeError:
-                            pipeline.fit(X_train_sample, y_train_sample)
-                    else:
-                        pipeline.fit(X_train_sample, y_train_sample)
+                    # For now, skip sample weights in final fit to avoid Pipeline issues
+                    pipeline.fit(X_train_sample, y_train_sample)
                     test_score = pipeline.score(X_test, y_test)
                     
                     status = "✅ OK" if not use_sampling or 'SVM' not in alg_name else "📊 SAMPLED"
