@@ -63,6 +63,16 @@ plt.style.use('default')
 sns.set_palette("husl")
 
 # =============================================================================
+# CONFIGURATION - SET YOUR FILE PATHS HERE
+# =============================================================================
+
+# MOVEMENT DATA FILE PATH - UPDATE THIS TO YOUR ACTUAL FILE LOCATION
+MOVEMENT_DATA_FILE = "models/2025-Q3/2025-07-14/movement_fact_table.parquet"
+
+# DATABASE FILE PATH - UPDATE THIS TO YOUR ACTUAL DATABASE LOCATION  
+DATABASE_FILE = "models/2025-Q3/workforce_intelligence.sqlite"
+
+# =============================================================================
 # MEMORY MANAGEMENT UTILITIES
 # =============================================================================
 
@@ -105,10 +115,32 @@ def print_memory_status():
     memory_usage = get_memory_usage()
     print(f"💾 Memory: {memory_usage['current_process_usage_mb']:.1f} MB")
 
+def normalize_column_names(df):
+    """
+    Normalize column names to lowercase with underscores for consistent access
+    """
+    # Create a mapping of original names to normalized names
+    column_mapping = {}
+    for col in df.columns:
+        # Convert to lowercase and replace spaces with underscores
+        normalized = col.lower().replace(' ', '_').replace('-', '_')
+        column_mapping[col] = normalized
+    
+    # Rename columns
+    df_normalized = df.rename(columns=column_mapping)
+    
+    # Print column mapping for transparency
+    print(f"📋 Column name normalization:")
+    for original, normalized in column_mapping.items():
+        if original != normalized:
+            print(f"   → '{original}' → '{normalized}'")
+    
+    return df_normalized
+
 def load_movement_data_flexible(file_path):
     """
     Load movement data from either CSV or Parquet format
-    Automatically detects file type based on extension
+    Automatically detects file type based on extension and normalizes column names
     """
     file_path = Path(file_path)
     
@@ -140,6 +172,9 @@ def load_movement_data_flexible(file_path):
             
         else:
             raise ValueError(f"Unsupported file format: {file_extension}. Supported formats: .csv, .parquet")
+        
+        # Normalize column names for consistent access
+        df = normalize_column_names(df)
         
         print(f"✅ Successfully loaded {len(df):,} records")
         return df
@@ -174,31 +209,57 @@ def create_clean_movement_dataset(movement_df, job_arch_df):
     original_count = len(movement_df)
     
     # Step 1: Only keep movements where both positions exist in current job arch
-    clean_df = movement_df.dropna(subset=['JobProfileID_from', 'JobProfileID_to'])
+    print(f"   → Initial records: {len(movement_df):,}")
     
-    current_job_profiles = set(job_arch_df['JobProfileID'].unique())
-    clean_df = clean_df[
-        clean_df['JobProfileID_from'].isin(current_job_profiles) &
-        clean_df['JobProfileID_to'].isin(current_job_profiles)
-    ]
+    # Check if JobProfileID columns exist
+    required_cols = ['JobProfileID_from', 'JobProfileID_to']
+    missing_cols = [col for col in required_cols if col not in movement_df.columns]
+    if missing_cols:
+        print(f"   ⚠️  Missing columns: {missing_cols}")
+        print(f"   → Available columns: {list(movement_df.columns)}")
+        # Skip job profile filtering if columns don't exist
+        clean_df = movement_df.copy()
+    else:
+        clean_df = movement_df.dropna(subset=['JobProfileID_from', 'JobProfileID_to'])
+        print(f"   → After dropping null JobProfileIDs: {len(clean_df):,}")
+        
+        current_job_profiles = set(job_arch_df['JobProfileID'].unique())
+        print(f"   → Current job profiles available: {len(current_job_profiles):,}")
+        
+        before_filter = len(clean_df)
+        clean_df = clean_df[
+            clean_df['JobProfileID_from'].isin(current_job_profiles) &
+            clean_df['JobProfileID_to'].isin(current_job_profiles)
+        ]
+        print(f"   → After job profile filtering: {len(clean_df):,} (removed {before_filter - len(clean_df):,})")
     
     # Step 2: Apply aggressive recency weighting
     # Convert movement_date if needed
     if 'movement_date' in clean_df.columns:
+        # Ensure movement_date is datetime
+        clean_df = clean_df.copy()
+        clean_df['movement_date'] = pd.to_datetime(clean_df['movement_date'])
         clean_df['recency_weight'] = clean_df['movement_date'].apply(
             calculate_aggressive_recency_weight
         )
     elif 'movement_year' in clean_df.columns:
-        # Create date from year
+        # Create date from year and calculate weights
+        clean_df = clean_df.copy()
         clean_df['movement_date'] = pd.to_datetime(clean_df['movement_year'], format='%Y')
-        clean_df['recency_weight'] = clean_df['movement_date'].apply(
-            calculate_aggressive_recency_weight
-        )
+        # Calculate recency weights as float values
+        recency_weights = []
+        for date_val in clean_df['movement_date']:
+            weight = calculate_aggressive_recency_weight(date_val)
+            recency_weights.append(weight)
+        clean_df['recency_weight'] = recency_weights
     else:
         print("⚠️  No date column found, using uniform weights")
+        clean_df = clean_df.copy()
         clean_df['recency_weight'] = 1.0
     
     # Step 3: Filter out movements with negligible weight
+    # Ensure recency_weight is numeric before comparison
+    clean_df['recency_weight'] = pd.to_numeric(clean_df['recency_weight'], errors='coerce')
     clean_df = clean_df[clean_df['recency_weight'] >= 0.01]
     
     # Simple retention reporting by year
@@ -493,43 +554,26 @@ def main():
     4. Use chunked processing for large datasets while preserving full data integrity
     """)
     
-    # Load movement data with flexible format support (.csv or .parquet)
-    movement_file_paths = [
-        "data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv",
-        "../data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv",
-        "data/synthetic_test/movement_analysis/realistic_movement_fact_table.parquet",
-        "../data/synthetic_test/movement_analysis/realistic_movement_fact_table.parquet"
-    ]
+    # Load movement data from configured path
+    print(f"📁 Loading movement data from configured path: {MOVEMENT_DATA_FILE}")
     
-    movement_df = None
-    for movement_path in movement_file_paths:
-        try:
-            movement_df = load_movement_data_flexible(movement_path)
-            break
-        except (FileNotFoundError, OSError):
-            continue
-    
-    if movement_df is None:
-        raise FileNotFoundError("Could not find movement data file in supported formats (.csv, .parquet)")
+    try:
+        movement_df = load_movement_data_flexible(MOVEMENT_DATA_FILE)
+        print(f"✅ Successfully loaded movement data from: {MOVEMENT_DATA_FILE}")
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Could not find movement data file: {MOVEMENT_DATA_FILE}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load movement data from {MOVEMENT_DATA_FILE}: {str(e)}")
     print_memory_status()
     
-    # Connect to database
-    database_paths = [
-        'models/2025-Q3/workforce_intelligence.sqlite',
-        '../models/2025-Q3/workforce_intelligence.sqlite'
-    ]
+    # Connect to database from configured path
+    print(f"🔗 Connecting to database: {DATABASE_FILE}")
     
-    conn = None
-    for db_path in database_paths:
-        try:
-            conn = sqlite3.connect(db_path)
-            print(f"🔗 Connected to database: {db_path}")
-            break
-        except sqlite3.OperationalError:
-            continue
-    
-    if conn is None:
-        raise FileNotFoundError("Could not find workforce_intelligence.sqlite database")
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        print(f"✅ Successfully connected to database: {DATABASE_FILE}")
+    except sqlite3.OperationalError as e:
+        raise FileNotFoundError(f"Could not connect to database: {DATABASE_FILE}. Error: {str(e)}")
     
     # Load job architecture data
     jobs_df = pd.read_sql_query("SELECT * FROM jobs", conn)
@@ -701,13 +745,33 @@ def main():
     
     # Apply aggressive recency weighting and conservative null exclusion
     print("🔄 Applying aggressive recency weighting and conservative null exclusion...")
+    print(f"   → Starting with {len(movements_df):,} records")
     clean_movements = create_clean_movement_dataset(movements_df, jobs_df)
+    print(f"   → After cleaning: {len(clean_movements):,} records")
     
     # Filter to only records with required analysis columns
     analysis_cols = available_features + available_targets
+    print(f"   → Checking for required columns: {analysis_cols}")
+    
+    # Check how many records have these columns
+    for col in analysis_cols:
+        if col in clean_movements.columns:
+            non_null_count = clean_movements[col].notna().sum()
+            print(f"   → Column '{col}': {non_null_count:,} non-null values")
+        else:
+            print(f"   → Column '{col}': NOT FOUND in dataset")
+    
     clean_movements = clean_movements.dropna(subset=analysis_cols)
     
-    print(f"📊 Clean dataset: {len(clean_movements):,} records")
+    print(f"📊 Final dataset after column filtering: {len(clean_movements):,} records")
+    
+    if len(clean_movements) == 0:
+        print("❌ ERROR: No records remain after filtering!")
+        print("   This suggests the movement data doesn't have the expected job context columns.")
+        print("   Available columns in movement data:")
+        for col in sorted(clean_movements.columns):
+            print(f"   → {col}")
+        raise ValueError("No valid records found for analysis. Check data structure and column mappings.")
     print_memory_status()
     
     # Encode categorical variables properly

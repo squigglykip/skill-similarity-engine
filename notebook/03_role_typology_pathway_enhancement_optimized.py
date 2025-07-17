@@ -49,6 +49,16 @@ plt.style.use('default')
 sns.set_palette("husl")
 
 # =============================================================================
+# CONFIGURATION - SET YOUR FILE PATHS HERE
+# =============================================================================
+
+# MOVEMENT DATA FILE PATH - UPDATE THIS TO YOUR ACTUAL FILE LOCATION
+MOVEMENT_DATA_FILE = "data/movement_analysis/realistic_movement_fact_table.parquet"
+
+# DATABASE FILE PATH - UPDATE THIS TO YOUR ACTUAL DATABASE LOCATION  
+DATABASE_FILE = "models/2025-Q3/workforce_intelligence.sqlite"
+
+# =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
 
@@ -66,9 +76,9 @@ def trigger_garbage_collection():
 # =============================================================================
 
 class AnalysisConfig:
-    # Database configuration
-    DATABASE_PATH = 'models/2025-Q3/workforce_intelligence.sqlite'
-    MOVEMENT_DATA_PATH = 'data/synthetic_test/movement_analysis/realistic_movement_fact_table.csv'
+    # Database configuration - now uses global config variables
+    DATABASE_PATH = DATABASE_FILE
+    MOVEMENT_DATA_PATH = MOVEMENT_DATA_FILE
     
     # Primary analysis feature
     PRIMARY_FEATURE = 'from_job_sub_function'
@@ -205,25 +215,61 @@ def calculate_diversity_score(transition_counts):
     
     return entropy / max_entropy if max_entropy > 0 else 0.0
 
+def normalize_column_names(df):
+    """
+    Normalize column names to lowercase with underscores for consistent access
+    """
+    # Create a mapping of original names to normalized names
+    column_mapping = {}
+    for col in df.columns:
+        # Convert to lowercase and replace spaces with underscores
+        normalized = col.lower().replace(' ', '_').replace('-', '_')
+        column_mapping[col] = normalized
+    
+    # Rename columns
+    df_normalized = df.rename(columns=column_mapping)
+    
+    # Print column mapping for transparency
+    print(f"📋 Column name normalization:")
+    for original, normalized in column_mapping.items():
+        if original != normalized:
+            print(f"   → '{original}' → '{normalized}'")
+    
+    return df_normalized
+
 def load_movement_data():
-    """Load movement data from configured path"""
+    """Load movement data from configured path with flexible format support"""
     try:
-        print("📁 Loading movement data...")
-        movement_df = pd.read_csv(AnalysisConfig.MOVEMENT_DATA_PATH)
-        print(f"   → Loaded {len(movement_df):,} records from: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+        print(f"📁 Loading movement data from: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+        
+        # Detect file format and load accordingly
+        file_path = Path(AnalysisConfig.MOVEMENT_DATA_PATH)
+        if file_path.suffix.lower() == '.csv':
+            movement_df = pd.read_csv(AnalysisConfig.MOVEMENT_DATA_PATH)
+        elif file_path.suffix.lower() == '.parquet':
+            movement_df = pd.read_parquet(AnalysisConfig.MOVEMENT_DATA_PATH)
+        else:
+            raise ValueError(f"Unsupported file format: {file_path.suffix}. Supported: .csv, .parquet")
+        
+        # Normalize column names for consistent access
+        movement_df = normalize_column_names(movement_df)
+        
+        print(f"✅ Loaded {len(movement_df):,} records from: {AnalysisConfig.MOVEMENT_DATA_PATH}")
         print_memory_usage()
         return movement_df
     except FileNotFoundError:
-        raise FileNotFoundError(f"Could not find movement data CSV: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+        raise FileNotFoundError(f"Could not find movement data file: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load movement data from {AnalysisConfig.MOVEMENT_DATA_PATH}: {str(e)}")
 
 def load_database():
     """Connect to database from configured path"""
     try:
         conn = sqlite3.connect(AnalysisConfig.DATABASE_PATH)
-        print(f"🔗 Connected to database: {AnalysisConfig.DATABASE_PATH}")
+        print(f"✅ Connected to database: {AnalysisConfig.DATABASE_PATH}")
         return conn
-    except sqlite3.OperationalError:
-        raise FileNotFoundError(f"Could not connect to database: {AnalysisConfig.DATABASE_PATH}")
+    except sqlite3.OperationalError as e:
+        raise FileNotFoundError(f"Could not connect to database: {AnalysisConfig.DATABASE_PATH}. Error: {str(e)}")
 
 def chunked_data_enrichment(movement_df, conn):
     """Enrich movement data with job context using chunked processing"""
