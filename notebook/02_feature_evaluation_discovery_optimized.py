@@ -66,11 +66,11 @@ sns.set_palette("husl")
 # CONFIGURATION - SET YOUR FILE PATHS HERE
 # =============================================================================
 
-# MOVEMENT DATA FILE PATH - UPDATE THIS TO YOUR ACTUAL FILE LOCATION
-MOVEMENT_DATA_FILE = "models/2025-Q3/2025-07-14/movement_fact_table.parquet"
-
 # DATABASE FILE PATH - UPDATE THIS TO YOUR ACTUAL DATABASE LOCATION  
 DATABASE_FILE = "models/2025-Q3/workforce_intelligence.sqlite"
+
+# Movement data is now loaded from the movement_fact table in the database
+# No separate parquet file needed
 
 # =============================================================================
 # MEMORY MANAGEMENT UTILITIES
@@ -137,50 +137,45 @@ def normalize_column_names(df):
     
     return df_normalized
 
-def load_movement_data_flexible(file_path):
+def load_movement_data_from_database(conn):
     """
-    Load movement data from either CSV or Parquet format
-    Automatically detects file type based on extension and normalizes column names
+    Load movement data from the movement_fact table in the database
+    Automatically normalizes column names for consistent access
     """
-    file_path = Path(file_path)
-    
-    if not file_path.exists():
-        raise FileNotFoundError(f"Movement data file not found: {file_path}")
-    
-    file_extension = file_path.suffix.lower()
-    file_size_mb = file_path.stat().st_size / (1024 * 1024)
-    
-    print(f"📁 Loading movement data from: {file_path}")
-    print(f"📊 File size: {file_size_mb:.1f} MB")
-    print(f"📄 File type: {file_extension}")
+    print(f"📁 Loading movement data from database table: movement_fact")
     
     try:
-        if file_extension == '.csv':
-            # Handle CSV files with chunking for large files
-            if file_size_mb > 100:  # If larger than 100MB, use chunking
-                print(f"   → Large CSV file detected, using chunked loading...")
-                chunk_list = []
-                for chunk in pd.read_csv(file_path, chunksize=50000):
-                    chunk_list.append(chunk)
-                df = pd.concat(chunk_list, ignore_index=True)
-            else:
-                df = pd.read_csv(file_path)
-                
-        elif file_extension == '.parquet':
-            # Handle Parquet files (naturally efficient)
-            df = pd.read_parquet(file_path)
-            
-        else:
-            raise ValueError(f"Unsupported file format: {file_extension}. Supported formats: .csv, .parquet")
+        # Load movement data from the movement_fact table
+        query = """
+        SELECT 
+            from_position,
+            to_position,
+            movement_pattern,
+            movement_count,
+            movement_year,
+            movement_month,
+            avg_days_between,
+            predominant_movement_type
+        FROM movement_fact
+        """
+        
+        df = pd.read_sql_query(query, conn)
         
         # Normalize column names for consistent access
         df = normalize_column_names(df)
         
-        print(f"✅ Successfully loaded {len(df):,} records")
+        print(f"✅ Successfully loaded {len(df):,} records from movement_fact table")
+        
+        # Show data range for context
+        if 'movement_year' in df.columns:
+            min_year = df['movement_year'].min()
+            max_year = df['movement_year'].max()
+            print(f"📅 Data range: {min_year} - {max_year}")
+        
         return df
         
     except Exception as e:
-        raise RuntimeError(f"Failed to load movement data from {file_path}: {str(e)}")
+        raise RuntimeError(f"Failed to load movement data from database: {str(e)}")
 
 def calculate_aggressive_recency_weight(movement_date, reference_date=None, decay_rate=0.4):
     """
@@ -554,18 +549,6 @@ def main():
     4. Use chunked processing for large datasets while preserving full data integrity
     """)
     
-    # Load movement data from configured path
-    print(f"📁 Loading movement data from configured path: {MOVEMENT_DATA_FILE}")
-    
-    try:
-        movement_df = load_movement_data_flexible(MOVEMENT_DATA_FILE)
-        print(f"✅ Successfully loaded movement data from: {MOVEMENT_DATA_FILE}")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Could not find movement data file: {MOVEMENT_DATA_FILE}")
-    except Exception as e:
-        raise RuntimeError(f"Failed to load movement data from {MOVEMENT_DATA_FILE}: {str(e)}")
-    print_memory_status()
-    
     # Connect to database from configured path
     print(f"🔗 Connecting to database: {DATABASE_FILE}")
     
@@ -574,6 +557,14 @@ def main():
         print(f"✅ Successfully connected to database: {DATABASE_FILE}")
     except sqlite3.OperationalError as e:
         raise FileNotFoundError(f"Could not connect to database: {DATABASE_FILE}. Error: {str(e)}")
+    
+    # Load movement data from database
+    try:
+        movement_df = load_movement_data_from_database(conn)
+        print(f"✅ Successfully loaded movement data from database")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load movement data from database: {str(e)}")
+    print_memory_status()
     
     # Load job architecture data
     jobs_df = pd.read_sql_query("SELECT * FROM jobs", conn)

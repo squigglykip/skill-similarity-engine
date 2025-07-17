@@ -29,8 +29,8 @@ analysis_output: "output/analysis"
 files:
   skills_comprehensive: "skills_library/skills_comprehensive_all_versions.csv"
   job_skill_mapping: "job_skill_mapping/job_skill_mapping.csv"
-  job_architecture: "job_architecture/dummy_job_architecture.csv"
-  workforce_context: "workforce_context/dummy_workforce_context.csv"
+  job_architecture: "job_architecture/job_architecture.csv"
+  workforce_context: "workforce_context/workforce_context.csv"
   
   # Configuration files
   data_sources: "config/data_sources.yaml"

@@ -52,11 +52,11 @@ sns.set_palette("husl")
 # CONFIGURATION - SET YOUR FILE PATHS HERE
 # =============================================================================
 
-# MOVEMENT DATA FILE PATH - UPDATE THIS TO YOUR ACTUAL FILE LOCATION
-MOVEMENT_DATA_FILE = "data/movement_analysis/realistic_movement_fact_table.parquet"
-
 # DATABASE FILE PATH - UPDATE THIS TO YOUR ACTUAL DATABASE LOCATION  
 DATABASE_FILE = "models/2025-Q3/workforce_intelligence.sqlite"
+
+# Movement data is now loaded from the movement_fact table in the database
+# No separate parquet file needed
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -78,7 +78,7 @@ def trigger_garbage_collection():
 class AnalysisConfig:
     # Database configuration - now uses global config variables
     DATABASE_PATH = DATABASE_FILE
-    MOVEMENT_DATA_PATH = MOVEMENT_DATA_FILE
+    # Movement data loaded from movement_fact table in database
     
     # Primary analysis feature
     PRIMARY_FEATURE = 'from_job_sub_function'
@@ -237,30 +237,42 @@ def normalize_column_names(df):
     
     return df_normalized
 
-def load_movement_data():
-    """Load movement data from configured path with flexible format support"""
+def load_movement_data_from_database(conn):
+    """Load movement data from the movement_fact table in the database"""
     try:
-        print(f"📁 Loading movement data from: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+        print(f"📁 Loading movement data from database table: movement_fact")
         
-        # Detect file format and load accordingly
-        file_path = Path(AnalysisConfig.MOVEMENT_DATA_PATH)
-        if file_path.suffix.lower() == '.csv':
-            movement_df = pd.read_csv(AnalysisConfig.MOVEMENT_DATA_PATH)
-        elif file_path.suffix.lower() == '.parquet':
-            movement_df = pd.read_parquet(AnalysisConfig.MOVEMENT_DATA_PATH)
-        else:
-            raise ValueError(f"Unsupported file format: {file_path.suffix}. Supported: .csv, .parquet")
+        # Load movement data from the movement_fact table
+        query = """
+        SELECT 
+            from_position,
+            to_position,
+            movement_pattern,
+            movement_count,
+            movement_year,
+            movement_month,
+            avg_days_between,
+            predominant_movement_type
+        FROM movement_fact
+        """
+        
+        movement_df = pd.read_sql_query(query, conn)
         
         # Normalize column names for consistent access
         movement_df = normalize_column_names(movement_df)
         
-        print(f"✅ Loaded {len(movement_df):,} records from: {AnalysisConfig.MOVEMENT_DATA_PATH}")
+        print(f"✅ Loaded {len(movement_df):,} records from movement_fact table")
+        
+        # Show data range for context
+        if 'movement_year' in movement_df.columns:
+            min_year = movement_df['movement_year'].min()
+            max_year = movement_df['movement_year'].max()
+            print(f"📅 Data range: {min_year} - {max_year}")
+        
         print_memory_usage()
         return movement_df
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Could not find movement data file: {AnalysisConfig.MOVEMENT_DATA_PATH}")
     except Exception as e:
-        raise RuntimeError(f"Failed to load movement data from {AnalysisConfig.MOVEMENT_DATA_PATH}: {str(e)}")
+        raise RuntimeError(f"Failed to load movement data from database: {str(e)}")
 
 def load_database():
     """Connect to database from configured path"""
@@ -590,8 +602,8 @@ def main():
     """)
     
     # Load data
-    movement_df = load_movement_data()
     conn = load_database()
+    movement_df = load_movement_data_from_database(conn)
     enriched_df = chunked_data_enrichment(movement_df, conn)
     
     # Cleanup original data

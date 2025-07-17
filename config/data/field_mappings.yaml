@@ -125,7 +125,7 @@ job_architecture:
 
 position_job_mapping:
   # Position to Job Profile Mapping
-  source_file_pattern: "job_architecture_to_positions_mapping/${position_mapping_patterns.position_job_mapping}"
+  source_file_pattern: "job_arch_to_positions_mapping/${position_mapping_patterns.position_job_mapping}"
   description: "Links position numbers to job profiles (5K mappings)"
   
   field_mappings:

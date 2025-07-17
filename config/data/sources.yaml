@@ -16,7 +16,7 @@ similarity_calculation:
 data_sources:
   # Job Architecture Data
   jobs:
-    file_path: "job_architecture/dummy_job_architecture.csv"
+    file_path: "job_architecture/job_architecture.csv"
     table_name: "jobs"
     description: "Enhanced job architecture master data with 16-column schema"
     expected_columns:
@@ -102,7 +102,7 @@ data_sources:
 
   # Workforce Context Data
   positions:
-    file_path: "workforce_context/dummy_workforce_context.csv"
+    file_path: "workforce_context/workforce_context.csv"
     table_name: "positions"
     description: "Current workforce context and position information with enriched JobProfileID"
     expected_columns:
@@ -152,7 +152,7 @@ data_sources:
     # Enable position enrichment with job mapping
     enrichment:
       enabled: true
-      mapping_file: "job_architecture_to_positions_mapping/position_job_mapping.csv"
+      mapping_file: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
       merge_key: "Position Number"
     # Skip derived columns since we're mapping directly from org hierarchy
     data_types:
@@ -186,7 +186,7 @@ data_sources:
 
   # Workforce Context Data (CSV-based from workforce_context directory)
   workforce_context:
-    file_path: "workforce_context/dummy_workforce_context.csv"
+    file_path: "workforce_context/workforce_context.csv"
     table_name: "workforce_context"
     description: "Workforce context and organisational hierarchy data"
     expected_columns:

@@ -12,7 +12,7 @@ similarity_chunk_size: 50000
 # Default data source file paths (relative to data root)
 default_data_sources:
   jobs:
-    file_path: "job_architecture/dummy_job_architecture.csv"
+    file_path: "job_architecture/job_architecture.csv"
     table_name: "jobs"
   skills:
     file_path: "skills_library/lightcast_skills_comprehensive.csv"
@@ -22,7 +22,7 @@ default_data_sources:
     file_path: "input_data/job_skill_mapping.csv"
     table_name: "job_skills"
   positions:
-    file_path: "workforce_context/dummy_workforce_context.csv"
+    file_path: "workforce_context/workforce_context.csv"
     table_name: "positions"
 
 # Data validation thresholds

@@ -7,10 +7,10 @@
 # Historical workforce data patterns
 workforce_data_patterns:
   # Colleague positions files (production environment naming)
-  colleague_positions: "d_colleague_position_fy*.csv"
+  colleague_positions: "d_colleague_position_fy[0-9][0-9].csv"
   
   # Position history files
-  positions_history: "d_positions_fy*.csv"
+  positions_history: "d_positions_fy[0-9][0-9].csv"
   
   # Alternative patterns for different environments
   colleague_positions_dev: "d_colleague_positions_fy*.csv"  # Development with 's'
@@ -25,15 +25,15 @@ skills_data_patterns:
   job_skill_mapping: "job_skill_mapping.csv"
   
   # Job architecture files
-  job_architecture: "dummy_job_architecture.csv"
+  job_architecture: "job_architecture.csv"
   
   # Workforce context files
-  workforce_context: "dummy_workforce_context.csv"
+  workforce_context: "workforce_context.csv"
 
 # Position mapping patterns
 position_mapping_patterns:
   # Position to job profile mapping
-  position_job_mapping: "position_job_mapping.csv"
+  position_job_mapping: "job_arch_to_positions_mapping.csv"
   
   # Alternative mapping patterns
   position_id_mapping: "position_id_to_job_profile.csv"
@@ -67,9 +67,9 @@ database_patterns:
 
 # Environment-specific overrides
 environment_overrides:
-  # Production environment uses singular form
+  # Production environment uses singular form with 2-digit years
   production:
-    colleague_positions: "d_colleague_position_fy*.csv"
+    colleague_positions: "d_colleague_position_fy[0-9][0-9].csv"
   
   # Development environment uses plural form
   development:
@@ -77,7 +77,7 @@ environment_overrides:
   
   # Testing environment
   testing:
-    colleague_positions: "d_colleague_position_fy*.csv"
+    colleague_positions: "d_colleague_position_fy[0-9][0-9].csv"
 
 # File extension patterns
 file_extensions:

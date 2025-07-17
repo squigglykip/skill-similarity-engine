@@ -1,14 +1,14 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Workforce Intelligence Database
 
-**Generated**: 2025-07-14 21:40:22
-**Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q3\workforce_intelligence.sqlite`
-**Database Size**: 206.15 MB
+**Generated**: 2025-07-17 14:45:38
+**Database File**: `c:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q3\workforce_intelligence.sqlite`
+**Database Size**: 211.6 MB
 **SQLite Version**: 3.45.3
 **Page Size**: 4096 bytes
-**Total Pages**: 52,775
+**Total Pages**: 54,170
 **Foreign Keys**: Disabled
-**Last Modified**: 2025-07-14T21:14:40.203066
+**Last Modified**: 2025-07-17T14:42:49.919399
 
 ---
 
@@ -23,11 +23,11 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 **Core Tables for Query Development:**
 
 - **`career_pathways`** (8,580 records) - source_job_id, target_job_id, similarity_rank, similarity_score, career_move_type
-- **`colleague_movements`** (92,107 records) - employee_number, jobprofile_id, movement_type, movement_date
+- **`colleague_movements`** (162,954 records) - employee_number, jobprofile_id, movement_type, movement_date
 - **`job_similarities`** (510,510 records) - job_from, job_to, similarity_score
 - **`job_skills`** (40,170 records) - JobProfileID, Skill_ID, Skill_Weight
 - **`jobs`** (715 records) - JobProfileID, JobProfile, JobFamily, JobFamilyGroup
-- **`movement_fact`** (92,107 records) - movement_pattern, movement_count, month, avg_days_in_position
+- **`movement_fact`** (162,941 records) - movement_pattern, movement_count, month, avg_days_in_position
 - **`positions`** (35,000 records) - JobProfileID, Division, Business_Unit, Location, Team
 - **`skills`** (38,430 records) - Skill_ID, Skill_Name, Category, SkillType
 
@@ -49,18 +49,18 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 ## Database Statistics
 
 - **Total Tables**: 11
-- **Total Records**: 1,452,623
+- **Total Records**: 1,594,304
 - **Total Indexes**: 21
-- **Database Size**: 206.15 MB
+- **Database Size**: 211.6 MB
 
 ### Key Business Metrics
 
 
 ### Movement Analysis Summary
 
-- **Total Movements Tracked**: 92,107
+- **Total Movements Tracked**: 162,954
 - **Movement Types**:
-  - lateral: 92,107
+  - lateral: 162,954
 
 ### Career Pathways Summary
 
@@ -87,13 +87,13 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 
 - ✅ **career_pathways.target_job_id**: No orphaned records
 - ✅ **career_pathways.source_job_id**: No orphaned records
-- ⚠️ **colleague_movements.jobprofile_id**: 92107 orphaned records
-- ⚠️ **colleague_movements.employee_number**: 92107 orphaned records
+- ⚠️ **colleague_movements.jobprofile_id**: 162954 orphaned records
+- ⚠️ **colleague_movements.employee_number**: 162954 orphaned records
 - ✅ **job_similarities.job_to**: No orphaned records
 - ✅ **job_similarities.job_from**: No orphaned records
 - ⚠️ **job_skills.Skill_ID**: 125 orphaned records
 - ✅ **job_skills.JobProfileID**: No orphaned records
-- ✅ **positions.JobProfileID**: No orphaned records
+- ⚠️ **positions.JobProfileID**: 35000 orphaned records
 
 ## Performance Analysis
 
@@ -105,20 +105,20 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 
 **Medium Tables:**
 - career_pathways: 8,580 rows
-- colleague_movements: 92,107 rows
 - job_skills: 40,170 rows
-- movement_fact: 92,107 rows
 - positions: 35,000 rows
 - skills: 38,430 rows
 - workforce_context: 35,000 rows
 
 **Large Tables:**
+- colleague_movements: 162,954 rows
 - job_similarities: 510,510 rows
+- movement_fact: 162,941 rows
 - position_history: 600,000 rows
 
 ### Query Optimization Recommendations
 
-- **indexing**: Large table (92,107 rows) with minimal indexing
+- **indexing**: Large table (162,941 rows) with minimal indexing
   - Recommendation: Consider adding indexes on frequently queried columns
 - **indexing**: Large table (600,000 rows) with minimal indexing
   - Recommendation: Consider adding indexes on frequently queried columns
@@ -363,8 +363,8 @@ CREATE TABLE career_pathways (
 **Sample Complete Records:**
 
 **Record 1:**
-  - `source_job_id`: R0347.2
-  - `target_job_id`: R0347.0
+  - `source_job_id`: R0181.3
+  - `target_job_id`: R0181.2
   - `similarity_rank`: 1
   - `similarity_score`: 1.0
   - `skill_overlap_score`: 1.0
@@ -373,28 +373,28 @@ CREATE TABLE career_pathways (
   - `difficulty_score`: 0.0
 
 **Record 2:**
-  - `source_job_id`: R0347.2
-  - `target_job_id`: R0347.3
+  - `source_job_id`: R0181.3
+  - `target_job_id`: R0116.4
   - `similarity_rank`: 2
-  - `similarity_score`: 1.0
-  - `skill_overlap_score`: 1.0
-  - `shared_skills_count`: 20
-  - `career_move_type`: lateral
-  - `difficulty_score`: 0.0
+  - `similarity_score`: 0.5084745762711864
+  - `skill_overlap_score`: 0.5084745762711864
+  - `shared_skills_count`: 10
+  - `career_move_type`: progression
+  - `difficulty_score`: 0.4915254237288136
 
 **Record 3:**
-  - `source_job_id`: R0347.2
-  - `target_job_id`: R0347.4
+  - `source_job_id`: R0181.3
+  - `target_job_id`: R0116.3
   - `similarity_rank`: 3
-  - `similarity_score`: 1.0
-  - `skill_overlap_score`: 1.0
-  - `shared_skills_count`: 20
-  - `career_move_type`: lateral
-  - `difficulty_score`: 0.0
+  - `similarity_score`: 0.5084745762711864
+  - `skill_overlap_score`: 0.5084745762711864
+  - `shared_skills_count`: 10
+  - `career_move_type`: progression
+  - `difficulty_score`: 0.4915254237288136
 
 ---
 
-### 2. **colleague_movements** - 92,107 records
+### 2. **colleague_movements** - 162,954 records
 
 ```sql
 CREATE TABLE colleague_movements (
@@ -416,11 +416,11 @@ CREATE TABLE colleague_movements (
 
 **Column Statistics:**
 
-- **movement_id**: 92,107 unique values (92,107 non-null), range 1 - 92107
-- **employee_number**: 66,094 unique values (92,107 non-null), avg length 8.0
-- **jobprofile_id**: 26,359 unique values (92,107 non-null), avg length 8.0
-- **movement_type**: 1 unique values (92,107 non-null), avg length 7.0
-- **change_reason**: 1 unique values (92,107 non-null), avg length 18.0
+- **movement_id**: 162,954 unique values (162,954 non-null), range 1 - 162954
+- **employee_number**: 118,248 unique values (162,954 non-null), avg length 8.58
+- **jobprofile_id**: 4,996 unique values (162,954 non-null), avg length 8.0
+- **movement_type**: 1 unique values (162,954 non-null), avg length 7.0
+- **change_reason**: 1 unique values (162,954 non-null), avg length 18.0
 
 **Data Quality - Completeness:**
 
@@ -440,44 +440,44 @@ CREATE TABLE colleague_movements (
 **Sample Data by Column:**
 
 - **movement_id**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
-- **employee_number**: `10330906`, `10331697`, `10332430`, `10333050`, `10333149`, `10333966`, `10334641`, `10335848`, `10336114`, `10336171`
-- **jobprofile_id**: `65006738`, `65006781`, `65006796`, `65006802`, `65006819`, `65006854`, `65006855`, `65006867`, `65006872`, `65006878`
+- **employee_number**: `100000040`, `100000636`, `100001456`, `100002973`, `100003410`, `100004179`, `100004925`, `100005439`, `100005557`, `100006134`
+- **jobprofile_id**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
 - **movement_type**: `lateral`
-- **movement_date**: `2020-07-01`, `2020-07-08`, `2020-07-15`, `2020-07-22`, `2020-07-29`, `2020-08-05`, `2020-08-12`, `2020-08-19`, `2020-08-26`, `2020-09-02`
-- **effective_date**: `2020-07-01`, `2020-07-08`, `2020-07-15`, `2020-07-22`, `2020-07-29`, `2020-08-05`, `2020-08-12`, `2020-08-19`, `2020-08-26`, `2020-09-02`
-- **end_date**: `2020-07-01`, `2020-07-08`, `2020-07-15`, `2020-07-22`, `2020-07-29`, `2020-08-05`, `2020-08-12`, `2020-08-19`, `2020-08-26`, `2020-09-02`
+- **movement_date**: `2021-07-08`, `2021-07-15`, `2021-07-22`, `2021-07-29`, `2021-08-05`, `2021-08-12`, `2021-08-19`, `2021-08-26`, `2021-09-02`, `2021-09-09`
+- **effective_date**: `2021-07-08`, `2021-07-15`, `2021-07-22`, `2021-07-29`, `2021-08-05`, `2021-08-12`, `2021-08-19`, `2021-08-26`, `2021-09-02`, `2021-09-09`
+- **end_date**: `2021-07-01`, `2021-07-08`, `2021-07-15`, `2021-07-22`, `2021-07-29`, `2021-08-05`, `2021-08-12`, `2021-08-19`, `2021-08-26`, `2021-09-02`
 - **change_reason**: `Career Progression`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `movement_id`: 1
-  - `employee_number`: 19187289
-  - `jobprofile_id`: 65269983
+  - `employee_number`: 56458214
+  - `jobprofile_id`: 50000271
   - `movement_type`: lateral
-  - `movement_date`: 2025-01-27
-  - `effective_date`: 2025-01-27
-  - `end_date`: 2021-01-13
+  - `movement_date`: 2022-06-02
+  - `effective_date`: 2022-06-02
+  - `end_date`: 2022-05-05
   - `change_reason`: Career Progression
 
 **Record 2:**
   - `movement_id`: 2
-  - `employee_number`: 11794546
-  - `jobprofile_id`: 65199030
+  - `employee_number`: 56459636
+  - `jobprofile_id`: 50003458
   - `movement_type`: lateral
-  - `movement_date`: 2023-03-17
-  - `effective_date`: 2023-03-17
-  - `end_date`: 2020-12-30
+  - `movement_date`: 2021-08-19
+  - `effective_date`: 2021-08-19
+  - `end_date`: 2021-07-08
   - `change_reason`: Career Progression
 
 **Record 3:**
   - `movement_id`: 3
-  - `employee_number`: 24039423
-  - `jobprofile_id`: 65073216
+  - `employee_number`: 56461657
+  - `jobprofile_id`: 50001953
   - `movement_type`: lateral
-  - `movement_date`: 2022-11-11
-  - `effective_date`: 2022-11-11
-  - `end_date`: 2020-09-09
+  - `movement_date`: 2021-11-18
+  - `effective_date`: 2021-11-18
+  - `end_date`: 2021-09-02
   - `change_reason`: Career Progression
 
 ---
@@ -748,7 +748,7 @@ CREATE TABLE jobs (
 
 ---
 
-### 6. **movement_fact** - 92,107 records
+### 6. **movement_fact** - 162,941 records
 
 ```sql
 CREATE TABLE movement_fact (
@@ -769,18 +769,18 @@ CREATE TABLE movement_fact (
 
 **Column Statistics:**
 
-- **fact_id**: 92,107 unique values (92,107 non-null), range 1 - 92107
-- **movement_month**: 60 unique values (92,107 non-null), avg length 7.0
-- **movement_year**: 6 unique values (92,107 non-null), range 2020 - 2025
-- **from_position**: 26,292 unique values (92,107 non-null), avg length 8.0
-- **to_position**: 26,359 unique values (92,107 non-null), avg length 8.0
-- **movement_pattern**: 92,098 unique values (92,107 non-null), avg length 19.0
-- **movement_count**: 1 unique values (92,107 non-null), range 1 - 1
-- **pct_total_movements**: 19 unique values (92,107 non-null), range 0.0300 - 2.3300, avg 0.0650
-- **unique_employees**: 1 unique values (92,107 non-null), range 1 - 1
-- **avg_days_between**: 671 unique values (92,107 non-null), range 0.0000 - 1818.0000, avg 514.8637
-- **monthly_total_movements**: 59 unique values (92,107 non-null), range 43 - 2909
-- **predominant_movement_type**: 1 unique values (92,107 non-null), avg length 7.0
+- **fact_id**: 162,941 unique values (162,941 non-null), range 1 - 162941
+- **movement_month**: 48 unique values (162,941 non-null), avg length 7.0
+- **movement_year**: 5 unique values (162,941 non-null), range 2021 - 2025
+- **from_position**: 4,997 unique values (162,941 non-null), avg length 8.0
+- **to_position**: 4,996 unique values (162,941 non-null), avg length 8.0
+- **movement_pattern**: 162,297 unique values (162,941 non-null), avg length 19.0
+- **movement_count**: 2 unique values (162,941 non-null), range 1 - 2
+- **pct_total_movements**: 8 unique values (162,941 non-null), range 0.0200 - 0.2100, avg 0.0298
+- **unique_employees**: 2 unique values (162,941 non-null), range 1 - 2
+- **avg_days_between**: 56 unique values (162,941 non-null), range 7.0000 - 357.0000, avg 58.9805
+- **monthly_total_movements**: 48 unique values (162,941 non-null), range 472 - 4828
+- **predominant_movement_type**: 1 unique values (162,941 non-null), avg length 7.0
 
 **Data Quality - Completeness:**
 
@@ -804,60 +804,60 @@ CREATE TABLE movement_fact (
 **Sample Data by Column:**
 
 - **fact_id**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
-- **movement_month**: `2020-07`, `2020-08`, `2020-09`, `2020-10`, `2020-11`, `2020-12`, `2021-01`, `2021-02`, `2021-03`, `2021-04`
-- **movement_year**: `2020`, `2021`, `2022`, `2023`, `2024`, `2025`
-- **from_position**: `65006738`, `65006796`, `65006802`, `65006819`, `65006823`, `65006854`, `65006855`, `65006867`, `65006878`, `65006891`
-- **to_position**: `65006738`, `65006781`, `65006796`, `65006802`, `65006819`, `65006854`, `65006855`, `65006867`, `65006872`, `65006878`
-- **movement_pattern**: `65006738 → 65082305`, `65006738 → 65111730`, `65006796 → 65047124`, `65006796 → 65062066`, `65006796 → 65077634`, `65006796 → 65099884`, `65006796 → 65236178`, `65006802 → 65015909`, `65006802 → 65151380`, `65006802 → 65219543`
-- **movement_count**: `1`
-- **pct_total_movements**: `0.03`, `0.04`, `0.05`, `0.06`, `0.07`, `0.08`, `0.09`, `0.11`, `0.13`, `0.15`
-- **unique_employees**: `1`
-- **avg_days_between**: `0.0`, `7.0`, `8.0`, `9.0`, `14.0`, `15.0`, `16.0`, `21.0`, `22.0`, `23.0`
-- **monthly_total_movements**: `43`, `122`, `187`, `202`, `277`, `416`, `418`, `472`, `596`, `600`
+- **movement_month**: `2021-07`, `2021-08`, `2021-09`, `2021-10`, `2021-11`, `2021-12`, `2022-01`, `2022-02`, `2022-03`, `2022-04`
+- **movement_year**: `2021`, `2022`, `2023`, `2024`, `2025`
+- **from_position**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **to_position**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **movement_pattern**: `50000000 → 50000072`, `50000000 → 50000119`, `50000000 → 50000142`, `50000000 → 50000149`, `50000000 → 50000384`, `50000000 → 50000385`, `50000000 → 50000433`, `50000000 → 50000660`, `50000000 → 50000734`, `50000000 → 50000739`
+- **movement_count**: `1`, `2`
+- **pct_total_movements**: `0.02`, `0.03`, `0.04`, `0.05`, `0.06`, `0.12`, `0.2`, `0.21`
+- **unique_employees**: `1`, `2`
+- **avg_days_between**: `7.0`, `10.5`, `14.0`, `21.0`, `24.5`, `28.0`, `31.5`, `35.0`, `38.5`, `42.0`
+- **monthly_total_movements**: `472`, `490`, `495`, `503`, `1555`, `1580`, `1585`, `1604`, `3065`, `3109`
 - **predominant_movement_type**: `lateral`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `fact_id`: 1
-  - `movement_month`: 2020-07
-  - `movement_year`: 2020
-  - `from_position`: 65157776
-  - `to_position`: 65191267
-  - `movement_pattern`: 65157776 → 65191267
+  - `movement_month`: 2021-07
+  - `movement_year`: 2021
+  - `from_position`: 50004608
+  - `to_position`: 50002964
+  - `movement_pattern`: 50004608 → 50002964
   - `movement_count`: 1
-  - `pct_total_movements`: 2.33
+  - `pct_total_movements`: 0.2
   - `unique_employees`: 1
-  - `avg_days_between`: 21.0
-  - `monthly_total_movements`: 43
+  - `avg_days_between`: 28.0
+  - `monthly_total_movements`: 495
   - `predominant_movement_type`: lateral
 
 **Record 2:**
   - `fact_id`: 2
-  - `movement_month`: 2020-07
-  - `movement_year`: 2020
-  - `from_position`: 65268687
-  - `to_position`: 65127911
-  - `movement_pattern`: 65268687 → 65127911
+  - `movement_month`: 2021-07
+  - `movement_year`: 2021
+  - `from_position`: 50003207
+  - `to_position`: 50000638
+  - `movement_pattern`: 50003207 → 50000638
   - `movement_count`: 1
-  - `pct_total_movements`: 2.33
+  - `pct_total_movements`: 0.2
   - `unique_employees`: 1
-  - `avg_days_between`: 7.0
-  - `monthly_total_movements`: 43
+  - `avg_days_between`: 21.0
+  - `monthly_total_movements`: 495
   - `predominant_movement_type`: lateral
 
 **Record 3:**
   - `fact_id`: 3
-  - `movement_month`: 2020-07
-  - `movement_year`: 2020
-  - `from_position`: 65175409
-  - `to_position`: 65091594
-  - `movement_pattern`: 65175409 → 65091594
+  - `movement_month`: 2021-07
+  - `movement_year`: 2021
+  - `from_position`: 50002733
+  - `to_position`: 50001177
+  - `movement_pattern`: 50002733 → 50001177
   - `movement_count`: 1
-  - `pct_total_movements`: 2.33
+  - `pct_total_movements`: 0.2
   - `unique_employees`: 1
   - `avg_days_between`: 14.0
-  - `monthly_total_movements`: 43
+  - `monthly_total_movements`: 495
   - `predominant_movement_type`: lateral
 
 ---
@@ -880,14 +880,14 @@ CREATE TABLE position_history (
 
 **Column Statistics:**
 
-- **position_number**: 44,999 unique values (600,000 non-null), avg length 8.0
-- **position_id_lookup_key**: 45,000 unique values (600,000 non-null), avg length 13.7
-- **organisational_unit**: 6 unique values (600,000 non-null), avg length 14.84
-- **cost_centre_number**: 437,175 unique values (600,000 non-null), avg length 6.0
-- **position_title**: 6 unique values (600,000 non-null), avg length 17.83
-- **people_leader**: 418,731 unique values (600,000 non-null), avg length 7.0
+- **position_number**: 4,997 unique values (600,000 non-null), avg length 8.0
+- **position_id_lookup_key**: 600,000 unique values (600,000 non-null), avg length 15.89
+- **organisational_unit**: 11 unique values (600,000 non-null), avg length 13.99
+- **cost_centre_number**: 90 unique values (600,000 non-null), avg length 4.0
+- **position_title**: 1 unique values (600,000 non-null), avg length 0
+- **people_leader**: 117,288 unique values (600,000 non-null), avg length 6.97
 - **operational**: 2 unique values (600,000 non-null), avg length 1.0
-- **org_unit_id_lookup_key**: 580,305 unique values (600,000 non-null), avg length 7.0
+- **org_unit_id_lookup_key**: 580,257 unique values (600,000 non-null), avg length 7.0
 
 **Data Quality - Completeness:**
 
@@ -908,49 +908,49 @@ CREATE TABLE position_history (
 **Sample Data by Column:**
 
 - **week_ending**: `01/06/2024`, `01/07/2020`, `01/07/2021`, `01/07/2022`, `01/07/2023`, `01/07/2024`, `02/03/2024`, `02/06/2021`, `02/06/2022`, `02/06/2023`
-- **position_number**: `65006722`, `65006730`, `65006738`, `65006781`, `65006794`, `65006796`, `65006802`, `65006811`, `65006819`, `65006823`
-- **position_id_lookup_key**: `100030095547.0`, `100047612203.0`, `100050548606.0`, `100056137951.0`, `100063596380.0`, `100064910519.0`, `100066735638.0`, `100070397055.0`, `100080452054.0`, `100087459688.0`
-- **organisational_unit**: `Business Banking`, `Corporate Banking`, `Finance`, `Human Resources`, `Risk Management`, `Technology Division`
-- **cost_centre_number**: `100000`, `100001`, `100002`, `100003`, `100006`, `100010`, `100013`, `100014`, `100015`, `100020`
-- **position_title**: `Business Analyst`, `DevOps Specialist`, `Lead Software Engineer`, `Principal Consultant`, `Senior Data Scientist`, `UX Designer`
-- **people_leader**: ``, `10000325.0`, `10000492.0`, `10000765.0`, `10000943.0`, `10001008.0`, `10001022.0`, `10001960.0`, `10002032.0`, `10002074.0`
+- **position_number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **position_id_lookup_key**: `100000404561.949`, `100000482476.752`, `100000490281.261`, `100001048729.251`, `100001257854.242`, `100001742750.32`, `100002088367.031`, `100002093222.153`, `100003533132.812`, `100006060675.268`
+- **organisational_unit**: `Business Banking`, `Corporate Affairs`, `Customer Banking`, `Finance`, `Human Resources`, `Institutional Banking`, `Legal & Compliance`, `Marketing`, `Operations`, `Risk Management`
+- **cost_centre_number**: `1000`, `1100`, `1200`, `1300`, `1400`, `1500`, `1600`, `1700`, `1800`, `1900`
+- **position_title**: ``
+- **people_leader**: ``, `20000096.0`, `20000338.0`, `20000462.0`, `20000658.0`, `20000664.0`, `20000681.0`, `20000815.0`, `20001248.0`, `20001309.0`
 - **operational**: `0`, `1`
-- **org_unit_id_lookup_key**: `1000023`, `1000029`, `1000050`, `1000062`, `1000071`, `1000111`, `1000115`, `1000159`, `1000167`, `1000179`
+- **org_unit_id_lookup_key**: `1000052`, `1000088`, `1000099`, `1000111`, `1000120`, `1000132`, `1000159`, `1000177`, `1000181`, `1000182`
 
 **Sample Complete Records:**
 
 **Record 1:**
-  - `week_ending`: 05/05/2021
-  - `position_number`: 65300406
-  - `position_id_lookup_key`: 150472029800.0
-  - `organisational_unit`: Business Banking
-  - `cost_centre_number`: 186590
-  - `position_title`: Lead Software Engineer
-  - `people_leader`: 
+  - `week_ending`: 01/07/2020
+  - `position_number`: 50000000
+  - `position_id_lookup_key`: 173270485187.612
+  - `organisational_unit`: Risk Management
+  - `cost_centre_number`: 2800
+  - `position_title`: 
+  - `people_leader`: 22615063.0
   - `operational`: 1
-  - `org_unit_id_lookup_key`: 2934528
+  - `org_unit_id_lookup_key`: 7379873
 
 **Record 2:**
-  - `week_ending`: 24/02/2021
-  - `position_number`: 65112185
-  - `position_id_lookup_key`: 129654824086.0
-  - `organisational_unit`: Technology Division
-  - `cost_centre_number`: 486296
-  - `position_title`: DevOps Specialist
-  - `people_leader`: 82598464.0
-  - `operational`: 0
-  - `org_unit_id_lookup_key`: 2487611
+  - `week_ending`: 02/06/2021
+  - `position_number`: 50000000
+  - `position_id_lookup_key`: 133027629035.626
+  - `organisational_unit`: Technology
+  - `cost_centre_number`: 6100
+  - `position_title`: 
+  - `people_leader`: 20703164.0
+  - `operational`: 1
+  - `org_unit_id_lookup_key`: 5035291
 
 **Record 3:**
-  - `week_ending`: 07/04/2021
-  - `position_number`: 65324640
-  - `position_id_lookup_key`: 318705751381.0
-  - `organisational_unit`: Business Banking
-  - `cost_centre_number`: 490860
-  - `position_title`: DevOps Specialist
-  - `people_leader`: 92735038.0
+  - `week_ending`: 02/12/2020
+  - `position_number`: 50000000
+  - `position_id_lookup_key`: 225280122312.613
+  - `organisational_unit`: Technology
+  - `cost_centre_number`: 6100
+  - `position_title`: 
+  - `people_leader`: 20703164.0
   - `operational`: 1
-  - `org_unit_id_lookup_key`: 1826918
+  - `org_unit_id_lookup_key`: 7975908
 
 ---
 
@@ -989,7 +989,7 @@ CREATE TABLE positions (
 - **Employee Number**: 35,000 unique values (35,000 non-null), avg length 6.0
 - **Position Number**: 4,997 unique values (35,000 non-null), avg length 8.0
 - **Position Name**: 580 unique values (35,000 non-null), avg length 21.98
-- **JobProfileID**: 628 unique values (35,000 non-null), avg length 7.0
+- **JobProfileID**: 1 unique values (35,000 non-null), avg length 0
 - **Division**: 6 unique values (35,000 non-null), avg length 20.1
 - **Business_Unit**: 10 unique values (35,000 non-null), avg length 14.34
 - **Team**: 10 unique values (35,000 non-null), avg length 24.53
@@ -1037,7 +1037,7 @@ CREATE TABLE positions (
 - **Employee Number**: `100000`, `100001`, `100002`, `100003`, `100004`, `100005`, `100006`, `100007`, `100008`, `100009`
 - **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
 - **Position Name**: `Analytics Advisor`, `Analytics Analyst`, `Analytics Associate`, `Analytics Consultant`, `Analytics Developer`, `Analytics Director`, `Analytics Engineer`, `Analytics Executive Advisor`, `Analytics Executive Director`, `Analytics Executive Manager`
-- **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0003.0`, `R0003.2`, `R0005.1`, `R0009.0`, `R0009.1`
+- **JobProfileID**: ``
 - **Division**: `Business & Private Banking`, `Corporate & Institutional B...`, `Customer Banking & Wealth`, `Group Functions`, `NAB Ventures`, `Technology`
 - **Business_Unit**: `Business Banking`, `Corporate Banking`, `Finance`, `Human Resources`, `Legal & Compliance`, `NAB Ventures`, `Personal Banking`, `Risk Management`, `Technology`, `Wealth Management`
 - **Team**: `Business Banking Operations`, `Corporate Banking Operations`, `Finance Strategy`, `Human Resources Strategy`, `Legal & Compliance Strategy`, `NAB Ventures Operations`, `Personal Banking Operations`, `Risk Management Strategy`, `Technology Operations`, `Wealth Management Operations`
@@ -1060,7 +1060,7 @@ CREATE TABLE positions (
   - `Employee Number`: 100000
   - `Position Number`: 50003311
   - `Position Name`: Investment Principal Specialist
-  - `JobProfileID`: R0242.3
+  - `JobProfileID`: 
   - `Division`: Corporate & Institutional Banking
   - `Business_Unit`: Technology
   - `Team`: Business Banking Operations
@@ -1081,7 +1081,7 @@ CREATE TABLE positions (
   - `Employee Number`: 100001
   - `Position Number`: 50003667
   - `Position Name`: Operations Vice President
-  - `JobProfileID`: R0306.0
+  - `JobProfileID`: 
   - `Division`: Corporate & Institutional Banking
   - `Business_Unit`: Human Resources
   - `Team`: Human Resources Strategy
@@ -1102,7 +1102,7 @@ CREATE TABLE positions (
   - `Employee Number`: 100002
   - `Position Number`: 50000226
   - `Position Name`: Audit General Manager
-  - `JobProfileID`: R0304.2
+  - `JobProfileID`: 
   - `Division`: Technology
   - `Business_Unit`: Human Resources
   - `Team`: Finance Strategy
@@ -1150,25 +1150,25 @@ CREATE TABLE schema_metadata (
 **Sample Data by Column:**
 
 - **key**: `created_date`, `purpose`, `schema_version`, `source_document`
-- **value**: `1.0`, `2025-07-14T21:13:58.447903`, `NAB Skill Similarity Engine...`, `docs/sqlite_schema_design.md`
-- **created_at**: `2025-07-14T21:13:58.447903`
+- **value**: `1.0`, `2025-07-17T14:42:29.174221`, `NAB Skill Similarity Engine...`, `docs/sqlite_schema_design.md`
+- **created_at**: `2025-07-17T14:42:29.174221`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `key`: schema_version
   - `value`: 1.0
-  - `created_at`: 2025-07-14T21:13:58.447903
+  - `created_at`: 2025-07-17T14:42:29.174221
 
 **Record 2:**
   - `key`: created_date
-  - `value`: 2025-07-14T21:13:58.447903
-  - `created_at`: 2025-07-14T21:13:58.447903
+  - `value`: 2025-07-17T14:42:29.174221
+  - `created_at`: 2025-07-17T14:42:29.174221
 
 **Record 3:**
   - `key`: source_document
   - `value`: docs/sqlite_schema_design.md
-  - `created_at`: 2025-07-14T21:13:58.447903
+  - `created_at`: 2025-07-17T14:42:29.174221
 
 ---
 
@@ -1544,25 +1544,25 @@ Top values for important categorical columns:
 
 ### colleague_movements.movement_type
 
-- **lateral**: 92,107 records
+- **lateral**: 162,954 records
 
 ### movement_fact.movement_pattern
 
-- **65332225 → 65144592**: 2 records
-- **65306768 → 65036977**: 2 records
-- **65265466 → 65312984**: 2 records
-- **65259688 → 65201770**: 2 records
-- **65211693 → 65101188**: 2 records
-- **65146914 → 65183635**: 2 records
-- **65085222 → 65089620**: 2 records
-- **65060171 → 65083196**: 2 records
-- **65044518 → 65221264**: 2 records
-- **65333180 → 65147982**: 1 records
-- **65333163 → 65121787**: 1 records
-- **65333163 → 65038087**: 1 records
-- **65333163 → 65027048**: 1 records
-- **65333155 → 65245047**: 1 records
-- **65333139 → 65288292**: 1 records
+- **50002797 → 50004078**: 3 records
+- **50002343 → 50002456**: 3 records
+- **50001493 → 50003144**: 3 records
+- **50000958 → 50000033**: 3 records
+- **50004995 → 50001479**: 2 records
+- **50004993 → 50003949**: 2 records
+- **50004993 → 50001713**: 2 records
+- **50004983 → 50002848**: 2 records
+- **50004968 → 50004778**: 2 records
+- **50004966 → 50002736**: 2 records
+- **50004963 → 50004233**: 2 records
+- **50004963 → 50003986**: 2 records
+- **50004961 → 50002968**: 2 records
+- **50004960 → 50004037**: 2 records
+- **50004954 → 50003293**: 2 records
 
 ## Database Indexes
 
@@ -1819,27 +1819,28 @@ Key data patterns and distributions across business tables:
 
 **movement_type** (1 unique values):
 
-- lateral: 92,107 (100.0%)
+- lateral: 162,954 (100.0%)
 
 
 ### movement_fact Distribution
 
 **movement_pattern** (20 unique values):
 
-- 65332225 → 65144592: 2 (6.9%)
-- 65306768 → 65036977: 2 (6.9%)
-- 65265466 → 65312984: 2 (6.9%)
-- 65259688 → 65201770: 2 (6.9%)
-- 65211693 → 65101188: 2 (6.9%)
-- 65146914 → 65183635: 2 (6.9%)
-- 65085222 → 65089620: 2 (6.9%)
-- 65060171 → 65083196: 2 (6.9%)
-- 65044518 → 65221264: 2 (6.9%)
-- 65333180 → 65147982: 1 (3.4%)
+- 50002797 → 50004078: 3 (6.8%)
+- 50002343 → 50002456: 3 (6.8%)
+- 50001493 → 50003144: 3 (6.8%)
+- 50000958 → 50000033: 3 (6.8%)
+- 50004995 → 50001479: 2 (4.5%)
+- 50004993 → 50003949: 2 (4.5%)
+- 50004993 → 50001713: 2 (4.5%)
+- 50004983 → 50002848: 2 (4.5%)
+- 50004968 → 50004778: 2 (4.5%)
+- 50004966 → 50002736: 2 (4.5%)
 
-**movement_count** (1 unique values):
+**movement_count** (2 unique values):
 
-- 1: 92,107 (100.0%)
+- 1: 162,928 (100.0%)
+- 2: 13 (0.0%)
 
 
 ## Common Query Patterns
@@ -1917,7 +1918,7 @@ This comprehensive schema documentation should be used to:
 
 ## Analysis Summary
 
-- **Database Analysis Date**: 2025-07-14 21:40:22
+- **Database Analysis Date**: 2025-07-17 14:45:38
 - **Tables Analyzed**: 11
 - **Relationships Mapped**: 9
 - **Performance Recommendations**: 4
