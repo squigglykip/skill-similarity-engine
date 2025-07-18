@@ -134,24 +134,30 @@ def calculate_skill_growth_trends(conn, skill_universe):
     """Calculate temporal growth trends for skills based on movement data"""
     print("📈 Calculating skill growth trends from movement patterns...")
     
-    # Get movement data with temporal information
-    movement_query = """
-    SELECT 
-        movement_year,
-        JobProfileID_from,
-        JobProfileID_to,
-        movement_count,
-        recency_weight
-    FROM movement_fact mf
-    JOIN positions p_from ON mf.from_position = p_from.[Position Number]
-    JOIN positions p_to ON mf.to_position = p_to.[Position Number]
-    WHERE movement_year >= 2020
-    AND JobProfileID_from IS NOT NULL 
-    AND JobProfileID_to IS NOT NULL
-    """
-    
-    movement_df = pd.read_sql_query(movement_query, conn)
-    print(f"   → Loaded {len(movement_df):,} movement records with job profiles")
+    try:
+        # Get movement data with temporal information
+        # First, let's check what columns are available in movement_fact
+        movement_query = """
+        SELECT 
+            mf.movement_year,
+            p_from.JobProfileID as JobProfileID_from,
+            p_to.JobProfileID as JobProfileID_to,
+            mf.movement_count
+        FROM movement_fact mf
+        JOIN positions p_from ON mf.from_position = p_from.[Position Number]
+        JOIN positions p_to ON mf.to_position = p_to.[Position Number]
+        WHERE mf.movement_year >= 2020
+        AND p_from.JobProfileID IS NOT NULL 
+        AND p_to.JobProfileID IS NOT NULL
+        """
+        
+        movement_df = pd.read_sql_query(movement_query, conn)
+        print(f"   → Loaded {len(movement_df):,} movement records with job profiles")
+        
+    except Exception as e:
+        print(f"   ⚠️  Could not load movement data for temporal analysis: {str(e)}")
+        print("   → Continuing with rarity analysis only (no growth trends)")
+        return {}  # Return empty dict for trends
     
     # Get job-skill mappings
     job_skills_query = """
@@ -345,12 +351,20 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
                 skill_row = exact_match.iloc[0].to_dict()
                 skill_id = skill_row['Skill_ID']
                 
-                # Add growth trend data
-                trend_data = skill_trends.get(skill_id, {
-                    'growth_trend_5yr': 0.0,
-                    'recent_demand_score': 0.0,
-                    'total_movements': 0
-                })
+                # Add growth trend data (with fallback if trends not available)
+                if skill_trends:  # Check if trends were successfully calculated
+                    trend_data = skill_trends.get(skill_id, {
+                        'growth_trend_5yr': 0.0,
+                        'recent_demand_score': 0.0,
+                        'total_movements': 0
+                    })
+                else:
+                    # Fallback when temporal analysis fails
+                    trend_data = {
+                        'growth_trend_5yr': 0.0,
+                        'recent_demand_score': 0.0,
+                        'total_movements': 0
+                    }
                 
                 # Create enriched record
                 enriched_record = {
@@ -363,7 +377,7 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
                     'rarity_score': int(skill_row['rarity_score']),
                     'total_job_profiles_using': int(skill_row['profiles_using_skill']),
                     'growth_trend_5yr': round(trend_data['growth_trend_5yr'] * 100, 1),  # Convert to percentage
-                    'growth_category': categorize_growth_trend(trend_data['growth_trend_5yr']),
+                    'growth_category': categorize_growth_trend(trend_data['growth_trend_5yr']) if skill_trends else "Data Unavailable",
                     'recent_demand_score': round(trend_data['recent_demand_score'], 1),
                     'strategic_priority': '',  # Will calculate after
                     'development_recommendation': ''  # Will calculate after
