@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Feature Evaluation & Movement Data Discovery - Optimized Version
+Feature Evaluation & Movement Data Discovery - Enhanced Version
 
-This is an optimized version of the feature evaluation analysis that uses:
-1. Memory-efficient processing for large datasets
-2. Proper global context preservation for statistical algorithms
-3. Fixed chunking strategies that maintain analytical accuracy
+This enhanced version includes:
+1. Expanded feature set based on business logic and data quality analysis
+2. Comprehensive univariate analysis (single feature predictors)
+3. True multivariate analysis (multiple features combined)
+4. Memory-efficient processing for large datasets
+5. Detailed insights into what predicts career moves
 
-The analysis outcomes remain identical to the original script, but with significantly
-improved performance and memory management for large datasets (401K+ records).
+The analysis now covers movement characteristics, job architecture, 
+organisational context, and employment patterns.
 """
 
 import pandas as pd
@@ -35,6 +37,9 @@ from sklearn.feature_selection import SelectKBest, f_classif, RFE
 from sklearn.ensemble import VotingClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.feature_selection import SelectFromModel
+from sklearn.ensemble import IsolationForest
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import warnings
 import gc
 import psutil
@@ -69,8 +74,58 @@ sns.set_palette("husl")
 # DATABASE FILE PATH - UPDATE THIS TO YOUR ACTUAL DATABASE LOCATION  
 DATABASE_FILE = "models/2025-Q3/workforce_intelligence.sqlite"
 
-# Movement data is now loaded from the movement_fact table in the database
-# No separate parquet file needed
+# =============================================================================
+# ENHANCED FEATURE CONFIGURATION
+# =============================================================================
+
+# Expanded feature set based on business logic and data quality analysis
+ENHANCED_FEATURES = {
+    # Movement characteristics (definitive patterns)
+    'movement_features': [
+        'movement_count',
+        'avg_days_between'
+    ],
+    
+    # Job architecture (core predictors)
+    'job_architecture_features': [
+        'from_job_function',
+        'from_job_sub_function', 
+        'from_job_category',
+        'from_management_level'
+    ],
+    
+    # Organisational context (movement patterns)
+    'organisational_features': [
+        'from_division',
+        'from_business_unit',
+        'from_salary_group'
+    ],
+    
+    # Employment context (mobility patterns) - REMOVED: employee_group reflects personal choices, not career development
+    'employment_features': [
+        # 'from_employee_group'  # Excluded: 87% accuracy but represents personal life choices (FT/PT transitions)
+    ]
+}
+
+# Target variables (same structure as features)
+ENHANCED_TARGETS = {
+    'job_architecture_targets': [
+        'to_job_function',
+        'to_job_sub_function',
+        'to_job_category',
+        'to_management_level'
+    ],
+    
+    'organisational_targets': [
+        'to_division',
+        'to_business_unit',
+        'to_salary_group'
+    ],
+    
+    'employment_targets': [
+        # 'to_employee_group'  # Excluded: represents personal life choices, not career progression
+    ]
+}
 
 # =============================================================================
 # MEMORY MANAGEMENT UTILITIES
@@ -271,28 +326,205 @@ def create_clean_movement_dataset(movement_df, job_arch_df):
     
     return clean_df
 
+def enrich_movement_data_with_context(movement_df, jobs_df, positions_df, workforce_context_df):
+    """
+    Enhanced data enrichment with organisational and employment context
+    """
+    print("🔄 Enhanced data enrichment with expanded context...")
+    
+    # Check available columns in positions_df
+    print(f"   → Available columns in positions: {list(positions_df.columns)}")
+    
+    # Create clean position mapping with available columns
+    base_columns = ['Position Number', 'JobProfileID']
+    optional_columns = {
+        'Division': 'Division',
+        'Business_Unit': 'Business_Unit', 
+        'Salary_Group': ['Salary_Group', 'Salary Group'],  # Try underscore first (schema shows this)
+        'Employee_Group': ['Employee_Group', 'Employee Group']  # Try underscore first (schema shows this)
+    }
+    
+    # Find available columns
+    available_columns = base_columns.copy()
+    column_mapping = {}
+    
+    for target_col, source_variants in optional_columns.items():
+        if isinstance(source_variants, str):
+            source_variants = [source_variants]
+        
+        for variant in source_variants:
+            if variant in positions_df.columns:
+                available_columns.append(variant)
+                column_mapping[variant] = target_col
+                print(f"   → Found {variant} → will map to {target_col}")
+                break
+        else:
+            print(f"   ⚠️  {target_col} not found in positions (tried: {source_variants})")
+    
+    # Create clean position mapping with available columns
+    clean_positions = positions_df[available_columns].drop_duplicates('Position Number')
+    
+    # Rename columns to standard format
+    clean_positions = clean_positions.rename(columns=column_mapping)
+    
+    print(f"   → Position mapping columns: {list(clean_positions.columns)}")
+    
+    # Also get workforce context for employee_group if available
+    if not workforce_context_df.empty:
+        print(f"   → Workforce context columns: {list(workforce_context_df.columns)}")
+        if 'employee_group' in workforce_context_df.columns:
+            try:
+                workforce_mapping = workforce_context_df[['position_number', 'employee_group']].drop_duplicates('position_number')
+                workforce_mapping = workforce_mapping.rename(columns={'position_number': 'Position Number'})
+                
+                # Merge workforce context with positions
+                before_merge_cols = set(clean_positions.columns)
+                clean_positions = clean_positions.merge(
+                    workforce_mapping, 
+                    on='Position Number', 
+                    how='left',
+                    suffixes=('', '_workforce')
+                )
+                after_merge_cols = set(clean_positions.columns)
+                
+                # Check what columns were actually created by the merge
+                new_cols = after_merge_cols - before_merge_cols
+                print(f"   → New columns after workforce merge: {new_cols}")
+                
+                # Handle the employee_group column properly
+                if 'employee_group_workforce' in clean_positions.columns:
+                    if 'Employee_Group' in clean_positions.columns:
+                        clean_positions['Employee_Group'] = clean_positions['employee_group_workforce'].fillna(clean_positions['Employee_Group'])
+                    else:
+                        clean_positions['Employee_Group'] = clean_positions['employee_group_workforce']
+                    clean_positions = clean_positions.drop(['employee_group_workforce'], axis=1)
+                    print(f"   → Enhanced Employee_Group with workforce context")
+                else:
+                    print(f"   ⚠️  Workforce merge didn't create expected employee_group_workforce column")
+            except Exception as e:
+                print(f"   ⚠️  Workforce context merge failed: {str(e)}")
+                print(f"   → Continuing with positions data only")
+    
+    print(f"   → Enhanced position mapping: {len(clean_positions):,} positions with full context")
+    
+    # Process in chunks if dataset is large
+    if len(movement_df) > 100000:
+        print(f"   → Processing {len(movement_df):,} records in chunks...")
+        
+        enriched_chunks = []
+        for chunk in chunk_dataframe(movement_df, chunk_size=10000):
+            chunk_enriched = enrich_movement_chunk(chunk, clean_positions, jobs_df)
+            enriched_chunks.append(chunk_enriched)
+            trigger_garbage_collection()
+        
+        # Combine all chunks
+        movements_df = pd.concat(enriched_chunks, ignore_index=True)
+        del enriched_chunks
+        
+    else:
+        movements_df = enrich_movement_chunk(movement_df, clean_positions, jobs_df)
+    
+    return movements_df
+def enrich_movement_chunk(chunk, clean_positions, jobs_df):
+    """
+    Enrich a single chunk of movement data with full context
+    """
+    # Step 1: Merge with FROM positions (enhanced)
+    chunk_enriched = chunk.merge(
+        clean_positions,
+        left_on='from_position',
+        right_on='Position Number',
+        how='left',
+        suffixes=('', '_from')
+    ).drop('Position Number', axis=1)
+    
+    # Rename FROM columns - only rename columns that exist
+    rename_mapping_from = {'JobProfileID': 'JobProfileID_from'}
+    
+    # Add optional columns if they exist
+    optional_from_renames = {
+        'Division': 'from_division',
+        'Business_Unit': 'from_business_unit',
+        'Salary_Group': 'from_salary_group',
+        'Employee_Group': 'from_employee_group'
+    }
+    
+    for source_col, target_col in optional_from_renames.items():
+        if source_col in chunk_enriched.columns:
+            rename_mapping_from[source_col] = target_col
+    
+    chunk_enriched = chunk_enriched.rename(columns=rename_mapping_from)
+    
+    # Step 2: Merge with TO positions (enhanced)
+    chunk_enriched = chunk_enriched.merge(
+        clean_positions,
+        left_on='to_position',
+        right_on='Position Number',
+        how='left',
+        suffixes=('', '_to')
+    ).drop('Position Number', axis=1)
+    
+    # Rename TO columns - only rename columns that exist
+    rename_mapping_to = {'JobProfileID': 'JobProfileID_to'}
+    
+    # Add optional columns if they exist
+    optional_to_renames = {
+        'Division': 'to_division',
+        'Business_Unit': 'to_business_unit',
+        'Salary_Group': 'to_salary_group',
+        'Employee_Group': 'to_employee_group'
+    }
+    
+    for source_col, target_col in optional_to_renames.items():
+        if source_col in chunk_enriched.columns:
+            rename_mapping_to[source_col] = target_col
+    
+    chunk_enriched = chunk_enriched.rename(columns=rename_mapping_to)
+    
+    # Step 3: Merge with FROM jobs
+    chunk_enriched = chunk_enriched.merge(
+        jobs_df[['JobProfileID', 'JobFunction', 'JobSubFunction', 'ManagementLevel', 'JobCategory']],
+        left_on='JobProfileID_from',
+        right_on='JobProfileID',
+        how='left',
+        suffixes=('', '_from')
+    ).drop('JobProfileID', axis=1)
+    
+    # Step 4: Merge with TO jobs
+    chunk_enriched = chunk_enriched.merge(
+        jobs_df[['JobProfileID', 'JobFunction', 'JobSubFunction', 'ManagementLevel', 'JobCategory']],
+        left_on='JobProfileID_to',
+        right_on='JobProfileID',
+        how='left',
+        suffixes=('_from', '_to')
+    ).drop('JobProfileID', axis=1)
+    
+    # Rename job columns
+    chunk_enriched = chunk_enriched.rename(columns={
+        'JobFunction_from': 'from_job_function',
+        'JobSubFunction_from': 'from_job_sub_function',
+        'JobCategory_from': 'from_job_category',
+        'ManagementLevel_from': 'from_management_level',
+        'JobFunction_to': 'to_job_function',
+        'JobSubFunction_to': 'to_job_sub_function',
+        'JobCategory_to': 'to_job_category',
+        'ManagementLevel_to': 'to_management_level'
+    })
+    
+    return chunk_enriched
+
 # =============================================================================
-# CORRECTED STATISTICAL ANALYSIS FUNCTIONS
+# ENHANCED STATISTICAL ANALYSIS FUNCTIONS
 # =============================================================================
 
 def safe_mutual_information(X, y, chunk_size=100000):
     """
     Calculate mutual information with full dataset processing using chunked approach
-    
-    FULL DATA PROCESSING: Now processes the entire dataset to capture all patterns
-    and edge cases, using chunked processing for memory efficiency.
-    
-    For datasets larger than chunk_size, we process in memory-efficient chunks
-    but maintain the full statistical context by combining results properly.
     """
     if len(X) <= chunk_size:
         return mutual_info_classif(X, y, random_state=42)
     
     print(f"   → Processing full dataset ({len(X):,} samples) in chunks for MI calculation")
-    
-    # For very large datasets, we need to use a different approach
-    # Since MI calculation is not easily parallelizable, we'll use a larger chunk size
-    # and process sequentially with memory management
     
     # Use a stratified approach to ensure we get representative chunks
     from sklearn.model_selection import StratifiedKFold
@@ -316,7 +548,6 @@ def safe_mutual_information(X, y, chunk_size=100000):
         trigger_garbage_collection()
     
     # Combine results by averaging (weighted by chunk size if needed)
-    # This is a reasonable approximation for MI when chunks are large and stratified
     combined_mi = np.mean(mi_scores_list, axis=0)
     
     print(f"   → Combined MI scores from {len(mi_scores_list)} chunks")
@@ -325,12 +556,6 @@ def safe_mutual_information(X, y, chunk_size=100000):
 def safe_chi_square_test(X, y, chunk_size=100000):
     """
     Perform chi-square test with full dataset processing using chunked approach
-    
-    FULL DATA PROCESSING: Now processes the entire dataset to capture all patterns
-    and edge cases, using chunked processing for memory efficiency.
-    
-    For very large datasets, we build the full contingency table by combining
-    chunk results, then perform the chi-square test on the complete table.
     """
     def cramers_v(x, y):
         """Calculate Cramer's V statistic for categorical association"""
@@ -420,16 +645,219 @@ def safe_chi_square_test(X, y, chunk_size=100000):
     
     return results
 
+def perform_univariate_analysis(encoded_data, available_features, available_targets):
+    """
+    Comprehensive univariate analysis - each feature predicting each target individually
+    """
+    print_section_header("COMPREHENSIVE UNIVARIATE ANALYSIS")
+    print_methodology("""
+    Univariate analysis tests each feature individually as a predictor:
+    1. Single feature → single target predictions
+    2. Mutual information scores for feature importance
+    3. Chi-square tests for statistical significance
+    4. Individual algorithm performance per feature
+    5. Feature ranking by predictive power
+    
+    This helps identify which single factors are most predictive of career moves.
+    """)
+    
+    univariate_results = []
+    
+    # Test each feature individually against each target
+    for target in available_targets:
+        target_encoded = f'{target}_encoded'
+        y = encoded_data[target_encoded]
+        
+        print(f"\n🎯 UNIVARIATE ANALYSIS FOR: {target}")
+        print(f"{'Feature':<35} {'MI Score':<12} {'Chi²':<12} {'Accuracy':<12} {'Status':<12}")
+        print("-" * 85)
+        
+        for feature in available_features:
+            feature_encoded = f'{feature}_encoded'
+            
+            try:
+                # Single feature analysis
+                X = encoded_data[[feature_encoded]]
+                
+                # Mutual Information
+                mi_score = mutual_info_classif(X, y, random_state=42)[0]
+                
+                # Chi-square test
+                chi_results = safe_chi_square_test(X, y)
+                chi_square = chi_results[0]['chi_square'] if chi_results else 0.0
+                
+                # Simple Random Forest for accuracy
+                rf = RandomForestClassifier(n_estimators=50, random_state=42)
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+                rf.fit(X_train, y_train)
+                accuracy = rf.score(X_test, y_test)
+                
+                status = "✅ GOOD" if accuracy > 0.6 else "⚠️ WEAK" if accuracy > 0.4 else "❌ POOR"
+                
+                print(f"{feature:<35} {mi_score:.4f}      {chi_square:.2f}      {accuracy:.3f}      {status}")
+                
+                # Store results
+                univariate_results.append({
+                    'feature': feature,
+                    'target': target,
+                    'mutual_information': mi_score,
+                    'chi_square': chi_square,
+                    'accuracy': accuracy,
+                    'feature_category': get_feature_category(feature),
+                    'target_category': get_target_category(target)
+                })
+                
+            except Exception as e:
+                print(f"{feature:<35} ERROR     ERROR     ERROR     ❌ {str(e)[:20]}...")
+                univariate_results.append({
+                    'feature': feature,
+                    'target': target,
+                    'mutual_information': 0.0,
+                    'chi_square': 0.0,
+                    'accuracy': 0.0,
+                    'feature_category': get_feature_category(feature),
+                    'target_category': get_target_category(target)
+                })
+    
+    return pd.DataFrame(univariate_results)
+
+def perform_multivariate_analysis(encoded_data, available_features, available_targets):
+    """
+    True multivariate analysis - multiple features predicting targets
+    """
+    print_section_header("TRUE MULTIVARIATE ANALYSIS")
+    print_methodology("""
+    Multivariate analysis uses multiple features together:
+    1. Feature combinations by category (job, org, employment)
+    2. Full feature set predictions
+    3. Feature selection techniques
+    4. Algorithm comparison with multiple inputs
+    5. Feature importance analysis
+    
+    This reveals how features interact and combine to predict career moves.
+    """)
+    
+    multivariate_results = []
+    
+    # Define feature combinations
+    feature_combinations = {
+        'Movement Only': [f for f in available_features if f in ['movement_count', 'avg_days_between']],
+        'Job Architecture': [f for f in available_features if 'job_' in f or 'management_' in f],
+        'Organisational': [f for f in available_features if 'division' in f or 'business_unit' in f or 'salary_group' in f],
+        # 'Employment': [f for f in available_features if 'employee_group' in f],  # Excluded: personal life choices
+        'Job + Org': [f for f in available_features if 'job_' in f or 'management_' in f or 'division' in f or 'business_unit' in f or 'salary_group' in f],
+        'All Features': available_features
+    }
+    
+    # Algorithms optimized for multivariate analysis
+    algorithms = {
+        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
+        'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42),
+        'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42),
+        'Extra Trees': ExtraTreesClassifier(n_estimators=100, random_state=42)
+    }
+    
+    # Add XGBoost if available
+    if XGBOOST_AVAILABLE:
+        algorithms['XGBoost'] = XGBClassifier(n_estimators=100, random_state=42, eval_metric='logloss')
+    
+    for target in available_targets:
+        target_encoded = f'{target}_encoded'
+        y = encoded_data[target_encoded]
+        
+        print(f"\n🎯 MULTIVARIATE ANALYSIS FOR: {target}")
+        print(f"{'Feature Set':<20} {'Algorithm':<20} {'Accuracy':<12} {'Features':<10} {'Status':<12}")
+        print("-" * 80)
+        
+        for combo_name, feature_list in feature_combinations.items():
+            # Skip if no features in this combination
+            if not feature_list:
+                continue
+                
+            # Filter to available features
+            available_combo_features = [f for f in feature_list if f in available_features]
+            if not available_combo_features:
+                continue
+            
+            # Prepare feature matrix
+            X = encoded_data[[f'{f}_encoded' for f in available_combo_features]]
+            
+            for alg_name, algorithm in algorithms.items():
+                try:
+                    # Split data
+                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+                    
+                    # Create pipeline with scaling if needed
+                    if alg_name == 'Logistic Regression':
+                        pipeline = Pipeline([
+                            ('scaler', StandardScaler()),
+                            ('classifier', algorithm)
+                        ])
+    else:
+                        pipeline = Pipeline([
+                            ('classifier', algorithm)
+                        ])
+                    
+                    # Fit and evaluate
+                    pipeline.fit(X_train, y_train)
+                    accuracy = pipeline.score(X_test, y_test)
+                    
+                    status = "✅ GOOD" if accuracy > 0.6 else "⚠️ WEAK" if accuracy > 0.4 else "❌ POOR"
+                    
+                    print(f"{combo_name:<20} {alg_name:<20} {accuracy:.3f}      {len(available_combo_features):<10} {status}")
+                    
+                    # Store results
+                    multivariate_results.append({
+                        'feature_set': combo_name,
+                        'algorithm': alg_name,
+                        'target': target,
+                        'accuracy': accuracy,
+                        'num_features': len(available_combo_features),
+                        'features': available_combo_features,
+                        'target_category': get_target_category(target)
+                    })
+                    
+                except Exception as e:
+                    print(f"{combo_name:<20} {alg_name:<20} ERROR     {len(available_combo_features) if available_combo_features else 0:<10} ❌ {str(e)[:20]}...")
+                    multivariate_results.append({
+                        'feature_set': combo_name,
+                        'algorithm': alg_name,
+                        'target': target,
+                        'accuracy': 0.0,
+                        'num_features': len(available_combo_features) if available_combo_features else 0,
+                        'features': available_combo_features,
+                        'target_category': get_target_category(target)
+                    })
+    
+    return pd.DataFrame(multivariate_results)
+
+def get_feature_category(feature):
+    """Categorize features by type"""
+    if 'job_' in feature or 'management_' in feature:
+        return 'Job Architecture'
+    elif 'division' in feature or 'business_unit' in feature or 'salary_group' in feature:
+        return 'Organisational'
+    # elif 'employee_group' in feature:  # Excluded: personal life choices, not career development
+    #     return 'Employment'
+    elif feature in ['movement_count', 'avg_days_between']:
+        return 'Movement'
+    else:
+        return 'Other'
+
+def get_target_category(target):
+    """Categorize targets by type"""
+    if 'job_' in target or 'management_' in target:
+        return 'Job Architecture'
+    elif 'division' in target or 'business_unit' in target or 'salary_group' in target:
+        return 'Organisational'
+    # elif 'employee_group' in target:  # Excluded: personal life choices, not career development
+    #     return 'Employment'
+    else:
+        return 'Other'
+
 def memory_efficient_cross_validation(algorithm, X, y, cv=5, sample_weight=None):
     """
     Perform cross-validation with memory efficiency, proper stratification, and sample weights
-    
-    CHUNKING ISSUE FIXED: Cross-validation requires proper stratification across
-    the entire dataset. Chunking within CV folds breaks the statistical validity
-    of the validation process.
-    
-    SOLUTION: Use standard CV with memory monitoring and garbage collection,
-    but maintain proper fold stratification and support sample weights.
     """
     from sklearn.model_selection import StratifiedKFold
     
@@ -437,36 +865,11 @@ def memory_efficient_cross_validation(algorithm, X, y, cv=5, sample_weight=None)
     skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
     scores = []
     
-    # Setup progress tracking if available
-    if PROGRESS_AVAILABLE:
-        progress = SimpleProgressReporter(total=cv, desc="CV Folds", log_interval=1)
         for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
             
-            # Fit algorithm (skip sample weights for cross-validation to avoid Pipeline issues)
-            algorithm.fit(X_train, y_train)
-            
-            # Evaluate on validation set
-            score = algorithm.score(X_val, y_val)
-            scores.append(score)
-            
-            print(f"   Fold {fold + 1}/{cv}: {score:.3f}")
-            
-            # Update progress (single line)
-            progress.update(1)
-            
-            # Memory cleanup between folds
-            trigger_garbage_collection()
-        
-        progress.close()  # Complete the progress line
-    else:
-        # Fallback without progress tracking
-        for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
-            X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
-            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-            
-            # Fit algorithm (skip sample weights for cross-validation to avoid Pipeline issues)
+        # Fit algorithm
             algorithm.fit(X_train, y_train)
             
             # Evaluate on validation set
@@ -483,13 +886,6 @@ def memory_efficient_cross_validation(algorithm, X, y, cv=5, sample_weight=None)
 def safe_label_encoding(data, column_name, max_categories=1000):
     """
     Perform label encoding with memory efficiency and category limits
-    
-    CHUNKING ISSUE FIXED: Label encoding requires seeing all unique values
-    to create a consistent mapping. Chunked encoding can create inconsistent
-    mappings across chunks.
-    
-    SOLUTION: Always fit encoder on full data, then transform efficiently
-    with memory management.
     """
     le = LabelEncoder()
     
@@ -520,19 +916,19 @@ def safe_label_encoding(data, column_name, max_categories=1000):
 # =============================================================================
 
 def main():
-    """Main analysis function with corrected optimization"""
+    """Enhanced main analysis function with univariate and multivariate analysis"""
     
     print_section_header(
-        "FEATURE EVALUATION & MOVEMENT DATA DISCOVERY - OPTIMIZED & CORRECTED",
-        "Using memory-efficient processing while preserving analytical accuracy"
+        "ENHANCED FEATURE EVALUATION & PREDICTIVE MOVEMENT ANALYSIS",
+        "Comprehensive univariate and multivariate analysis to understand career move predictors"
     )
     
-    print("🚀 OPTIMIZATION FEATURES:")
+    print("🚀 ENHANCED ANALYSIS FEATURES:")
+    print("   → Expanded feature set (movement, job, org, employment)")
+    print("   → Comprehensive univariate analysis (single predictors)")
+    print("   → True multivariate analysis (feature combinations)")
     print("   → Memory-efficient processing for large datasets")
-    print("   → Full dataset processing for complete accuracy")
-    print("   → Chunked processing for memory management")
-    print("   → Proper global context preservation")
-    print("   → Garbage collection between operations")
+    print("   → Detailed insights into career move predictors")
     
     print_memory_status()
     
@@ -542,14 +938,14 @@ def main():
     
     print_section_header("DATA LOADING AND INVESTIGATION")
     print_methodology("""
-    Loading data with memory-efficient approach:
-    1. Load movement data from CSV with chunked reading if necessary
-    2. Connect to SQLite for job architecture context
-    3. Perform optimized pandas merges with memory monitoring
-    4. Use chunked processing for large datasets while preserving full data integrity
+    Loading data with enhanced context:
+    1. Load movement data from database
+    2. Load job architecture, positions, and workforce context
+    3. Enrich movements with full organisational context
+    4. Prepare expanded feature set for analysis
     """)
     
-    # Connect to database from configured path
+    # Connect to database
     print(f"🔗 Connecting to database: {DATABASE_FILE}")
     
     try:
@@ -558,214 +954,88 @@ def main():
     except sqlite3.OperationalError as e:
         raise FileNotFoundError(f"Could not connect to database: {DATABASE_FILE}. Error: {str(e)}")
     
-    # Load movement data from database
-    try:
+    # Load all required data
         movement_df = load_movement_data_from_database(conn)
-        print(f"✅ Successfully loaded movement data from database")
-    except Exception as e:
-        raise RuntimeError(f"Failed to load movement data from database: {str(e)}")
-    print_memory_status()
-    
-    # Load job architecture data
     jobs_df = pd.read_sql_query("SELECT * FROM jobs", conn)
     positions_df = pd.read_sql_query("SELECT * FROM positions", conn)
+    
+    # Try to load workforce context
+    try:
+        workforce_context_df = pd.read_sql_query("SELECT * FROM workforce_context", conn)
+        print(f"🏢 Loaded workforce context: {len(workforce_context_df):,} records")
+    except:
+        workforce_context_df = pd.DataFrame()
+        print("⚠️  Workforce context not available, using positions data only")
     
     print(f"🏢 Loaded jobs data: {len(jobs_df):,} job profiles")
     print(f"🏢 Loaded positions data: {len(positions_df):,} position records")
     print_memory_status()
     
     # =============================================================================
-    # 2. MEMORY-EFFICIENT DATA ENRICHMENT
+    # 2. ENHANCED DATA ENRICHMENT
     # =============================================================================
     
-    print_section_header("MEMORY-EFFICIENT DATA ENRICHMENT")
+    print_section_header("ENHANCED DATA ENRICHMENT")
     print_methodology("""
-    Memory-efficient data enrichment with chunked processing:
-    1. Convert data types for successful merges
-    2. Process merges in chunks to manage memory
-    3. Monitor memory usage throughout process
-    4. Trigger garbage collection between operations
+    Enhanced data enrichment with expanded context:
+    1. Create clean position-to-context mapping
+    2. Enrich movements with job architecture
+    3. Add organisational context (division, business unit, salary group)
+    4. Include employment context (employee group)
+    5. Memory-efficient chunked processing
     """)
     
-    # Data type conversion
-    print("🔄 Converting data types...")
-    positions_df['Position Number'] = positions_df['Position Number'].astype(str)
-    movement_df['from_position'] = movement_df['from_position'].astype(str)
-    movement_df['to_position'] = movement_df['to_position'].astype(str)
+    # Enhanced data enrichment
+    movements_df = enrich_movement_data_with_context(movement_df, jobs_df, positions_df, workforce_context_df)
     
-    # Memory-efficient merges using chunking
-    print("🔄 Performing memory-efficient merges...")
-    
-    # Process in chunks if dataset is large
-    if len(movement_df) > 100000:
-        print(f"   → Processing {len(movement_df):,} records in chunks...")
-        
-        enriched_chunks = []
-        for chunk in chunk_dataframe(movement_df, chunk_size=10000):
-            # Step 1: Merge with from positions
-            chunk_enriched = chunk.merge(
-                positions_df[['Position Number', 'JobProfileID']],
-                left_on='from_position',
-                right_on='Position Number',
-                how='left',
-                suffixes=('', '_pos_from')
-            ).drop('Position Number', axis=1)
-            
-            # Step 2: Merge with to positions  
-            chunk_enriched = chunk_enriched.merge(
-                positions_df[['Position Number', 'JobProfileID']],
-                left_on='to_position',
-                right_on='Position Number',
-                how='left',
-                suffixes=('_from', '_to')
-            ).drop('Position Number', axis=1)
-            
-            # Step 3: Merge with from jobs
-            chunk_enriched = chunk_enriched.merge(
-                jobs_df[['JobProfileID', 'JobFunction', 'JobSubFunction', 'ManagementLevel', 'JobCategory']],
-                left_on='JobProfileID_from',
-                right_on='JobProfileID',
-                how='left',
-                suffixes=('', '_from')
-            ).drop('JobProfileID', axis=1)
-            
-            # Step 4: Merge with to jobs
-            chunk_enriched = chunk_enriched.merge(
-                jobs_df[['JobProfileID', 'JobFunction', 'JobSubFunction', 'ManagementLevel', 'JobCategory']],
-                left_on='JobProfileID_to',
-                right_on='JobProfileID',
-                how='left',
-                suffixes=('_from', '_to')
-            ).drop('JobProfileID', axis=1)
-            
-            enriched_chunks.append(chunk_enriched)
-            
-            # Memory cleanup
-            trigger_garbage_collection()
-        
-        # Combine all chunks
-        movements_df = pd.concat(enriched_chunks, ignore_index=True)
-        del enriched_chunks
-        
-    else:
-        # Process normally for smaller datasets
-        movements_df = movement_df.merge(
-            positions_df[['Position Number', 'JobProfileID']],
-            left_on='from_position',
-            right_on='Position Number',
-            how='left',
-            suffixes=('', '_pos_from')
-        ).drop('Position Number', axis=1)
-        
-        movements_df = movements_df.merge(
-            positions_df[['Position Number', 'JobProfileID']],
-            left_on='to_position',
-            right_on='Position Number',
-            how='left',
-            suffixes=('_from', '_to')
-        ).drop('Position Number', axis=1)
-        
-        movements_df = movements_df.merge(
-            jobs_df[['JobProfileID', 'JobFunction', 'JobSubFunction', 'ManagementLevel', 'JobCategory']],
-            left_on='JobProfileID_from',
-            right_on='JobProfileID',
-            how='left',
-            suffixes=('', '_from')
-        ).drop('JobProfileID', axis=1)
-        
-        movements_df = movements_df.merge(
-            jobs_df[['JobProfileID', 'JobFunction', 'JobSubFunction', 'ManagementLevel', 'JobCategory']],
-            left_on='JobProfileID_to',
-            right_on='JobProfileID',
-            how='left',
-            suffixes=('_from', '_to')
-        ).drop('JobProfileID', axis=1)
-    
-    # Rename columns
-    movements_df = movements_df.rename(columns={
-        'JobFunction_from': 'from_job_function',
-        'JobSubFunction_from': 'from_job_sub_function',
-        'JobCategory_from': 'from_job_category',
-        'ManagementLevel_from': 'from_management_level',
-        'JobFunction_to': 'to_job_function',
-        'JobSubFunction_to': 'to_job_sub_function',
-        'JobCategory_to': 'to_job_category',
-        'ManagementLevel_to': 'to_management_level'
-    })
-    
-    print(f"✅ Enriched dataset created: {len(movements_df):,} movement records")
+    print(f"✅ Enhanced enriched dataset: {len(movements_df):,} movement records")
     print_memory_status()
     
     # =============================================================================
-    # 3. FULL DATASET STATISTICAL ANALYSIS
+    # 3. FEATURE PREPARATION
     # =============================================================================
     
-    print_section_header("FULL DATASET STATISTICAL ANALYSIS")
-    print_methodology("""
-    Performing statistical analysis on the complete dataset with memory optimization:
-    1. Full dataset mutual information analysis with chunked processing
-    2. Complete chi-square testing with combined contingency tables
-    3. Proper cross-validation without sampling bias
-    4. Memory-efficient label encoding for all categories
+    print_section_header("ENHANCED FEATURE PREPARATION")
     
-    This approach ensures we capture all patterns and edge cases in the data
-    while maintaining computational efficiency through chunked processing.
-    """)
+    # Collect all available features and targets
+    all_features = []
+    for category_features in ENHANCED_FEATURES.values():
+        all_features.extend(category_features)
     
-    # Prepare features for analysis
-    features_to_evaluate = [
-        'from_job_function',
-        'from_job_sub_function', 
-        'from_job_category',
-        'from_management_level'
-    ]
+    all_targets = []
+    for category_targets in ENHANCED_TARGETS.values():
+        all_targets.extend(category_targets)
     
-    targets_to_evaluate = [
-        'to_job_function',
-        'to_job_sub_function',
-        'to_job_category', 
-        'to_management_level'
-    ]
+    # Filter to available columns
+    available_features = [f for f in all_features if f in movements_df.columns]
+    available_targets = [t for t in all_targets if t in movements_df.columns]
     
-    # Filter available columns
-    available_features = [f for f in features_to_evaluate if f in movements_df.columns]
-    available_targets = [t for t in targets_to_evaluate if t in movements_df.columns]
+    print(f"🔍 Available features ({len(available_features)}):")
+    for category, features in ENHANCED_FEATURES.items():
+        available_in_category = [f for f in features if f in available_features]
+        if available_in_category:
+            print(f"   → {category}: {available_in_category}")
     
-    print(f"🔍 Available features: {available_features}")
-    print(f"🎯 Available targets: {available_targets}")
+    print(f"🎯 Available targets ({len(available_targets)}):")
+    for category, targets in ENHANCED_TARGETS.items():
+        available_in_category = [t for t in targets if t in available_targets]
+        if available_in_category:
+            print(f"   → {category}: {available_in_category}")
     
-    # Apply aggressive recency weighting and conservative null exclusion
-    print("🔄 Applying aggressive recency weighting and conservative null exclusion...")
-    print(f"   → Starting with {len(movements_df):,} records")
+    # Apply data cleaning
+    print("🔄 Applying enhanced data cleaning...")
     clean_movements = create_clean_movement_dataset(movements_df, jobs_df)
-    print(f"   → After cleaning: {len(clean_movements):,} records")
     
-    # Filter to only records with required analysis columns
+    # Filter to analysis columns
     analysis_cols = available_features + available_targets
-    print(f"   → Checking for required columns: {analysis_cols}")
-    
-    # Check how many records have these columns
-    for col in analysis_cols:
-        if col in clean_movements.columns:
-            non_null_count = clean_movements[col].notna().sum()
-            print(f"   → Column '{col}': {non_null_count:,} non-null values")
-        else:
-            print(f"   → Column '{col}': NOT FOUND in dataset")
-    
     clean_movements = clean_movements.dropna(subset=analysis_cols)
     
-    print(f"📊 Final dataset after column filtering: {len(clean_movements):,} records")
+    print(f"📊 Final dataset for analysis: {len(clean_movements):,} records")
     
     if len(clean_movements) == 0:
-        print("❌ ERROR: No records remain after filtering!")
-        print("   This suggests the movement data doesn't have the expected job context columns.")
-        print("   Available columns in movement data:")
-        for col in sorted(clean_movements.columns):
-            print(f"   → {col}")
-        raise ValueError("No valid records found for analysis. Check data structure and column mappings.")
-    print_memory_status()
+        raise ValueError("No valid records found for analysis after cleaning")
     
-    # Encode categorical variables properly
+    # Encode categorical variables
     print("🔄 Encoding categorical variables...")
     label_encoders = {}
     encoded_data = clean_movements.copy()
@@ -776,334 +1046,77 @@ def main():
         encoded_data[f'{col}_encoded'] = encoded_values
         label_encoders[col] = le
     
-    trigger_garbage_collection()
     print_memory_status()
     
     # =============================================================================
-    # 4. FULL DATASET MUTUAL INFORMATION ANALYSIS
+    # 4. UNIVARIATE ANALYSIS
     # =============================================================================
     
-    print(f"\n🔬 FULL DATASET MUTUAL INFORMATION ANALYSIS")
-    print(f"{'-'*50}")
-    
-    mutual_info_results = []
-    
-    for target in available_targets:
-        target_encoded = f'{target}_encoded'
-        
-        # Prepare feature matrix
-        X = encoded_data[[f'{f}_encoded' for f in available_features]]
-        y = encoded_data[target_encoded]
-        
-        print(f"📊 Calculating MI for {target}...")
-        
-        # Use corrected mutual information calculation
-        mi_scores = safe_mutual_information(X, y)
-        
-        for i, feature in enumerate(available_features):
-            mutual_info_results.append({
-                'feature': feature,
-                'target': target,
-                'mutual_information': mi_scores[i]
-            })
-    
-    mi_df = pd.DataFrame(mutual_info_results)
-    print("✅ Mutual information analysis completed")
-    print_memory_status()
+    univariate_results = perform_univariate_analysis(encoded_data, available_features, available_targets)
     
     # =============================================================================
-    # 5. FULL DATASET CHI-SQUARE ANALYSIS
+    # 5. MULTIVARIATE ANALYSIS
     # =============================================================================
     
-    print(f"\n🔬 FULL DATASET CHI-SQUARE ANALYSIS")
-    print(f"{'-'*50}")
-    
-    chi_square_results = []
-    
-    for target in available_targets:
-        target_encoded = f'{target}_encoded'
-        
-        # Prepare feature matrix
-        X = encoded_data[[f'{f}_encoded' for f in available_features]]
-        y = encoded_data[target_encoded]
-        
-        print(f"📊 Calculating Chi-square for {target}...")
-        
-        # Use corrected chi-square analysis
-        target_chi_results = safe_chi_square_test(X, y)
-        
-        for result in target_chi_results:
-            result['target'] = target
-            chi_square_results.append(result)
-    
-    chi_df = pd.DataFrame(chi_square_results)
-    print("✅ Chi-square analysis completed")
-    print_memory_status()
+    multivariate_results = perform_multivariate_analysis(encoded_data, available_features, available_targets)
     
     # =============================================================================
-    # 6. FULL DATASET MULTIVARIATE REGRESSION ANALYSIS
+    # 6. COMPREHENSIVE RESULTS SUMMARY
     # =============================================================================
 
-    print(f"\n🔬 FULL DATASET MULTIVARIATE REGRESSION ANALYSIS")
-    print(f"{'-'*50}")
-    print("Using proper cross-validation with memory efficiency on complete dataset...")
-
-    # Define algorithms with optimized configurations for large datasets
-    algorithms = {
-        'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42),
-        'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42),
-        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-        'SVM (RBF)': SVC(kernel='rbf', probability=True, random_state=42, max_iter=1000),  # Add iteration limit
-        'SVM (Linear)': SVC(kernel='linear', probability=True, random_state=42, max_iter=1000)  # Faster alternative
-    }
-
-    # Add XGBoost if available
-    if XGBOOST_AVAILABLE:
-        algorithms['XGBoost'] = XGBClassifier(
-            n_estimators=100,
-            max_depth=6,
-            learning_rate=0.1,
-            random_state=42,
-            eval_metric='logloss'
-        )
-        print("   ✅ XGBoost included in analysis")
-
-    regression_results = []
-
-    for target in available_targets:
-        target_encoded = f'{target}_encoded'
-        
-        # Prepare data
-        X = encoded_data[[f'{f}_encoded' for f in available_features]]
-        y = encoded_data[target_encoded]
-        
-        # For very large datasets, use strategic sampling for SVM algorithms
-        use_sampling = len(X) > 50000  # Sample if more than 50K records
-        
-        # Split data once for all algorithms
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-        
-        print(f"\n   🎯 Testing algorithms for {target}:")
-        print(f"   {'Algorithm':<20} {'CV Score':<10} {'Test Acc':<10} {'Status':<10}")
-        print(f"   {'-'*55}")
-        
-        # Setup progress tracking for algorithms if available
-        if PROGRESS_AVAILABLE:
-            alg_progress = SimpleProgressReporter(total=len(algorithms), desc=f"Algorithms for {target}", log_interval=1)
-            for alg_name, algorithm in algorithms.items():
-                try:
-                    # Use sampling for SVM algorithms on large datasets
-                    if use_sampling and 'SVM' in alg_name:
-                        print(f"   📊 Using 20K sample for {alg_name} (dataset too large: {len(X_train):,} records)")
-                        
-                        # Stratified sampling to maintain class distribution
-                        from sklearn.model_selection import StratifiedShuffleSplit
-                        sss = StratifiedShuffleSplit(n_splits=1, train_size=20000, random_state=42)
-                        sample_idx, _ = next(sss.split(X_train, y_train))
-                        
-                        X_train_sample = X_train.iloc[sample_idx]
-                        y_train_sample = y_train.iloc[sample_idx]
-                        
-                        print(f"   → Sample size: {len(X_train_sample):,} records")
-                    else:
-                        X_train_sample = X_train
-                        y_train_sample = y_train
-                    
-                    # Create pipeline with scaling for algorithms that need it
-                    if 'SVM' in alg_name or alg_name == 'Logistic Regression':
-                        pipeline = Pipeline([
-                            ('scaler', StandardScaler()),
-                            ('classifier', algorithm)
-                        ])
-                    else:
-                        pipeline = Pipeline([
-                            ('classifier', algorithm)
-                        ])
-                    
-                    # Get sample weights for training if available
-                    train_sample_weights = None
-                    if 'recency_weight' in clean_movements.columns:
-                        if use_sampling and 'SVM' in alg_name:
-                            train_sample_weights = clean_movements.loc[X_train_sample.index, 'recency_weight']
-                        else:
-                            train_sample_weights = clean_movements.loc[X_train.index, 'recency_weight']
-                    
-                    # Perform corrected cross-validation with sample weights
-                    cv_scores = memory_efficient_cross_validation(pipeline, X_train_sample, y_train_sample, sample_weight=train_sample_weights)
-                    cv_mean = cv_scores.mean()
-                    
-                    # Fit on sample data but test on full test set
-                    # For now, skip sample weights in final fit to avoid Pipeline issues
-                    pipeline.fit(X_train_sample, y_train_sample)
-                    test_score = pipeline.score(X_test, y_test)
-                    
-                    status = "✅ OK" if not use_sampling or 'SVM' not in alg_name else "📊 SAMPLED"
-                    print(f"   {alg_name:<20} {cv_mean:.3f}     {test_score:.3f}     {status}")
-                    
-                    # Store results
-                    regression_results.append({
-                        'algorithm': alg_name,
-                        'target': target,
-                        'cv_score': cv_mean,
-                        'test_score': test_score,
-                        'feature_count': len(available_features),
-                        'status': 'success',
-                        'used_sampling': use_sampling and 'SVM' in alg_name
-                    })
-                    
-                except Exception as e:
-                    print(f"   {alg_name:<20} FAILED    FAILED     ❌ ERROR: {str(e)[:30]}...")
-                    regression_results.append({
-                        'algorithm': alg_name,
-                        'target': target,
-                        'cv_score': 0.0,
-                        'test_score': 0.0,
-                        'feature_count': len(available_features),
-                        'status': 'failed',
-                        'used_sampling': False
-                    })
-                    
-                    # Update algorithm progress
-                    alg_progress.update(1)
-                    
-                    # Memory cleanup between algorithms
-                    trigger_garbage_collection()
-            
-            alg_progress.close()  # Complete the progress line
-        else:
-            # Fallback without progress tracking
-            for alg_name, algorithm in algorithms.items():
-                try:
-                    # Use sampling for SVM algorithms on large datasets
-                    if use_sampling and 'SVM' in alg_name:
-                        print(f"   📊 Using 20K sample for {alg_name} (dataset too large: {len(X_train):,} records)")
-                        
-                        # Stratified sampling to maintain class distribution
-                        from sklearn.model_selection import StratifiedShuffleSplit
-                        sss = StratifiedShuffleSplit(n_splits=1, train_size=20000, random_state=42)
-                        sample_idx, _ = next(sss.split(X_train, y_train))
-                        
-                        X_train_sample = X_train.iloc[sample_idx]
-                        y_train_sample = y_train.iloc[sample_idx]
-                        
-                        print(f"   → Sample size: {len(X_train_sample):,} records")
-                    else:
-                        X_train_sample = X_train
-                        y_train_sample = y_train
-                    
-                    # Create pipeline with scaling for algorithms that need it
-                    if 'SVM' in alg_name or alg_name == 'Logistic Regression':
-                        pipeline = Pipeline([
-                            ('scaler', StandardScaler()),
-                            ('classifier', algorithm)
-                        ])
-                    else:
-                        pipeline = Pipeline([
-                            ('classifier', algorithm)
-                        ])
-                    
-                    # Get sample weights for training if available
-                    train_sample_weights = None
-                    if 'recency_weight' in clean_movements.columns:
-                        if use_sampling and 'SVM' in alg_name:
-                            train_sample_weights = clean_movements.loc[X_train_sample.index, 'recency_weight']
-                        else:
-                            train_sample_weights = clean_movements.loc[X_train.index, 'recency_weight']
-                    
-                    # Perform corrected cross-validation with sample weights
-                    cv_scores = memory_efficient_cross_validation(pipeline, X_train_sample, y_train_sample, sample_weight=train_sample_weights)
-                    cv_mean = cv_scores.mean()
-                    
-                    # Fit on sample data but test on full test set
-                    # For now, skip sample weights in final fit to avoid Pipeline issues
-                    pipeline.fit(X_train_sample, y_train_sample)
-                    test_score = pipeline.score(X_test, y_test)
-                    
-                    status = "✅ OK" if not use_sampling or 'SVM' not in alg_name else "📊 SAMPLED"
-                    print(f"   {alg_name:<20} {cv_mean:.3f}     {test_score:.3f}     {status}")
-                    
-                    # Store results
-                    regression_results.append({
-                        'algorithm': alg_name,
-                        'target': target,
-                        'cv_score': cv_mean,
-                        'test_score': test_score,
-                        'feature_count': len(available_features),
-                        'status': 'success',
-                        'used_sampling': use_sampling and 'SVM' in alg_name
-                    })
-                    
-                except Exception as e:
-                    print(f"   {alg_name:<20} FAILED    FAILED     ❌ ERROR: {str(e)[:30]}...")
-                    regression_results.append({
-                        'algorithm': alg_name,
-                        'target': target,
-                        'cv_score': 0.0,
-                        'test_score': 0.0,
-                        'feature_count': len(available_features),
-                        'status': 'failed',
-                        'used_sampling': False
-                    })
-                
-                # Memory cleanup between algorithms
-                trigger_garbage_collection()
-
-    print("✅ Regression analysis completed")
-    print_memory_status()
+    print_section_header("COMPREHENSIVE ANALYSIS RESULTS")
     
-    # =============================================================================
-    # 7. RESULTS SUMMARY
-    # =============================================================================
-    
-    print_section_header("FULL DATASET ANALYSIS RESULTS")
-    
-    # Best performing algorithms
-    if regression_results:
-        regression_df = pd.DataFrame(regression_results)
-        successful_results = regression_df[regression_df['status'] == 'success']
+    # Univariate insights
+    if not univariate_results.empty:
+        print("🔍 TOP UNIVARIATE PREDICTORS:")
+        print("-" * 60)
         
-        if not successful_results.empty:
-            print("🏆 BEST ALGORITHM PERFORMANCE:")
+        # Best single predictors overall
+        top_univariate = univariate_results.nlargest(10, 'accuracy')
+        for _, row in top_univariate.iterrows():
+            print(f"   {row['feature']:<35} → {row['target']:<25} Acc: {row['accuracy']:.3f}")
+        
+        # Best predictors by category
+        print(f"\n📊 BEST PREDICTORS BY FEATURE CATEGORY:")
+        for category in univariate_results['feature_category'].unique():
+            if category != 'Other':
+                category_best = univariate_results[univariate_results['feature_category'] == category].nlargest(3, 'accuracy')
+                print(f"\n   🏆 {category}:")
+                for _, row in category_best.iterrows():
+                    print(f"      {row['feature']:<30} → {row['target']:<20} Acc: {row['accuracy']:.3f}")
+    
+    # Multivariate insights
+    if not multivariate_results.empty:
+        print(f"\n🔍 TOP MULTIVARIATE COMBINATIONS:")
+        print("-" * 80)
+        
+        # Best combinations overall
+        top_multivariate = multivariate_results.nlargest(10, 'accuracy')
+        for _, row in top_multivariate.iterrows():
+            print(f"   {row['feature_set']:<20} + {row['algorithm']:<20} → {row['target']:<20} Acc: {row['accuracy']:.3f}")
+        
+        # Best by feature set
+        print(f"\n📊 BEST PERFORMANCE BY FEATURE SET:")
+        for feature_set in multivariate_results['feature_set'].unique():
+            set_best = multivariate_results[multivariate_results['feature_set'] == feature_set].nlargest(1, 'accuracy')
+            if not set_best.empty:
+                row = set_best.iloc[0]
+                print(f"   {feature_set:<20}: {row['algorithm']:<20} Acc: {row['accuracy']:.3f}")
+    
+    # Key insights
+    print(f"\n🎯 KEY INSIGHTS:")
             print("-" * 50)
             
-            for target in available_targets:
-                target_results = successful_results[successful_results['target'] == target]
-                if not target_results.empty:
-                    best_result = target_results.loc[target_results['test_score'].idxmax()]
-                    print(f"   {target}:")
-                    print(f"   ├─ Best: {best_result['algorithm']}")
-                    print(f"   ├─ Test Accuracy: {best_result['test_score']:.3f}")
-                    print(f"   └─ CV Score: {best_result['cv_score']:.3f}")
-            
-            # Overall rankings
-            avg_performance = successful_results.groupby('algorithm').agg({
-                'test_score': 'mean',
-                'cv_score': 'mean'
-            }).round(3).sort_values('test_score', ascending=False)
-            
-            print(f"\n🥇 OVERALL ALGORITHM RANKING:")
-            print(avg_performance.to_string())
+    if not univariate_results.empty:
+        best_single = univariate_results.loc[univariate_results['accuracy'].idxmax()]
+        print(f"   → Best single predictor: {best_single['feature']} → {best_single['target']} ({best_single['accuracy']:.3f})")
     
-    # Top features by mutual information
-    if not mi_df.empty:
-        print(f"\n📊 TOP FEATURES BY MUTUAL INFORMATION:")
-        overall_mi = mi_df.groupby('feature')['mutual_information'].mean().sort_values(ascending=False)
-        for feature, score in overall_mi.head(5).items():
-            print(f"   {feature}: {score:.4f}")
+    if not multivariate_results.empty:
+        best_multi = multivariate_results.loc[multivariate_results['accuracy'].idxmax()]
+        print(f"   → Best combination: {best_multi['feature_set']} + {best_multi['algorithm']} ({best_multi['accuracy']:.3f})")
     
-    # Statistical significance summary
-    if not chi_df.empty:
-        print(f"\n📈 STATISTICAL SIGNIFICANCE SUMMARY:")
-        sig_summary = chi_df.groupby('feature')['significant'].sum().sort_values(ascending=False)
-        for feature, sig_count in sig_summary.head(5).items():
-            print(f"   {feature}: {sig_count}/{len(available_targets)} targets significant")
-    
-    print(f"\n✅ FULL DATASET OPTIMIZATION SUMMARY:")
-    print(f"   → Complete dataset processed for maximum accuracy")
-    print(f"   → Statistical accuracy preserved with proper global context")
-    print(f"   → Chunked processing used for memory efficiency")
-    print(f"   → Analysis completed without sampling bias")
-    print(f"   → All edge cases and rare patterns captured")
+    print(f"   → Total feature-target combinations tested: {len(univariate_results):,}")
+    print(f"   → Total multivariate combinations tested: {len(multivariate_results):,}")
     
     print_memory_status()
     
@@ -1112,19 +1125,17 @@ def main():
     print(f"\n🔒 Database connection closed")
     
     return {
-        'mutual_info_results': mi_df,
-        'chi_square_results': chi_df,
-        'regression_results': regression_df if regression_results else pd.DataFrame(),
-        'optimization_stats': {
-            'total_records': len(clean_movements),
-            'memory_efficient': True,
-            'full_data_processed': True,
-            'sampling_removed': True
+        'univariate_results': univariate_results,
+        'multivariate_results': multivariate_results,
+        'feature_summary': {
+            'available_features': available_features,
+            'available_targets': available_targets,
+            'total_records': len(clean_movements)
         }
     }
 
 if __name__ == "__main__":
     results = main()
     print(f"\n{'='*80}")
-    print("CORRECTED FEATURE EVALUATION ANALYSIS COMPLETE")
+    print("ENHANCED PREDICTIVE ANALYSIS COMPLETE")
     print(f"{'='*80}") 
