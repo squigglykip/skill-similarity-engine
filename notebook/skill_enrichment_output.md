@@ -1,10 +1,79 @@
-skill_id	skill_name	skill_category	skill_type	current_prevalence_percent	rarity_category	rarity_score	total_job_profiles_using	growth_trend_5yr	growth_category	recent_demand_score	skill_mobility_score	skill_mobility_tier	skill_destinations	skill_transitions	strategic_priority	development_recommendation
-KS1267F6MSPN366LX7ST	Project Management	Business	Specialized Skill	10.82	Uncommon	1574	191	50.9	High Growth	5907.3	85.2	Super Launchpad Skill	1741	2420810	Critical	Immediate focus: High-demand, rare skill with strong growth trajectory
-KS120B874P2P6BK1MQ0T	Agile Methodology	Information Technology	Specialized Skill	6.4	Uncommon	1652	113	22.6	High Growth	4404.3	85	Super Launchpad Skill	1501	2219750	Critical	Immediate focus: High-demand, rare skill with strong growth trajectory
-KS125ZB6BWF5RY40BH1B	Risk Management	Business	Specialized Skill	49.41	Common	893	872	75.8	High Growth	69337.3	83.9	Strong Launchpad Skill	2110	14807312	High	Growth opportunity: Develop expanding skill area for career advancement
-KS120GV6C72JMSZKMTD7	Data Analysis	Analysis	Specialized Skill	28.9	Common	1255	510	17.5	Growing	903	93.7	Super Launchpad Skill	1965	213194	High	Growth opportunity: Develop expanding skill area for career advancement
-KS122YN6108R0RSDXXRC	Digital Marketing	Marketing and Public Relations	Specialized Skill	0.34	Rare	1759	6	3.7	Stable	10.3	95	Super Launchpad Skill	397	2698	High	Strategic investment: Rare skill that opens multiple career pathways
-KS1261Z68KSKR1X31KS3	Machine Learning	Information Technology	Specialized Skill	0.06	Rare	1764	1	0	Stable	0	0	No Movement Data	0	0	High	Specialist development: Build expertise in niche, valuable capability
-KS121JM6QL5CGM2LSDS9	Customer Experience	Customer and Client Support	Specialized Skill	0	Rare	1765	0	0	Stable	0	0	No Movement Data	0	0	High	Specialist development: Build expertise in niche, valuable capability
-KS120BV6SR75RBKQH0G3	Artificial Intelligence	Information Technology	Specialized Skill	0.17	Rare	1762	3	0	Stable	0	80.1	Strong Launchpad Skill	39	39	High	Strategic investment: Rare skill that opens multiple career pathways
-KS1220H6CP1BQGH9STNK	Cloud Computing	Information Technology	Specialized Skill	0.51	Rare	1756	9	-6.9	Declining	12.6	90.1	Super Launchpad Skill	386	3164	High	Strategic investment: Rare skill that opens multiple career pathways
+🌐 ACTIVE SKILLS ECOSYSTEM ANALYSIS
+============================================================
+Analyzing skills that are actively used in NAB career movements (~2,200 skills)
+Excludes ~36,000 skills with no movement data for focused, actionable insights.
+
+🎯 ACTIVE SKILLS ECOSYSTEM ANALYSIS
+============================================================
+📝 Analyzing skills that are actively used in NAB career movements
+✅ Connected to database: models/2025-Q3/workforce_intelligence.sqlite
+📚 Loading complete skill universe...
+   → Loaded 38,524 skills from enterprise
+   → Total job profiles: 1,765
+🌉 Calculating comprehensive skill mobility network...
+   → Loading comprehensive skill mobility network...
+   → Calculating mobility for 2,236 active skills...
+   → Completed mobility analysis for 2,189 skills
+   → Found 2,189 skills with active movement data
+   → Filtering from 38,524 total skills to 2,189 active skills
+📈 Calculating skill growth trends from movement patterns...
+   → Loaded 528,714 movement records with job profiles
+   → Analyzing skill demand trends by year...
+   → Calculated growth trends for 2,053 skills
+
+🔍 ENRICHING 2,189 ACTIVE SKILLS:
+----------------------------------------
+   → Processing batch 1/5
+   → Processing batch 2/5
+   → Processing batch 3/5
+   → Processing batch 4/5
+   → Processing batch 5/5
+
+📊 ACTIVE SKILLS ANALYSIS SUMMARY:
+--------------------------------------------------
+✅ Active skills analyzed: 2,189
+   (Filtered from 38,524 total database skills)
+
+📈 ACTIVE SKILL BREAKDOWN:
+   🔹 Skill Rarity (Active Skills Only):
+      Rare: 2,019 skills (92.2%)
+      Uncommon: 140 skills (6.4%)
+      Common: 28 skills (1.3%)
+      Universal: 2 skills (0.1%)
+
+   🌉 Skill Mobility (All Have Movement Data):
+      Super Launchpad Skill: 2,039 skills (93.1%)
+      Strong Launchpad Skill: 106 skills (4.8%)
+      Unknown: 44 skills (2.0%)
+
+   🎯 Strategic Priority:
+      Critical: 996 skills (45.5%)
+      High: 940 skills (42.9%)
+      Medium: 253 skills (11.6%)
+
+💾 Active skills analysis saved to: nab_active_skills_intelligence.csv
+   📊 2,189 skills with complete intelligence metrics
+   🎯 Focus: Skills actually used in NAB career movements
+🔒 Database connection closed
+
+🎯 TOP SKILL LAUNCHPADS ENTERPRISE-WIDE:
+   1. Control Limits: 100.0 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   2. Operational Auditing: 99.8 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   3. ITALC: 99.8 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   4. User Interface Architecture: 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   5. UI Components: 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   6. Interaction Design: 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   7. User Interface Quartz (UIQ): 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   8. User-Centered Design: 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   9. User Interface Specification: 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High
+   10. User Profile: 99.6 mobility score
+      Rarity: Rare | Growth: Stable | Priority: High

@@ -665,70 +665,99 @@ def calculate_skill_mobility_scores(conn, defining_skills_per_job):
         """
         job_skills_df = pd.read_sql_query(job_skills_query, conn)
         
-        print(f"   → Loaded {len(movement_df):,} movements and {len(job_skills_df):,} job-skill mappings")
+        # MEMORY OPTIMIZATION: Focus on skills that are actually in use
+        print(f"   → Processing {len(movement_df):,} movements and {len(job_skills_df):,} job-skill mappings")
+        
+        # Get all job profiles that actually appear in movements (skills in active use)
+        active_job_profiles = set(movement_df['JobProfileID_from'].unique()) | set(movement_df['JobProfileID_to'].unique())
+        
+        # Filter job-skills to only those in active job profiles
+        active_job_skills = job_skills_df[job_skills_df['JobProfileID'].isin(active_job_profiles)].copy()
+        
+        print(f"   → Focusing on {len(active_job_profiles):,} active job profiles")
+        print(f"   → Analyzing {len(active_job_skills):,} skills in active use")
+        
+        # Get skills that actually have movement data
+        skills_in_use = active_job_skills['Skill_ID'].unique()
+        
+        if len(skills_in_use) == 0:
+            print(f"   ⚠️  No skills found in movement data")
+            return {}
         
         # For each skill, analyze how it facilitates transitions to other skills
         skill_mobility_data = {}
         
-        # Get skills from movements
-        from_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_from', right_on='JobProfileID', how='inner')
-        to_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_to', right_on='JobProfileID', how='inner')
+        print(f"   → Calculating mobility scores for {len(skills_in_use):,} active skills...")
         
-        # Analyze skill-to-skill transitions
-        skill_transitions = from_skills.merge(
-            to_skills, 
-            on=['movement_year', 'JobProfileID_from', 'JobProfileID_to', 'movement_count'],
-            suffixes=('_from', '_to')
-        )
-        
-        print(f"   → Analyzing {len(skill_transitions):,} skill-to-skill transitions...")
-        
-        # Calculate mobility metrics for each skill
-        for skill_id in job_skills_df['Skill_ID'].unique():
-            skill_name = job_skills_df[job_skills_df['Skill_ID'] == skill_id].iloc[0]['Skill_Name']
+        # Process skills in batches to manage memory
+        batch_size = 100
+        for i in range(0, len(skills_in_use), batch_size):
+            skill_batch = skills_in_use[i:i + batch_size]
             
-            # Get transitions from this skill to other skills
-            from_transitions = skill_transitions[skill_transitions['Skill_ID_from'] == skill_id]
-            
-            if len(from_transitions) > 5:  # Minimum transitions for reliable analysis
-                # Calculate diversity of destination skills
-                destination_skills = from_transitions['Skill_ID_to'].value_counts()
-                diversity_score = calculate_diversity_score(destination_skills.to_dict())
+            for skill_id in skill_batch:
+                skill_info = active_job_skills[active_job_skills['Skill_ID'] == skill_id].iloc[0]
+                skill_name = skill_info['Skill_Name']
                 
-                # Count unique destination skills
-                unique_destinations = len(destination_skills)
+                # Get job profiles that have this skill
+                jobs_with_skill = active_job_skills[active_job_skills['Skill_ID'] == skill_id]['JobProfileID'].unique()
                 
-                # Calculate total transition volume
-                total_movements = from_transitions['movement_count'].sum()
+                # Get movements FROM jobs with this skill
+                from_movements = movement_df[movement_df['JobProfileID_from'].isin(jobs_with_skill)]
                 
-                # Calculate cross-category transitions (skill boundary crossing)
-                cross_category_moves = from_transitions[
-                    from_transitions['Category_from'] != from_transitions['Category_to']
-                ]['movement_count'].sum()
-                cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
+                if len(from_movements) == 0:
+                    continue
                 
-                # Calculate skill mobility score using same components as job mobility
-                skill_metrics = {
-                    'diversity_score': diversity_score,
-                    'unique_destinations': unique_destinations,
-                    'total_movements': total_movements,
-                    'cross_category_rate': cross_category_rate,
-                    'cross_division_rate': 0  # Not applicable for skills
-                }
+                # Get skills in destination jobs
+                destination_job_skills = from_movements.merge(
+                    active_job_skills[['JobProfileID', 'Skill_ID', 'Category']], 
+                    left_on='JobProfileID_to', 
+                    right_on='JobProfileID', 
+                    how='inner'
+                )
                 
-                mobility_analysis = calculate_mobility_score(skill_metrics)
+                # Filter out the same skill (we want transitions TO other skills)
+                destination_other_skills = destination_job_skills[destination_job_skills['Skill_ID'] != skill_id]
                 
-                skill_mobility_data[skill_id] = {
-                    'skill_name': skill_name,
-                    'mobility_score': mobility_analysis['mobility_score'],
-                    'mobility_tier': mobility_analysis['mobility_tier'],
-                    'mobility_components': mobility_analysis['components'],
-                    'total_transitions': total_movements,
-                    'unique_skill_destinations': unique_destinations,
-                    'diversity_score': diversity_score,
-                    'cross_category_rate': cross_category_rate,
-                    'top_destination_skills': destination_skills.head(3).to_dict()
-                }
+                if len(destination_other_skills) > 5:  # Minimum transitions for analysis
+                    # Calculate diversity of destination skills
+                    destination_skills = destination_other_skills['Skill_ID'].value_counts()
+                    diversity_score = calculate_diversity_score(destination_skills.to_dict())
+                    
+                    # Count unique destination skills
+                    unique_destinations = len(destination_skills)
+                    
+                    # Calculate total transition volume (weight by movement count)
+                    total_movements = destination_other_skills['movement_count'].sum()
+                    
+                    # Calculate cross-category transitions
+                    source_category = skill_info['Category']
+                    cross_category_moves = destination_other_skills[
+                        destination_other_skills['Category'] != source_category
+                    ]['movement_count'].sum()
+                    cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
+                    
+                    # Calculate skill mobility score using same components as job mobility
+                    skill_metrics = {
+                        'diversity_score': diversity_score,
+                        'unique_destinations': unique_destinations,
+                        'total_movements': total_movements,
+                        'cross_category_rate': cross_category_rate,
+                        'cross_division_rate': 0  # Not applicable for skills
+                    }
+                    
+                    mobility_analysis = calculate_mobility_score(skill_metrics)
+                    
+                    skill_mobility_data[skill_id] = {
+                        'skill_name': skill_name,
+                        'mobility_score': mobility_analysis['mobility_score'],
+                        'mobility_tier': mobility_analysis['mobility_tier'],
+                        'mobility_components': mobility_analysis['components'],
+                        'total_transitions': total_movements,
+                        'unique_skill_destinations': unique_destinations,
+                        'diversity_score': diversity_score,
+                        'cross_category_rate': cross_category_rate,
+                        'top_destination_skills': destination_skills.head(3).to_dict()
+                    }
         
         print(f"   → Calculated mobility scores for {len(skill_mobility_data):,} skills")
         
