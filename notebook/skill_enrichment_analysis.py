@@ -436,16 +436,27 @@ def calculate_skill_mobility_for_list(conn, skill_list):
         """
         job_skills_df = pd.read_sql_query(job_skills_query, conn)
         
-        # Get skills from movements
-        from_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_from', right_on='JobProfileID', how='inner')
-        to_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_to', right_on='JobProfileID', how='inner')
+        # MEMORY OPTIMIZATION: Process skill transitions in smaller chunks to avoid cartesian products
+        print(f"   → Processing {len(movement_df):,} movements and {len(job_skills_df):,} job-skill mappings")
         
-        # Analyze skill-to-skill transitions
-        skill_transitions = from_skills.merge(
-            to_skills, 
-            on=['movement_year', 'JobProfileID_from', 'JobProfileID_to', 'movement_count'],
-            suffixes=('_from', '_to')
-        )
+        # Filter movements to only those between jobs that have the skills we're analyzing
+        skill_names_lower = [skill.lower() for skill in skill_list]
+        relevant_skills = job_skills_df[job_skills_df['Skill_Name'].str.lower().isin(skill_names_lower)]
+        relevant_job_ids = set(relevant_skills['JobProfileID'].unique())
+        
+        print(f"   → Filtering to {len(relevant_job_ids):,} relevant job profiles")
+        
+        # Filter movements to only relevant job profiles
+        filtered_movements = movement_df[
+            movement_df['JobProfileID_from'].isin(relevant_job_ids) | 
+            movement_df['JobProfileID_to'].isin(relevant_job_ids)
+        ].copy()
+        
+        print(f"   → Reduced to {len(filtered_movements):,} relevant movements")
+        
+        if len(filtered_movements) == 0:
+            print(f"   ⚠️  No movements found for requested skills")
+            return {}
         
         # Calculate mobility for requested skills only
         skill_mobility_results = {}
@@ -457,23 +468,41 @@ def calculate_skill_mobility_for_list(conn, skill_list):
             if not skill_match.empty:
                 skill_id = skill_match.iloc[0]['Skill_ID']
                 
-                # Get transitions from this skill to other skills
-                from_transitions = skill_transitions[skill_transitions['Skill_ID_from'] == skill_id]
+                # Get job profiles that have this skill
+                jobs_with_skill = job_skills_df[job_skills_df['Skill_ID'] == skill_id]['JobProfileID'].unique()
                 
-                if len(from_transitions) > 3:  # Minimum transitions for analysis
+                # Get movements FROM jobs with this skill
+                from_movements = filtered_movements[filtered_movements['JobProfileID_from'].isin(jobs_with_skill)]
+                
+                if len(from_movements) == 0:
+                    continue
+                
+                # Get skills in destination jobs
+                destination_job_skills = from_movements.merge(
+                    job_skills_df[['JobProfileID', 'Skill_ID', 'Category']], 
+                    left_on='JobProfileID_to', 
+                    right_on='JobProfileID', 
+                    how='inner'
+                )
+                
+                # Filter out the same skill (we want transitions TO other skills)
+                destination_other_skills = destination_job_skills[destination_job_skills['Skill_ID'] != skill_id]
+                
+                if len(destination_other_skills) > 3:  # Minimum transitions for analysis
                     # Calculate diversity of destination skills
-                    destination_skills = from_transitions['Skill_ID_to'].value_counts()
+                    destination_skills = destination_other_skills['Skill_ID'].value_counts()
                     diversity_score = calculate_diversity_score(destination_skills.to_dict())
                     
                     # Count unique destination skills
                     unique_destinations = len(destination_skills)
                     
-                    # Calculate total transition volume
-                    total_movements = from_transitions['movement_count'].sum()
+                    # Calculate total transition volume (weight by movement count)
+                    total_movements = destination_other_skills['movement_count'].sum()
                     
                     # Calculate cross-category transitions
-                    cross_category_moves = from_transitions[
-                        from_transitions['Category_from'] != from_transitions['Category_to']
+                    source_category = job_skills_df[job_skills_df['Skill_ID'] == skill_id].iloc[0]['Category']
+                    cross_category_moves = destination_other_skills[
+                        destination_other_skills['Category'] != source_category
                     ]['movement_count'].sum()
                     cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
                     
@@ -658,16 +687,27 @@ def enrich_skill_list(skill_list: List[str], output_filename: Optional[str] = No
             for priority, count in priority_dist.items():
                 print(f"   {priority}: {count} skills")
             
-            # Save to CSV
-            if output_filename:
-                output_path = Path(output_filename)
-                results_df.to_csv(output_path, index=False)
-                print(f"\n💾 Results saved to: {output_path}")
-            else:
+            # Save to CSV with error handling
+            try:
+                if output_filename:
+                    output_path = Path(output_filename)
+                    results_df.to_csv(output_path, index=False)
+                    print(f"\n💾 Results saved to: {output_path}")
+                else:
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    output_path = Path(f"skill_enrichment_analysis_{timestamp}.csv")
+                    results_df.to_csv(output_path, index=False)
+                    print(f"\n💾 Results saved to: {output_path}")
+            except PermissionError:
+                # File might be open in Excel - try alternative filename
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_path = Path(f"skill_enrichment_analysis_{timestamp}.csv")
-                results_df.to_csv(output_path, index=False)
-                print(f"\n💾 Results saved to: {output_path}")
+                backup_path = Path(f"skill_enrichment_backup_{timestamp}.csv")
+                results_df.to_csv(backup_path, index=False)
+                print(f"\n⚠️  Original file in use - saved to backup: {backup_path}")
+                print(f"   (Close Excel and try again for original filename)")
+            except Exception as e:
+                print(f"\n❌ Could not save CSV: {str(e)}")
+                print("   → Data is still available in memory")
             
             return results_df
             
