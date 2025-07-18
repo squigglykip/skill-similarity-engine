@@ -64,6 +64,10 @@ class SkillEnrichmentConfig:
         'growth_trend_5yr',
         'growth_category',
         'recent_demand_score',
+        'skill_mobility_score',
+        'skill_mobility_tier',
+        'skill_destinations',
+        'skill_transitions',
         'strategic_priority',
         'development_recommendation'
     ]
@@ -285,6 +289,7 @@ def generate_development_recommendation(row):
     rarity = row.get('rarity_category', '')
     growth = row.get('growth_category', '')
     priority = row.get('strategic_priority', '')
+    mobility_tier = row.get('skill_mobility_tier', '')
     
     if priority == "Critical":
         if "Growth" in growth:
@@ -294,12 +299,17 @@ def generate_development_recommendation(row):
     
     elif priority == "High":
         if rarity in ['Rare', 'Uncommon']:
-            return "Specialist development: Build expertise in niche, valuable capability"
+            if 'Launchpad' in mobility_tier:
+                return "Strategic investment: Rare skill that opens multiple career pathways"
+            else:
+                return "Specialist development: Build expertise in niche, valuable capability"
         else:
             return "Growth opportunity: Develop expanding skill area for career advancement"
     
     elif priority == "Medium":
-        if growth == "Stable":
+        if 'Launchpad' in mobility_tier:
+            return "Foundation builder: Skill that facilitates learning other capabilities"
+        elif growth == "Stable":
             return "Foundation skill: Maintain competency in established capability"
         else:
             return "Monitor and assess: Track for future development priority"
@@ -307,11 +317,207 @@ def generate_development_recommendation(row):
     else:
         return "Lower priority: Consider for longer-term development planning"
 
+def calculate_diversity_score(transition_counts):
+    """
+    Calculate Shannon diversity index for transition patterns.
+    Higher score = more diverse transitions (higher mobility)
+    Lower score = concentrated transitions (lower mobility)
+    """
+    if len(transition_counts) == 0:
+        return 0.0
+    
+    # Convert to probabilities
+    total = sum(transition_counts.values())
+    if total == 0:
+        return 0.0
+    
+    probabilities = [count / total for count in transition_counts.values()]
+    
+    # Calculate Shannon entropy
+    entropy = -sum(p * np.log2(p) for p in probabilities if p > 0)
+    
+    # Normalize by maximum possible entropy for this number of categories
+    max_entropy = np.log2(len(probabilities)) if len(probabilities) > 1 else 1
+    
+    return entropy / max_entropy if max_entropy > 0 else 0.0
+
+def calculate_skill_mobility_score(skill_metrics):
+    """Calculate 0-100 mobility score for skills"""
+    
+    # Component weights (same as job profiles)
+    MOBILITY_SCORE_WEIGHTS = {
+        'diversity_component': 40,      # Shannon diversity (0-40 points)
+        'destination_component': 30,    # Unique destinations (0-30 points)
+        'volume_component': 20,         # Movement volume (0-20 points) 
+        'cross_boundary_component': 10  # Cross-boundary moves (0-10 points)
+    }
+    
+    # Component 1: Diversity Score (0-40 points)
+    diversity_component = skill_metrics['diversity_score'] * MOBILITY_SCORE_WEIGHTS['diversity_component']
+    
+    # Component 2: Destination Variety (0-30 points)
+    # Scale: 10+ destinations = max points
+    destination_component = min(
+        skill_metrics['unique_destinations'] / 10 * MOBILITY_SCORE_WEIGHTS['destination_component'], 
+        MOBILITY_SCORE_WEIGHTS['destination_component']
+    )
+    
+    # Component 3: Movement Volume (0-20 points)  
+    # Scale: 100+ movements = max points
+    volume_component = min(
+        skill_metrics['total_movements'] / 100 * MOBILITY_SCORE_WEIGHTS['volume_component'],
+        MOBILITY_SCORE_WEIGHTS['volume_component']
+    )
+    
+    # Component 4: Cross-Boundary Movements (0-10 points)
+    cross_boundary_rate = skill_metrics.get('cross_category_rate', 0)
+    cross_boundary_component = cross_boundary_rate * MOBILITY_SCORE_WEIGHTS['cross_boundary_component']
+    
+    # Total mobility score
+    total_mobility_score = diversity_component + destination_component + volume_component + cross_boundary_component
+    
+    # Determine mobility tier
+    mobility_tier = get_skill_mobility_tier(total_mobility_score)
+    
+    return {
+        'mobility_score': round(total_mobility_score, 1),
+        'mobility_tier': mobility_tier,
+        'components': {
+            'diversity': round(diversity_component, 1),
+            'destinations': round(destination_component, 1),
+            'volume': round(volume_component, 1),
+            'cross_boundary': round(cross_boundary_component, 1)
+        }
+    }
+
+def get_skill_mobility_tier(score):
+    """Convert mobility score to descriptive tier for skills"""
+    MOBILITY_TIERS = {
+        (85, 100): "Super Launchpad Skill",
+        (70, 84): "Strong Launchpad Skill", 
+        (55, 69): "Moderate Launchpad Skill",
+        (40, 54): "Standard Mobility Skill",
+        (25, 39): "Limited Mobility Skill",
+        (0, 24): "Skill Silo"
+    }
+    
+    for (min_score, max_score), tier_name in MOBILITY_TIERS.items():
+        if min_score <= score <= max_score:
+            return tier_name
+    return "Unknown"
+
+def calculate_skill_mobility_for_list(conn, skill_list):
+    """Calculate skill mobility scores for a specific list of skills"""
+    print("🌉 Calculating skill mobility scores for requested skills...")
+    
+    try:
+        # Get skill transition data
+        skill_transition_query = """
+        SELECT 
+            mf.movement_year,
+            p_from.JobProfileID as JobProfileID_from,
+            p_to.JobProfileID as JobProfileID_to,
+            mf.movement_count
+        FROM movement_fact mf
+        JOIN positions p_from ON mf.from_position = p_from.[Position Number]
+        JOIN positions p_to ON mf.to_position = p_to.[Position Number]
+        WHERE mf.movement_year >= 2020
+        AND p_from.JobProfileID IS NOT NULL 
+        AND p_to.JobProfileID IS NOT NULL
+        """
+        
+        movement_df = pd.read_sql_query(skill_transition_query, conn)
+        
+        # Get job-skill mappings
+        job_skills_query = """
+        SELECT js.JobProfileID, js.Skill_ID, s.Skill_Name, s.Category
+        FROM job_skills js
+        JOIN skills s ON js.Skill_ID = s.Skill_ID
+        """
+        job_skills_df = pd.read_sql_query(job_skills_query, conn)
+        
+        # Get skills from movements
+        from_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_from', right_on='JobProfileID', how='inner')
+        to_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_to', right_on='JobProfileID', how='inner')
+        
+        # Analyze skill-to-skill transitions
+        skill_transitions = from_skills.merge(
+            to_skills, 
+            on=['movement_year', 'JobProfileID_from', 'JobProfileID_to', 'movement_count'],
+            suffixes=('_from', '_to')
+        )
+        
+        # Calculate mobility for requested skills only
+        skill_mobility_results = {}
+        
+        for skill_name in skill_list:
+            # Find skill ID
+            skill_match = job_skills_df[job_skills_df['Skill_Name'].str.lower() == skill_name.lower()]
+            
+            if not skill_match.empty:
+                skill_id = skill_match.iloc[0]['Skill_ID']
+                
+                # Get transitions from this skill to other skills
+                from_transitions = skill_transitions[skill_transitions['Skill_ID_from'] == skill_id]
+                
+                if len(from_transitions) > 3:  # Minimum transitions for analysis
+                    # Calculate diversity of destination skills
+                    destination_skills = from_transitions['Skill_ID_to'].value_counts()
+                    diversity_score = calculate_diversity_score(destination_skills.to_dict())
+                    
+                    # Count unique destination skills
+                    unique_destinations = len(destination_skills)
+                    
+                    # Calculate total transition volume
+                    total_movements = from_transitions['movement_count'].sum()
+                    
+                    # Calculate cross-category transitions
+                    cross_category_moves = from_transitions[
+                        from_transitions['Category_from'] != from_transitions['Category_to']
+                    ]['movement_count'].sum()
+                    cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
+                    
+                    # Calculate skill mobility score
+                    skill_metrics = {
+                        'diversity_score': diversity_score,
+                        'unique_destinations': unique_destinations,
+                        'total_movements': total_movements,
+                        'cross_category_rate': cross_category_rate
+                    }
+                    
+                    mobility_analysis = calculate_skill_mobility_score(skill_metrics)
+                    
+                    skill_mobility_results[skill_name] = {
+                        'mobility_score': mobility_analysis['mobility_score'],
+                        'mobility_tier': mobility_analysis['mobility_tier'],
+                        'unique_destinations': unique_destinations,
+                        'total_transitions': total_movements,
+                        'diversity_score': diversity_score,
+                        'cross_category_rate': cross_category_rate
+                    }
+                else:
+                    # Insufficient data for mobility analysis
+                    skill_mobility_results[skill_name] = {
+                        'mobility_score': 0.0,
+                        'mobility_tier': "Insufficient Data",
+                        'unique_destinations': 0,
+                        'total_transitions': 0,
+                        'diversity_score': 0.0,
+                        'cross_category_rate': 0.0
+                    }
+        
+        print(f"   → Calculated mobility scores for {len(skill_mobility_results)} skills")
+        return skill_mobility_results
+        
+    except Exception as e:
+        print(f"   ⚠️  Skill mobility analysis failed: {str(e)}")
+        return {}
+
 # =============================================================================
 # MAIN ENRICHMENT FUNCTION
 # =============================================================================
 
-def enrich_skill_list(skill_list: List[str], output_filename: str = None):
+def enrich_skill_list(skill_list: List[str], output_filename: Optional[str] = None):
     """
     Enrich a list of skills with rarity intelligence and growth trends
     
@@ -336,6 +542,9 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
         
         # Calculate growth trends
         skill_trends = calculate_skill_growth_trends(conn, skill_universe)
+        
+        # Calculate skill mobility scores
+        skill_mobility_data = calculate_skill_mobility_for_list(conn, skill_list)
         
         # Filter to requested skills
         enriched_skills = []
@@ -366,6 +575,14 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
                         'total_movements': 0
                     }
                 
+                # Get skill mobility data
+                mobility_data = skill_mobility_data.get(skill_name, {
+                    'mobility_score': 0.0,
+                    'mobility_tier': "Data Unavailable",
+                    'unique_destinations': 0,
+                    'total_transitions': 0
+                })
+                
                 # Create enriched record
                 enriched_record = {
                     'skill_id': skill_id,
@@ -379,6 +596,10 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
                     'growth_trend_5yr': round(trend_data['growth_trend_5yr'] * 100, 1),  # Convert to percentage
                     'growth_category': categorize_growth_trend(trend_data['growth_trend_5yr']) if skill_trends else "Data Unavailable",
                     'recent_demand_score': round(trend_data['recent_demand_score'], 1),
+                    'skill_mobility_score': round(mobility_data['mobility_score'], 1),
+                    'skill_mobility_tier': mobility_data['mobility_tier'],
+                    'skill_destinations': mobility_data['unique_destinations'],
+                    'skill_transitions': mobility_data['total_transitions'],
                     'strategic_priority': '',  # Will calculate after
                     'development_recommendation': ''  # Will calculate after
                 }
@@ -418,6 +639,7 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
             # Summary statistics
             rarity_dist = results_df['rarity_category'].value_counts()
             growth_dist = results_df['growth_category'].value_counts()
+            mobility_dist = results_df['skill_mobility_tier'].value_counts()
             priority_dist = results_df['strategic_priority'].value_counts()
             
             print(f"\n📈 RARITY DISTRIBUTION:")
@@ -426,6 +648,10 @@ def enrich_skill_list(skill_list: List[str], output_filename: str = None):
                 
             print(f"\n📈 GROWTH DISTRIBUTION:")
             for category, count in growth_dist.items():
+                print(f"   {category}: {count} skills")
+                
+            print(f"\n🌉 SKILL MOBILITY DISTRIBUTION:")
+            for category, count in mobility_dist.items():
                 print(f"   {category}: {count} skills")
                 
             print(f"\n🎯 STRATEGIC PRIORITY:")
@@ -487,4 +713,19 @@ if __name__ == "__main__":
         top_skills = results.head(5)
         for _, skill in top_skills.iterrows():
             print(f"   • {skill['skill_name']}: {skill['strategic_priority']} priority")
-            print(f"     Rarity: {skill['rarity_category']} | Growth: {skill['growth_category']} | Prevalence: {skill['current_prevalence_percent']}%") 
+            print(f"     Rarity: {skill['rarity_category']} | Growth: {skill['growth_category']} | Mobility: {skill['skill_mobility_tier']}")
+            print(f"     Prevalence: {skill['current_prevalence_percent']}% | Leads to {skill['skill_destinations']} other skills")
+        
+        # Show skill launchpads and silos
+        launchpad_skills = results[results['skill_mobility_tier'].str.contains('Launchpad', na=False)]
+        silo_skills = results[results['skill_mobility_tier'].str.contains('Silo', na=False)]
+        
+        if not launchpad_skills.empty:
+            print(f"\n🌉 SKILL LAUNCHPADS (Bridge Skills):")
+            for _, skill in launchpad_skills.iterrows():
+                print(f"   • {skill['skill_name']}: Opens pathways to {skill['skill_destinations']} other skills")
+        
+        if not silo_skills.empty:
+            print(f"\n🔒 SKILL SILOS (Specialised Skills):")
+            for _, skill in silo_skills.iterrows():
+                print(f"   • {skill['skill_name']}: Limited connections ({skill['skill_destinations']} destinations)") 

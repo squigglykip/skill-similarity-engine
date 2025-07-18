@@ -222,6 +222,24 @@ def print_metric_definitions(metric_type):
   - Universal (>50%): Core skills required by most positions
 • Defining Skills: The 5 rarest skills that best characterise each job profile
 • Rarity Score: Inverse measure of prevalence (higher = more distinctive/valuable)
+        """,
+        
+        'skill_mobility': """
+📖 SKILL MOBILITY DEFINITIONS:
+• Skill Mobility Score (0-100): How effectively a skill facilitates transitions to other skills
+• Skill Launchpads: Skills that open pathways to many other skills (high mobility)
+• Skill Silos: Skills that lead to limited other skills (low mobility, specialised)
+• Skill Diversity: How varied the destination skills are from this starting skill
+• Cross-Category Rate: How often this skill leads to skills in different categories
+• Bridge Skills: Skills that connect different skill domains/categories
+
+🌉 SKILL MOBILITY TIERS:
+• Super Launchpad Skills (85-100): Gateway skills opening many career paths
+• Strong Launchpad Skills (70-84): Versatile skills with multiple transition options
+• Moderate Launchpad Skills (55-69): Good foundational skills for skill development
+• Standard Mobility Skills (40-54): Average transferability to other skills
+• Limited Mobility Skills (25-39): Somewhat specialised with fewer connections
+• Skill Silos (0-24): Highly specialised skills with limited transferability
         """
     }
     
@@ -612,6 +630,149 @@ def enhanced_data_enrichment_v2(movement_df, conn):
     print_memory_usage()
     
     return enriched_df
+
+# =============================================================================
+# SKILL MOBILITY ANALYSIS
+# =============================================================================
+
+def calculate_skill_mobility_scores(conn, defining_skills_per_job):
+    """Calculate mobility scores for skills using same methodology as job profiles"""
+    print("🎯 Calculating skill mobility scores (launchpads vs silos)...")
+    
+    try:
+        # Get skill transition data by analyzing movements between roles with different skill sets
+        skill_transition_query = """
+        SELECT 
+            mf.movement_year,
+            p_from.JobProfileID as JobProfileID_from,
+            p_to.JobProfileID as JobProfileID_to,
+            mf.movement_count
+        FROM movement_fact mf
+        JOIN positions p_from ON mf.from_position = p_from.[Position Number]
+        JOIN positions p_to ON mf.to_position = p_to.[Position Number]
+        WHERE mf.movement_year >= 2020
+        AND p_from.JobProfileID IS NOT NULL 
+        AND p_to.JobProfileID IS NOT NULL
+        """
+        
+        movement_df = pd.read_sql_query(skill_transition_query, conn)
+        
+        # Get job-skill mappings
+        job_skills_query = """
+        SELECT js.JobProfileID, js.Skill_ID, s.Skill_Name, s.Category
+        FROM job_skills js
+        JOIN skills s ON js.Skill_ID = s.Skill_ID
+        """
+        job_skills_df = pd.read_sql_query(job_skills_query, conn)
+        
+        print(f"   → Loaded {len(movement_df):,} movements and {len(job_skills_df):,} job-skill mappings")
+        
+        # For each skill, analyze how it facilitates transitions to other skills
+        skill_mobility_data = {}
+        
+        # Get skills from movements
+        from_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_from', right_on='JobProfileID', how='inner')
+        to_skills = movement_df.merge(job_skills_df, left_on='JobProfileID_to', right_on='JobProfileID', how='inner')
+        
+        # Analyze skill-to-skill transitions
+        skill_transitions = from_skills.merge(
+            to_skills, 
+            on=['movement_year', 'JobProfileID_from', 'JobProfileID_to', 'movement_count'],
+            suffixes=('_from', '_to')
+        )
+        
+        print(f"   → Analyzing {len(skill_transitions):,} skill-to-skill transitions...")
+        
+        # Calculate mobility metrics for each skill
+        for skill_id in job_skills_df['Skill_ID'].unique():
+            skill_name = job_skills_df[job_skills_df['Skill_ID'] == skill_id].iloc[0]['Skill_Name']
+            
+            # Get transitions from this skill to other skills
+            from_transitions = skill_transitions[skill_transitions['Skill_ID_from'] == skill_id]
+            
+            if len(from_transitions) > 5:  # Minimum transitions for reliable analysis
+                # Calculate diversity of destination skills
+                destination_skills = from_transitions['Skill_ID_to'].value_counts()
+                diversity_score = calculate_diversity_score(destination_skills.to_dict())
+                
+                # Count unique destination skills
+                unique_destinations = len(destination_skills)
+                
+                # Calculate total transition volume
+                total_movements = from_transitions['movement_count'].sum()
+                
+                # Calculate cross-category transitions (skill boundary crossing)
+                cross_category_moves = from_transitions[
+                    from_transitions['Category_from'] != from_transitions['Category_to']
+                ]['movement_count'].sum()
+                cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
+                
+                # Calculate skill mobility score using same components as job mobility
+                skill_metrics = {
+                    'diversity_score': diversity_score,
+                    'unique_destinations': unique_destinations,
+                    'total_movements': total_movements,
+                    'cross_category_rate': cross_category_rate,
+                    'cross_division_rate': 0  # Not applicable for skills
+                }
+                
+                mobility_analysis = calculate_mobility_score(skill_metrics)
+                
+                skill_mobility_data[skill_id] = {
+                    'skill_name': skill_name,
+                    'mobility_score': mobility_analysis['mobility_score'],
+                    'mobility_tier': mobility_analysis['mobility_tier'],
+                    'mobility_components': mobility_analysis['components'],
+                    'total_transitions': total_movements,
+                    'unique_skill_destinations': unique_destinations,
+                    'diversity_score': diversity_score,
+                    'cross_category_rate': cross_category_rate,
+                    'top_destination_skills': destination_skills.head(3).to_dict()
+                }
+        
+        print(f"   → Calculated mobility scores for {len(skill_mobility_data):,} skills")
+        
+        return skill_mobility_data
+        
+    except Exception as e:
+        print(f"   ⚠️  Skill mobility analysis failed: {str(e)}")
+        return {}
+
+def display_skill_mobility_insights(skill_mobility_data):
+    """Display skill mobility insights with launchpad/silo classification"""
+    if not skill_mobility_data:
+        print("   ⚠️  No skill mobility data available")
+        return
+    
+    print_metric_definitions('skill_mobility')
+    
+    # Convert to DataFrame for analysis
+    skill_mobility_df = pd.DataFrame.from_dict(skill_mobility_data, orient='index')
+    skill_mobility_df = skill_mobility_df.sort_values('mobility_score', ascending=False)
+    
+    # Show distribution
+    tier_distribution = skill_mobility_df['mobility_tier'].value_counts()
+    print(f"\n   📊 SKILL MOBILITY DISTRIBUTION:")
+    for tier, count in tier_distribution.items():
+        percentage = count / len(skill_mobility_df) * 100
+        avg_score = skill_mobility_df[skill_mobility_df['mobility_tier'] == tier]['mobility_score'].mean()
+        print(f"      {tier}: {count} skills ({percentage:.1f}%) - Average Score: {avg_score:.1f}")
+    
+    # Show top skill launchpads
+    print(f"\n   🚀 TOP SKILL LAUNCHPADS (Career Bridge Skills):")
+    top_skills = skill_mobility_df.head(10)
+    for i, (skill_id, row) in enumerate(top_skills.iterrows(), 1):
+        print(f"      {i}. {row['skill_name']}: {row['mobility_score']:.1f} ({row['mobility_tier']})")
+        print(f"         Leads to {row['unique_skill_destinations']} different skills, {row['total_transitions']} transitions")
+    
+    # Show skill silos
+    print(f"\n   🔒 SKILL SILOS (Specialised/Isolated Skills):")
+    bottom_skills = skill_mobility_df.tail(10)
+    for i, (skill_id, row) in enumerate(bottom_skills.iterrows(), 1):
+        print(f"      {i}. {row['skill_name']}: {row['mobility_score']:.1f} ({row['mobility_tier']})")
+        print(f"         Limited transitions: {row['unique_skill_destinations']} destinations, {row['total_transitions']} moves")
+    
+    return skill_mobility_df
 
 # =============================================================================
 # DEFINING SKILLS ANALYSIS
@@ -1156,6 +1317,11 @@ def main():
         for category, count in rarity_dist.items():
             percentage = count / total_skills * 100
             print(f"   • {category}: {count:,} skills ({percentage:.1f}%)")
+        
+        # Add skill mobility analysis
+        print(f"\n🌉 SKILL MOBILITY ANALYSIS (Launchpads vs Silos):")
+        skill_mobility_data = calculate_skill_mobility_scores(conn, defining_skills_per_job)
+        skill_mobility_df = display_skill_mobility_insights(skill_mobility_data)
         
         # Show example defining skills with enhanced context
         print(f"\n🎯 DEFINING SKILLS EXAMPLES (What Makes These Roles Unique):")
