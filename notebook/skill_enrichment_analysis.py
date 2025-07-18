@@ -558,6 +558,284 @@ def calculate_skill_mobility_for_list(conn, skill_list):
         return {}
 
 # =============================================================================
+# ALL SKILLS ANALYSIS FUNCTION
+# =============================================================================
+
+def analyze_all_skills(output_filename: Optional[str] = None):
+    """
+    Analyze ALL ACTIVE skills (skills in use) with rarity intelligence, growth trends, and mobility scores
+    
+    Args:
+        output_filename: Optional CSV filename for output
+    
+    Returns:
+        DataFrame with complete analysis of skills in active use
+    """
+    
+    print("🎯 ACTIVE SKILLS ECOSYSTEM ANALYSIS")
+    print("="*60)
+    print("📝 Analyzing skills that are actively used in NAB career movements")
+    
+    # Connect to database
+    conn = connect_database()
+    
+    try:
+        # Load skill universe with rarity intelligence
+        skill_universe = load_skill_universe(conn)
+        
+        # Calculate comprehensive skill mobility for all active skills
+        print("🌉 Calculating comprehensive skill mobility network...")
+        all_skill_mobility = calculate_comprehensive_skill_mobility(conn)
+        
+        # Filter skill universe to only include skills that have mobility data (skills in active use)
+        active_skill_names = set(all_skill_mobility.keys())
+        print(f"   → Found {len(active_skill_names):,} skills with active movement data")
+        
+        # Filter skill universe to active skills only
+        active_skill_universe = skill_universe[
+            skill_universe['Skill_Name'].isin(active_skill_names)
+        ].copy()
+        
+        print(f"   → Filtering from {len(skill_universe):,} total skills to {len(active_skill_universe):,} active skills")
+        
+        # Calculate growth trends for active skills only
+        skill_trends = calculate_skill_growth_trends(conn, active_skill_universe)
+        
+        # Process active skills
+        all_enriched_skills = []
+        
+        print(f"\n🔍 ENRICHING {len(active_skill_universe):,} ACTIVE SKILLS:")
+        print("-" * 40)
+        
+        # Process in batches for memory efficiency
+        batch_size = 500  # Smaller batches since we're processing fewer skills
+        for i in range(0, len(active_skill_universe), batch_size):
+            batch = active_skill_universe.iloc[i:i + batch_size]
+            print(f"   → Processing batch {i//batch_size + 1}/{(len(active_skill_universe)-1)//batch_size + 1}")
+            
+            for _, skill_row in batch.iterrows():
+                skill_id = skill_row['Skill_ID']
+                skill_name = skill_row['Skill_Name']
+                
+                # Add growth trend data
+                if skill_trends:
+                    trend_data = skill_trends.get(skill_id, {
+                        'growth_trend_5yr': 0.0,
+                        'recent_demand_score': 0.0,
+                        'total_movements': 0
+                    })
+                else:
+                    trend_data = {
+                        'growth_trend_5yr': 0.0,
+                        'recent_demand_score': 0.0,
+                        'total_movements': 0
+                    }
+                
+                # Get skill mobility data (should exist for all skills in this filtered set)
+                mobility_data = all_skill_mobility.get(skill_name, {
+                    'mobility_score': 0.0,
+                    'mobility_tier': "No Movement Data",
+                    'unique_destinations': 0,
+                    'total_transitions': 0,
+                    'diversity_score': 0.0,
+                    'cross_category_rate': 0.0
+                })
+                
+                # Create enriched record
+                enriched_record = {
+                    'skill_id': skill_id,
+                    'skill_name': skill_name,
+                    'skill_category': skill_row.get('Category', 'Unknown'),
+                    'skill_type': skill_row.get('SkillType', 'Unknown'),
+                    'current_prevalence_percent': round(skill_row['prevalence_percentage'], 2),
+                    'rarity_category': skill_row['rarity_category'],
+                    'rarity_score': int(skill_row['rarity_score']),
+                    'total_job_profiles_using': int(skill_row['profiles_using_skill']),
+                    'growth_trend_5yr': round(trend_data['growth_trend_5yr'] * 100, 1),
+                    'growth_category': categorize_growth_trend(trend_data['growth_trend_5yr']) if skill_trends else "Data Unavailable",
+                    'recent_demand_score': round(trend_data['recent_demand_score'], 1),
+                    'skill_mobility_score': round(mobility_data['mobility_score'], 1),
+                    'skill_mobility_tier': mobility_data['mobility_tier'],
+                    'skill_destinations': mobility_data['unique_destinations'],
+                    'skill_transitions': mobility_data['total_transitions'],
+                    'diversity_score': round(mobility_data['diversity_score'], 3),
+                    'cross_category_rate': round(mobility_data['cross_category_rate'], 3),
+                    'strategic_priority': '',
+                    'development_recommendation': ''
+                }
+                
+                # Calculate strategic priority and recommendations
+                enriched_record['strategic_priority'] = calculate_strategic_priority(enriched_record)
+                enriched_record['development_recommendation'] = generate_development_recommendation(enriched_record)
+                
+                all_enriched_skills.append(enriched_record)
+        
+        # Create comprehensive results DataFrame
+        results_df = pd.DataFrame(all_enriched_skills)
+        
+        # Sort by mobility score and strategic priority
+        priority_order = {'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1}
+        results_df['priority_rank'] = results_df['strategic_priority'].map(priority_order)
+        results_df = results_df.sort_values(['skill_mobility_score', 'priority_rank'], ascending=[False, False])
+        results_df = results_df.drop('priority_rank', axis=1)
+        
+        # Output comprehensive summary
+        print(f"\n📊 ACTIVE SKILLS ANALYSIS SUMMARY:")
+        print("-" * 50)
+        print(f"✅ Active skills analyzed: {len(results_df):,}")
+        print(f"   (Filtered from {len(skill_universe):,} total database skills)")
+        
+        # Enhanced summary statistics
+        rarity_dist = results_df['rarity_category'].value_counts()
+        mobility_dist = results_df['skill_mobility_tier'].value_counts()
+        priority_dist = results_df['strategic_priority'].value_counts()
+        
+        print(f"\n📈 ACTIVE SKILL BREAKDOWN:")
+        print(f"   🔹 Skill Rarity (Active Skills Only):")
+        for category, count in rarity_dist.items():
+            percentage = count / len(results_df) * 100
+            print(f"      {category}: {count:,} skills ({percentage:.1f}%)")
+            
+        print(f"\n   🌉 Skill Mobility (All Have Movement Data):")
+        for tier, count in mobility_dist.items():
+            percentage = count / len(results_df) * 100
+            print(f"      {tier}: {count:,} skills ({percentage:.1f}%)")
+            
+        print(f"\n   🎯 Strategic Priority:")
+        for priority, count in priority_dist.items():
+            percentage = count / len(results_df) * 100
+            print(f"      {priority}: {count:,} skills ({percentage:.1f}%)")
+        
+        # Save comprehensive CSV
+        try:
+            if output_filename:
+                output_path = Path(output_filename)
+            else:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_path = Path(f"nab_active_skills_analysis_{timestamp}.csv")
+            
+            results_df.to_csv(output_path, index=False)
+            print(f"\n💾 Active skills analysis saved to: {output_path}")
+            print(f"   📊 {len(results_df):,} skills with complete intelligence metrics")
+            print(f"   🎯 Focus: Skills actually used in NAB career movements")
+            
+        except Exception as e:
+            print(f"\n❌ Could not save CSV: {str(e)}")
+            print("   → Data is still available in memory")
+        
+        return results_df
+        
+    finally:
+        conn.close()
+        print("🔒 Database connection closed")
+
+def calculate_comprehensive_skill_mobility(conn):
+    """Calculate skill mobility for ALL active skills in the enterprise"""
+    print("   → Loading comprehensive skill mobility network...")
+    
+    try:
+        # Get all movement data
+        movement_query = """
+        SELECT 
+            mf.movement_year,
+            p_from.JobProfileID as JobProfileID_from,
+            p_to.JobProfileID as JobProfileID_to,
+            mf.movement_count
+        FROM movement_fact mf
+        JOIN positions p_from ON mf.from_position = p_from.[Position Number]
+        JOIN positions p_to ON mf.to_position = p_to.[Position Number]
+        WHERE mf.movement_year >= 2020
+        AND p_from.JobProfileID IS NOT NULL 
+        AND p_to.JobProfileID IS NOT NULL
+        """
+        
+        movement_df = pd.read_sql_query(movement_query, conn)
+        
+        # Get all job-skill mappings
+        job_skills_query = """
+        SELECT js.JobProfileID, js.Skill_ID, s.Skill_Name, s.Category
+        FROM job_skills js
+        JOIN skills s ON js.Skill_ID = s.Skill_ID
+        """
+        job_skills_df = pd.read_sql_query(job_skills_query, conn)
+        
+        # Focus on active skills
+        active_job_profiles = set(movement_df['JobProfileID_from'].unique()) | set(movement_df['JobProfileID_to'].unique())
+        active_job_skills = job_skills_df[job_skills_df['JobProfileID'].isin(active_job_profiles)].copy()
+        skills_in_use = active_job_skills['Skill_ID'].unique()
+        
+        print(f"   → Calculating mobility for {len(skills_in_use):,} active skills...")
+        
+        all_skill_mobility = {}
+        
+        # Process all skills in batches
+        batch_size = 100
+        for i in range(0, len(skills_in_use), batch_size):
+            skill_batch = skills_in_use[i:i + batch_size]
+            
+            for skill_id in skill_batch:
+                skill_info = active_job_skills[active_job_skills['Skill_ID'] == skill_id].iloc[0]
+                skill_name = skill_info['Skill_Name']
+                
+                # Get job profiles that have this skill
+                jobs_with_skill = active_job_skills[active_job_skills['Skill_ID'] == skill_id]['JobProfileID'].unique()
+                
+                # Get movements FROM jobs with this skill
+                from_movements = movement_df[movement_df['JobProfileID_from'].isin(jobs_with_skill)]
+                
+                if len(from_movements) == 0:
+                    continue
+                
+                # Get skills in destination jobs
+                destination_job_skills = from_movements.merge(
+                    active_job_skills[['JobProfileID', 'Skill_ID', 'Category']], 
+                    left_on='JobProfileID_to', 
+                    right_on='JobProfileID', 
+                    how='inner'
+                )
+                
+                # Filter out the same skill
+                destination_other_skills = destination_job_skills[destination_job_skills['Skill_ID'] != skill_id]
+                
+                if len(destination_other_skills) > 5:
+                    # Calculate all mobility metrics
+                    destination_skills = destination_other_skills['Skill_ID'].value_counts()
+                    diversity_score = calculate_diversity_score(destination_skills.to_dict())
+                    unique_destinations = len(destination_skills)
+                    total_movements = destination_other_skills['movement_count'].sum()
+                    
+                    source_category = skill_info['Category']
+                    cross_category_moves = destination_other_skills[
+                        destination_other_skills['Category'] != source_category
+                    ]['movement_count'].sum()
+                    cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
+                    
+                    skill_metrics = {
+                        'diversity_score': diversity_score,
+                        'unique_destinations': unique_destinations,
+                        'total_movements': total_movements,
+                        'cross_category_rate': cross_category_rate
+                    }
+                    
+                    mobility_analysis = calculate_skill_mobility_score(skill_metrics)
+                    
+                    all_skill_mobility[skill_name] = {
+                        'mobility_score': mobility_analysis['mobility_score'],
+                        'mobility_tier': mobility_analysis['mobility_tier'],
+                        'unique_destinations': unique_destinations,
+                        'total_transitions': total_movements,
+                        'diversity_score': diversity_score,
+                        'cross_category_rate': cross_category_rate
+                    }
+        
+        print(f"   → Completed mobility analysis for {len(all_skill_mobility):,} skills")
+        return all_skill_mobility
+        
+    except Exception as e:
+        print(f"   ⚠️  Comprehensive skill mobility failed: {str(e)}")
+        return {}
+
+# =============================================================================
 # MAIN ENRICHMENT FUNCTION
 # =============================================================================
 
@@ -740,47 +1018,68 @@ def enrich_skill_list(skill_list: List[str], output_filename: Optional[str] = No
 
 if __name__ == "__main__":
     
-    # Example skill list (replace with your coworker's skills)
-    example_skills = [
-        "Python Programming",
-        "Data Analysis", 
-        "Machine Learning",
-        "Risk Management",
-        "Digital Marketing",
-        "Customer Experience",
-        "Project Management",
-        "Artificial Intelligence",
-        "Cloud Computing",
-        "Agile Methodology"
-    ]
+    # Configuration: Choose analysis mode
+    ANALYSIS_MODE = "ALL_SKILLS"  # Options: "EXAMPLE_SKILLS" or "ALL_SKILLS"
     
-    print("🚀 EXAMPLE SKILL ENRICHMENT ANALYSIS")
-    print("="*60)
-    print("This example shows how to enrich skills with rarity intelligence and growth trends.")
-    print("Replace 'example_skills' with your coworker's actual skill list.")
-    print()
+    if ANALYSIS_MODE == "ALL_SKILLS":
+        print("🌐 ACTIVE SKILLS ECOSYSTEM ANALYSIS")
+        print("="*60)
+        print("Analyzing skills that are actively used in NAB career movements (~2,200 skills)")
+        print("Excludes ~36,000 skills with no movement data for focused, actionable insights.")
+        print()
+        
+        # Run complete analysis
+        results = analyze_all_skills("nab_active_skills_intelligence.csv")
+        
+        if not results.empty:
+            print(f"\n🎯 TOP SKILL LAUNCHPADS ENTERPRISE-WIDE:")
+            top_launchpads = results[results['skill_mobility_score'] > 80].head(10)
+            for i, (_, skill) in enumerate(top_launchpads.iterrows(), 1):
+                print(f"   {i}. {skill['skill_name']}: {skill['skill_mobility_score']:.1f} mobility score")
+                print(f"      Rarity: {skill['rarity_category']} | Growth: {skill['growth_category']} | Priority: {skill['strategic_priority']}")
     
-    # Run enrichment analysis
-    results = enrich_skill_list(example_skills, "example_skill_enrichment.csv")
-    
-    if not results.empty:
-        print(f"\n🎯 TOP STRATEGIC PRIORITIES:")
-        top_skills = results.head(5)
-        for _, skill in top_skills.iterrows():
-            print(f"   • {skill['skill_name']}: {skill['strategic_priority']} priority")
-            print(f"     Rarity: {skill['rarity_category']} | Growth: {skill['growth_category']} | Mobility: {skill['skill_mobility_tier']}")
-            print(f"     Prevalence: {skill['current_prevalence_percent']}% | Leads to {skill['skill_destinations']} other skills")
+    else:  # EXAMPLE_SKILLS mode
+        # Example skill list (replace with your coworker's skills)
+        example_skills = [
+            "Python Programming",
+            "Data Analysis", 
+            "Machine Learning",
+            "Risk Management",
+            "Digital Marketing",
+            "Customer Experience",
+            "Project Management",
+            "Artificial Intelligence",
+            "Cloud Computing",
+            "Agile Methodology"
+        ]
         
-        # Show skill launchpads and silos
-        launchpad_skills = results[results['skill_mobility_tier'].str.contains('Launchpad', na=False)]
-        silo_skills = results[results['skill_mobility_tier'].str.contains('Silo', na=False)]
+        print("🚀 EXAMPLE SKILL ENRICHMENT ANALYSIS")
+        print("="*60)
+        print("This example shows how to enrich skills with rarity intelligence and growth trends.")
+        print("Replace 'example_skills' with your coworker's actual skill list.")
+        print()
         
-        if not launchpad_skills.empty:
-            print(f"\n🌉 SKILL LAUNCHPADS (Bridge Skills):")
-            for _, skill in launchpad_skills.iterrows():
-                print(f"   • {skill['skill_name']}: Opens pathways to {skill['skill_destinations']} other skills")
+        # Run enrichment analysis
+        results = enrich_skill_list(example_skills, "example_skill_enrichment.csv")
         
-        if not silo_skills.empty:
-            print(f"\n🔒 SKILL SILOS (Specialised Skills):")
-            for _, skill in silo_skills.iterrows():
-                print(f"   • {skill['skill_name']}: Limited connections ({skill['skill_destinations']} destinations)") 
+        if not results.empty:
+            print(f"\n🎯 TOP STRATEGIC PRIORITIES:")
+            top_skills = results.head(5)
+            for _, skill in top_skills.iterrows():
+                print(f"   • {skill['skill_name']}: {skill['strategic_priority']} priority")
+                print(f"     Rarity: {skill['rarity_category']} | Growth: {skill['growth_category']} | Mobility: {skill['skill_mobility_tier']}")
+                print(f"     Prevalence: {skill['current_prevalence_percent']}% | Leads to {skill['skill_destinations']} other skills")
+            
+            # Show skill launchpads and silos
+            launchpad_skills = results[results['skill_mobility_tier'].str.contains('Launchpad', na=False)]
+            silo_skills = results[results['skill_mobility_tier'].str.contains('Silo', na=False)]
+            
+            if not launchpad_skills.empty:
+                print(f"\n🌉 SKILL LAUNCHPADS (Bridge Skills):")
+                for _, skill in launchpad_skills.iterrows():
+                    print(f"   • {skill['skill_name']}: Opens pathways to {skill['skill_destinations']} other skills")
+            
+            if not silo_skills.empty:
+                print(f"\n🔒 SKILL SILOS (Specialised Skills):")
+                for _, skill in silo_skills.iterrows():
+                    print(f"   • {skill['skill_name']}: Limited connections ({skill['skill_destinations']} destinations)") 
