@@ -436,50 +436,53 @@ def calculate_skill_mobility_for_list(conn, skill_list):
         """
         job_skills_df = pd.read_sql_query(job_skills_query, conn)
         
-        # MEMORY OPTIMIZATION: Process skill transitions in smaller chunks to avoid cartesian products
+        # MEMORY OPTIMIZATION: Focus on skills that are actually in use
         print(f"   → Processing {len(movement_df):,} movements and {len(job_skills_df):,} job-skill mappings")
         
-        # Filter movements to only those between jobs that have the skills we're analyzing
-        skill_names_lower = [skill.lower() for skill in skill_list]
-        relevant_skills = job_skills_df[job_skills_df['Skill_Name'].str.lower().isin(skill_names_lower)]
-        relevant_job_ids = set(relevant_skills['JobProfileID'].unique())
+        # Get all job profiles that actually appear in movements (skills in active use)
+        active_job_profiles = set(movement_df['JobProfileID_from'].unique()) | set(movement_df['JobProfileID_to'].unique())
         
-        print(f"   → Filtering to {len(relevant_job_ids):,} relevant job profiles")
+        # Filter job-skills to only those in active job profiles
+        active_job_skills = job_skills_df[job_skills_df['JobProfileID'].isin(active_job_profiles)].copy()
         
-        # Filter movements to only relevant job profiles
-        filtered_movements = movement_df[
-            movement_df['JobProfileID_from'].isin(relevant_job_ids) | 
-            movement_df['JobProfileID_to'].isin(relevant_job_ids)
-        ].copy()
+        print(f"   → Focusing on {len(active_job_profiles):,} active job profiles")
+        print(f"   → Analyzing {len(active_job_skills):,} skills in active use")
         
-        print(f"   → Reduced to {len(filtered_movements):,} relevant movements")
+        # Get skills that actually have movement data
+        skills_in_use = active_job_skills['Skill_ID'].unique()
         
-        if len(filtered_movements) == 0:
-            print(f"   ⚠️  No movements found for requested skills")
+        if len(skills_in_use) == 0:
+            print(f"   ⚠️  No skills found in movement data")
             return {}
         
-        # Calculate mobility for requested skills only
-        skill_mobility_results = {}
+        # Calculate comprehensive skill mobility analysis for all active skills
+        # Then filter to requested skills for the output
         
-        for skill_name in skill_list:
-            # Find skill ID
-            skill_match = job_skills_df[job_skills_df['Skill_Name'].str.lower() == skill_name.lower()]
+        print(f"   → Calculating mobility scores for all {len(skills_in_use):,} active skills...")
+        
+        all_skill_mobility = {}
+        
+        # Process skills in batches to manage memory
+        batch_size = 100
+        for i in range(0, len(skills_in_use), batch_size):
+            skill_batch = skills_in_use[i:i + batch_size]
             
-            if not skill_match.empty:
-                skill_id = skill_match.iloc[0]['Skill_ID']
+            for skill_id in skill_batch:
+                skill_info = active_job_skills[active_job_skills['Skill_ID'] == skill_id].iloc[0]
+                skill_name = skill_info['Skill_Name']
                 
                 # Get job profiles that have this skill
-                jobs_with_skill = job_skills_df[job_skills_df['Skill_ID'] == skill_id]['JobProfileID'].unique()
+                jobs_with_skill = active_job_skills[active_job_skills['Skill_ID'] == skill_id]['JobProfileID'].unique()
                 
                 # Get movements FROM jobs with this skill
-                from_movements = filtered_movements[filtered_movements['JobProfileID_from'].isin(jobs_with_skill)]
+                from_movements = movement_df[movement_df['JobProfileID_from'].isin(jobs_with_skill)]
                 
                 if len(from_movements) == 0:
                     continue
                 
                 # Get skills in destination jobs
                 destination_job_skills = from_movements.merge(
-                    job_skills_df[['JobProfileID', 'Skill_ID', 'Category']], 
+                    active_job_skills[['JobProfileID', 'Skill_ID', 'Category']], 
                     left_on='JobProfileID_to', 
                     right_on='JobProfileID', 
                     how='inner'
@@ -488,7 +491,7 @@ def calculate_skill_mobility_for_list(conn, skill_list):
                 # Filter out the same skill (we want transitions TO other skills)
                 destination_other_skills = destination_job_skills[destination_job_skills['Skill_ID'] != skill_id]
                 
-                if len(destination_other_skills) > 3:  # Minimum transitions for analysis
+                if len(destination_other_skills) > 5:  # Minimum transitions for analysis
                     # Calculate diversity of destination skills
                     destination_skills = destination_other_skills['Skill_ID'].value_counts()
                     diversity_score = calculate_diversity_score(destination_skills.to_dict())
@@ -500,7 +503,7 @@ def calculate_skill_mobility_for_list(conn, skill_list):
                     total_movements = destination_other_skills['movement_count'].sum()
                     
                     # Calculate cross-category transitions
-                    source_category = job_skills_df[job_skills_df['Skill_ID'] == skill_id].iloc[0]['Category']
+                    source_category = skill_info['Category']
                     cross_category_moves = destination_other_skills[
                         destination_other_skills['Category'] != source_category
                     ]['movement_count'].sum()
@@ -516,7 +519,7 @@ def calculate_skill_mobility_for_list(conn, skill_list):
                     
                     mobility_analysis = calculate_skill_mobility_score(skill_metrics)
                     
-                    skill_mobility_results[skill_name] = {
+                    all_skill_mobility[skill_name] = {
                         'mobility_score': mobility_analysis['mobility_score'],
                         'mobility_tier': mobility_analysis['mobility_tier'],
                         'unique_destinations': unique_destinations,
@@ -524,18 +527,30 @@ def calculate_skill_mobility_for_list(conn, skill_list):
                         'diversity_score': diversity_score,
                         'cross_category_rate': cross_category_rate
                     }
+        
+        print(f"   → Calculated mobility scores for {len(all_skill_mobility):,} skills")
+        
+        # Filter to requested skills for return
+        skill_mobility_results = {}
+        for skill_name in skill_list:
+            if skill_name in all_skill_mobility:
+                skill_mobility_results[skill_name] = all_skill_mobility[skill_name]
+            else:
+                # Look for case-insensitive match
+                matching_skills = [k for k in all_skill_mobility.keys() if k.lower() == skill_name.lower()]
+                if matching_skills:
+                    skill_mobility_results[skill_name] = all_skill_mobility[matching_skills[0]]
                 else:
-                    # Insufficient data for mobility analysis
+                    # No mobility data found
                     skill_mobility_results[skill_name] = {
                         'mobility_score': 0.0,
-                        'mobility_tier': "Insufficient Data",
+                        'mobility_tier': "No Movement Data",
                         'unique_destinations': 0,
                         'total_transitions': 0,
                         'diversity_score': 0.0,
                         'cross_category_rate': 0.0
                     }
         
-        print(f"   → Calculated mobility scores for {len(skill_mobility_results)} skills")
         return skill_mobility_results
         
     except Exception as e:
