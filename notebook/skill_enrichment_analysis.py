@@ -1,0 +1,476 @@
+#!/usr/bin/env python3
+"""
+Skill Enrichment Analysis - Rarity Intelligence & Growth Trends
+
+This script enriches a specific skill list with:
+1. Enterprise rarity intelligence (from role typology analysis)
+2. Temporal growth trends (skill demand changes over time)
+3. Business-ready insights for talent development teams
+
+Input: List of skills from business team
+Output: Enriched CSV with actionable skill intelligence
+"""
+
+import pandas as pd
+import numpy as np
+import sqlite3
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
+from datetime import datetime, timedelta
+import warnings
+from typing import Dict, List, Tuple, Optional
+
+warnings.filterwarnings('ignore')
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+DATABASE_FILE = "models/2025-Q3/workforce_intelligence.sqlite"
+
+class SkillEnrichmentConfig:
+    """Configuration for skill enrichment analysis"""
+    
+    # Database configuration
+    DATABASE_PATH = DATABASE_FILE
+    
+    # Skill rarity thresholds (from role typology analysis)
+    RARITY_THRESHOLDS = {
+        'rare': 5.0,        # <5% = rare skill
+        'uncommon': 20.0,   # 5-20% = uncommon skill  
+        'common': 50.0,     # 20-50% = common skill
+        # >50% = universal skill
+    }
+    
+    # Temporal analysis configuration
+    TEMPORAL_ANALYSIS = {
+        'lookback_years': 5,        # Analyze last 5 years of trends
+        'minimum_movements': 10,    # Minimum movements to calculate reliable trends
+        'growth_significance': 0.1,  # 10% growth threshold for "growing demand"
+        'recent_weight': 2.0        # Weight recent years 2x higher
+    }
+    
+    # Output configuration
+    OUTPUT_COLUMNS = [
+        'skill_id',
+        'skill_name', 
+        'skill_category',
+        'skill_type',
+        'current_prevalence_percent',
+        'rarity_category',
+        'rarity_score',
+        'total_job_profiles_using',
+        'growth_trend_5yr',
+        'growth_category',
+        'recent_demand_score',
+        'strategic_priority',
+        'development_recommendation'
+    ]
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+def connect_database():
+    """Connect to the workforce intelligence database"""
+    try:
+        conn = sqlite3.connect(SkillEnrichmentConfig.DATABASE_PATH)
+        print(f"✅ Connected to database: {SkillEnrichmentConfig.DATABASE_PATH}")
+        return conn
+    except sqlite3.OperationalError as e:
+        raise FileNotFoundError(f"Could not connect to database: {e}")
+
+def load_skill_universe(conn):
+    """Load complete skill universe with current prevalence"""
+    print("📚 Loading complete skill universe...")
+    
+    # Get total job profiles for prevalence calculation
+    total_profiles_query = "SELECT COUNT(DISTINCT JobProfileID) as total FROM jobs"
+    total_profiles = pd.read_sql_query(total_profiles_query, conn).iloc[0]['total']
+    
+    # Calculate current skill prevalence
+    skill_prevalence_query = f"""
+    SELECT 
+        s.Skill_ID,
+        s.Skill_Name,
+        s.Category,
+        s.SkillType,
+        COUNT(DISTINCT js.JobProfileID) as profiles_using_skill,
+        COUNT(DISTINCT js.JobProfileID) * 100.0 / {total_profiles} as prevalence_percentage,
+        {total_profiles} - COUNT(DISTINCT js.JobProfileID) as rarity_score
+    FROM skills s
+    LEFT JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+    GROUP BY s.Skill_ID, s.Skill_Name, s.Category, s.SkillType
+    ORDER BY prevalence_percentage ASC
+    """
+    
+    skill_universe = pd.read_sql_query(skill_prevalence_query, conn)
+    
+    # Handle null values
+    skill_universe['prevalence_percentage'].fillna(0.0, inplace=True)
+    skill_universe['profiles_using_skill'].fillna(0, inplace=True)
+    skill_universe['rarity_score'].fillna(total_profiles, inplace=True)
+    
+    # Categorize by rarity
+    def categorize_rarity(prevalence):
+        if prevalence < SkillEnrichmentConfig.RARITY_THRESHOLDS['rare']:
+            return 'Rare'
+        elif prevalence < SkillEnrichmentConfig.RARITY_THRESHOLDS['uncommon']:
+            return 'Uncommon'
+        elif prevalence < SkillEnrichmentConfig.RARITY_THRESHOLDS['common']:
+            return 'Common'
+        else:
+            return 'Universal'
+    
+    skill_universe['rarity_category'] = skill_universe['prevalence_percentage'].apply(categorize_rarity)
+    
+    print(f"   → Loaded {len(skill_universe):,} skills from enterprise")
+    print(f"   → Total job profiles: {total_profiles:,}")
+    
+    return skill_universe
+
+def calculate_skill_growth_trends(conn, skill_universe):
+    """Calculate temporal growth trends for skills based on movement data"""
+    print("📈 Calculating skill growth trends from movement patterns...")
+    
+    # Get movement data with temporal information
+    movement_query = """
+    SELECT 
+        movement_year,
+        JobProfileID_from,
+        JobProfileID_to,
+        movement_count,
+        recency_weight
+    FROM movement_fact mf
+    JOIN positions p_from ON mf.from_position = p_from.[Position Number]
+    JOIN positions p_to ON mf.to_position = p_to.[Position Number]
+    WHERE movement_year >= 2020
+    AND JobProfileID_from IS NOT NULL 
+    AND JobProfileID_to IS NOT NULL
+    """
+    
+    movement_df = pd.read_sql_query(movement_query, conn)
+    print(f"   → Loaded {len(movement_df):,} movement records with job profiles")
+    
+    # Get job-skill mappings
+    job_skills_query = """
+    SELECT JobProfileID, Skill_ID
+    FROM job_skills
+    """
+    job_skills = pd.read_sql_query(job_skills_query, conn)
+    
+    # Calculate skill demand by year (skills in destination roles)
+    skill_growth_data = []
+    
+    print("   → Analyzing skill demand trends by year...")
+    
+    for year in sorted(movement_df['movement_year'].unique()):
+        year_movements = movement_df[movement_df['movement_year'] == year]
+        
+        # Get destination job profiles for this year
+        destination_profiles = year_movements.groupby('JobProfileID_to')['movement_count'].sum().reset_index()
+        destination_profiles.columns = ['JobProfileID', 'demand_weight']
+        
+        # Join with skills
+        year_skill_demand = destination_profiles.merge(
+            job_skills, 
+            on='JobProfileID', 
+            how='inner'
+        )
+        
+        # Aggregate skill demand for this year
+        year_skill_summary = year_skill_demand.groupby('Skill_ID')['demand_weight'].sum().reset_index()
+        year_skill_summary['year'] = year
+        
+        skill_growth_data.append(year_skill_summary)
+    
+    # Combine all years
+    if skill_growth_data:
+        skill_growth_df = pd.concat(skill_growth_data, ignore_index=True)
+        
+        # Calculate growth trends
+        skill_trends = {}
+        
+        for skill_id in skill_growth_df['Skill_ID'].unique():
+            skill_yearly = skill_growth_df[skill_growth_df['Skill_ID'] == skill_id].sort_values('year')
+            
+            if len(skill_yearly) >= 3:  # Need at least 3 years for trend
+                # Calculate compound annual growth rate (CAGR)
+                first_year_demand = skill_yearly.iloc[0]['demand_weight']
+                last_year_demand = skill_yearly.iloc[-1]['demand_weight']
+                years = len(skill_yearly) - 1
+                
+                if first_year_demand > 0:
+                    growth_rate = (last_year_demand / first_year_demand) ** (1/years) - 1
+                else:
+                    growth_rate = 0.0
+                
+                # Calculate recent demand score (weighted toward recent years)
+                recent_demand = 0
+                total_weight = 0
+                for _, row in skill_yearly.iterrows():
+                    year_weight = 1 + (row['year'] - skill_yearly.iloc[0]['year']) * 0.2  # Recent years weighted higher
+                    recent_demand += row['demand_weight'] * year_weight
+                    total_weight += year_weight
+                
+                recent_demand_score = recent_demand / total_weight if total_weight > 0 else 0
+                
+                skill_trends[skill_id] = {
+                    'growth_trend_5yr': growth_rate,
+                    'recent_demand_score': recent_demand_score,
+                    'total_movements': skill_yearly['demand_weight'].sum()
+                }
+    
+    else:
+        skill_trends = {}
+    
+    print(f"   → Calculated growth trends for {len(skill_trends):,} skills")
+    
+    return skill_trends
+
+def categorize_growth_trend(growth_rate):
+    """Categorize growth trend into business-friendly labels"""
+    if growth_rate > 0.2:  # >20% annual growth
+        return "High Growth"
+    elif growth_rate > 0.1:  # 10-20% annual growth  
+        return "Growing"
+    elif growth_rate > -0.05:  # -5% to 10% (stable)
+        return "Stable"
+    elif growth_rate > -0.15:  # -15% to -5% (declining)
+        return "Declining"
+    else:  # <-15% (steep decline)
+        return "Steep Decline"
+
+def calculate_strategic_priority(row):
+    """Calculate strategic priority based on rarity and growth"""
+    rarity_weight = {
+        'Rare': 4,
+        'Uncommon': 3,
+        'Common': 2,
+        'Universal': 1
+    }
+    
+    growth_weight = {
+        'High Growth': 4,
+        'Growing': 3,
+        'Stable': 2,
+        'Declining': 1,
+        'Steep Decline': 0
+    }
+    
+    rarity_score = rarity_weight.get(row.get('rarity_category'), 1)
+    growth_score = growth_weight.get(row.get('growth_category'), 1)
+    
+    # Combined priority score (1-8 scale)
+    priority_score = (rarity_score + growth_score) / 2
+    
+    if priority_score >= 3.5:
+        return "Critical"
+    elif priority_score >= 2.5:
+        return "High"
+    elif priority_score >= 1.5:
+        return "Medium"
+    else:
+        return "Low"
+
+def generate_development_recommendation(row):
+    """Generate actionable development recommendations"""
+    rarity = row.get('rarity_category', '')
+    growth = row.get('growth_category', '')
+    priority = row.get('strategic_priority', '')
+    
+    if priority == "Critical":
+        if "Growth" in growth:
+            return "Immediate focus: High-demand, rare skill with strong growth trajectory"
+        else:
+            return "Essential capability: Highly differentiated skill for competitive advantage"
+    
+    elif priority == "High":
+        if rarity in ['Rare', 'Uncommon']:
+            return "Specialist development: Build expertise in niche, valuable capability"
+        else:
+            return "Growth opportunity: Develop expanding skill area for career advancement"
+    
+    elif priority == "Medium":
+        if growth == "Stable":
+            return "Foundation skill: Maintain competency in established capability"
+        else:
+            return "Monitor and assess: Track for future development priority"
+    
+    else:
+        return "Lower priority: Consider for longer-term development planning"
+
+# =============================================================================
+# MAIN ENRICHMENT FUNCTION
+# =============================================================================
+
+def enrich_skill_list(skill_list: List[str], output_filename: str = None):
+    """
+    Enrich a list of skills with rarity intelligence and growth trends
+    
+    Args:
+        skill_list: List of skill names to analyze
+        output_filename: Optional CSV filename for output
+    
+    Returns:
+        DataFrame with enriched skill analysis
+    """
+    
+    print("🎯 SKILL ENRICHMENT ANALYSIS")
+    print("="*60)
+    print(f"📝 Analyzing {len(skill_list)} skills from business team")
+    
+    # Connect to database
+    conn = connect_database()
+    
+    try:
+        # Load skill universe with rarity intelligence
+        skill_universe = load_skill_universe(conn)
+        
+        # Calculate growth trends
+        skill_trends = calculate_skill_growth_trends(conn, skill_universe)
+        
+        # Filter to requested skills
+        enriched_skills = []
+        
+        print(f"\n🔍 ENRICHING REQUESTED SKILLS:")
+        print("-" * 40)
+        
+        for skill_name in skill_list:
+            # Find matching skills (exact match first, then fuzzy)
+            exact_match = skill_universe[skill_universe['Skill_Name'].str.lower() == skill_name.lower()]
+            
+            if not exact_match.empty:
+                skill_row = exact_match.iloc[0].to_dict()
+                skill_id = skill_row['Skill_ID']
+                
+                # Add growth trend data
+                trend_data = skill_trends.get(skill_id, {
+                    'growth_trend_5yr': 0.0,
+                    'recent_demand_score': 0.0,
+                    'total_movements': 0
+                })
+                
+                # Create enriched record
+                enriched_record = {
+                    'skill_id': skill_id,
+                    'skill_name': skill_row['Skill_Name'],
+                    'skill_category': skill_row.get('Category', 'Unknown'),
+                    'skill_type': skill_row.get('SkillType', 'Unknown'),
+                    'current_prevalence_percent': round(skill_row['prevalence_percentage'], 2),
+                    'rarity_category': skill_row['rarity_category'],
+                    'rarity_score': int(skill_row['rarity_score']),
+                    'total_job_profiles_using': int(skill_row['profiles_using_skill']),
+                    'growth_trend_5yr': round(trend_data['growth_trend_5yr'] * 100, 1),  # Convert to percentage
+                    'growth_category': categorize_growth_trend(trend_data['growth_trend_5yr']),
+                    'recent_demand_score': round(trend_data['recent_demand_score'], 1),
+                    'strategic_priority': '',  # Will calculate after
+                    'development_recommendation': ''  # Will calculate after
+                }
+                
+                # Calculate strategic priority and recommendations
+                enriched_record['strategic_priority'] = calculate_strategic_priority(enriched_record)
+                enriched_record['development_recommendation'] = generate_development_recommendation(enriched_record)
+                
+                enriched_skills.append(enriched_record)
+                
+                print(f"✅ {skill_name}: {enriched_record['rarity_category']} skill, {enriched_record['growth_category']} trend")
+                
+            else:
+                # Try fuzzy matching
+                fuzzy_matches = skill_universe[skill_universe['Skill_Name'].str.contains(skill_name, case=False, na=False)]
+                
+                if not fuzzy_matches.empty:
+                    print(f"🔍 '{skill_name}' - Found similar: {list(fuzzy_matches['Skill_Name'].head(3))}")
+                else:
+                    print(f"❌ '{skill_name}' - Not found in skill database")
+        
+        # Create results DataFrame
+        if enriched_skills:
+            results_df = pd.DataFrame(enriched_skills)
+            
+            # Sort by strategic priority and growth
+            priority_order = {'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1}
+            results_df['priority_rank'] = results_df['strategic_priority'].map(priority_order)
+            results_df = results_df.sort_values(['priority_rank', 'growth_trend_5yr'], ascending=[False, False])
+            results_df = results_df.drop('priority_rank', axis=1)
+            
+            # Output results
+            print(f"\n📊 ENRICHMENT SUMMARY:")
+            print("-" * 40)
+            print(f"✅ Successfully enriched: {len(results_df)} skills")
+            
+            # Summary statistics
+            rarity_dist = results_df['rarity_category'].value_counts()
+            growth_dist = results_df['growth_category'].value_counts()
+            priority_dist = results_df['strategic_priority'].value_counts()
+            
+            print(f"\n📈 RARITY DISTRIBUTION:")
+            for category, count in rarity_dist.items():
+                print(f"   {category}: {count} skills")
+                
+            print(f"\n📈 GROWTH DISTRIBUTION:")
+            for category, count in growth_dist.items():
+                print(f"   {category}: {count} skills")
+                
+            print(f"\n🎯 STRATEGIC PRIORITY:")
+            for priority, count in priority_dist.items():
+                print(f"   {priority}: {count} skills")
+            
+            # Save to CSV
+            if output_filename:
+                output_path = Path(output_filename)
+                results_df.to_csv(output_path, index=False)
+                print(f"\n💾 Results saved to: {output_path}")
+            else:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_path = Path(f"skill_enrichment_analysis_{timestamp}.csv")
+                results_df.to_csv(output_path, index=False)
+                print(f"\n💾 Results saved to: {output_path}")
+            
+            return results_df
+            
+        else:
+            print("❌ No skills could be enriched from the provided list")
+            return pd.DataFrame()
+            
+    finally:
+        conn.close()
+        print("🔒 Database connection closed")
+
+# =============================================================================
+# EXAMPLE USAGE
+# =============================================================================
+
+if __name__ == "__main__":
+    
+    # Example skill list (replace with your coworker's skills)
+    example_skills = [
+        "Python Programming",
+        "Data Analysis", 
+        "Machine Learning",
+        "Risk Management",
+        "Digital Marketing",
+        "Customer Experience",
+        "Project Management",
+        "Artificial Intelligence",
+        "Cloud Computing",
+        "Agile Methodology"
+    ]
+    
+    print("🚀 EXAMPLE SKILL ENRICHMENT ANALYSIS")
+    print("="*60)
+    print("This example shows how to enrich skills with rarity intelligence and growth trends.")
+    print("Replace 'example_skills' with your coworker's actual skill list.")
+    print()
+    
+    # Run enrichment analysis
+    results = enrich_skill_list(example_skills, "example_skill_enrichment.csv")
+    
+    if not results.empty:
+        print(f"\n🎯 TOP STRATEGIC PRIORITIES:")
+        top_skills = results.head(5)
+        for _, skill in top_skills.iterrows():
+            print(f"   • {skill['skill_name']}: {skill['strategic_priority']} priority")
+            print(f"     Rarity: {skill['rarity_category']} | Growth: {skill['growth_category']} | Prevalence: {skill['current_prevalence_percent']}%") 
