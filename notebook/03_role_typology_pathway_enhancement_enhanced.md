@@ -12,7 +12,7 @@ Job Profile Focus • Mobility Scoring • Defining Skills • Architectural Pro
    → Multi-level analysis with enhanced pathway insights
    → Dataset scope: 121,165 movements, 40,673 positions, 38,524 skills
    → Time range: 2020 - 2025
-💾 Memory Usage: 188.9 MB
+💾 Memory Usage: 189.1 MB
 
 ================================================================================
 ENHANCED DATA LOADING AND PREPARATION V2.0
@@ -47,7 +47,7 @@ ENHANCED DATA LOADING AND PREPARATION V2.0
    → Removed 2,423 duplicate position records
    → Processing 121,165 records in chunks...
 ✅ Enhanced enriched dataset V2.0: 121,165 movement records
-💾 Memory Usage: 393.2 MB
+💾 Memory Usage: 392.8 MB
 📊 Enhanced dataset V2.0: 121,165 enriched movement records
 📅 Date range: 2020 - 2025
 🔄 Applying data cleaning with recency weighting...
@@ -65,7 +65,7 @@ ENHANCED DATA LOADING AND PREPARATION V2.0
    → Overall retention: 22.5%
 📊 Cleaned dataset V2.0: 27,312 weighted movement records
 🔍 Available enhanced features (10): ['movement_count', 'avg_days_between', 'JobProfileID_from', 'JobProfileID_to', 'from_job_function', 'from_job_sub_function', 'from_job_category', 'from_management_level', 'from_division', 'from_business_unit']
-💾 Memory Usage: 314.6 MB
+💾 Memory Usage: 316.9 MB
 
 ================================================================================
 ENTERPRISE SKILL RARITY ANALYSIS
@@ -115,9 +115,77 @@ ENTERPRISE SKILL RARITY ANALYSIS
 
 🌉 SKILL MOBILITY ANALYSIS (Launchpads vs Silos):
 🎯 Calculating skill mobility scores (launchpads vs silos)...
-   → Loaded 528,714 movements and 76,994 job-skill mappings
-   ⚠️  Skill mobility analysis failed: Unable to allocate 41.1 TiB for an array with shape (5650878500326,) and data type int64
-   ⚠️  No skill mobility data available
+   → Processing 528,714 movements and 76,994 job-skill mappings
+   → Focusing on 1,200 active job profiles
+   → Analyzing 51,927 skills in active use
+   → Calculating mobility scores for 2,236 active skills...
+   → Calculated mobility scores for 2,189 skills
+
+📖 SKILL MOBILITY DEFINITIONS:
+• Skill Mobility Score (0-100): How effectively a skill facilitates transitions to other skills
+• Skill Launchpads: Skills that open pathways to many other skills (high mobility)
+• Skill Silos: Skills that lead to limited other skills (low mobility, specialised)
+• Skill Diversity: How varied the destination skills are from this starting skill
+• Cross-Category Rate: How often this skill leads to skills in different categories
+• Bridge Skills: Skills that connect different skill domains/categories
+
+🌉 SKILL MOBILITY TIERS:
+• Super Launchpad Skills (85-100): Gateway skills opening many career paths
+• Strong Launchpad Skills (70-84): Versatile skills with multiple transition options
+• Moderate Launchpad Skills (55-69): Good foundational skills for skill development
+• Standard Mobility Skills (40-54): Average transferability to other skills
+• Limited Mobility Skills (25-39): Somewhat specialised with fewer connections
+• Skill Silos (0-24): Highly specialised skills with limited transferability
+
+
+   📊 SKILL MOBILITY DISTRIBUTION:
+      Strong Launchpad: 1017 skills (46.5%) - Average Score: 80.5
+      Super Launchpad: 925 skills (42.3%) - Average Score: 87.2
+      Unknown: 247 skills (11.3%) - Average Score: 84.5
+
+   🚀 TOP SKILL LAUNCHPADS (Career Bridge Skills):
+      1. SAS Data Management: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 112 transitions
+      2. Labor Law: 90.0 (Super Launchpad)
+         Leads to 35 different skills, 105 transitions
+      3. Analytic Applications: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 112 transitions
+      4. Data Grid: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 112 transitions
+      5. Risk Arbitrage: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 112 transitions
+      6. Accounting Report Interpretation: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 168 transitions
+      7. Accounts Payable: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 168 transitions
+      8. Contract Of Sale: 90.0 (Super Launchpad)
+         Leads to 35 different skills, 105 transitions
+      9. Operational Auditing: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 168 transitions
+      10. Profit And Loss Forecasting: 90.0 (Super Launchpad)
+         Leads to 56 different skills, 168 transitions
+
+   🔒 SKILL SILOS (Specialised/Isolated Skills):
+      1. Financial Operating Systems: 72.9 (Strong Launchpad)
+         Limited transitions: 1316 destinations, 15665646 moves
+      2. Business Alliance: 72.8 (Strong Launchpad)
+         Limited transitions: 1325 destinations, 1963211 moves
+      3. Change Management: 72.7 (Strong Launchpad)
+         Limited transitions: 2077 destinations, 8787232 moves
+      4. Customer Relationship Management: 72.7 (Strong Launchpad)
+         Limited transitions: 1654 destinations, 25897695 moves
+      5. Problem Solving: 72.7 (Strong Launchpad)
+         Limited transitions: 1851 destinations, 26881409 moves
+      6. Customer Experience Strategy (CX): 72.6 (Strong Launchpad)
+         Limited transitions: 1667 destinations, 17676096 moves
+      7. Emotional Intelligence: 72.5 (Strong Launchpad)
+         Limited transitions: 1979 destinations, 15975431 moves
+      8. Customer Experience Improvement: 72.4 (Strong Launchpad)
+         Limited transitions: 1624 destinations, 17575618 moves
+      9. Problem Management: 72.3 (Strong Launchpad)
+         Limited transitions: 1618 destinations, 15683806 moves
+      10. Microsoft Exchange Server API: 72.1 (Strong Launchpad)
+         Limited transitions: 2039 destinations, 24093949 moves
 
 🎯 DEFINING SKILLS EXAMPLES (What Makes These Roles Unique):
 
@@ -332,7 +400,7 @@ MULTI-DIMENSIONAL ROLE ANALYSIS WITH MOBILITY SCORING
 📊 Calculating enhanced movement probabilities for Management Level...
    → Calculated 42 enhanced movement probabilities
 
-   ================================================================================
+================================================================================
 ENHANCED PATHWAY SCORING SYSTEM V2.0
 ================================================================================
 
@@ -533,7 +601,7 @@ ENHANCED ANALYSIS SUMMARY & STRATEGIC RECOMMENDATIONS V2.0
    → Processed 1171 total role classifications with Mobility Scores
    → Enterprise skills analysis: Completed
    → Created 3 enhanced scoring functions
-💾 Memory Usage: 332.1 MB
+💾 Memory Usage: 337.7 MB
 
 🚀 V2.0 ENHANCEMENTS IMPLEMENTED:
    → Job Profile granularity (1,765 profiles vs 106 sub-functions)
@@ -580,9 +648,9 @@ ENHANCED ANALYSIS SUMMARY & STRATEGIC RECOMMENDATIONS V2.0
       5. Settlements - 18
 
 🔒 Database connection closed
-💾 Memory Usage: 330.9 MB
+💾 Memory Usage: 336.6 MB
 
 ================================================================================
 ENHANCED ROLE TYPOLOGY & PATHWAY ENHANCEMENT ANALYSIS V2.0 COMPLETE
-Total execution time: 44.29 seconds
+Total execution time: 368.10 seconds
 ================================================================================
