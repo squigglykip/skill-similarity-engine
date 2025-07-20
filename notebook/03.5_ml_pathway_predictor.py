@@ -145,7 +145,13 @@ def load_movement_fact_features(conn):
     print("📊 Loading pre-computed movement features from database...")
     
     # Load movement_fact with job profile mapping
+    # FIX: Use DISTINCT positions to avoid cartesian product from colleague-position duplicates
     movement_fact_query = """
+    WITH unique_positions AS (
+        SELECT DISTINCT [Position Number], JobProfileID
+        FROM positions
+        WHERE JobProfileID IS NOT NULL
+    )
     SELECT 
         mf.movement_year,
         mf.movement_month,
@@ -158,11 +164,9 @@ def load_movement_fact_features(conn):
         p_from.JobProfileID as JobProfileID_from,
         p_to.JobProfileID as JobProfileID_to
     FROM movement_fact mf
-    JOIN positions p_from ON mf.from_position = p_from.[Position Number]
-    JOIN positions p_to ON mf.to_position = p_to.[Position Number]
+    JOIN unique_positions p_from ON mf.from_position = p_from.[Position Number]
+    JOIN unique_positions p_to ON mf.to_position = p_to.[Position Number]
     WHERE mf.movement_year >= 2020
-    AND p_from.JobProfileID IS NOT NULL 
-    AND p_to.JobProfileID IS NOT NULL
     """
     
     movement_features_df = pd.read_sql_query(movement_fact_query, conn)
