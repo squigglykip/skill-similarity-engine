@@ -807,6 +807,38 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     print(f"   → Average prediction interval: ±{predictions_df['prediction_interval_width'].mean():.1f} movements")
     print(f"   → Models used for ensemble: {len(all_predictions)}")
     
+    # Add individual model predictions for transparency
+    for i, (model_name, predictions) in enumerate(all_predictions.items()):
+        predictions_df[f'prediction_{model_name.lower().replace(" ", "_").replace("(", "").replace(")", "")}'] = predictions
+    
+    # Calculate prediction agreement details
+    predictions_df['prediction_std'] = ensemble_std
+    predictions_df['prediction_cv'] = (ensemble_std / ensemble_mean) * 100  # Coefficient of variation
+    
+    # Add model agreement breakdown
+    agreement_details = []
+    for i in range(len(ensemble_mean)):
+        row_predictions = prediction_matrix[i]
+        mean_pred = ensemble_mean[i]
+        agreement_threshold = 0.2 * mean_pred if mean_pred > 0 else 1.0
+        
+        model_agreement_detail = {}
+        agreeing_count = 0
+        for j, (model_name, _) in enumerate(all_predictions.items()):
+            model_pred = row_predictions[j]
+            agrees = abs(model_pred - mean_pred) <= agreement_threshold
+            model_agreement_detail[f'agrees_{model_name.lower().replace(" ", "_").replace("(", "").replace(")", "")}'] = agrees
+            if agrees:
+                agreeing_count += 1
+        
+        model_agreement_detail['total_agreeing'] = agreeing_count
+        model_agreement_detail['agreement_rate'] = agreeing_count / len(all_predictions)
+        agreement_details.append(model_agreement_detail)
+    
+    # Add agreement details to predictions_df
+    agreement_df = pd.DataFrame(agreement_details)
+    predictions_df = pd.concat([predictions_df, agreement_df], axis=1)
+    
     # Show top recommendations with enhanced confidence indicators
     print(f"\n🔝 Top 10 Pathway Recommendations (with confidence indicators):")
     top_pathways = predictions_df.nlargest(10, 'feasibility_percentage')
@@ -859,6 +891,78 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     print("   → Sample: Historical examples (N=count, Low N=≤5 examples)")
     print("   → Context: High Volume (≥70%), Moderate (40-69%), Low Volume (<40%)")
     print("   → Warnings: (Low N)=few examples, (Low Agr.)=models disagree")
+    
+    # Export comprehensive CSV with all metrics
+    csv_filename = f"pathway_predictions_detailed_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    # Create comprehensive export DataFrame with all features
+    export_df = predictions_df.copy()
+    
+    # Add readable column descriptions
+    export_df = export_df.rename(columns={
+        'from_job_id': 'From_JobProfile_ID',
+        'to_job_id': 'To_JobProfile_ID', 
+        'from_job_name': 'From_JobProfile_Name',
+        'to_job_name': 'To_JobProfile_Name',
+        'predicted_movements': 'ML_Predicted_Movements',
+        'feasibility_percentage': 'Feasibility_Percentage',
+        'confidence_score': 'Confidence_Score_Legacy',
+        'prediction_interval_lower': 'Prediction_Interval_Lower_80pct',
+        'prediction_interval_upper': 'Prediction_Interval_Upper_80pct',
+        'prediction_interval_width': 'Prediction_Interval_Width_80pct',
+        'model_agreement': 'Model_Agreement_Fraction',
+        'sample_size': 'Historical_Sample_Size',
+        'ensemble_std': 'Ensemble_Standard_Deviation',
+        'prediction_std': 'Prediction_Standard_Deviation',
+        'prediction_cv': 'Prediction_Coefficient_of_Variation_Percent',
+        'total_agreeing': 'Models_Agreeing_Count',
+        'agreement_rate': 'Agreement_Rate_Decimal'
+    })
+    
+    # Reorder columns for logical flow
+    column_order = [
+        'From_JobProfile_ID', 'From_JobProfile_Name',
+        'To_JobProfile_ID', 'To_JobProfile_Name',
+        'ML_Predicted_Movements', 'Feasibility_Percentage',
+        'Historical_Sample_Size',
+        'Prediction_Interval_Lower_80pct', 'Prediction_Interval_Upper_80pct', 'Prediction_Interval_Width_80pct',
+        'Model_Agreement_Fraction', 'Models_Agreeing_Count', 'Agreement_Rate_Decimal',
+        'Ensemble_Standard_Deviation', 'Prediction_Coefficient_of_Variation_Percent'
+    ]
+    
+    # Add individual model prediction columns
+    model_pred_columns = [col for col in export_df.columns if col.startswith('prediction_')]
+    model_agreement_columns = [col for col in export_df.columns if col.startswith('agrees_')]
+    
+    column_order.extend(model_pred_columns)
+    column_order.extend(model_agreement_columns)
+    
+    # Add any remaining columns
+    remaining_columns = [col for col in export_df.columns if col not in column_order]
+    column_order.extend(remaining_columns)
+    
+    # Reorder and export
+    export_df = export_df[column_order]
+    export_df.to_csv(csv_filename, index=False, float_format='%.3f')
+    
+    print(f"\n📊 COMPREHENSIVE CSV EXPORT CREATED:")
+    print(f"   → Filename: {csv_filename}")
+    print(f"   → Records: {len(export_df):,} pathway predictions")
+    print(f"   → Columns: {len(export_df.columns)} total metrics")
+    print(f"   → Individual model predictions: {len(model_pred_columns)} models")
+    print(f"   → Model agreement details: {len(model_agreement_columns)} agreement flags")
+    print(f"   → Confidence metrics: Prediction intervals, standard deviations, CV%")
+    print(f"   → Business context: Job names, sample sizes, feasibility percentages")
+    
+    print(f"\n📋 CSV Column Guide:")
+    print(f"   → ML_Predicted_Movements: Raw ensemble prediction (interpretable)")
+    print(f"   → Feasibility_Percentage: 0-100% ranking against all predictions")
+    print(f"   → Historical_Sample_Size: Number of actual examples in training data")
+    print(f"   → Prediction_Interval_*: 80% confidence bounds around prediction")
+    print(f"   → Model_Agreement_Fraction: e.g., '3/3' = all models agree") 
+    print(f"   → prediction_[model]: Individual predictions from each ML model")
+    print(f"   → agrees_[model]: Boolean - does this model agree with ensemble?")
+    print(f"   → Agreement_Rate_Decimal: 0.0-1.0 rate of model consensus")
     
     return predictions_df
 
