@@ -763,10 +763,17 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     # Calculate sample size indicators (based on historical movement count)
     sample_sizes = features_df.get('total_movement_count', pd.Series([0] * len(features_df)))
     
-    # Convert to feasibility percentages
-    feasibility_percentages = (ensemble_mean / max_movement) * 100
-    lower_bound_pct = (lower_bound / max_movement) * 100
-    upper_bound_pct = (upper_bound / max_movement) * 100
+    # FIXED: Use ML prediction maximum for consistent normalization (not historical max)
+    max_ml_prediction = ensemble_mean.max()
+    print(f"🎯 Feasibility Normalization:")
+    print(f"   → Max historical training target: {max_movement:.1f} movements")
+    print(f"   → Max ML prediction: {max_ml_prediction:.1f} movements")
+    print(f"   → Using ML prediction max for consistent feasibility calculation")
+    
+    # Convert to feasibility percentages using ML prediction scale
+    feasibility_percentages = (ensemble_mean / max_ml_prediction) * 100
+    lower_bound_pct = (lower_bound / max_ml_prediction) * 100
+    upper_bound_pct = (upper_bound / max_ml_prediction) * 100
     
     # Create enhanced results DataFrame
     predictions_df = features_df[['from_job_id', 'to_job_id']].copy()
@@ -795,7 +802,8 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     print(f"   → Average predicted movements: {ensemble_mean.mean():.1f}")
     print(f"   → High feasibility (≥70%): {len(high_feasibility):,}")
     print(f"   → Average feasibility: {feasibility_percentages.mean():.1f}%")
-    print(f"   → Max historical volume: {max_movement:.1f} movements")
+    print(f"   → Max ML prediction: {max_ml_prediction:.1f} movements (100% feasible)")
+    print(f"   → Max historical training: {max_movement:.1f} movements (reference)")
     print(f"   → Average prediction interval: ±{predictions_df['prediction_interval_width'].mean():.1f} movements")
     print(f"   → Models used for ensemble: {len(all_predictions)}")
     
