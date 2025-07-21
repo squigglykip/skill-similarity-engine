@@ -763,28 +763,60 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     # Calculate sample size indicators (based on historical movement count)
     sample_sizes = features_df.get('total_movement_count', pd.Series([0] * len(features_df)))
     
-    # FIXED: Use ML prediction maximum for consistent normalization (not historical max)
-    max_ml_prediction = ensemble_mean.max()
-    print(f"🎯 Feasibility Normalization:")
+    # UPDATED: Use dynamic percentile ranking instead of simple normalization
+    print(f"🎯 Pathway Volume Ranking Calculation:")
     print(f"   → Max historical training target: {max_movement:.1f} movements")
-    print(f"   → Max ML prediction: {max_ml_prediction:.1f} movements")
-    print(f"   → Using ML prediction max for consistent feasibility calculation")
+    print(f"   → Max ML prediction: {ensemble_mean.max():.1f} movements")
+    print(f"   → Min ML prediction: {ensemble_mean.min():.1f} movements")
+    print(f"   → Using dynamic percentile ranking for pathway volume assessment")
     
-    # Convert to feasibility percentages using ML prediction scale
-    feasibility_percentages = (ensemble_mean / max_ml_prediction) * 100
-    lower_bound_pct = (lower_bound / max_ml_prediction) * 100
-    upper_bound_pct = (upper_bound / max_ml_prediction) * 100
+    # Calculate percentile ranking for each prediction (0-100 scale)
+    from scipy.stats import percentileofscore
+    pathway_percentiles = [
+        percentileofscore(ensemble_mean, score, kind='rank') 
+        for score in ensemble_mean
+    ]
+    
+    # Convert to readable pathway volume categories
+    def get_pathway_category(percentile):
+        if percentile >= 99:
+            return "Premier pathway (Top 1%)"
+        elif percentile >= 95:
+            return "Major pathway (Top 5%)"
+        elif percentile >= 90:
+            return "Significant pathway (Top 10%)"
+        elif percentile >= 75:
+            return "Common pathway (Top 25%)"
+        elif percentile >= 50:
+            return "Standard pathway (Top 50%)"
+        else:
+            return "Emerging pathway (Bottom 50%)"
+    
+    pathway_categories = [get_pathway_category(p) for p in pathway_percentiles]
+    
+    # Calculate percentile bounds for confidence intervals
+    lower_bound_percentiles = [
+        percentileofscore(ensemble_mean, score, kind='rank') 
+        for score in lower_bound
+    ]
+    upper_bound_percentiles = [
+        percentileofscore(ensemble_mean, score, kind='rank') 
+        for score in upper_bound
+    ]
     
     # Create enhanced results DataFrame
     predictions_df = features_df[['from_job_id', 'to_job_id']].copy()
     predictions_df['predicted_movements'] = ensemble_mean
-    predictions_df['feasibility_percentage'] = feasibility_percentages
-    predictions_df['confidence_score'] = feasibility_percentages  # For backward compatibility
+    predictions_df['pathway_volume_percentile'] = pathway_percentiles
+    predictions_df['pathway_volume_category'] = pathway_categories
+    predictions_df['confidence_score'] = pathway_percentiles  # For backward compatibility
     
     # Add confidence indicators
     predictions_df['prediction_interval_lower'] = lower_bound
     predictions_df['prediction_interval_upper'] = upper_bound
     predictions_df['prediction_interval_width'] = upper_bound - lower_bound
+    predictions_df['prediction_interval_lower_percentile'] = lower_bound_percentiles
+    predictions_df['prediction_interval_upper_percentile'] = upper_bound_percentiles
     predictions_df['model_agreement'] = prediction_agreement
     predictions_df['sample_size'] = sample_sizes
     predictions_df['ensemble_std'] = ensemble_std
@@ -794,15 +826,15 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     predictions_df['from_job_name'] = predictions_df['from_job_id'].map(job_names)
     predictions_df['to_job_name'] = predictions_df['to_job_id'].map(job_names)
     
-    # Filter to high-feasibility predictions
-    high_feasibility = predictions_df[predictions_df['feasibility_percentage'] >= 70]
+    # Filter to high-volume predictions (top 30th percentile)
+    high_volume = predictions_df[predictions_df['pathway_volume_percentile'] >= 70]
     
     print(f"📊 Prediction Results:")
     print(f"   → Total predictions: {len(predictions_df):,}")
     print(f"   → Average predicted movements: {ensemble_mean.mean():.1f}")
-    print(f"   → High feasibility (≥70%): {len(high_feasibility):,}")
-    print(f"   → Average feasibility: {feasibility_percentages.mean():.1f}%")
-    print(f"   → Max ML prediction: {max_ml_prediction:.1f} movements (100% feasible)")
+    print(f"   → High volume pathways (≥70th percentile): {len(high_volume):,}")
+    print(f"   → Average pathway percentile: {np.mean(pathway_percentiles):.1f}th percentile")
+    print(f"   → Max ML prediction: {ensemble_mean.max():.1f} movements (100th percentile)")
     print(f"   → Max historical training: {max_movement:.1f} movements (reference)")
     print(f"   → Average prediction interval: ±{predictions_df['prediction_interval_width'].mean():.1f} movements")
     print(f"   → Models used for ensemble: {len(all_predictions)}")
@@ -840,14 +872,14 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     predictions_df = pd.concat([predictions_df, agreement_df], axis=1)
     
     # Show top recommendations with enhanced confidence indicators
-    print(f"\n🔝 Top 10 Pathway Recommendations (with confidence indicators):")
-    top_pathways = predictions_df.nlargest(10, 'feasibility_percentage')
+    print(f"\n🔝 Top 10 Pathway Recommendations (by volume percentile):")
+    top_pathways = predictions_df.nlargest(10, 'pathway_volume_percentile')
     
     # Enhanced header with confidence indicators
-    print("-" * 160)
-    header = f"{'From → To':<45} {'Predicted':<12} {'Feasibility':<12} {'±80% CI':<12} {'Agreement':<10} {'Sample':<8} {'Context':<15}"
+    print("-" * 170)
+    header = f"{'From → To':<45} {'Predicted':<12} {'Percentile':<12} {'Category':<20} {'±80% CI':<12} {'Agreement':<10} {'Sample':<8}"
     print(header)
-    print("-" * 160)
+    print("-" * 170)
     
     for _, row in top_pathways.iterrows():
         from_name = row['from_job_name'][:22] if row['from_job_name'] else f"Job {row['from_job_id']}"
@@ -856,32 +888,27 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
         
         # Calculate confidence indicators
         predicted_movements = row['predicted_movements']
-        feasibility_pct = row['feasibility_percentage']
+        volume_percentile = row['pathway_volume_percentile']
+        volume_category = row['pathway_volume_category']
         interval_width = row['prediction_interval_width']
         model_agreement = row['model_agreement']
         sample_size = int(row['sample_size']) if pd.notna(row['sample_size']) else 0
         
-        # Context with confidence warnings
-        if feasibility_pct >= 70:
-            context = "High Volume"
-        elif feasibility_pct >= 40:
-            context = "Moderate"
-        else:
-            context = "Low Volume"
-            
-        # Add confidence warnings
+        # Add confidence warnings to category
+        category_display = volume_category
         if sample_size <= 5:
-            context += " (Low N)"
+            category_display += " (Low N)"
         elif model_agreement.startswith('1/') or model_agreement.startswith('0/'):
-            context += " (Low Agr.)"
+            category_display += " (Low Agr.)"
         
         # Format the output
         predicted_str = f"{predicted_movements:.1f}"
-        feasibility_str = f"{feasibility_pct:.1f}%"
+        percentile_str = f"{volume_percentile:.1f}th"
+        category_str = category_display[:19]  # Truncate if too long
         interval_str = f"±{interval_width:.1f}"
         sample_str = f"{sample_size}N" if sample_size <= 999 else f"{sample_size//1000}K"
         
-        print(f"{pathway:<45} {predicted_str:<12} {feasibility_str:<12} {interval_str:<12} {model_agreement:<10} {sample_str:<8} {context:<15}")
+        print(f"{pathway:<45} {predicted_str:<12} {percentile_str:<12} {category_str:<20} {interval_str:<12} {model_agreement:<10} {sample_str:<8}")
     
     # Add legend for confidence indicators
     print("-" * 160)
@@ -905,11 +932,14 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
         'from_job_name': 'From_JobProfile_Name',
         'to_job_name': 'To_JobProfile_Name',
         'predicted_movements': 'ML_Predicted_Movements',
-        'feasibility_percentage': 'Feasibility_Percentage',
+        'pathway_volume_percentile': 'Pathway_Volume_Percentile',
+        'pathway_volume_category': 'Pathway_Volume_Category',
         'confidence_score': 'Confidence_Score_Legacy',
         'prediction_interval_lower': 'Prediction_Interval_Lower_80pct',
         'prediction_interval_upper': 'Prediction_Interval_Upper_80pct',
         'prediction_interval_width': 'Prediction_Interval_Width_80pct',
+        'prediction_interval_lower_percentile': 'Prediction_Interval_Lower_Percentile',
+        'prediction_interval_upper_percentile': 'Prediction_Interval_Upper_Percentile',
         'model_agreement': 'Model_Agreement_Fraction',
         'sample_size': 'Historical_Sample_Size',
         'ensemble_std': 'Ensemble_Standard_Deviation',
@@ -923,9 +953,10 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     column_order = [
         'From_JobProfile_ID', 'From_JobProfile_Name',
         'To_JobProfile_ID', 'To_JobProfile_Name',
-        'ML_Predicted_Movements', 'Feasibility_Percentage',
+        'ML_Predicted_Movements', 'Pathway_Volume_Percentile', 'Pathway_Volume_Category',
         'Historical_Sample_Size',
         'Prediction_Interval_Lower_80pct', 'Prediction_Interval_Upper_80pct', 'Prediction_Interval_Width_80pct',
+        'Prediction_Interval_Lower_Percentile', 'Prediction_Interval_Upper_Percentile',
         'Model_Agreement_Fraction', 'Models_Agreeing_Count', 'Agreement_Rate_Decimal',
         'Ensemble_Standard_Deviation', 'Prediction_Coefficient_of_Variation_Percent'
     ]
@@ -956,9 +987,11 @@ def generate_pathway_predictions(best_model, features_df, jobs_df, max_movement,
     
     print(f"\n📋 CSV Column Guide:")
     print(f"   → ML_Predicted_Movements: Raw ensemble prediction (interpretable)")
-    print(f"   → Feasibility_Percentage: 0-100% ranking against all predictions")
+    print(f"   → Pathway_Volume_Percentile: 0-100th percentile ranking (dynamic)")
+    print(f"   → Pathway_Volume_Category: Human-readable category (e.g., 'Major pathway (Top 5%)')")
     print(f"   → Historical_Sample_Size: Number of actual examples in training data")
     print(f"   → Prediction_Interval_*: 80% confidence bounds around prediction")
+    print(f"   → Prediction_Interval_*_Percentile: Percentile bounds for confidence intervals")
     print(f"   → Model_Agreement_Fraction: e.g., '3/3' = all models agree") 
     print(f"   → prediction_[model]: Individual predictions from each ML model")
     print(f"   → agrees_[model]: Boolean - does this model agree with ensemble?")
