@@ -1099,7 +1099,7 @@ def main():
         print(f"   → Model performance: {model_results[best_model_name]['r2_score']:.3f} R² score")
         print(f"   → Prediction accuracy: ±{model_results[best_model_name]['mae']:.1f} movements average error")
         print(f"   → Total pathway predictions: {len(predictions_df):,}")
-        print(f"   → High-feasibility pathways: {len(predictions_df[predictions_df['feasibility_percentage'] >= 70]):,}")
+        print(f"   → High-volume pathways (≥70th percentile): {len(predictions_df[predictions_df['pathway_volume_percentile'] >= 70]):,}")
         print(f"   → Ensemble predictions: {len(model_results)} models")
         print(f"   → Confidence indicators: Prediction intervals, model agreement, sample size warnings")
         
