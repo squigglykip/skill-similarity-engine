@@ -831,22 +831,70 @@ def calculate_composite_skill_intelligence_score(skill_data):
         }
     }
 
-def get_skill_intelligence_tier(score):
-    """Convert composite intelligence score to descriptive tier (like Movement Engine)"""
-    # Adjusted thresholds based on actual score distribution (51.5-80.4 range)
-    INTELLIGENCE_TIERS = {
-        (78, 100): "Strategic Skill (Top 10%)",      # Top performers (78-80.4)
-        (74, 77): "High-Value Skill (Top 25%)",     # High performers (74-77)
-        (70, 73): "Valuable Skill (Top 40%)",       # Above average (70-73)
-        (65, 69): "Standard Skill (Top 60%)",       # Average range (65-69)
-        (60, 64): "Emerging Skill (Top 75%)",       # Below average (60-64)
-        (0, 59): "Niche Skill (Bottom 25%)"         # Lower range (51.5-59)
+def get_dynamic_skill_intelligence_tier(score, percentile_rank, score_distribution):
+    """
+    Dynamic tier classification with full transparency
+    
+    Returns tier in format: "Strategic (Top 10%, 99.2%)"
+    - Tier name (Strategic, High-Value, etc.)
+    - Bracket definition (Top 10%, Top 25%, etc.)  
+    - Exact percentile (99.2%)
+    """
+    
+    # Calculate dynamic thresholds based on actual data distribution
+    thresholds = {
+        'strategic': score_distribution.quantile(0.90),    # Top 10%
+        'high_value': score_distribution.quantile(0.75),   # Top 25%
+        'valuable': score_distribution.quantile(0.60),     # Top 40%
+        'standard': score_distribution.quantile(0.40),     # Top 60%
+        'emerging': score_distribution.quantile(0.25),     # Top 75%
     }
     
-    for (min_score, max_score), tier_name in INTELLIGENCE_TIERS.items():
-        if min_score <= score <= max_score:
-            return tier_name
-    return "Unknown"
+    # Determine tier and format with full transparency
+    if score >= thresholds['strategic']:
+        return f"Strategic (Top 10%, {percentile_rank:.1f}%)"
+    elif score >= thresholds['high_value']:
+        return f"High-Value (Top 25%, {percentile_rank:.1f}%)"
+    elif score >= thresholds['valuable']:
+        return f"Valuable (Top 40%, {percentile_rank:.1f}%)"
+    elif score >= thresholds['standard']:
+        return f"Standard (Top 60%, {percentile_rank:.1f}%)"
+    elif score >= thresholds['emerging']:
+        return f"Emerging (Top 75%, {percentile_rank:.1f}%)"
+    else:
+        return f"Niche (Bottom 25%, {percentile_rank:.1f}%)"
+
+def generate_tier_decoder_ring(score_distribution):
+    """
+    Generate the 'decoder ring' showing all tier thresholds for transparency
+    """
+    thresholds = {
+        'strategic': score_distribution.quantile(0.90),
+        'high_value': score_distribution.quantile(0.75),
+        'valuable': score_distribution.quantile(0.60),
+        'standard': score_distribution.quantile(0.40),
+        'emerging': score_distribution.quantile(0.25),
+        'niche': score_distribution.min()
+    }
+    
+    total_count = len(score_distribution)
+    min_score = score_distribution.min()
+    max_score = score_distribution.max()
+    avg_score = score_distribution.mean()
+    
+    decoder_output = []
+    decoder_output.append("📊 TIER DECODER RING (Thresholds for This Analysis):")
+    decoder_output.append("-" * 70)
+    decoder_output.append(f"Strategic Skills (Top 10%):     Score ≥{thresholds['strategic']:.1f}  ({int(total_count * 0.10)} skills)")
+    decoder_output.append(f"High-Value Skills (Top 25%):    Score ≥{thresholds['high_value']:.1f}  ({int(total_count * 0.25)} skills)")
+    decoder_output.append(f"Valuable Skills (Top 40%):      Score ≥{thresholds['valuable']:.1f}  ({int(total_count * 0.40)} skills)")
+    decoder_output.append(f"Standard Skills (Top 60%):      Score ≥{thresholds['standard']:.1f}  ({int(total_count * 0.60)} skills)")
+    decoder_output.append(f"Emerging Skills (Top 75%):      Score ≥{thresholds['emerging']:.1f}  ({int(total_count * 0.75)} skills)")
+    decoder_output.append(f"Niche Skills (Bottom 25%):      Score <{thresholds['emerging']:.1f}  ({int(total_count * 0.25)} skills)")
+    decoder_output.append("")
+    decoder_output.append(f"Score Distribution: Min={min_score:.1f}, Max={max_score:.1f}, Average={avg_score:.1f}")
+    
+    return decoder_output
 
 def calculate_comprehensive_skill_mobility(conn):
     """Calculate skill mobility for ALL active skills in the enterprise"""
@@ -1085,7 +1133,6 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
             # Calculate composite intelligence score (like Movement Engine)
             composite_analysis = calculate_composite_skill_intelligence_score(enhanced_record)
             enhanced_record['composite_intelligence_score'] = composite_analysis['composite_intelligence_score']
-            enhanced_record['intelligence_tier'] = get_skill_intelligence_tier(enhanced_record['composite_intelligence_score'])
             
             # Add component breakdown
             enhanced_record.update({
@@ -1111,6 +1158,17 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
         # Sort by composite intelligence score (like Movement Engine)
         results_df = results_df.sort_values('composite_intelligence_score', ascending=False)
         
+        # Apply dynamic tier classification with full transparency
+        score_distribution = results_df['composite_intelligence_score']
+        results_df['intelligence_tier'] = [
+            get_dynamic_skill_intelligence_tier(score, percentile, score_distribution)
+            for score, percentile in zip(results_df['composite_intelligence_score'], results_df['intelligence_percentile'])
+        ]
+        
+        # Display the decoder ring for full transparency
+        decoder_ring = generate_tier_decoder_ring(score_distribution)
+        print("\n" + "\n".join(decoder_ring))
+        
         # Output comprehensive summary
         print(f"\n📊 COMPREHENSIVE SKILLS INTELLIGENCE SUMMARY:")
         print("-" * 60)
@@ -1122,16 +1180,15 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
         
         # Show top strategic skills (like Movement Engine top pathways)
         print(f"\n🏆 TOP 10 STRATEGIC SKILLS (by Composite Intelligence):")
-        print("-" * 120)
-        header = f"{'Skill Name':<35} {'Score':<8} {'Percentile':<12} {'Tier':<25} {'Key Strengths':<40}"
+        print("-" * 130)
+        header = f"{'Skill Name':<35} {'Score':<8} {'Tier':<35} {'Key Strengths':<50}"
         print(header)
-        print("-" * 120)
+        print("-" * 130)
         
         for _, skill in results_df.head(10).iterrows():
             skill_name = skill['skill_name'][:34]
             score = f"{skill['composite_intelligence_score']:.1f}"
-            percentile = f"{skill['intelligence_percentile']:.1f}th"
-            tier = skill['intelligence_tier'][:24]
+            tier = skill['intelligence_tier'][:34]  # Accommodate longer tier format
             
             # Identify key strengths (adjusted thresholds for 0-25 component scale)
             strengths = []
@@ -1139,9 +1196,9 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
             if skill['component_velocity'] >= 15: strengths.append("Growing")      # Top 60% threshold
             if skill['component_network'] >= 15: strengths.append("Connected")     # Top 60% threshold  
             if skill['component_transferability'] >= 15: strengths.append("Transferable")  # Top 60% threshold
-            key_strengths = ", ".join(strengths)[:39]
+            key_strengths = ", ".join(strengths)[:49]
             
-            print(f"{skill_name:<35} {score:<8} {percentile:<12} {tier:<25} {key_strengths:<40}")
+            print(f"{skill_name:<35} {score:<8} {tier:<35} {key_strengths:<50}")
         
         # Save comprehensive results
         if output_filename:
