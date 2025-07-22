@@ -677,97 +677,74 @@ def categorize_supply_demand_dynamics(supply_demand_data):
     else:
         return "Emerging Demand"
 
-# D. SKILLS TRANSFERABILITY INTELLIGENCE
+# D. JOB OPPORTUNITY BREADTH INTELLIGENCE (Simplified Transferability)
 # =============================================================================
 
-def calculate_skills_transferability_analysis(conn):
+def calculate_job_opportunity_breadth_analysis(conn):
     """
-    Analyse how transferable skills are across domains, levels, and contexts
+    Calculate Job Opportunity Breadth - simple, direct measurement of transferability
+    
+    Answers: "How many job profiles use this skill?" (0-100% scale)
     
     Returns:
-        Dict with transferability metrics including domain breadth, level flexibility, and context adaptability
+        Dict with opportunity breadth metrics
     """
-    print("🔄 Calculating Skills Transferability Analysis...")
+    print("🎯 Calculating Job Opportunity Breadth Analysis...")
     
     try:
-        # Get skills across job functions, management levels, and categories
-        transferability_query = """
+        # Simple query: count job profiles that use each skill
+        opportunity_query = """
         SELECT s.Skill_Name, s.Skill_ID,
-               j.JobFunction, j.ManagementLevel, j.JobCategory,
-               COUNT(DISTINCT js.JobProfileID) as profiles_in_context
+               COUNT(DISTINCT js.JobProfileID) as job_profiles_with_skill
         FROM skills s
         JOIN job_skills js ON s.Skill_ID = js.Skill_ID
-        JOIN jobs j ON js.JobProfileID = j.JobProfileID
-        GROUP BY s.Skill_Name, s.Skill_ID, j.JobFunction, j.ManagementLevel, j.JobCategory
+        GROUP BY s.Skill_Name, s.Skill_ID
         """
         
-        transferability_data = pd.read_sql_query(transferability_query, conn)
+        skill_usage_data = pd.read_sql_query(opportunity_query, conn)
         
-        skill_transferability_results = {}
+        # Get total job profiles in enterprise
+        total_profiles_query = "SELECT COUNT(DISTINCT JobProfileID) as total FROM jobs"
+        total_profiles = pd.read_sql_query(total_profiles_query, conn).iloc[0]['total']
         
-        for skill_name in transferability_data['Skill_Name'].unique():
-            skill_contexts = transferability_data[transferability_data['Skill_Name'] == skill_name]
+        print(f"   → Total job profiles in enterprise: {total_profiles:,}")
+        
+        skill_opportunity_results = {}
+        
+        for _, row in skill_usage_data.iterrows():
+            skill_name = row['Skill_Name']
+            profiles_with_skill = row['job_profiles_with_skill']
             
-            # Domain breadth: how many different job functions use this skill
-            unique_functions = skill_contexts['JobFunction'].nunique()
-            total_functions = transferability_data['JobFunction'].nunique()
-            domain_breadth = unique_functions / total_functions if total_functions > 0 else 0
+            # Calculate opportunity breadth percentage (0-100%)
+            opportunity_breadth_score = (profiles_with_skill / total_profiles * 100) if total_profiles > 0 else 0
             
-            # Level flexibility: how many management levels use this skill
-            unique_levels = skill_contexts['ManagementLevel'].nunique()
-            total_levels = transferability_data['ManagementLevel'].nunique()
-            level_flexibility = unique_levels / total_levels if total_levels > 0 else 0
-            
-            # Context adaptability: how many job categories use this skill
-            unique_categories = skill_contexts['JobCategory'].nunique()
-            total_categories = transferability_data['JobCategory'].nunique()
-            context_adaptability = unique_categories / total_categories if total_categories > 0 else 0
-            
-            # Calculate usage distribution across contexts
-            function_distribution = skill_contexts.groupby('JobFunction')['profiles_in_context'].sum()
-            function_entropy = calculate_diversity_score(function_distribution.to_dict())
-            
-            # Overall transferability score (0-100)
-            transferability_score = (
-                domain_breadth * 40 +           # 40% weight on function breadth
-                level_flexibility * 30 +        # 30% weight on level flexibility  
-                context_adaptability * 20 +     # 20% weight on category breadth
-                function_entropy * 10           # 10% weight on balanced distribution
-            ) * 100
-            
-            skill_transferability_results[skill_name] = {
-                'domain_breadth': domain_breadth,
-                'level_flexibility': level_flexibility,
-                'context_adaptability': context_adaptability,
-                'function_entropy': function_entropy,
-                'transferability_score': transferability_score,
-                'unique_functions': unique_functions,
-                'unique_levels': unique_levels,
-                'unique_categories': unique_categories,
-                'total_usage_contexts': len(skill_contexts)
+            skill_opportunity_results[skill_name] = {
+                'job_profiles_with_skill': int(profiles_with_skill),
+                'total_job_profiles': int(total_profiles),
+                'opportunity_breadth_score': round(opportunity_breadth_score, 2),
+                'opportunity_breadth_percentage': f"{opportunity_breadth_score:.1f}%"
             }
         
-        print(f"   → Calculated transferability for {len(skill_transferability_results):,} skills")
-        return skill_transferability_results
+        print(f"   → Calculated opportunity breadth for {len(skill_opportunity_results):,} skills")
+        return skill_opportunity_results
         
     except Exception as e:
-        print(f"   ⚠️ Skills transferability analysis failed: {str(e)}")
+        print(f"   ⚠️ Job opportunity breadth analysis failed: {str(e)}")
         return {}
 
-def categorize_transferability_level(transferability_data):
-    """Categorize transferability into business-friendly labels"""
-    score = transferability_data.get('transferability_score', 0)
+def categorize_opportunity_breadth(breadth_score):
+    """Categorize opportunity breadth into business-friendly labels"""
     
-    if score >= 80:
-        return "Highly Transferable"
-    elif score >= 60:
-        return "Moderately Transferable"
-    elif score >= 40:
-        return "Somewhat Transferable"
-    elif score >= 20:
-        return "Limited Transferability"
+    if breadth_score >= 20:
+        return "Universal Skill"        # 20%+ of jobs
+    elif breadth_score >= 10:
+        return "Cross-Functional Skill" # 10-20% of jobs  
+    elif breadth_score >= 5:
+        return "Transferable Skill"     # 5-10% of jobs
+    elif breadth_score >= 1:
+        return "Specialized Skill"      # 1-5% of jobs
     else:
-        return "Context Specific"
+        return "Niche Skill"           # <1% of jobs
 
 # =============================================================================
 # ENHANCED SKILL INTELLIGENCE COMPOSITE SCORING
@@ -805,16 +782,11 @@ def calculate_composite_skill_intelligence_score(skill_data):
     network_score = skill_data.get('network_centrality_score', 0) / 100  # Normalize to 0-1
     network_component = network_score * INTELLIGENCE_WEIGHTS['network_component']
     
-    # Component 4: Transferability Intelligence (0-25 points)
-    # Fix: Use percentile-based normalization instead of fixed /100 scaling
-    raw_transferability = skill_data.get('transferability_score', 0)
-    # Use log scaling for very high transferability scores to normalize to 0-1 range
-    if raw_transferability > 100:
-        # Log normalization for high scores (typical range 1000-5000)
-        transferability_normalized = min(1.0, math.log10(raw_transferability) / math.log10(5000))
-    else:
-        # Standard normalization for scores already in 0-100 range
-        transferability_normalized = raw_transferability / 100
+    # Component 4: Job Opportunity Breadth Intelligence (0-25 points)
+    # Simple normalization: opportunity breadth is already 0-100% scale
+    opportunity_breadth_score = skill_data.get('opportunity_breadth_score', 0)
+    # Normalize to 0-1 scale (opportunity breadth is already percentage)
+    transferability_normalized = min(1.0, opportunity_breadth_score / 100)
     
     transferability_component = transferability_normalized * INTELLIGENCE_WEIGHTS['transferability_component']
     
@@ -1038,7 +1010,7 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
     print("   A. Temporal Skills Intelligence (velocity, momentum, acceleration)")
     print("   B. Skills Network Analysis (centrality, clustering, bridges)")  
     print("   C. Skills Supply/Demand Intelligence (scarcity, competition, market dynamics)")
-    print("   D. Skills Transferability Intelligence (domain breadth, level flexibility)")
+    print("   D. Job Opportunity Breadth Intelligence (simple transferability: job profile count)")
     
     conn = connect_database()
     
@@ -1053,7 +1025,7 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
         velocity_results = calculate_skills_velocity_analysis(conn)
         network_results = calculate_skills_network_analysis(conn)
         supply_demand_results = calculate_skills_supply_demand_analysis(conn)
-        transferability_results = calculate_skills_transferability_analysis(conn)
+        transferability_results = calculate_job_opportunity_breadth_analysis(conn)
         
         # 3. Filter to active skills and integrate all intelligence
         active_skill_names = set(skill_mobility_data.keys())
@@ -1123,11 +1095,11 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
                 'scarcity_index': round(supply_demand_data.get('scarcity_index', 0), 2),
                 'supply_demand_category': categorize_supply_demand_dynamics(supply_demand_data),
                 
-                # D. Transferability Intelligence
-                'transferability_score': round(transferability_data.get('transferability_score', 0), 1),
-                'transferability_category': categorize_transferability_level(transferability_data),
-                'unique_functions': transferability_data.get('unique_functions', 0),
-                'unique_levels': transferability_data.get('unique_levels', 0),
+                # D. Job Opportunity Breadth Intelligence
+                'opportunity_breadth_score': round(transferability_data.get('opportunity_breadth_score', 0), 2),
+                'opportunity_breadth_category': categorize_opportunity_breadth(transferability_data.get('opportunity_breadth_score', 0)),
+                'job_profiles_with_skill': transferability_data.get('job_profiles_with_skill', 0),
+                'total_job_profiles': transferability_data.get('total_job_profiles', 0),
             }
             
             # Calculate composite intelligence score (like Movement Engine)
@@ -1173,7 +1145,7 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
         print(f"\n📊 COMPREHENSIVE SKILLS INTELLIGENCE SUMMARY:")
         print("-" * 60)
         print(f"✅ Skills analyzed: {len(results_df):,}")
-        print(f"   → Intelligence modules: 4 (Temporal, Network, Supply/Demand, Transferability)")
+        print(f"   → Intelligence modules: 4 (Temporal, Network, Supply/Demand, Job Opportunity Breadth)")
         print(f"   → Composite scoring: 0-100 scale with percentile rankings")
         print(f"   → Top 10% skills: {len(results_df[results_df['intelligence_percentile'] >= 90]):,}")
         print(f"   → High-value skills (>75th percentile): {len(results_df[results_df['intelligence_percentile'] >= 75]):,}")
@@ -1439,16 +1411,16 @@ def test_individual_modules():
         except Exception as e:
             print(f"   ❌ Supply/demand analysis failed: {str(e)}")
         
-        # Test 5: Transferability Analysis
-        print("\n5️⃣ Testing Transferability Analysis...")
+        # Test 5: Job Opportunity Breadth Analysis
+        print("\n5️⃣ Testing Job Opportunity Breadth Analysis...")
         try:
-            transferability_results = calculate_skills_transferability_analysis(conn)
-            print(f"   ✅ Transferability analysis: {len(transferability_results):,} skills")
+            transferability_results = calculate_job_opportunity_breadth_analysis(conn)
+            print(f"   ✅ Job opportunity breadth analysis: {len(transferability_results):,} skills")
             if transferability_results:
                 sample_skill = list(transferability_results.keys())[0]
                 print(f"   → Sample metrics for '{sample_skill}': {transferability_results[sample_skill]}")
         except Exception as e:
-            print(f"   ❌ Transferability analysis failed: {str(e)}")
+            print(f"   ❌ Job opportunity breadth analysis failed: {str(e)}")
         
         print_memory_status()
         print(f"\n🎉 MODULE TESTING COMPLETED!")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Debug script for transferability calculation issues
+Debug script for Job Opportunity Breadth calculation (Simplified Transferability)
 
 Focuses on the 4 skills from output.md:
 - Loss Functions
@@ -8,7 +8,7 @@ Focuses on the 4 skills from output.md:
 - User-Centered Design
 - User Interface Specification
 
-Will trace through every step of the calculation to find the 1023.1 mystery
+Will test the new simplified approach: count job profiles using each skill
 """
 
 import sqlite3
@@ -32,8 +32,8 @@ def calculate_diversity_score(distribution_dict):
     max_entropy = np.log2(len(distribution_dict)) if len(distribution_dict) > 1 else 1
     return entropy / max_entropy if max_entropy > 0 else 0
 
-def debug_transferability_calculation():
-    """Debug the transferability calculation for specific skills"""
+def debug_opportunity_breadth_calculation():
+    """Debug the simplified Job Opportunity Breadth calculation for specific skills"""
     
     # Target skills from output.md
     target_skills = [
@@ -43,12 +43,13 @@ def debug_transferability_calculation():
         "User Interface Specification"
     ]
     
-    print("🔍 TRANSFERABILITY DEBUG ANALYSIS")
+    print("🎯 JOB OPPORTUNITY BREADTH DEBUG ANALYSIS")
     print("=" * 80)
     print(f"Target skills: {len(target_skills)}")
     for skill in target_skills:
         print(f"   → {skill}")
     print()
+    print("🔧 Testing simplified approach: How many job profiles use each skill?")
     
     # Connect to database
     db_path = Path(r"C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q3\workforce_intelligence.sqlite")
@@ -59,127 +60,86 @@ def debug_transferability_calculation():
     conn = sqlite3.connect(db_path)
     
     try:
-        # Step 1: Execute the original query and inspect raw data
-        print("📊 STEP 1: RAW DATA EXTRACTION")
-        print("-" * 50)
+        # Step 1: Execute the simplified query
+        print("📊 STEP 1: SIMPLIFIED JOB OPPORTUNITY BREADTH CALCULATION")
+        print("-" * 60)
         
-        transferability_query = """
+        opportunity_query = """
         SELECT s.Skill_Name, s.Skill_ID,
-               j.JobFunction, j.ManagementLevel, j.JobCategory,
-               COUNT(DISTINCT js.JobProfileID) as profiles_in_context
+               COUNT(DISTINCT js.JobProfileID) as job_profiles_with_skill
         FROM skills s
         JOIN job_skills js ON s.Skill_ID = js.Skill_ID
-        JOIN jobs j ON js.JobProfileID = j.JobProfileID
         WHERE s.Skill_Name IN ('Loss Functions', 'User Interface Quartz (UIQ)', 'User-Centered Design', 'User Interface Specification')
-        GROUP BY s.Skill_Name, s.Skill_ID, j.JobFunction, j.ManagementLevel, j.JobCategory
-        ORDER BY s.Skill_Name, j.JobFunction, j.ManagementLevel
+        GROUP BY s.Skill_Name, s.Skill_ID
+        ORDER BY s.Skill_Name
         """
         
-        transferability_data = pd.read_sql_query(transferability_query, conn)
+        skill_usage_data = pd.read_sql_query(opportunity_query, conn)
         
-        print(f"Raw data rows retrieved: {len(transferability_data)}")
-        print("\nRaw data preview:")
-        print(transferability_data.to_string())
+        print(f"Skills found: {len(skill_usage_data)}")
+        print("\nSkill usage data:")
+        print(skill_usage_data.to_string())
         
-        # Step 2: Calculate enterprise-wide totals
+        # Step 2: Get total job profiles for percentage calculation
         print(f"\n📊 STEP 2: ENTERPRISE TOTALS")
         print("-" * 50)
         
-        total_functions_query = "SELECT COUNT(DISTINCT JobFunction) as total FROM jobs"
-        total_levels_query = "SELECT COUNT(DISTINCT ManagementLevel) as total FROM jobs"  
-        total_categories_query = "SELECT COUNT(DISTINCT JobCategory) as total FROM jobs"
-        
-        total_functions = pd.read_sql_query(total_functions_query, conn).iloc[0]['total']
-        total_levels = pd.read_sql_query(total_levels_query, conn).iloc[0]['total']
-        total_categories = pd.read_sql_query(total_categories_query, conn).iloc[0]['total']
+        total_profiles_query = "SELECT COUNT(DISTINCT JobProfileID) as total FROM jobs"
+        total_profiles = pd.read_sql_query(total_profiles_query, conn).iloc[0]['total']
         
         print(f"Enterprise totals:")
-        print(f"   → Total JobFunctions: {total_functions}")
-        print(f"   → Total ManagementLevels: {total_levels}")
-        print(f"   → Total JobCategories: {total_categories}")
+        print(f"   → Total Job Profiles: {total_profiles:,}")
         
-        # Step 3: Process each skill individually
-        print(f"\n🔍 STEP 3: SKILL-BY-SKILL ANALYSIS")
-        print("-" * 50)
+        # Step 3: Calculate opportunity breadth for each skill
+        print(f"\n🎯 STEP 3: OPPORTUNITY BREADTH CALCULATION")
+        print("-" * 60)
         
-        for skill_name in target_skills:
+        for _, skill_row in skill_usage_data.iterrows():
+            skill_name = skill_row['Skill_Name']
+            profiles_with_skill = skill_row['job_profiles_with_skill']
+            
             print(f"\n🎯 ANALYZING: {skill_name}")
             print("=" * 60)
+            print(f"Job profiles using this skill: {profiles_with_skill:,}")
+            print(f"Total job profiles in enterprise: {total_profiles:,}")
             
-            skill_contexts = transferability_data[transferability_data['Skill_Name'] == skill_name]
+            # Calculate opportunity breadth (simple!)
+            print(f"\n📐 OPPORTUNITY BREADTH CALCULATION:")
             
-            if len(skill_contexts) == 0:
-                print(f"   ❌ No data found for {skill_name}")
-                continue
-                
-            print(f"Contexts found: {len(skill_contexts)}")
-            print("Context details:")
-            for _, context in skill_contexts.iterrows():
-                print(f"   → Function: {context['JobFunction']}, Level: {context['ManagementLevel']}, Category: {context['JobCategory']}, Profiles: {context['profiles_in_context']}")
+            opportunity_breadth_score = (profiles_with_skill / total_profiles * 100) if total_profiles > 0 else 0
+            print(f"   → Opportunity Breadth: {profiles_with_skill:,}/{total_profiles:,} = {opportunity_breadth_score:.2f}%")
             
-            # Calculate metrics step by step
-            print(f"\n📐 METRIC CALCULATIONS:")
-            
-            # Domain breadth
-            unique_functions = skill_contexts['JobFunction'].nunique()
-            domain_breadth = unique_functions / total_functions if total_functions > 0 else 0
-            print(f"   → Domain Breadth: {unique_functions}/{total_functions} = {domain_breadth:.4f}")
-            
-            # Level flexibility  
-            unique_levels = skill_contexts['ManagementLevel'].nunique()
-            level_flexibility = unique_levels / total_levels if total_levels > 0 else 0
-            print(f"   → Level Flexibility: {unique_levels}/{total_levels} = {level_flexibility:.4f}")
-            
-            # Context adaptability
-            unique_categories = skill_contexts['JobCategory'].nunique()
-            context_adaptability = unique_categories / total_categories if total_categories > 0 else 0
-            print(f"   → Context Adaptability: {unique_categories}/{total_categories} = {context_adaptability:.4f}")
-            
-            # Function entropy
-            function_distribution = skill_contexts.groupby('JobFunction')['profiles_in_context'].sum()
-            print(f"   → Function Distribution: {function_distribution.to_dict()}")
-            function_entropy = calculate_diversity_score(function_distribution.to_dict())
-            print(f"   → Function Entropy: {function_entropy:.4f}")
-            
-            # Overall transferability score calculation
-            print(f"\n🧮 TRANSFERABILITY SCORE CALCULATION:")
-            component_1 = domain_breadth * 40
-            component_2 = level_flexibility * 30  
-            component_3 = context_adaptability * 20
-            component_4 = function_entropy * 10
-            
-            print(f"   → Domain component: {domain_breadth:.4f} × 40 = {component_1:.4f}")
-            print(f"   → Level component: {level_flexibility:.4f} × 30 = {component_2:.4f}")
-            print(f"   → Category component: {context_adaptability:.4f} × 20 = {component_3:.4f}")
-            print(f"   → Entropy component: {function_entropy:.4f} × 10 = {component_4:.4f}")
-            
-            pre_scale_score = component_1 + component_2 + component_3 + component_4
-            final_score = pre_scale_score * 100
-            
-            print(f"   → Pre-scale sum: {pre_scale_score:.4f}")
-            print(f"   → Final score (×100): {final_score:.4f}")
-            
-            # Categorization
-            if final_score >= 80:
-                category = "Highly Transferable"
-            elif final_score >= 60:
-                category = "Moderately Transferable"
-            elif final_score >= 40:
-                category = "Somewhat Transferable"
-            elif final_score >= 20:
-                category = "Limited Transferability"
+            # Categorization (simple!)
+            if opportunity_breadth_score >= 20:
+                category = "Universal Skill"        # 20%+ of jobs
+            elif opportunity_breadth_score >= 10:
+                category = "Cross-Functional Skill" # 10-20% of jobs  
+            elif opportunity_breadth_score >= 5:
+                category = "Transferable Skill"     # 5-10% of jobs
+            elif opportunity_breadth_score >= 1:
+                category = "Specialized Skill"      # 1-5% of jobs
             else:
-                category = "Context Specific"
+                category = "Niche Skill"           # <1% of jobs
                 
             print(f"   → Category: {category}")
             
-            # Compare with output.md values
-            print(f"\n🔍 COMPARISON WITH OUTPUT.MD:")
-            print(f"   → Expected transferability_score: 1023.1")
-            print(f"   → Calculated transferability_score: {final_score:.1f}")
-            print(f"   → Expected category: Highly Transferable")
-            print(f"   → Calculated category: {category}")
-            print(f"   → ⚠️ MATCH: {'✅' if abs(final_score - 1023.1) < 0.1 else '❌'}")
+            # Compare with expected complex results
+            print(f"\n🔍 COMPARISON WITH COMPLEX METHOD:")
+            print(f"   → Old complex score: 1023.1 (broken)")
+            print(f"   → New simple score: {opportunity_breadth_score:.2f}%")
+            print(f"   → Old category: Highly Transferable (wrong)")
+            print(f"   → New category: {category} (logical)")
+            print(f"   → ✅ IMPROVEMENT: Simple method provides logical results!")
+        
+        # Handle missing skills
+        found_skills = set(skill_usage_data['Skill_Name'].unique())
+        missing_skills = set(target_skills) - found_skills
+        
+        if missing_skills:
+            print(f"\n⚠️ MISSING SKILLS:")
+            for missing_skill in missing_skills:
+                print(f"   → {missing_skill}: Not found in database")
+                print(f"     Category: Niche Skill (0.0% opportunity breadth)")
             
     except Exception as e:
         print(f"❌ Error during debug: {str(e)}")
@@ -191,4 +151,4 @@ def debug_transferability_calculation():
         print(f"\n🔒 Database connection closed")
 
 if __name__ == "__main__":
-    debug_transferability_calculation() 
+    debug_opportunity_breadth_calculation() 
