@@ -20,7 +20,7 @@ import sqlite3
 import warnings
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Tuple, Optional, Set, Any
 
 warnings.filterwarnings('ignore')
 
@@ -58,18 +58,20 @@ def connect_database():
 
 def load_skill_universe(conn) -> pd.DataFrame:
     """
-    Load complete skill universe with prevalence calculations
+    Load active skill universe with prevalence calculations
+    
+    Only includes skills that are actually used in job profiles (appear in job_skills table)
     
     Returns:
-        DataFrame with skills, prevalence percentages, and rarity categories
+        DataFrame with active skills, prevalence percentages, and rarity categories
     """
-    print("📚 Loading skill universe...")
+    print("📚 Loading active skill universe...")
     
     # Get total job profiles for prevalence calculation
     total_profiles_query = "SELECT COUNT(DISTINCT JobProfileID) as total FROM jobs"
     total_profiles = pd.read_sql_query(total_profiles_query, conn).iloc[0]['total']
     
-    # Calculate skill prevalence across job profiles
+    # Calculate skill prevalence across job profiles - ONLY for skills that are actually used
     skill_prevalence_query = f"""
     SELECT 
         s.Skill_ID,
@@ -79,21 +81,17 @@ def load_skill_universe(conn) -> pd.DataFrame:
         COUNT(DISTINCT js.JobProfileID) as job_profiles_with_skill,
         COUNT(DISTINCT js.JobProfileID) * 100.0 / {total_profiles} as prevalence_percentage
     FROM skills s
-    LEFT JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+    INNER JOIN job_skills js ON s.Skill_ID = js.Skill_ID
     GROUP BY s.Skill_ID, s.Skill_Name, s.Category, s.SkillType
     ORDER BY prevalence_percentage ASC
     """
     
     skill_universe = pd.read_sql_query(skill_prevalence_query, conn)
     
-    # Handle null values (skills not used in any job profiles)
-    skill_universe['prevalence_percentage'].fillna(0.0, inplace=True)
-    skill_universe['job_profiles_with_skill'].fillna(0, inplace=True)
-    
     # Categorise by rarity
     skill_universe['rarity_category'] = skill_universe['prevalence_percentage'].apply(categorise_rarity)
     
-    print(f"   → Loaded {len(skill_universe):,} skills")
+    print(f"   → Loaded {len(skill_universe):,} active skills (skills used in job profiles)")
     print(f"   → Total job profiles: {total_profiles:,}")
     
     # Show rarity distribution
@@ -116,31 +114,69 @@ def categorise_rarity(prevalence_percentage: float) -> str:
     else:
         return 'Universal'
 
-def identify_defining_skills(skill_universe: pd.DataFrame, rarity_threshold: float = 5.0) -> pd.DataFrame:
+def identify_defining_skills_with_context(conn, skill_universe: pd.DataFrame, rarity_threshold: float = 5.0) -> pd.DataFrame:
     """
-    Identify defining skills (rare skills that characterise specific role archetypes)
+    Identify defining skills with job profile context (rare skills that characterise specific role archetypes)
     
     Args:
+        conn: Database connection
         skill_universe: DataFrame with skill prevalence data
         rarity_threshold: Percentage threshold for "rare" classification
     
     Returns:
-        DataFrame with defining skills and their characteristics
+        DataFrame with defining skills and the job profiles they define
     """
-    print(f"🎯 Identifying defining skills (prevalence < {rarity_threshold}%)...")
+    print(f"🎯 Identifying defining skills with job profile context (prevalence < {rarity_threshold}%)...")
     
-    defining_skills = skill_universe[
+    # Get rare skills
+    rare_skills = skill_universe[
         skill_universe['prevalence_percentage'] < rarity_threshold
-    ].copy()
+    ]['Skill_ID'].tolist()
     
-    # Sort by rarity (least common first)
-    defining_skills = defining_skills.sort_values('prevalence_percentage')
+    if len(rare_skills) == 0:
+        print("   → No defining skills found")
+        return pd.DataFrame()
     
-    print(f"   → Found {len(defining_skills):,} defining skills")
-    print(f"   → Most rare: {defining_skills.iloc[0]['Skill_Name']} ({defining_skills.iloc[0]['prevalence_percentage']:.2f}%)")
-    print(f"   → Least rare: {defining_skills.iloc[-1]['Skill_Name']} ({defining_skills.iloc[-1]['prevalence_percentage']:.2f}%)")
+    # Get job profiles that use these rare skills
+    rare_skills_list = "', '".join(rare_skills)
+    defining_skills_context_query = f"""
+    SELECT 
+        s.Skill_ID,
+        s.Skill_Name,
+        s.Category,
+        s.SkillType,
+        j.JobProfileID,
+        j.JobProfile,
+        j.JobFunction,
+        j.JobCategory,
+        COUNT(DISTINCT js2.JobProfileID) as total_profiles_with_skill
+    FROM skills s
+    JOIN job_skills js ON s.Skill_ID = js.Skill_ID
+    JOIN jobs j ON js.JobProfileID = j.JobProfileID
+    JOIN job_skills js2 ON s.Skill_ID = js2.Skill_ID
+    WHERE s.Skill_ID IN ('{rare_skills_list}')
+    GROUP BY s.Skill_ID, s.Skill_Name, s.Category, s.SkillType, j.JobProfileID, j.JobProfile, j.JobFunction, j.JobCategory
+    ORDER BY total_profiles_with_skill ASC, s.Skill_Name, j.JobProfile
+    """
     
-    return defining_skills
+    defining_skills_with_context = pd.read_sql_query(defining_skills_context_query, conn)
+    
+    # Add prevalence percentage from skill_universe
+    defining_skills_with_context = defining_skills_with_context.merge(
+        skill_universe[['Skill_ID', 'prevalence_percentage', 'rarity_category']], 
+        on='Skill_ID', 
+        how='left'
+    )
+    
+    print(f"   → Found {len(rare_skills):,} defining skills")
+    print(f"   → Mapped to {len(defining_skills_with_context):,} skill-job profile combinations")
+    
+    # Show examples
+    if len(defining_skills_with_context) > 0:
+        most_rare = defining_skills_with_context.iloc[0]
+        print(f"   → Most rare: {most_rare['Skill_Name']} ({most_rare['prevalence_percentage']:.2f}%) defines {most_rare['JobProfile']}")
+    
+    return defining_skills_with_context
 
 def load_job_skill_matrix(conn) -> Tuple[pd.DataFrame, Dict[str, Set[str]]]:
     """
@@ -154,7 +190,7 @@ def load_job_skill_matrix(conn) -> Tuple[pd.DataFrame, Dict[str, Set[str]]]:
     job_skills_query = """
     SELECT 
         j.JobProfileID,
-        j.JobTitle,
+        j.JobProfile,
         js.Skill_ID,
         s.Skill_Name
     FROM jobs j
@@ -191,164 +227,260 @@ def calculate_simple_job_similarity(job_a_skills: Set[str], job_b_skills: Set[st
     
     return len(shared_skills) / len(total_skills) if total_skills else 0.0
 
-def calculate_rarity_weighted_job_similarity(
+def analyze_skills_gap(job_a_skills: Set[str], job_b_skills: Set[str], defining_skills: Set[str]) -> Dict[str, Any]:
+    """
+    Comprehensive skills gap analysis for reskilling pathway conversations
+    
+    Returns:
+        Dict with matched/unmatched skills breakdown for both regular and defining skills
+    """
+    shared_skills = job_a_skills & job_b_skills
+    
+    # Regular skills analysis
+    unmatched_a_skills = job_a_skills - job_b_skills  # Skills in A but not B
+    unmatched_b_skills = job_b_skills - job_a_skills  # Skills in B but not A
+    
+    # Defining skills analysis
+    shared_defining = []
+    unmatched_a_defining = []
+    unmatched_b_defining = []
+    
+    for skill in shared_skills:
+        if skill in defining_skills:
+            shared_defining.append(skill)
+    
+    for skill in unmatched_a_skills:
+        if skill in defining_skills:
+            unmatched_a_defining.append(skill)
+    
+    for skill in unmatched_b_skills:
+        if skill in defining_skills:
+            unmatched_b_defining.append(skill)
+    
+    return {
+        'matched_skills': list(shared_skills),
+        'unmatched_source_skills': list(unmatched_a_skills),
+        'unmatched_target_skills': list(unmatched_b_skills),
+        'matched_defining_skills': shared_defining,
+        'unmatched_source_defining': unmatched_a_defining,
+        'unmatched_target_defining': unmatched_b_defining,
+        'skills_to_develop': len(unmatched_b_skills),        # Skills needed for target role
+        'defining_skills_to_develop': len(unmatched_b_defining),  # Critical defining skills needed
+        'transferable_advantage': len(shared_defining)        # Defining skills already possessed
+    }
+
+def calculate_skills_mobility_score(
     job_a_skills: Set[str], 
     job_b_skills: Set[str], 
-    skill_rarity_weights: Dict[str, float]
-) -> Dict[str, any]:
+    defining_skills: Set[str],
+    gentle_multiplier: float = 1.2
+) -> Dict[str, Any]:
     """
-    Calculate rarity-weighted job similarity (enhanced approach)
+    Calculate Skills-Based Mobility Score with gentle multiplier for defining skills
+    
+    This measures career transition feasibility based on shared skills, with bonus weighting
+    for rare/defining skills that indicate stronger pathway viability.
     
     Args:
         job_a_skills: Set of skill names for job A
         job_b_skills: Set of skill names for job B
-        skill_rarity_weights: Dict mapping skill names to rarity weights (1/prevalence)
+        defining_skills: Set of defining (rare) skill names from real data
+        gentle_multiplier: Multiplier applied per shared defining skill (default 1.2 = 20% boost)
     
     Returns:
-        Dict with similarity metrics and shared rare skills analysis
+        Dict with mobility metrics and skills gap analysis
     """
     if not job_a_skills or not job_b_skills:
         return {
             'weighted_similarity': 0.0,
             'simple_similarity': 0.0,
             'shared_skills': [],
-            'shared_rare_skills': [],
+            'shared_defining_skills': [],
             'total_shared_skills': 0,
-            'total_rare_shared': 0
+            'total_defining_shared': 0,
+            'defining_skill_boost': 0.0
         }
     
-    # Calculate simple similarity (current approach)
+    # Calculate simple similarity (baseline)
     shared_skills = job_a_skills & job_b_skills
     total_skills = job_a_skills | job_b_skills
     simple_similarity = len(shared_skills) / len(total_skills) if total_skills else 0.0
     
-    # Calculate weighted similarity (enhanced approach)
-    # Weight by inverse rarity (rare skills matter more)
-    weighted_overlap = 0.0
-    max_possible_weight = 0.0
-    
-    # Calculate weighted overlap for shared skills
+    # Identify shared defining skills
+    shared_defining_skills = []
     for skill in shared_skills:
-        weight = skill_rarity_weights.get(skill, 1.0)  # Default weight if skill not found
-        weighted_overlap += weight
+        if skill in defining_skills:
+            shared_defining_skills.append(skill)
     
-    # Calculate maximum possible weight
-    for skill in total_skills:
-        weight = skill_rarity_weights.get(skill, 1.0)
-        max_possible_weight += weight
+    # Apply gentle multiplier for each shared defining skill
+    defining_skill_boost = len(shared_defining_skills) * (gentle_multiplier - 1.0)  # e.g., 2 skills * 0.2 = 0.4 boost
+    weighted_similarity = simple_similarity * (1.0 + defining_skill_boost)
     
-    weighted_similarity = weighted_overlap / max_possible_weight if max_possible_weight > 0 else 0.0
+    # Cap at 1.0 to keep similarity meaningful
+    weighted_similarity = min(1.0, weighted_similarity)
     
-    # Analyse shared skills by rarity
-    shared_rare_skills = []
-    for skill in shared_skills:
-        # Consider skills with weight > 5 as "rare" (prevalence < 20%)
-        if skill_rarity_weights.get(skill, 1.0) > 5:
-            shared_rare_skills.append(skill)
+    # Calculate comprehensive skills gap analysis
+    skills_gap_analysis = analyze_skills_gap(job_a_skills, job_b_skills, defining_skills)
+    
+    # Convert to 0-100 scale for business interpretation
+    mobility_score_100 = round(weighted_similarity * 100, 1)
+    baseline_score_100 = round(simple_similarity * 100, 1)
     
     return {
-        'weighted_similarity': round(weighted_similarity, 4),
-        'simple_similarity': round(simple_similarity, 4),
+        'mobility_score': mobility_score_100,           # 0-100 scale
+        'baseline_score': baseline_score_100,           # 0-100 scale  
+        'weighted_similarity': round(weighted_similarity, 4),  # Keep for backwards compatibility
+        'simple_similarity': round(simple_similarity, 4),      # Keep for backwards compatibility
         'shared_skills': list(shared_skills),
-        'shared_rare_skills': shared_rare_skills,
+        'shared_defining_skills': shared_defining_skills,
         'total_shared_skills': len(shared_skills),
-        'total_rare_shared': len(shared_rare_skills)
+        'total_defining_shared': len(shared_defining_skills),
+        'defining_skill_boost': round(defining_skill_boost, 4),
+        **skills_gap_analysis  # Include comprehensive gap analysis
     }
 
-def create_skill_rarity_weights(skill_universe: pd.DataFrame) -> Dict[str, float]:
+def create_defining_skills_set(defining_skills_df: pd.DataFrame) -> Set[str]:
     """
-    Create rarity weights for skills (inverse of prevalence)
+    Create set of defining skill names from the defining skills dataframe
     
     Returns:
-        Dict mapping skill names to rarity weights
+        Set of defining skill names for fast lookup
     """
-    print("⚖️ Creating skill rarity weights...")
+    print("⚖️ Creating defining skills set for similarity weighting...")
     
-    skill_weights = {}
+    if defining_skills_df.empty:
+        print("   → No defining skills found")
+        return set()
     
-    for _, skill in skill_universe.iterrows():
-        skill_name = skill['Skill_Name']
-        prevalence = skill['prevalence_percentage']
-        
-        # Weight = 1 / (prevalence/100), with minimum prevalence of 0.1% to avoid extreme weights
-        adjusted_prevalence = max(prevalence, 0.1) / 100
-        weight = 1.0 / adjusted_prevalence
-        
-        skill_weights[skill_name] = weight
+    defining_skills_set = set(defining_skills_df['Skill_Name'].unique())
     
-    # Show weight distribution
-    weights_array = np.array(list(skill_weights.values()))
-    print(f"   → Created weights for {len(skill_weights):,} skills")
-    print(f"   → Weight range: {weights_array.min():.1f} - {weights_array.max():.1f}")
-    print(f"   → Median weight: {np.median(weights_array):.1f}")
+    print(f"   → Created defining skills set with {len(defining_skills_set):,} unique skills")
+    print(f"   → These skills will get gentle similarity boost when shared between jobs")
     
-    return skill_weights
+    return defining_skills_set
 
 def analyse_job_similarity_comparison(
     job_skills_df: pd.DataFrame,
     job_to_skills: Dict[str, Set[str]],
-    skill_rarity_weights: Dict[str, float],
-    sample_size: int = 100
+    defining_skills_set: Set[str]
 ) -> pd.DataFrame:
     """
-    Compare simple vs rarity-weighted similarity for sample job pairs
-    
-    Returns:
-        DataFrame with similarity comparisons
-    """
-    print(f"🔍 Analysing job similarity comparison (sample size: {sample_size})...")
-    
-    job_ids = list(job_to_skills.keys())
-    
-    # Sample random job pairs
-    np.random.seed(42)  # For reproducible results
-    sample_pairs = []
-    
-    for _ in range(sample_size):
-        job_a, job_b = np.random.choice(job_ids, 2, replace=False)
-        
-        job_a_info = job_skills_df[job_skills_df['JobProfileID'] == job_a].iloc[0]
-        job_b_info = job_skills_df[job_skills_df['JobProfileID'] == job_b].iloc[0]
-        
-        similarity_analysis = calculate_rarity_weighted_job_similarity(
-            job_to_skills[job_a],
-            job_to_skills[job_b],
-            skill_rarity_weights
-        )
-        
-        sample_pairs.append({
-            'job_a_id': job_a,
-            'job_a_title': job_a_info['JobTitle'],
-            'job_b_id': job_b,
-            'job_b_title': job_b_info['JobTitle'],
-            'simple_similarity': similarity_analysis['simple_similarity'],
-            'weighted_similarity': similarity_analysis['weighted_similarity'],
-            'similarity_improvement': similarity_analysis['weighted_similarity'] - similarity_analysis['simple_similarity'],
-            'total_shared_skills': similarity_analysis['total_shared_skills'],
-            'rare_shared_skills': similarity_analysis['total_rare_shared'],
-            'shared_rare_skill_names': ', '.join(similarity_analysis['shared_rare_skills'][:3])  # Top 3 for display
-        })
-    
-    comparison_df = pd.DataFrame(sample_pairs)
-    
-    # Sort by similarity improvement (biggest changes first)
-    comparison_df = comparison_df.sort_values('similarity_improvement', ascending=False)
-    
-    print(f"   → Completed {len(comparison_df):,} job pair comparisons")
-    
-    # Show improvement statistics
-    avg_improvement = comparison_df['similarity_improvement'].mean()
-    positive_improvements = (comparison_df['similarity_improvement'] > 0).sum()
-    
-    print(f"   → Average similarity improvement: {avg_improvement:.4f}")
-    print(f"   → Pairs with positive improvement: {positive_improvements}/{len(comparison_df)} ({positive_improvements/len(comparison_df)*100:.1f}%)")
-    
-    return comparison_df
+    Compare baseline vs enhanced mobility scores for all job pairs
 
+    Returns:
+        DataFrame with mobility score comparisons
+    """
+    print(f"🔍 Analysing job mobility comparison...")
+
+    job_ids = list(job_to_skills.keys())
+
+    # Run full analysis on all possible job pairs
+    print(f"🌐 Running FULL CORPUS analysis on {len(job_ids)} job profiles...")
+    total_comparisons = len(job_ids) * (len(job_ids) - 1) // 2  # n choose 2
+    print(f"   → Total comparisons: {total_comparisons:,}")
+
+    all_pairs = []
+    comparison_count = 0
+
+    for i, job_a in enumerate(job_ids):
+        for job_b in job_ids[i+1:]:  # Avoid duplicates and self-comparison
+            comparison_count += 1
+            if comparison_count % 10000 == 0:  # Progress indicator
+                print(f"   → Progress: {comparison_count:,}/{total_comparisons:,} ({comparison_count/total_comparisons*100:.1f}%)")
+            
+            job_a_info = job_skills_df[job_skills_df['JobProfileID'] == job_a].iloc[0]
+            job_b_info = job_skills_df[job_skills_df['JobProfileID'] == job_b].iloc[0]
+            
+            mobility_analysis = calculate_skills_mobility_score(
+                job_to_skills[job_a],
+                job_to_skills[job_b],
+                defining_skills_set
+            )
+            
+            # Get comprehensive job profile details
+            job_a_skills = job_to_skills[job_a]
+            job_b_skills = job_to_skills[job_b]
+            job_a_defining = [skill for skill in job_a_skills if skill in defining_skills_set]
+            job_b_defining = [skill for skill in job_b_skills if skill in defining_skills_set]
+            
+            all_pairs.append({
+                # Job Profile Identification
+                'job_a_id': job_a,
+                'job_a_title': job_a_info['JobProfile'],
+                'job_b_id': job_b,
+                'job_b_title': job_b_info['JobProfile'],
+                
+                # Mobility Scores (0-100 scale)
+                'baseline_mobility': mobility_analysis['baseline_score'],           # 0-100 scale
+                'enhanced_mobility': mobility_analysis['mobility_score'],           # 0-100 scale
+                'mobility_improvement': mobility_analysis['mobility_score'] - mobility_analysis['baseline_score'],
+                'defining_skill_boost': mobility_analysis['defining_skill_boost'],
+                
+                # Total Skills Inventory
+                'job_a_total_skills': len(job_a_skills),
+                'job_b_total_skills': len(job_b_skills),
+                'job_a_total_defining': len(job_a_defining),
+                'job_b_total_defining': len(job_b_defining),
+                
+                # Skills Matching Analysis
+                'total_matched_skills': mobility_analysis['total_shared_skills'],
+                'total_matched_defining': mobility_analysis['total_defining_shared'],
+                'matched_skill_names': ', '.join(mobility_analysis['matched_skills']),
+                'matched_defining_skill_names': ', '.join(mobility_analysis['matched_defining_skills']),
+                
+                # Skills Gap Analysis (Transition Requirements)
+                'skills_needed_for_transition': mobility_analysis['skills_to_develop'],
+                'defining_skills_needed': mobility_analysis['defining_skills_to_develop'],
+                'needed_skill_names': ', '.join(mobility_analysis['unmatched_target_skills']),
+                'needed_defining_skill_names': ', '.join(mobility_analysis['unmatched_target_defining']),
+                
+                # Additional Intelligence
+                'skills_unique_to_source': len(mobility_analysis['unmatched_source_skills']),
+                'defining_skills_unique_to_source': len(mobility_analysis['unmatched_source_defining']),
+                'unique_source_skill_names': ', '.join(mobility_analysis['unmatched_source_skills']),
+                'unique_source_defining_names': ', '.join(mobility_analysis['unmatched_source_defining']),
+                'transferable_advantage_score': mobility_analysis['transferable_advantage'],
+                
+                # Transition Feasibility Metrics
+                'skill_overlap_percentage': round((mobility_analysis['total_shared_skills'] / len(job_b_skills)) * 100, 1) if job_b_skills else 0,
+                'defining_skill_coverage': round((mobility_analysis['total_defining_shared'] / len(job_b_defining)) * 100, 1) if job_b_defining else 0,
+                'reskilling_intensity': mobility_analysis['skills_to_develop'],  # Number of skills to develop
+                'critical_skill_gap': mobility_analysis['defining_skills_to_develop']  # Critical defining skills needed
+            })
+
+    comparison_df = pd.DataFrame(all_pairs)
+
+    # Sort by mobility improvement (biggest changes first)
+    comparison_df = comparison_df.sort_values('mobility_improvement', ascending=False)
+
+    # Add quintile-based mobility scoring
+    comparison_df['mobility_quintile'] = pd.qcut(
+        comparison_df['enhanced_mobility'],
+        q=5,
+        labels=['Limited', 'Moderate', 'Good', 'Strong', 'Excellent'],
+        duplicates='drop'
+    )
+
+    print(f"   → Completed {len(comparison_df):,} job pair comparisons")
+
+    # Show improvement statistics
+    avg_improvement = comparison_df['mobility_improvement'].mean()
+    positive_improvements = (comparison_df['mobility_improvement'] > 0).sum()
+
+    print(f"   → Average mobility score improvement: {avg_improvement:.1f} points")
+    print(f"   → Pairs with positive improvement: {positive_improvements}/{len(comparison_df)} ({positive_improvements/len(comparison_df)*100:.1f}%)")
+
+    # Show comprehensive metrics summary
+    print(f"   → Average skills per role: {comparison_df['job_a_total_skills'].mean():.1f}")
+    print(f"   → Average defining skills per role: {comparison_df['job_a_total_defining'].mean():.1f}")
+    print(f"   → Average reskilling intensity: {comparison_df['skills_needed_for_transition'].mean():.1f} skills")
+    print(f"   → Average critical skill gaps: {comparison_df['defining_skills_needed'].mean():.1f} defining skills")
+
+    return comparison_df
 def generate_skill_architecture_summary(
     skill_universe: pd.DataFrame,
     defining_skills: pd.DataFrame
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Generate comprehensive skill architecture summary
     
@@ -365,11 +497,18 @@ def generate_skill_architecture_summary(
     # Skill type distribution
     skill_type_dist = skill_universe['SkillType'].value_counts()
     
-    # Category distribution for defining skills
-    defining_categories = defining_skills['Category'].value_counts().head(10)
+    # Category distribution for defining skills (unique skills only)
+    if not defining_skills.empty:
+        unique_defining_skills = defining_skills.drop_duplicates(subset=['Skill_ID'])
+        defining_categories = unique_defining_skills['Category'].value_counts().head(10)
+    else:
+        defining_categories = pd.Series()
     
-    # Most concentrated skills (lowest prevalence)
-    most_rare = defining_skills.head(10)[['Skill_Name', 'prevalence_percentage', 'job_profiles_with_skill']]
+    # Most concentrated skills (lowest prevalence) - updated for new structure
+    if not defining_skills.empty:
+        most_rare = defining_skills.head(10)[['Skill_Name', 'prevalence_percentage', 'total_profiles_with_skill', 'JobProfile']]
+    else:
+        most_rare = pd.DataFrame()
     
     summary = {
         'total_skills': total_skills,
@@ -390,7 +529,7 @@ def generate_skill_architecture_summary(
 def analyze_skill_architecture(
     output_prefix: str = "skill_architecture",
     job_similarity_sample_size: int = 100
-) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, any]]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
     """
     Main analysis function for Skills Intelligence Engine V2
     
@@ -415,25 +554,24 @@ def analyze_skill_architecture(
         print("-" * 40)
         skill_universe = load_skill_universe(conn)
         
-        # Step 2: Identify defining skills
-        defining_skills = identify_defining_skills(skill_universe)
+        # Step 2: Identify defining skills with job profile context
+        defining_skills = identify_defining_skills_with_context(conn, skill_universe)
         
         # Step 3: Load job-skill relationships
         print(f"\n2️⃣ JOB-SKILL RELATIONSHIP MAPPING")
         print("-" * 40)
         job_skills_df, job_to_skills = load_job_skill_matrix(conn)
         
-        # Step 4: Create rarity weights
+        # Step 4: Create defining skills set for weighting
         print(f"\n3️⃣ RARITY-WEIGHTED SIMILARITY FOUNDATION")
         print("-" * 40)
-        skill_rarity_weights = create_skill_rarity_weights(skill_universe)
+        defining_skills_set = create_defining_skills_set(defining_skills)
         
         # Step 5: Analyse job similarity improvement
         similarity_comparison = analyse_job_similarity_comparison(
             job_skills_df, 
             job_to_skills, 
-            skill_rarity_weights,
-            sample_size=job_similarity_sample_size
+            defining_skills_set
         )
         
         # Step 6: Generate architecture summary
@@ -474,17 +612,21 @@ def analyze_skill_architecture(
         for category, count in list(architecture_summary['top_defining_categories'].items())[:5]:
             print(f"   • {category}: {count:,} defining skills")
         
-        print(f"\n🔍 Most Rare Skills:")
+        print(f"\n🔍 Most Rare Skills (with Job Profile Context):")
         for skill in architecture_summary['most_rare_skills'][:5]:
-            print(f"   • {skill['Skill_Name']}: {skill['prevalence_percentage']:.2f}% ({skill['job_profiles_with_skill']} job profiles)")
+            print(f"   • {skill['Skill_Name']}: {skill['prevalence_percentage']:.2f}% ({skill['total_profiles_with_skill']} total profiles) - defines {skill['JobProfile']}")
         
         # Show similarity improvement examples
-        print(f"\n⚖️ Rarity-Weighted Similarity Examples (Top 5 Improvements):")
+        print(f"\n🎯 Skills-Based Mobility Score Examples (Top 5 Improvements):")
         for _, row in similarity_comparison.head(5).iterrows():
             print(f"   • {row['job_a_title'][:25]} ↔ {row['job_b_title'][:25]}")
-            print(f"     Simple: {row['simple_similarity']:.3f} → Weighted: {row['weighted_similarity']:.3f} (Δ+{row['similarity_improvement']:.3f})")
-            if row['shared_rare_skill_names']:
-                print(f"     Rare skills: {row['shared_rare_skill_names']}")
+            print(f"     📊 Mobility: {row['baseline_mobility']:.1f} → {row['enhanced_mobility']:.1f}/100 (Δ+{row['mobility_improvement']:.1f})")
+            print(f"     🎯 Skills: {row['job_a_total_skills']}→{row['job_b_total_skills']} | Matched: {row['total_matched_skills']} | Need: {row['skills_needed_for_transition']}")
+            print(f"     💎 Defining: {row['job_a_total_defining']}→{row['job_b_total_defining']} | Matched: {row['total_matched_defining']} | Need: {row['defining_skills_needed']}")
+            if row['matched_defining_skill_names']:
+                print(f"     🏆 Key advantages: {row['matched_defining_skill_names'][:100]}{'...' if len(row['matched_defining_skill_names']) > 100 else ''}")
+            if row['needed_defining_skill_names']:
+                print(f"     🎓 Critical needs: {row['needed_defining_skill_names'][:100]}{'...' if len(row['needed_defining_skill_names']) > 100 else ''}")
         
         return skill_universe, similarity_comparison, architecture_summary
         
@@ -505,17 +647,11 @@ def test_rarity_weighted_similarity():
     job_a_skills = {'Python', 'SQL', 'Machine Learning', 'Statistics'}
     job_b_skills = {'Python', 'SQL', 'Data Visualisation', 'Statistics'}
     
-    # Mock rarity weights (higher weight = rarer skill)
-    skill_weights = {
-        'Python': 2.0,          # Common skill (50% prevalence)
-        'SQL': 2.5,             # Common skill (40% prevalence)
-        'Machine Learning': 10.0, # Rare skill (10% prevalence)
-        'Statistics': 5.0,       # Uncommon skill (20% prevalence)
-        'Data Visualisation': 4.0 # Uncommon skill (25% prevalence)
-    }
+    # Mock defining skills set (rare skills that should get boost)
+    defining_skills = {'Machine Learning', 'Statistics'}  # These are rare/defining
     
-    # Calculate similarities
-    result = calculate_rarity_weighted_job_similarity(job_a_skills, job_b_skills, skill_weights)
+    # Calculate mobility score
+    result = calculate_skills_mobility_score(job_a_skills, job_b_skills, defining_skills)
     
     print(f"Job A skills: {job_a_skills}")
     print(f"Job B skills: {job_b_skills}")
@@ -523,7 +659,8 @@ def test_rarity_weighted_similarity():
     print(f"Simple similarity: {result['simple_similarity']:.3f}")
     print(f"Weighted similarity: {result['weighted_similarity']:.3f}")
     print(f"Improvement: {result['weighted_similarity'] - result['simple_similarity']:.3f}")
-    print(f"Shared rare skills: {result['shared_rare_skills']}")
+    print(f"Shared defining skills: {result['shared_defining_skills']}")
+    print(f"Defining skill boost: {result['defining_skill_boost']:.3f}")
     
     return result
 
