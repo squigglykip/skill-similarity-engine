@@ -3,7 +3,7 @@
 > **Updated**: January 2025  
 > **Purpose**: Descriptive skill intelligence to support Future Skills Team's architectural thinking  
 > **Philosophy**: Provide skill architecture maps, not strategic value judgments  
-> **Status**: Refined framework focused on what we can actually know from our data
+> **Status**: Core backbone complete, supplemental insights in development
 
 ---
 
@@ -24,38 +24,43 @@
 
 ## 📊 **Four Core Intelligence Dimensions**
 
-### **1. Skill Rarity Intelligence**
+### **1. Skill Rarity Intelligence** ✅ **COMPLETE**
 **Role**: **Job Archetype Definition**  
 **Business Question**: *"What skills actually differentiate and define different roles?"*
+**Implementation**: `skill_intelligence_engine_v2.py`
 
 **What it Measures**:
 - Prevalence percentage across job profiles in the enterprise
+- **Job-specific defining skills**: Top 25% rarest skills per role (not global threshold)
 - Identifies what makes roles unique and distinguishable
 - **Enhanced Context**: Skill type metadata (Specialized Skill, Certification, Common Skill) for development pathway insights
 
 **How This Supports Architectural Thinking**:
 - **Role Differentiation**: Understand what truly makes a Data Scientist different from a Business Analyst
-- **Defining Skills Identification**: Skills with <5% prevalence that are core to specific role archetypes
+- **Defining Skills Identification**: Top quartile rarest skills that characterize specific job profiles
 - **Capability Architecture**: Map the skill landscape to understand organisational capability structure
 - **Training Investment Logic**: Focus development on skills that actually define roles
 
-**Technical Approach**:
-- Simple percentage calculation: `skill_prevalence = profiles_with_skill / total_profiles * 100`
+**Technical Approach**: ✅ **IMPLEMENTED**
+- Global prevalence calculation: `skill_prevalence = profiles_with_skill / total_profiles * 100`
+- **Job-specific defining**: Top 25% rarest skills per job profile
 - Categories: Rare (<5%), Uncommon (5-20%), Common (20-50%), Universal (>50%)
-- **Future Enhancement**: Rarity-weighted job similarity scoring for more accurate job relationships
+- **Rarity-weighted job similarity**: Asymmetrical A→B and B→A transitions with defining skills boost
 
 **What This Intelligence Enables**:
-- Better job-to-job similarity calculations (rare skills matter more than common ones)
-- Realistic career pathway assessment (focus on roles that share defining capabilities)
-- Evidence-based training prioritisation (develop skills that actually differentiate roles)
+- ✅ **Better job-to-job similarity calculations** (rare skills matter more than common ones)
+- ✅ **Realistic career pathway assessment** (focus on roles that share defining capabilities)
+- ✅ **Evidence-based training prioritisation** (develop skills that actually differentiate roles)
+- ✅ **Asymmetrical transition analysis** (A→B ≠ B→A for directional career guidance)
 
-**Status**: ✅ **Working Well** - Foundation for weighted similarity scoring
+**Status**: ✅ **COMPLETE** - Core backbone of skills intelligence established
 
 ---
 
-### **2. Skill Velocity Intelligence**
+### **2. Skill Velocity Intelligence** 🚧 **SUPPLEMENTAL INSIGHT**
 **Role**: **Temporal Context Provider**  
 **Business Question**: *"What does recent movement data tell us about skill demand patterns?"*
+**Implementation**: `skill_velocity_analysis.py` *(to be created)*
 
 **What it Measures**:
 - Growth/decline trends over time using movement destination data
@@ -77,13 +82,14 @@
 - Baseline understanding of recent organisational behaviour
 - Input for strategic workforce planning decisions (not the decision itself)
 
-**Status**: ✅ **Working Well** - Provides temporal context, not strategic direction
+**Status**: 🚧 **SEPARATE FILE NEEDED** - Supplemental temporal insight
 
 ---
 
-### **3. Network Intelligence (Skills Clustering)**
+### **3. Network Intelligence (Skills Clustering)** 🚧 **SUPPLEMENTAL INSIGHT**
 **Role**: **Skill Ecosystem Mapping**  
 **Business Question**: *"How do skills naturally group together in our organisation?"*
+**Implementation**: `skill_network_clustering.py` *(to be created)*
 
 **What it Measures**:
 - Co-occurrence patterns of skills within job profiles
@@ -106,7 +112,7 @@
 - Role archetype definition (understand the skill signatures of different job types)
 - Strategic capability mapping (see how skills connect across the organisation)
 
-**Status**: 🎯 **Priority Focus** - High value for architectural understanding
+**Status**: 🚧 **SEPARATE FILE NEEDED** - Supplemental network insight
 
 **Example Output**:
 ```
@@ -117,9 +123,10 @@ Cluster 3: Digital Marketing Bundle {SEO, Analytics, Content Strategy, Social Me
 
 ---
 
-### **4. Job Opportunity Breadth Intelligence**
+### **4. Job Opportunity Breadth Intelligence** ✅ **COMPLETE**
 **Role**: **Transferability Descriptor**  
 **Business Question**: *"How broadly distributed is this skill across different roles?"*
+**Implementation**: `skill_intelligence_engine_v2.py` (included in mobility score analysis)
 
 **What it Measures**:
 - Simple count: number of job profiles that require this skill
@@ -131,16 +138,17 @@ Cluster 3: Digital Marketing Bundle {SEO, Analytics, Content Strategy, Social Me
 - **Career Pathway Context**: Understand the breadth of roles that involve specific skills
 - **Capability Planning**: See which skills are concentrated vs. distributed across the organisation
 
-**Technical Approach**:
+**Technical Approach**: ✅ **IMPLEMENTED**
 - Direct percentage: `opportunity_breadth = job_profiles_with_skill / total_profiles * 100`
 - Categories: Universal (≥20%), Cross-Functional (10-20%), Transferable (5-10%), Specialised (1-5%), Niche (<1%)
+- **Integrated into mobility scoring**: Captured in skills gap analysis
 
 **What This Intelligence Enables**:
-- Realistic career guidance conversations ("This skill appears in X% of roles")
-- Training investment context (understand skill distribution patterns)
-- Workforce planning insights (see which skills are concentrated vs. distributed)
+- ✅ **Realistic career guidance conversations** ("This skill appears in X% of roles")
+- ✅ **Training investment context** (understand skill distribution patterns)
+- ✅ **Workforce planning insights** (see which skills are concentrated vs. distributed)
 
-**Status**: ✅ **Simplified and Working** - Clear, interpretable transferability measurement
+**Status**: ✅ **COMPLETE** - Integrated into core architecture analysis
 
 ---
 
@@ -165,60 +173,53 @@ Cluster 3: Digital Marketing Bundle {SEO, Analytics, Content Strategy, Social Me
 
 ## 📊 **Skills Intelligence as Strategic Foundation**
 
-### **The Rarity-Weighted Similarity Concept**
+### **The Rarity-Weighted Similarity Concept** ✅ **COMPLETE**
 
-**Current State**: Simple skill overlap
+**Current State**: ✅ **IMPLEMENTED** - Job-specific defining skills with asymmetrical analysis
 ```python
-# Current: All skills weighted equally
-simple_similarity = shared_skills / total_unique_skills
-# Result: "Job A and Job B share 60% of skills"
+# IMPLEMENTED: Job-specific defining skills with rarity weighting
+def create_job_specific_defining_skills(skill_universe, job_skills_df):
+    # For each job: take top 25% rarest skills as "defining"
+    # Global rarity calculation, job-specific application
+    
+def calculate_skills_mobility_score(job_a_id, job_b_id, ...):
+    # Asymmetrical A→B analysis
+    # Defining skills boost for shared rare capabilities
+    # 0-100 scale with comprehensive skills gap analysis
 ```
 
-**Enhanced State**: Rarity-weighted similarity  
-```python
-# Future: Rare skills carry more weight in job relationships
-def calculate_weighted_job_similarity(job_a_skills, job_b_skills, skill_rarity_weights):
-    shared_skills = job_a_skills & job_b_skills
-    
-    # Weight by inverse rarity (rare skills matter more for job relationships)
-    weighted_overlap = sum(1/skill_rarity_weights[skill] for skill in shared_skills)
-    max_possible_weight = sum(1/skill_rarity_weights[skill] for skill in job_a_skills | job_b_skills)
-    
-    return weighted_overlap / max_possible_weight
-# Result: "Job A and Job B share 60% of skills, including 3 rare defining skills"
-```
+### **How This Supports the Future Skills Team** ✅ **COMPLETE**
 
-### **How This Supports the Future Skills Team**
-
-**Better Job Architecture Understanding**:
+**Better Job Architecture Understanding**: ✅ **IMPLEMENTED**
 - More accurate job-to-job relationships based on skills that actually differentiate roles
 - Focus on defining capabilities rather than common skills everyone has
 
-**Evidence-Based Strategic Discussions**:
+**Evidence-Based Strategic Discussions**: ✅ **IMPLEMENTED**
 - Clear data on what skills actually define different roles
 - Factual foundation for strategic capability development decisions
 - Understanding of current skill distribution without strategic bias
 
-**Architectural Thinking Support**:
+**Architectural Thinking Support**: ✅ **IMPLEMENTED**
 - Map the current skill landscape accurately
 - Understand how skills cluster and connect across the organisation
 - Provide factual foundation for strategic workforce architecture decisions
 
 ### **Implementation Strategy**
 
-**Phase 1**: Perfect descriptive intelligence (current focus)
-- Accurate skill rarity calculations and role differentiation
-- Clear skill clustering and ecosystem mapping
-- Reliable transferability measurements
+**Phase 1**: ✅ **COMPLETE** - Perfect descriptive intelligence (current focus)
+- ✅ **Accurate skill rarity calculations and role differentiation**
+- ✅ **Asymmetrical career transition analysis (A→B and B→A)**
+- ✅ **Job-specific defining skills (top 25% rarest per role)**
+- ✅ **Rarity-weighted mobility scoring with skills gap analysis**
 
-**Phase 2**: Enhanced job relationship scoring
-- Implement rarity-weighted similarity calculations
-- Validate that rare skill overlap produces better job relationship assessments
-- Test with stakeholder intuition about actual job similarities
+**Phase 2**: 🚧 **IN PROGRESS** - Supplemental insights
+- 🚧 **Temporal skill velocity analysis** (`skill_velocity_analysis.py`)
+- 🚧 **Network clustering and skill ecosystem mapping** (`skill_network_clustering.py`)
+- 🚧 **Comprehensive supplemental intelligence suite**
 
-**Phase 3**: Strategic architecture support
+**Phase 3**: 🎯 **FUTURE** - Strategic architecture support
 - Provide comprehensive skill architecture maps for strategic planning
 - Enable evidence-based capability development decisions
 - Support Future Skills Team's architectural and strategic thinking
 
-**Status**: 🎯 **Foundation Ready** - Descriptive intelligence established, ready to support strategic thinking 
+**Status**: ✅ **CORE BACKBONE COMPLETE** - Supplemental insights in development 

@@ -539,7 +539,7 @@ def calculate_skills_network_analysis(conn):
                     diversity_entropy = -sum(p * np.log2(p) for p in probabilities if p > 0)
                     max_entropy = np.log2(len(probabilities))
                     network_diversity = diversity_entropy / max_entropy if max_entropy > 0 else 0
-                else:
+            else:
                     network_diversity = 0
                 
                 # Calculate clustering coefficient (how connected are this skill's neighbors)
@@ -674,7 +674,7 @@ def categorize_supply_demand_dynamics(supply_demand_data):
         return "Balanced Market"
     elif adequacy > 2:
         return "Oversupplied"
-    else:
+                else:
         return "Emerging Demand"
 
 # D. JOB OPPORTUNITY BREADTH INTELLIGENCE (Simplified Transferability)
@@ -833,7 +833,7 @@ def get_dynamic_skill_intelligence_tier(score, percentile_rank, score_distributi
         return f"Standard (Top 60%, {percentile_rank:.1f}%)"
     elif score >= thresholds['emerging']:
         return f"Emerging (Top 75%, {percentile_rank:.1f}%)"
-    else:
+            else:
         return f"Niche (Bottom 25%, {percentile_rank:.1f}%)"
 
 def generate_tier_decoder_ring(score_distribution):
@@ -922,59 +922,59 @@ def calculate_comprehensive_skill_mobility(conn):
             
             for skill_id in skill_batch:
                 try:
-                    skill_info = active_job_skills[active_job_skills['Skill_ID'] == skill_id].iloc[0]
-                    skill_name = skill_info['Skill_Name']
-                    
-                    # Get job profiles that have this skill
-                    jobs_with_skill = active_job_skills[active_job_skills['Skill_ID'] == skill_id]['JobProfileID'].unique()
-                    
-                    # Get movements FROM jobs with this skill
-                    from_movements = movement_df[movement_df['JobProfileID_from'].isin(jobs_with_skill)]
-                    
-                    if len(from_movements) == 0:
-                        continue
-                    
-                    # Get skills in destination jobs
-                    destination_job_skills = from_movements.merge(
-                        active_job_skills[['JobProfileID', 'Skill_ID', 'Category']], 
-                        left_on='JobProfileID_to', 
-                        right_on='JobProfileID', 
-                        how='inner'
-                    )
-                    
-                    # Filter out the same skill
-                    destination_other_skills = destination_job_skills[destination_job_skills['Skill_ID'] != skill_id]
-                    
+                skill_info = active_job_skills[active_job_skills['Skill_ID'] == skill_id].iloc[0]
+                skill_name = skill_info['Skill_Name']
+                
+                # Get job profiles that have this skill
+                jobs_with_skill = active_job_skills[active_job_skills['Skill_ID'] == skill_id]['JobProfileID'].unique()
+                
+                # Get movements FROM jobs with this skill
+                from_movements = movement_df[movement_df['JobProfileID_from'].isin(jobs_with_skill)]
+                
+                if len(from_movements) == 0:
+                    continue
+                
+                # Get skills in destination jobs
+                destination_job_skills = from_movements.merge(
+                    active_job_skills[['JobProfileID', 'Skill_ID', 'Category']], 
+                    left_on='JobProfileID_to', 
+                    right_on='JobProfileID', 
+                    how='inner'
+                )
+                
+                # Filter out the same skill
+                destination_other_skills = destination_job_skills[destination_job_skills['Skill_ID'] != skill_id]
+                
                     if len(destination_other_skills) > 5:  # Minimum threshold for analysis
                         # Calculate mobility metrics
-                        destination_skills = destination_other_skills['Skill_ID'].value_counts()
-                        diversity_score = calculate_diversity_score(destination_skills.to_dict())
-                        unique_destinations = len(destination_skills)
-                        total_movements = destination_other_skills['movement_count'].sum()
-                        
-                        source_category = skill_info['Category']
-                        cross_category_moves = destination_other_skills[
-                            destination_other_skills['Category'] != source_category
-                        ]['movement_count'].sum()
-                        cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
-                        
-                        skill_metrics = {
-                            'diversity_score': diversity_score,
-                            'unique_destinations': unique_destinations,
-                            'total_movements': total_movements,
-                            'cross_category_rate': cross_category_rate
-                        }
-                        
-                        mobility_analysis = calculate_skill_mobility_score(skill_metrics)
-                        
-                        all_skill_mobility[skill_name] = {
-                            'mobility_score': mobility_analysis['mobility_score'],
-                            'mobility_tier': mobility_analysis['mobility_tier'],
-                            'unique_destinations': unique_destinations,
-                            'total_transitions': total_movements,
-                            'diversity_score': diversity_score,
-                            'cross_category_rate': cross_category_rate
-                        }
+                    destination_skills = destination_other_skills['Skill_ID'].value_counts()
+                    diversity_score = calculate_diversity_score(destination_skills.to_dict())
+                    unique_destinations = len(destination_skills)
+                    total_movements = destination_other_skills['movement_count'].sum()
+                    
+                    source_category = skill_info['Category']
+                    cross_category_moves = destination_other_skills[
+                        destination_other_skills['Category'] != source_category
+                    ]['movement_count'].sum()
+                    cross_category_rate = cross_category_moves / total_movements if total_movements > 0 else 0
+                    
+                    skill_metrics = {
+                        'diversity_score': diversity_score,
+                        'unique_destinations': unique_destinations,
+                        'total_movements': total_movements,
+                        'cross_category_rate': cross_category_rate
+                    }
+                    
+                    mobility_analysis = calculate_skill_mobility_score(skill_metrics)
+                    
+                    all_skill_mobility[skill_name] = {
+                        'mobility_score': mobility_analysis['mobility_score'],
+                        'mobility_tier': mobility_analysis['mobility_tier'],
+                        'unique_destinations': unique_destinations,
+                        'total_transitions': total_movements,
+                        'diversity_score': diversity_score,
+                        'cross_category_rate': cross_category_rate
+                    }
                         
                         processed_count += 1
                         
@@ -1044,18 +1044,18 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
         enhanced_skills = []
         
         for _, skill_row in active_skill_universe.iterrows():
-            skill_id = skill_row['Skill_ID']
+                skill_id = skill_row['Skill_ID']
             skill_name = skill_row['Skill_Name']
             
             # Base skill data
             base_data = {
-                'skill_id': skill_id,
+                    'skill_id': skill_id,
                 'skill_name': skill_name,
-                'skill_category': skill_row.get('Category', 'Unknown'),
-                'skill_type': skill_row.get('SkillType', 'Unknown'),
-                'current_prevalence_percent': round(skill_row['prevalence_percentage'], 2),
-                'rarity_category': skill_row['rarity_category'],
-                'total_job_profiles_using': int(skill_row['profiles_using_skill']),
+                    'skill_category': skill_row.get('Category', 'Unknown'),
+                    'skill_type': skill_row.get('SkillType', 'Unknown'),
+                    'current_prevalence_percent': round(skill_row['prevalence_percentage'], 2),
+                    'rarity_category': skill_row['rarity_category'],
+                    'total_job_profiles_using': int(skill_row['profiles_using_skill']),
             }
             
             # Existing intelligence
@@ -1173,18 +1173,18 @@ def analyze_all_skills_with_advanced_intelligence(output_filename: Optional[str]
             print(f"{skill_name:<35} {score:<8} {tier:<35} {key_strengths:<50}")
         
         # Save comprehensive results
-        if output_filename:
-            output_path = Path(output_filename)
-        else:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                if output_filename:
+                    output_path = Path(output_filename)
+                else:
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = Path(f"comprehensive_skills_intelligence_{timestamp}.csv")
         
-        results_df.to_csv(output_path, index=False)
+                    results_df.to_csv(output_path, index=False)
         print(f"\n💾 Comprehensive analysis saved to: {output_path}")
         print(f"   📊 {len(results_df):,} skills with full intelligence metrics")
-        
-        return results_df
-        
+            
+            return results_df
+            
     finally:
         conn.close()
         print("🔒 Database connection closed")
@@ -1282,7 +1282,7 @@ def test_database_schema():
 def test_movement_to_skills_pipeline():
     """Test the pipeline from movement data to skills analysis"""
     print("\n🔄 TESTING MOVEMENT-TO-SKILLS PIPELINE")
-    print("="*60)
+        print("="*60)
     
     conn = connect_database()
     
@@ -1360,7 +1360,7 @@ def test_movement_to_skills_pipeline():
 def test_individual_modules():
     """Test each intelligence module individually with improved error handling"""
     print("\n🧪 TESTING INDIVIDUAL INTELLIGENCE MODULES")
-    print("="*60)
+        print("="*60)
     
     conn = connect_database()
     
@@ -1536,9 +1536,9 @@ def test_full_skills_intelligence():
             
             # Show top 5 skills by composite intelligence score
             if 'composite_intelligence_score' in results.columns:
-                top_skills = results.head(5)
+            top_skills = results.head(5)
                 print(f"\n🏆 TOP 5 STRATEGIC SKILLS:")
-                for _, skill in top_skills.iterrows():
+            for _, skill in top_skills.iterrows():
                     name = skill['skill_name'][:40]
                     score = skill['composite_intelligence_score']
                     tier = skill.get('intelligence_tier', 'Unknown')
