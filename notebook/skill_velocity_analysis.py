@@ -110,7 +110,7 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
     print(f"   → Debug: {position_df.iloc[0]['positions_with_job_profiles']:,} positions with job profiles")
     print(f"   → Debug: {position_df.iloc[0]['non_empty_job_profiles']:,} non-empty job profiles")
     
-    # Since positions.JobProfileID appears to be empty, let's check what data we actually have
+    # Show sample data - prioritising positions WITH JobProfileID values
     sample_data_query = """
     SELECT 
         mf.to_position as movement_position,
@@ -120,35 +120,70 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
         LENGTH(p.JobProfileID) as job_profile_id_length
     FROM movement_fact mf
     LEFT JOIN positions p ON mf.to_position = p."Position Number"
+    WHERE p.JobProfileID IS NOT NULL AND p.JobProfileID != ''
     LIMIT 10
+    
+    UNION ALL
+    
+    SELECT 
+        mf.to_position as movement_position,
+        p."Position Number" as position_number,
+        p."Position Name" as position_name,
+        p.JobProfileID as job_profile_id,
+        LENGTH(p.JobProfileID) as job_profile_id_length
+    FROM movement_fact mf
+    LEFT JOIN positions p ON mf.to_position = p."Position Number"
+    WHERE p.JobProfileID IS NULL OR p.JobProfileID = ''
+    LIMIT 5
     """
     
     sample_df = pd.read_sql_query(sample_data_query, conn)
     print("   → Sample data from movement_fact and positions:")
+    print("   → (Showing positions WITH JobProfileID first, then some without)")
     for _, row in sample_df.iterrows():
-        print(f"      Position: {row['movement_position']} -> {row['position_name']} (JobProfileID: '{row['job_profile_id']}', length: {row['job_profile_id_length']})")
+        job_id = row['job_profile_id'] if pd.notna(row['job_profile_id']) else 'None'
+        length = row['job_profile_id_length'] if pd.notna(row['job_profile_id_length']) else 0
+        print(f"      Position: {row['movement_position']} -> {row['position_name']} (JobProfileID: '{job_id}', length: {length})")
     
     # If we have matches via positions table, run the full analysis
     if position_df.iloc[0]['matching_positions'] > 0 and position_df.iloc[0]['non_empty_job_profiles'] > 0:
         print(f"   → Found {position_df.iloc[0]['matching_positions']:,} matching positions - proceeding with movement_fact analysis")
         
-        # Real velocity analysis using movement_fact data linked through positions table
+        # Real velocity analysis using movement_fact data with exponential recency weighting
+        # Using same 0.4^years_ago decay as movement_analysis_engine.py
         velocity_analysis_query = """
-        WITH skill_movement_trends AS (
+        WITH current_date_context AS (
+            SELECT 
+                MAX(movement_year) as max_year,
+                -- Data appears to end in July 2025, so adjust for partial year
+                CASE 
+                    WHEN MAX(movement_year) = 2025 THEN 2024.5  -- Treat 2025 as half-year
+                    ELSE MAX(movement_year)
+                END as effective_current_year
+            FROM movement_fact
+            WHERE movement_year >= 2020
+        ),
+        skill_movement_trends AS (
             SELECT 
                 s.Skill_Name,
                 s.Category,
                 s.SkillType,
                 mf.movement_year,
-                SUM(mf.movement_count) as movements_to_roles_with_skill
+                SUM(mf.movement_count) as movements_to_roles_with_skill,
+                -- Apply exponential recency weighting (0.4^years_ago) like movement_analysis_engine.py
+                cdc.effective_current_year - mf.movement_year as years_ago,
+                SUM(mf.movement_count * POWER(0.4, cdc.effective_current_year - mf.movement_year)) as recency_weighted_movements
             FROM movement_fact mf
             JOIN positions p ON mf.to_position = p."Position Number"
             JOIN job_skills js ON p.JobProfileID = js.JobProfileID
             JOIN skills s ON js.Skill_ID = s.Skill_ID
+            CROSS JOIN current_date_context cdc
             WHERE mf.movement_year >= 2020
               AND p.JobProfileID IS NOT NULL
               AND p.JobProfileID != ''
-            GROUP BY s.Skill_Name, s.Category, s.SkillType, mf.movement_year
+              AND mf.movement_count > 0
+            GROUP BY s.Skill_Name, s.Category, s.SkillType, mf.movement_year, cdc.effective_current_year
+            HAVING SUM(mf.movement_count) >= 2  -- Filter out single-movement noise
         ),
         skill_yearly_growth AS (
             SELECT 
@@ -157,6 +192,8 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
                 SkillType,
                 movement_year,
                 movements_to_roles_with_skill,
+                recency_weighted_movements,
+                years_ago,
                 LAG(movements_to_roles_with_skill) OVER (
                     PARTITION BY Skill_Name 
                     ORDER BY movement_year
@@ -171,19 +208,46 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
             SkillType,
             COUNT(*) as years_with_data,
             SUM(movements_to_roles_with_skill) as total_movements,
+            SUM(recency_weighted_movements) as total_recency_weighted_movements,
             AVG(movements_to_roles_with_skill) as avg_annual_movements,
             MAX(CASE WHEN year_rank = 1 THEN movements_to_roles_with_skill END) as latest_year_movements,
             MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) as prev_year_movements,
+            MAX(CASE WHEN year_rank = 1 THEN recency_weighted_movements END) as latest_recency_weighted,
+            MAX(CASE WHEN year_rank = 1 THEN years_ago END) as latest_year_age,
+            -- Calculate growth using recency-weighted values for better trend detection
             CASE 
-                WHEN MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) > 0 THEN
-                    (CAST(MAX(CASE WHEN year_rank = 1 THEN movements_to_roles_with_skill END) AS FLOAT) / 
-                     MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) - 1.0) * 100
+                WHEN MAX(CASE WHEN year_rank = 2 THEN recency_weighted_movements END) > 0 
+                 AND MAX(CASE WHEN year_rank = 1 THEN recency_weighted_movements END) > 0 THEN
+                    -- Use recency-weighted growth calculation with data cutoff adjustment
+                    CASE 
+                        WHEN (CAST(MAX(CASE WHEN year_rank = 1 THEN recency_weighted_movements END) AS FLOAT) / 
+                              MAX(CASE WHEN year_rank = 2 THEN recency_weighted_movements END) - 1.0) * 100 > 300 THEN 300.0
+                        WHEN (CAST(MAX(CASE WHEN year_rank = 1 THEN recency_weighted_movements END) AS FLOAT) / 
+                              MAX(CASE WHEN year_rank = 2 THEN recency_weighted_movements END) - 1.0) * 100 < -90 THEN -90.0
+                        ELSE (CAST(MAX(CASE WHEN year_rank = 1 THEN recency_weighted_movements END) AS FLOAT) / 
+                              MAX(CASE WHEN year_rank = 2 THEN recency_weighted_movements END) - 1.0) * 100
+                    END
                 ELSE NULL
-            END as year_over_year_growth_pct
+            END as recency_weighted_growth_pct,
+            -- Also calculate raw year-over-year for comparison
+            CASE 
+                WHEN MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) > 0 
+                 AND MAX(CASE WHEN year_rank = 1 THEN movements_to_roles_with_skill END) > 0 THEN
+                    CASE 
+                        WHEN (CAST(MAX(CASE WHEN year_rank = 1 THEN movements_to_roles_with_skill END) AS FLOAT) / 
+                              MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) - 1.0) * 100 > 300 THEN 300.0
+                        WHEN (CAST(MAX(CASE WHEN year_rank = 1 THEN movements_to_roles_with_skill END) AS FLOAT) / 
+                              MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) - 1.0) * 100 < -90 THEN -90.0
+                        ELSE (CAST(MAX(CASE WHEN year_rank = 1 THEN movements_to_roles_with_skill END) AS FLOAT) / 
+                              MAX(CASE WHEN year_rank = 2 THEN movements_to_roles_with_skill END) - 1.0) * 100
+                    END
+                ELSE NULL
+            END as raw_year_over_year_growth_pct
         FROM skill_yearly_growth
         GROUP BY Skill_Name, Category, SkillType
-        HAVING COUNT(*) >= 1  -- At least 1 year of data
-        ORDER BY total_movements DESC
+        HAVING COUNT(*) >= 2  -- At least 2 years of data for meaningful growth calculation
+           AND SUM(movements_to_roles_with_skill) >= 5  -- Minimum movement threshold
+        ORDER BY total_recency_weighted_movements DESC  -- Order by recency-weighted activity
         """
         
         velocity_df = pd.read_sql_query(velocity_analysis_query, conn)
@@ -275,8 +339,14 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
         velocity_df = pd.read_sql_query(fallback_query, conn)
         velocity_df['velocity_category'] = 'Unknown - No Movement Data'
     else:
-        # Categorize velocity based on available growth data
-        if 'year_over_year_growth_pct' in velocity_df.columns:
+        # Categorize velocity based on available growth data (prioritize recency-weighted)
+        if 'recency_weighted_growth_pct' in velocity_df.columns:
+            velocity_df['velocity_category'] = velocity_df['recency_weighted_growth_pct'].apply(
+                lambda x: categorize_velocity(x) if pd.notna(x) else 'Insufficient Data'
+            )
+            # Add year_over_year_growth_pct for compatibility
+            velocity_df['year_over_year_growth_pct'] = velocity_df['recency_weighted_growth_pct']
+        elif 'year_over_year_growth_pct' in velocity_df.columns:
             velocity_df['velocity_category'] = velocity_df['year_over_year_growth_pct'].apply(
                 lambda x: categorize_velocity(x) if pd.notna(x) else 'Insufficient Data'
             )
@@ -290,9 +360,15 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
             velocity_df['total_movements'] = velocity_df['jobs_requiring_skill'] * 10 if 'jobs_requiring_skill' in velocity_df.columns else 0
     
     print(f"   → Analyzed velocity for {len(velocity_df):,} skills")
-    if len(velocity_df) > 0 and 'total_movements' in velocity_df.columns:
-        total_movements = velocity_df['total_movements'].sum()
-        print(f"   → Based on {total_movements:,} total movements to roles requiring these skills")
+    if len(velocity_df) > 0:
+        if 'total_movements' in velocity_df.columns:
+            total_movements = velocity_df['total_movements'].sum()
+            print(f"   → Based on {total_movements:,} total movements to roles requiring these skills")
+        
+        if 'total_recency_weighted_movements' in velocity_df.columns:
+            total_recency_weighted = velocity_df['total_recency_weighted_movements'].sum()
+            print(f"   → Recency-weighted movements: {total_recency_weighted:,.1f} (0.4^years_ago exponential decay)")
+            print(f"   → Data cutoff adjustment: 2025 treated as partial year (2024.5) for CAGR accuracy")
     
     return velocity_df
 
@@ -329,18 +405,27 @@ def generate_velocity_summary(velocity_df: pd.DataFrame) -> Dict[str, Any]:
     has_movement_data = 'total_movements' in velocity_df.columns and velocity_df['total_movements'].sum() > 0
     
     if has_movement_data:
-        # Real velocity analysis summary
+        # Real velocity analysis summary with recency weighting
         velocity_dist = velocity_df['velocity_category'].value_counts()
         total_movements = velocity_df['total_movements'].sum()
-        avg_growth = velocity_df['year_over_year_growth_pct'].mean()
         
-        # Top growing and declining skills
-        top_growing_df = velocity_df.nlargest(5, 'year_over_year_growth_pct')[['Skill_Name', 'year_over_year_growth_pct']]
-        top_declining_df = velocity_df.nsmallest(5, 'year_over_year_growth_pct')[['Skill_Name', 'year_over_year_growth_pct']]
+        # Use recency-weighted growth if available, otherwise fall back to regular
+        if 'recency_weighted_growth_pct' in velocity_df.columns:
+            growth_column = 'recency_weighted_growth_pct'
+            avg_growth = velocity_df['recency_weighted_growth_pct'].mean()
+            total_recency_weighted = velocity_df['total_recency_weighted_movements'].sum()
+        else:
+            growth_column = 'year_over_year_growth_pct'
+            avg_growth = velocity_df['year_over_year_growth_pct'].mean()
+            total_recency_weighted = None
         
-        top_growing = [{'Skill_Name': row['Skill_Name'], 'year_over_year_growth_pct': row['year_over_year_growth_pct']} 
+        # Top growing and declining skills using the appropriate growth column
+        top_growing_df = velocity_df.nlargest(5, growth_column)[['Skill_Name', growth_column]]
+        top_declining_df = velocity_df.nsmallest(5, growth_column)[['Skill_Name', growth_column]]
+        
+        top_growing = [{'Skill_Name': row['Skill_Name'], 'growth_pct': row[growth_column]} 
                       for _, row in top_growing_df.iterrows()]
-        top_declining = [{'Skill_Name': row['Skill_Name'], 'year_over_year_growth_pct': row['year_over_year_growth_pct']} 
+        top_declining = [{'Skill_Name': row['Skill_Name'], 'growth_pct': row[growth_column]} 
                         for _, row in top_declining_df.iterrows()]
         
         summary = {
@@ -351,8 +436,14 @@ def generate_velocity_summary(velocity_df: pd.DataFrame) -> Dict[str, Any]:
             'velocity_distribution': velocity_dist.to_dict(),
             'top_growing_skills': top_growing,
             'top_declining_skills': top_declining,
-            'key_insight': f'Analyzed {len(velocity_df)} skills across {int(total_movements)} career movements'
+            'key_insight': f'Analyzed {len(velocity_df)} skills across {int(total_movements)} career movements',
+            'uses_recency_weighting': 'recency_weighted_growth_pct' in velocity_df.columns,
+            'growth_method': 'Recency-weighted (0.4^years_ago)' if 'recency_weighted_growth_pct' in velocity_df.columns else 'Standard year-over-year',
+            'data_cutoff_adjustment': '2025 treated as partial year (2024.5) for CAGR accuracy' if 'recency_weighted_growth_pct' in velocity_df.columns else None
         }
+        
+        if total_recency_weighted is not None:
+            summary['total_recency_weighted_movements'] = round(total_recency_weighted, 1)
     else:
         # Fallback analysis summary
         category_dist = velocity_df['Category'].value_counts().head(5)
@@ -405,7 +496,16 @@ def run_velocity_analysis(output_prefix: str = "skill_velocity") -> Tuple[pd.Dat
         
         if 'total_movements_analyzed' in summary:
             print(f"🚀 Total movements analyzed: {summary['total_movements_analyzed']:,}")
-            print(f"📈 Average growth rate: {summary['average_growth_rate']:.1f}%")
+            
+            # Show recency-weighted information if available
+            if summary.get('uses_recency_weighting', False):
+                print(f"📈 Average recency-weighted growth rate: {summary['average_growth_rate']:.1f}% ({summary['growth_method']})")
+                if 'total_recency_weighted_movements' in summary:
+                    print(f"⚡ Total recency-weighted movements: {summary['total_recency_weighted_movements']:,.1f}")
+                if summary.get('data_cutoff_adjustment'):
+                    print(f"📅 Data adjustment: {summary['data_cutoff_adjustment']}")
+            else:
+                print(f"📈 Average growth rate: {summary['average_growth_rate']:.1f}%")
             
             if summary['velocity_distribution']:
                 print(f"\n📊 Velocity Distribution:")
@@ -413,14 +513,16 @@ def run_velocity_analysis(output_prefix: str = "skill_velocity") -> Tuple[pd.Dat
                     print(f"   • {category}: {count:,} skills")
             
             if summary['top_growing_skills']:
-                print(f"\n🚀 Top 5 Growing Skills:")
+                growth_label = "Recency-Weighted" if summary.get('uses_recency_weighting', False) else "YoY"
+                print(f"\n🚀 Top 5 Growing Skills ({growth_label}):")
                 for skill in summary['top_growing_skills']:
-                    print(f"   • {skill['Skill_Name']}: +{skill['year_over_year_growth_pct']:.1f}%")
+                    print(f"   • {skill['Skill_Name']}: +{skill['growth_pct']:.1f}%")
             
             if summary['top_declining_skills']:
-                print(f"\n📉 Top 5 Declining Skills:")
+                decline_label = "Recency-Weighted" if summary.get('uses_recency_weighting', False) else "YoY"
+                print(f"\n📉 Top 5 Declining Skills ({decline_label}):")
                 for skill in summary['top_declining_skills']:
-                    print(f"   • {skill['Skill_Name']}: {skill['year_over_year_growth_pct']:.1f}%")
+                    print(f"   • {skill['Skill_Name']}: {skill['growth_pct']:.1f}%")
         
         elif 'top_skill_categories' in summary:
             print(f"\n📊 Top Skill Categories (by prevalence):")
