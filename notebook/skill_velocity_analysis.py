@@ -9,6 +9,13 @@ Provides context about recent hiring trends and skill momentum.
 Philosophy: Descriptive temporal intelligence, not strategic direction.
 This shows "what happened" not "what should happen."
 
+Features:
+- Dynamic partial year calculation based on actual data
+- Configurable velocity thresholds and analysis windows
+- Recency-weighted movement analysis (0.4^years_ago decay)
+- Automatic handling of incomplete years
+- Fallback mechanisms for data edge cases
+
 Usage:
     python skill_velocity_analysis.py
 """
@@ -48,6 +55,14 @@ class VelocityAnalysisConfig:
         'stable': -0.05,        # -5% to 5% CAGR
         'declining': -0.20,     # -20% to -5% CAGR
         # <-20% = steep_decline
+    }
+    
+    # Dynamic year calculation settings
+    YEAR_CALCULATION = {
+        'method': 'dynamic',           # 'dynamic' or 'fixed'
+        'fallback_to_system_date': True,  # Use system date if data parsing fails
+        'minimum_months_for_partial': 3,  # Minimum months needed to treat as partial year
+        'debug_output': True           # Show calculation details
     }
 
 # =============================================================================
@@ -149,19 +164,15 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
     if position_df.iloc[0]['matching_positions'] > 0 and position_df.iloc[0]['non_empty_job_profiles'] > 0:
         print(f"   → Found {position_df.iloc[0]['matching_positions']:,} matching positions - proceeding with movement_fact analysis")
         
+        # Calculate effective current year dynamically
+        effective_current_year = calculate_effective_current_year(conn)
+        
         # Real velocity analysis using movement_fact data with exponential recency weighting
         # Using same 0.4^years_ago decay as movement_analysis_engine.py
-        velocity_analysis_query = """
+        velocity_analysis_query = f"""
         WITH current_date_context AS (
             SELECT 
-                MAX(movement_year) as max_year,
-                -- Data appears to end in July 2025, so adjust for partial year
-                CASE 
-                    WHEN MAX(movement_year) = 2025 THEN 2024.5  -- Treat 2025 as half-year
-                    ELSE MAX(movement_year)
-                END as effective_current_year
-            FROM movement_fact
-            WHERE movement_year >= 2020
+                {effective_current_year} as effective_current_year
         ),
         skill_movement_trends AS (
             SELECT 
@@ -368,9 +379,90 @@ def analyze_skill_velocity(conn) -> pd.DataFrame:
         if 'total_recency_weighted_movements' in velocity_df.columns:
             total_recency_weighted = velocity_df['total_recency_weighted_movements'].sum()
             print(f"   → Recency-weighted movements: {total_recency_weighted:,.1f} (0.4^years_ago exponential decay)")
-            print(f"   → Data cutoff adjustment: 2025 treated as partial year (2024.5) for CAGR accuracy")
+            print(f"   → Dynamic year adjustment: Current year treated as partial based on latest month data")
     
     return velocity_df
+
+def calculate_effective_current_year(conn) -> float:
+    """
+    Calculate the effective current year for velocity analysis based on actual movement data.
+    
+    This function dynamically determines:
+    1. The latest year in the movement data
+    2. The latest month in that year
+    3. An appropriate fractional year value for partial year calculations
+    
+    Returns:
+        Float representing the effective current year (e.g., 2024.75 for October 2024)
+    """
+    config = VelocityAnalysisConfig.YEAR_CALCULATION
+    
+    # Check if dynamic calculation is enabled
+    if config['method'] != 'dynamic':
+        current_date = datetime.now()
+        return float(current_date.year)
+    
+    try:
+        # Query to get the latest movement data
+        latest_data_query = """
+        SELECT 
+            MAX(movement_year) as latest_year,
+            MAX(movement_month) as latest_month,
+            COUNT(DISTINCT movement_month) as months_in_latest_year
+        FROM movement_fact 
+        WHERE movement_year = (SELECT MAX(movement_year) FROM movement_fact)
+        """
+        
+        result = pd.read_sql_query(latest_data_query, conn)
+        
+        if len(result) == 0:
+            if config['fallback_to_system_date']:
+                current_date = datetime.now()
+                if config['debug_output']:
+                    print(f"   → No movement data found, using system date: {current_date.year}.{current_date.month:02d}")
+                return float(current_date.year) + (current_date.month - 1) / 12.0
+            else:
+                raise ValueError("No movement data available and fallback disabled")
+        
+        latest_year = result.iloc[0]['latest_year']
+        latest_month = result.iloc[0]['latest_month']
+        months_in_latest_year = result.iloc[0]['months_in_latest_year']
+        
+        # Extract month number from YYYY-MM format
+        if latest_month and '-' in str(latest_month):
+            month_num = int(str(latest_month).split('-')[1])
+            
+            # Check if we have enough months to justify partial year calculation
+            if months_in_latest_year >= config['minimum_months_for_partial']:
+                # Calculate fractional year based on the latest month
+                fractional_year = float(latest_year) + (month_num - 1) / 12.0
+                
+                if config['debug_output']:
+                    print(f"   → Dynamic year calculation: Latest data from {latest_month} ({months_in_latest_year} months in {latest_year})")
+                    print(f"   → Effective current year: {fractional_year:.2f}")
+                
+                return fractional_year
+            else:
+                # Not enough months for partial year, use previous full year
+                previous_year = float(latest_year - 1) if latest_year > 2020 else float(latest_year)
+                if config['debug_output']:
+                    print(f"   → Insufficient months ({months_in_latest_year}) for partial year, using: {previous_year}")
+                return previous_year
+        else:
+            # If we can't parse the month, assume full year
+            if config['debug_output']:
+                print(f"   → Using full year: {latest_year} (unable to parse month from '{latest_month}')")
+            return float(latest_year)
+            
+    except Exception as e:
+        if config['debug_output']:
+            print(f"   → Error calculating effective current year: {e}")
+        
+        if config['fallback_to_system_date']:
+            current_date = datetime.now()
+            return float(current_date.year) + (current_date.month - 1) / 12.0
+        else:
+            raise
 
 def categorize_velocity(cagr: float) -> str:
     """Categorize skill velocity based on CAGR"""
@@ -439,7 +531,7 @@ def generate_velocity_summary(velocity_df: pd.DataFrame) -> Dict[str, Any]:
             'key_insight': f'Analyzed {len(velocity_df)} skills across {int(total_movements)} career movements',
             'uses_recency_weighting': 'recency_weighted_growth_pct' in velocity_df.columns,
             'growth_method': 'Recency-weighted (0.4^years_ago)' if 'recency_weighted_growth_pct' in velocity_df.columns else 'Standard year-over-year',
-            'data_cutoff_adjustment': '2025 treated as partial year (2024.5) for CAGR accuracy' if 'recency_weighted_growth_pct' in velocity_df.columns else None
+            'data_adjustment_method': 'Dynamic partial year based on latest month' if 'recency_weighted_growth_pct' in velocity_df.columns else None
         }
         
         if total_recency_weighted is not None:
@@ -502,8 +594,8 @@ def run_velocity_analysis(output_prefix: str = "skill_velocity") -> Tuple[pd.Dat
                 print(f"📈 Average recency-weighted growth rate: {summary['average_growth_rate']:.1f}% ({summary['growth_method']})")
                 if 'total_recency_weighted_movements' in summary:
                     print(f"⚡ Total recency-weighted movements: {summary['total_recency_weighted_movements']:,.1f}")
-                if summary.get('data_cutoff_adjustment'):
-                    print(f"📅 Data adjustment: {summary['data_cutoff_adjustment']}")
+                if summary.get('data_adjustment_method'):
+                    print(f"📅 Data adjustment: {summary['data_adjustment_method']}")
             else:
                 print(f"📈 Average growth rate: {summary['average_growth_rate']:.1f}%")
             
