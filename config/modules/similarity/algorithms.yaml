@@ -23,6 +23,55 @@ batch_size: 1000
 use_sparse_matrices: false
 cache_intermediate_results: true
 
+# =============================================================================
+# ENHANCED SIMILARITY ALGORITHMS - NEW SOPHISTICATED METHODS
+# =============================================================================
+# Based on empirically-tuned parameters from research notebooks
+# Results: 0.76% average improvement, 12.5% positive rate, 0.7714 smoothness score
+
+rarity_weighted_algorithms:
+  enabled: true                         # Feature flag for rarity-weighted algorithms
+  defining_skills_percentile: 20        # Top 20% rarest skills per job
+  gentle_multiplier: 1.05               # 5% boost per shared defining skill
+  rarity_thresholds:
+    rare: 5.0                          # <5% prevalence = rare (defining skills)
+    uncommon: 20.0                     # 5-20% prevalence = uncommon
+    common: 50.0                       # 20-50% prevalence = common
+
+# Backward compatibility - DEPRECATED
+enhanced_algorithms:
+  enabled: true                         # Feature flag for enhanced algorithms
+  defining_skills_percentile: 20        # Top 20% rarest skills per job
+  gentle_multiplier: 1.05               # 5% boost per shared defining skill
+  rarity_thresholds:
+    rare: 5.0                          # <5% prevalence = rare (defining skills)
+    uncommon: 20.0                     # 5-20% prevalence = uncommon
+    common: 50.0                       # 20-50% prevalence = common
+  
+hyperparameter_optimization:
+  enabled: false                        # Enable for parameter tuning runs
+  percentile_thresholds: [10, 15, 20, 25, 30, 35, 40]
+  multipliers: [1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.4, 1.5]
+  sample_size: 10000                    # Job pairs for validation
+  smoothness_weights:
+    gini_coefficient: 0.3
+    coefficient_of_variation: 0.4
+    range_ratio: 0.3
+
+# Database integration settings
+database_integration:
+  extend_job_similarities_table: true   # Add enhanced similarity columns
+  preserve_basic_similarity: true       # Maintain backward compatibility
+  enhanced_columns:
+    - enhanced_similarity_score         # Rarity-weighted + defining skills boost
+    - rarity_weighted_score            # Before defining skills boost
+    - shared_defining_skills_count     # Count of shared defining skills
+    - defining_skill_boost             # Actual boost applied
+
+# =============================================================================
+# EXISTING CONFIGURATION - PRESERVED FOR BACKWARD COMPATIBILITY
+# =============================================================================
+
 # Asymmetric coverage settings
 asymmetric:
   default_top_n_results: 10

@@ -61,6 +61,10 @@ class SchemaBuilder:
                 self._create_job_skills_table(conn)
                 self._create_career_pathways_table(conn)
                 
+                # Create enhanced similarity tables
+                self._create_skill_rarity_analysis_table(conn)
+                self._create_job_defining_skills_table(conn)
+                
                 # Create movement analysis tables
                 self._create_colleague_movements_table(conn)
                 self._create_position_history_table(conn)
@@ -86,6 +90,7 @@ class SchemaBuilder:
         tables = [
             'job_skills', 'job_similarities', 'career_pathways', 
             'colleague_movements', 'position_history', 'workforce_context', 'movement_fact',
+            'job_defining_skills', 'skill_rarity_analysis',  # Enhanced similarity tables
             'positions', 'skills', 'jobs', 'schema_metadata'
         ]
         
@@ -124,16 +129,22 @@ class SchemaBuilder:
         logger.debug("Created enhanced jobs table with 16-column schema")
     
     def _create_job_similarities_table(self, conn: sqlite3.Connection) -> None:
-        """Create job_similarities table - Pre-computed Job-to-Job Similarities."""
+        """Create job_similarities table - Pre-computed Job-to-Job Similarities with Enhanced Algorithms Support."""
         sql = """
         CREATE TABLE job_similarities (
             job_from TEXT NOT NULL,                 -- Source JobProfileID
             job_to TEXT NOT NULL,                   -- Target JobProfileID  
-            similarity_score REAL NOT NULL,        -- Overall similarity (0-1)
+            similarity_score REAL NOT NULL,        -- Overall similarity (0-1) - PRESERVED FOR BACKWARD COMPATIBILITY
             skill_overlap_score REAL,              -- Skills-specific similarity
             shared_skills_count INTEGER,           -- Number of overlapping skills
             total_skills_from INTEGER,             -- Total skills for source job
             total_skills_to INTEGER,               -- Total skills for target job
+            
+            -- Enhanced Similarity Columns (based on rarity-weighted algorithms)
+            enhanced_similarity_score REAL,        -- Rarity-weighted + defining skills boost (0-1)
+            rarity_weighted_score REAL,            -- Before defining skills boost (0-1)
+            shared_defining_skills_count INTEGER,  -- Count of shared defining skills
+            defining_skill_boost REAL,             -- Actual boost applied (multiplier impact)
             
             PRIMARY KEY (job_from, job_to),
             FOREIGN KEY (job_from) REFERENCES jobs(JobProfileID),
@@ -141,7 +152,53 @@ class SchemaBuilder:
         );
         """
         conn.execute(sql)
-        logger.debug("Created job_similarities table")
+        logger.debug("Created enhanced job_similarities table with rarity-weighted columns")
+    
+    def _create_skill_rarity_analysis_table(self, conn: sqlite3.Connection) -> None:
+        """Create skill_rarity_analysis table - Complete skill universe with rarity categorization."""
+        sql = """
+        CREATE TABLE skill_rarity_analysis (
+            skill_id TEXT PRIMARY KEY,
+            skill_name TEXT NOT NULL,
+            category TEXT,
+            subcategory TEXT,
+            skill_type TEXT,
+            total_profiles_with_skill INTEGER,
+            total_jobs INTEGER,
+            prevalence_percentage REAL,
+            rarity_category TEXT,                   -- 'rare', 'uncommon', 'common', 'universal'
+            is_defining_skill BOOLEAN,
+            created_timestamp TEXT,
+            
+            FOREIGN KEY (skill_id) REFERENCES skills(Skill_ID)
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created skill_rarity_analysis table")
+    
+    def _create_job_defining_skills_table(self, conn: sqlite3.Connection) -> None:
+        """Create job_defining_skills table - Job-specific defining skills relationships."""
+        sql = """
+        CREATE TABLE job_defining_skills (
+            job_profile_id TEXT,
+            skill_id TEXT,
+            skill_name TEXT,
+            job_profile TEXT,
+            category TEXT,
+            subcategory TEXT,
+            skill_type TEXT,
+            prevalence_percentage REAL,
+            total_profiles_with_skill INTEGER,
+            rarity_category TEXT,
+            created_timestamp TEXT,
+            
+            PRIMARY KEY (job_profile_id, skill_id),
+            FOREIGN KEY (job_profile_id) REFERENCES jobs(JobProfileID),
+            FOREIGN KEY (skill_id) REFERENCES skills(Skill_ID)
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created job_defining_skills table")
     
     def _create_positions_table(self, conn: sqlite3.Connection) -> None:
         """Create positions table - Workforce Context with Employee Number as primary key."""
