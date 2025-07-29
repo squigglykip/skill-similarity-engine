@@ -425,86 +425,96 @@ def create_professional_description(composition: Dict, specialization: Dict, lev
 
 def generate_job_cluster_name(cluster_jobs: pd.DataFrame, cluster_id: int) -> Dict[str, str]:
     """
-    Generate structured, human-readable names for job clusters
+    Generate pragmatic, UK English naming for job clusters
     
     Returns:
-        Dict with 'cluster_name', 'cluster_title', 'cluster_description', 'confidence', and 'naming_rationale'
+        Dict with 'name', 'description', 'rationale', and 'sample_jobs'
     """
     if len(cluster_jobs) == 0:
         return {
-            'cluster_name': f"Empty Cluster {cluster_id}",
-            'cluster_title': "Empty Cluster",
-            'cluster_description': "No jobs assigned to this cluster",
-            'confidence': 'Low',
-            'naming_rationale': 'No jobs in cluster'
+            'name': f"Empty Cluster {cluster_id}",
+            'description': "No jobs assigned to this cluster",
+            'rationale': 'No jobs in cluster',
+            'sample_jobs': ''
         }
     
-    # Analyze cluster composition
-    composition = analyze_functional_composition(cluster_jobs)
-    specialization = analyze_specialization_depth(cluster_jobs)
-    level_pattern = analyze_management_level_pattern(cluster_jobs)
+    # Calculate cluster composition
+    function_counts = cluster_jobs['JobFunction'].value_counts()
+    total_jobs = len(cluster_jobs)
+    dominant_function = function_counts.index[0] if not function_counts.empty else "Mixed"
+    function_purity = function_counts.iloc[0] / total_jobs if not function_counts.empty else 0
     
-    # Create structured naming
-    cluster_size = len(cluster_jobs)
-    
-    # TITLE: Concise, professional identifier
-    if composition['primary_function']:
-        if level_pattern != "Mixed":
-            title = f"{composition['primary_function']} {level_pattern}"
-        else:
-            title = f"{composition['primary_function']} Professionals"
+    # Determine confidence level and language
+    if total_jobs < 3:
+        confidence_key = 'emerging'
+        prefix = 'Emerging'
+        suffix = 'Speciality'
+        description_starter = 'representing niche'
+        qualifier = 'potentially'
+    elif function_purity >= 0.8:
+        confidence_key = 'high'
+        prefix = ''
+        suffix = 'Specialists'
+        description_starter = 'primarily focused on'
+        qualifier = 'consistently'
+    elif function_purity >= 0.6:
+        confidence_key = 'medium'
+        prefix = 'Mixed'
+        suffix = 'Professionals'
+        description_starter = 'spanning across'
+        qualifier = 'predominantly'
     else:
-        if level_pattern != "Mixed":
-            title = f"Cross-Functional {level_pattern}"
-        else:
-            title = "Multi-Functional Professionals"
+        confidence_key = 'low'
+        prefix = 'Diverse'
+        suffix = 'Professional Group'
+        description_starter = 'covering various'
+        qualifier = 'generally'
     
-    # SUBTITLE: Adds specialization context if relevant
-    subtitle = ""
-    if specialization['focus_area'] and specialization['focus_area'] != composition['primary_function']:
-        if specialization['specialization'] in ['highly specialized', 'specialized']:
-            focus_short = specialization['focus_area'][:25] + "..." if len(specialization['focus_area']) > 25 else specialization['focus_area']
-            subtitle = f"Specializing in {focus_short}"
-    
-    # DESCRIPTION: Full professional description
-    description = create_professional_description(composition, specialization, level_pattern, cluster_size)
-    
-    # COMBINED NAME: Title + Subtitle for primary display
-    if subtitle:
-        cluster_name = f"{title} - {subtitle}"
+    # Create name
+    if confidence_key == 'high':
+        name = f"{dominant_function} {suffix}"
     else:
-        cluster_name = title
+        name = f"{prefix} {dominant_function} {suffix}" if prefix else f"{dominant_function} {suffix}"
     
-    # Confidence assessment
-    confidence = "High"
-    rationale_parts = []
+    # Format name in proper title case
+    name = _format_title_case(name)
     
-    if composition['dominance'] in ['exclusively', 'predominantly', 'primarily']:
-        rationale_parts.append(f"strong functional coherence ({composition['dominance']} {composition['primary_function']})")
-    else:
-        confidence = "Medium"
-        rationale_parts.append(f"moderate functional diversity ({composition['dominance']} represented)")
+    # Create description
+    description = f"Professionals {description_starter} {dominant_function.lower()}"
     
-    if cluster_size < 3:
-        confidence = "Low"
-        rationale_parts.append("limited cluster size")
-    elif cluster_size >= 8:
-        rationale_parts.append("substantial cluster size")
+    # Create rationale
+    rationale = f"{qualifier.capitalize()} {dominant_function.lower()} ({function_counts.iloc[0]}/{total_jobs} jobs, {function_purity:.1%} purity)"
     
-    if level_pattern != "Mixed":
-        rationale_parts.append(f"clear {level_pattern.lower()} level pattern")
-    
-    # Ensure names aren't too long for display
-    if len(cluster_name) > 65:
-        cluster_name = cluster_name[:62] + "..."
+    # Get sample jobs
+    sample_jobs = '; '.join(cluster_jobs['JobProfile'].head(3).tolist())
     
     return {
-        'cluster_name': cluster_name,
-        'cluster_title': title,
-        'cluster_description': description,
-        'confidence': confidence,
-        'naming_rationale': '; '.join(rationale_parts)
+        'name': name,
+        'description': description,
+        'rationale': rationale,
+        'sample_jobs': sample_jobs
     }
+
+def _format_title_case(text: str) -> str:
+    """Format text in proper title case for UK English"""
+    if not text:
+        return ""
+    
+    # Words that should remain lowercase in titles (UK style)
+    lowercase_words = {'and', 'or', 'but', 'nor', 'for', 'yet', 'so', 'a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
+    
+    words = text.split()
+    formatted_words = []
+    
+    for i, word in enumerate(words):
+        if i == 0 or word.lower() not in lowercase_words:
+            # First word or content word - capitalise
+            formatted_words.append(word.capitalize())
+        else:
+            # Articles, prepositions, conjunctions - keep lowercase
+            formatted_words.append(word.lower())
+    
+    return ' '.join(formatted_words)
 
 # =============================================================================
 # CLUSTERING FUNCTIONS
@@ -582,7 +592,7 @@ def analyze_job_clusters(
     Returns:
         DataFrame with cluster analysis results including descriptive names
     """
-    print("\n📊 ANALYZING JOB CLUSTERS WITH DESCRIPTIVE NAMING")
+    print("\n📊 ANALYZING JOB CLUSTERS WITH PRAGMATIC NAMING")
     print("="*60)
     
     # Create cluster assignments dataframe
@@ -606,23 +616,21 @@ def analyze_job_clusters(
         cluster_jobs = cluster_analysis[cluster_analysis['Cluster_ID'] == cluster_id]
         cluster_size = len(cluster_jobs)
         
-        # Generate descriptive name
+        # Generate pragmatic name
         naming_result = generate_job_cluster_name(cluster_jobs, cluster_id)
         
+        # Get skills for jobs in this cluster
+        cluster_job_ids = cluster_jobs['JobProfileID'].tolist()
+        cluster_skills = job_skills_df[job_skills_df['JobProfileID'].isin(cluster_job_ids)]
+        
+        # Most common skills in cluster
+        skill_counts = cluster_skills['Skill_Name'].value_counts()
+        top_skills = skill_counts.head(5).index.tolist()  # Top 5 skills
+        sample_skills = '; '.join(top_skills)
+        
+        # Calculate intra-cluster similarity if cluster is large enough
+        avg_similarity = 0
         if cluster_size >= JobClusteringProductionConfig.MIN_CLUSTER_SIZE_ANALYSIS:
-            # Get skills for jobs in this cluster
-            cluster_job_ids = cluster_jobs['JobProfileID'].tolist()
-            cluster_skills = job_skills_df[job_skills_df['JobProfileID'].isin(cluster_job_ids)]
-            
-            # Most common skills in cluster
-            skill_counts = cluster_skills['Skill_Name'].value_counts()
-            top_skills = skill_counts.head(JobClusteringProductionConfig.TOP_SKILLS_PER_CLUSTER).index.tolist()
-            
-            # Most common job functions
-            function_counts = cluster_jobs['JobFunction'].value_counts()
-            top_functions = function_counts.head(3).index.tolist()
-            
-            # Calculate intra-cluster similarity
             cluster_similarities = []
             for i in range(len(cluster_job_ids)):
                 for j in range(i+1, len(cluster_job_ids)):
@@ -630,49 +638,37 @@ def analyze_job_clusters(
                     if job_i in similarity_df.index and job_j in similarity_df.index:
                         sim = similarity_df.loc[job_i, job_j]
                         cluster_similarities.append(sim)
-            
             avg_similarity = np.mean(cluster_similarities) if cluster_similarities else 0
-            
-            cluster_stats.append({
-                'Cluster_ID': cluster_id,
-                'Cluster_Name': naming_result['cluster_name'],
-                'Cluster_Title': naming_result['cluster_title'],
-                'Cluster_Description': naming_result['cluster_description'],
-                'Naming_Confidence': naming_result['confidence'],
-                'Naming_Rationale': naming_result['naming_rationale'],
-                'Cluster_Size': cluster_size,
-                'Avg_Intra_Similarity': avg_similarity,
-                'Top_Functions': '; '.join(top_functions),
-                'Top_Skills': '; '.join(top_skills[:5]),  # Top 5 for readability
-                'Job_Examples': '; '.join(cluster_jobs['JobProfile'].head(3).tolist())
-            })
-        else:
-            # Small cluster - still name it but mark as low confidence
-            cluster_stats.append({
-                'Cluster_ID': cluster_id,
-                'Cluster_Name': naming_result['cluster_name'],
-                'Cluster_Title': naming_result['cluster_title'],
-                'Cluster_Description': naming_result['cluster_description'],
-                'Naming_Confidence': 'Low',
-                'Naming_Rationale': f"Small cluster ({cluster_size} jobs); {naming_result['naming_rationale']}",
-                'Cluster_Size': cluster_size,
-                'Avg_Intra_Similarity': 0,
-                'Top_Functions': '; '.join(cluster_jobs['JobFunction'].value_counts().head(2).index.tolist()),
-                'Top_Skills': 'Limited data',
-                'Job_Examples': '; '.join(cluster_jobs['JobProfile'].head(3).tolist())
-            })
+        
+        cluster_stats.append({
+            'Cluster_ID': cluster_id,
+            'Cluster_Name': naming_result['name'],
+            'Cluster_Description': naming_result['description'],
+            'Cluster_Rationale': naming_result['rationale'],
+            'Sample_Jobs': naming_result['sample_jobs'],
+            'Sample_Skills': sample_skills if sample_skills else 'No skills data',
+            'Cluster_Size': cluster_size,
+            'Avg_Intra_Similarity': avg_similarity
+        })
     
     cluster_stats_df = pd.DataFrame(cluster_stats)
     
-    # Add descriptive names back to main cluster analysis
+    # Add pragmatic names back to main cluster analysis
     name_mapping = cluster_stats_df.set_index('Cluster_ID')['Cluster_Name'].to_dict()
-    cluster_analysis['Cluster_Name'] = cluster_analysis['Cluster_ID'].map(name_mapping)
-    cluster_analysis['Cluster_Name'] = cluster_analysis['Cluster_Name'].fillna('Noise/Unassigned')
+    description_mapping = cluster_stats_df.set_index('Cluster_ID')['Cluster_Description'].to_dict()
+    rationale_mapping = cluster_stats_df.set_index('Cluster_ID')['Cluster_Rationale'].to_dict()
     
-    print(f"   → Generated descriptive names for all clusters")
-    print(f"   → High confidence names: {len(cluster_stats_df[cluster_stats_df['Naming_Confidence'] == 'High'])}")
-    print(f"   → Medium confidence names: {len(cluster_stats_df[cluster_stats_df['Naming_Confidence'] == 'Medium'])}")
-    print(f"   → Low confidence names: {len(cluster_stats_df[cluster_stats_df['Naming_Confidence'] == 'Low'])}")
+    cluster_analysis['Cluster_Name'] = cluster_analysis['Cluster_ID'].map(name_mapping)
+    cluster_analysis['Cluster_Description'] = cluster_analysis['Cluster_ID'].map(description_mapping)
+    cluster_analysis['Cluster_Rationale'] = cluster_analysis['Cluster_ID'].map(rationale_mapping)
+    
+    cluster_analysis['Cluster_Name'] = cluster_analysis['Cluster_Name'].fillna('Noise/Unassigned')
+    cluster_analysis['Cluster_Description'] = cluster_analysis['Cluster_Description'].fillna('No cluster assignment')
+    cluster_analysis['Cluster_Rationale'] = cluster_analysis['Cluster_Rationale'].fillna('Unassigned job')
+    
+    print(f"   → Generated pragmatic names for all clusters")
+    print(f"   → Total clusters analysed: {len(cluster_stats_df)}")
+    print(f"   → Average cluster size: {cluster_stats_df['Cluster_Size'].mean():.1f} jobs")
     
     return cluster_analysis, cluster_stats_df
 
@@ -692,30 +688,24 @@ def save_cluster_outputs(
     
     timestamp = create_timestamp()
     
-    # 1. Primary cluster assignments CSV (enhanced with structured names)
+    # 1. Primary cluster assignments CSV with pragmatic naming
     output_df = cluster_analysis[['JobProfileID', 'JobProfile', 'JobFunction', 
                                  'JobSubFunction', 'JobCategory', 'ManagementLevel',
-                                 'Cluster_ID', 'Cluster_Name']].copy()
+                                 'Cluster_ID', 'Cluster_Name', 'Cluster_Description', 
+                                 'Cluster_Rationale']].copy()
     
-    # Add structured naming fields
-    title_mapping = cluster_stats.set_index('Cluster_ID')['Cluster_Title'].to_dict()
-    description_mapping = cluster_stats.set_index('Cluster_ID')['Cluster_Description'].to_dict()
+    # Add sample jobs and skills from cluster_stats
+    sample_jobs_mapping = cluster_stats.set_index('Cluster_ID')['Sample_Jobs'].to_dict()
+    sample_skills_mapping = cluster_stats.set_index('Cluster_ID')['Sample_Skills'].to_dict()
     
-    output_df['Cluster_Title'] = output_df['Cluster_ID'].map(title_mapping)
-    output_df['Cluster_Description'] = output_df['Cluster_ID'].map(description_mapping)
-    output_df['Cluster_Title'] = output_df['Cluster_Title'].fillna('Unassigned')
-    output_df['Cluster_Description'] = output_df['Cluster_Description'].fillna('No cluster assignment')
+    output_df['Sample_Jobs'] = output_df['Cluster_ID'].map(sample_jobs_mapping)
+    output_df['Sample_Skills'] = output_df['Cluster_ID'].map(sample_skills_mapping)
+    output_df['Sample_Jobs'] = output_df['Sample_Jobs'].fillna('')
+    output_df['Sample_Skills'] = output_df['Sample_Skills'].fillna('')
     
-    # Add cluster size and quality metrics
+    # Add cluster size
     cluster_sizes = cluster_analysis['Cluster_ID'].value_counts().to_dict()
     output_df['Cluster_Size'] = output_df['Cluster_ID'].map(cluster_sizes)
-    
-    # Add naming confidence from cluster_stats
-    name_confidence = cluster_stats.set_index('Cluster_ID')['Naming_Confidence'].to_dict()
-    output_df['Naming_Confidence'] = output_df['Cluster_ID'].map(name_confidence)
-    output_df['Naming_Confidence'] = output_df['Naming_Confidence'].fillna('N/A')
-    
-    output_df['Cluster_Quality'] = 'High' if clustering_metrics['silhouette_score'] > 0.8 else 'Good'
     
     primary_output_file = f"job_clusters_production_{timestamp}.csv"
     output_df.to_csv(primary_output_file, index=False)
@@ -735,10 +725,12 @@ def save_cluster_outputs(
         f.write(f"  Silhouette Score: {clustering_metrics['silhouette_score']:.3f}\n")
         f.write(f"  Average Jobs per Cluster: {(clustering_metrics['total_jobs'] - clustering_metrics['noise_points']) / clustering_metrics['n_clusters']:.1f}\n\n")
         
-        f.write("NAMING QUALITY SUMMARY:\n")
-        naming_summary = cluster_stats['Naming_Confidence'].value_counts()
-        for confidence, count in naming_summary.items():
-            f.write(f"  {confidence} Confidence Names: {count} clusters\n")
+        f.write("CLUSTER QUALITY SUMMARY:\n")
+        cluster_size_stats = cluster_stats['Cluster_Size'].describe()
+        f.write(f"  Average Cluster Size: {cluster_size_stats['mean']:.1f} jobs\n")
+        f.write(f"  Median Cluster Size: {cluster_size_stats['50%']:.0f} jobs\n")
+        f.write(f"  Largest Cluster: {cluster_size_stats['max']:.0f} jobs\n")
+        f.write(f"  Smallest Cluster: {cluster_size_stats['min']:.0f} jobs\n")
         f.write("\n")
         
         f.write("PARAMETER VALIDATION:\n")
@@ -746,22 +738,22 @@ def save_cluster_outputs(
         f.write(f"  Expected Silhouette: {JobClusteringProductionConfig.EXPECTED_SILHOUETTE:.3f}\n")
         f.write(f"  Expected Noise Ratio: {JobClusteringProductionConfig.EXPECTED_NOISE_RATIO:.1%}\n\n")
         
-        f.write("TOP 20 CLUSTERS - STRUCTURED OVERVIEW:\n")
+        f.write("TOP 20 CLUSTERS - PRAGMATIC OVERVIEW:\n")
         for _, cluster in cluster_stats.head(20).iterrows():
-            f.write(f"\nCluster {cluster['Cluster_ID']}: {cluster['Cluster_Title']}\n")
+            f.write(f"\nCluster {cluster['Cluster_ID']}: {cluster['Cluster_Name']}\n")
             f.write(f"  Description: {cluster['Cluster_Description']}\n")
             f.write(f"  Size: {cluster['Cluster_Size']} professionals\n")
-            f.write(f"  Confidence: {cluster['Naming_Confidence']}\n")
+            f.write(f"  Rationale: {cluster['Cluster_Rationale']}\n")
             f.write("-" * 60 + "\n")
         
-        f.write("\n\nEXECUTIVE SUMMARY - HIGH CONFIDENCE CLUSTERS:\n")
-        high_conf_clusters = cluster_stats[cluster_stats['Naming_Confidence'] == 'High'].head(15)
-        f.write(f"Found {len(high_conf_clusters)} high-confidence job cluster patterns:\n\n")
+        f.write("\n\nEXECUTIVE SUMMARY - LARGEST CLUSTERS:\n")
+        largest_clusters = cluster_stats.nlargest(15, 'Cluster_Size')
+        f.write(f"Top {len(largest_clusters)} largest job cluster patterns:\n\n")
         
-        for _, cluster in high_conf_clusters.iterrows():
-            f.write(f"• {cluster['Cluster_Title']} ({cluster['Cluster_Size']} professionals)\n")
+        for _, cluster in largest_clusters.iterrows():
+            f.write(f"• {cluster['Cluster_Name']} ({cluster['Cluster_Size']} professionals)\n")
             f.write(f"  {cluster['Cluster_Description']}\n")
-            f.write(f"  Representative roles: {cluster['Job_Examples']}\n\n")
+            f.write(f"  Representative roles: {cluster['Sample_Jobs']}\n\n")
         
         f.write("\n\nSTRATEGIC INSIGHTS:\n")
         f.write("  - Cluster names reflect natural job families based on organizational taxonomy\n")
@@ -782,33 +774,21 @@ def save_cluster_outputs(
         f.write("JOB CLUSTER NAMING ANALYSIS\n")
         f.write("="*35 + "\n\n")
         
-        f.write("DESCRIPTIVE NAMING METHODOLOGY:\n")
-        f.write("- Primary: JobFunction dominance (60% threshold)\n")
-        f.write("- Secondary: JobSubFunction specialization\n")
-        f.write("- Context: ManagementLevel patterns (Leadership/Specialists/Associate)\n")
-        f.write("- Confidence: Based on cluster size and functional coherence\n\n")
+        f.write("PRAGMATIC NAMING METHODOLOGY:\n")
+        f.write("- Primary: JobFunction dominance with purity scoring\n")
+        f.write("- Language: Confidence-based natural language (High/Medium/Low/Emerging)\n")
+        f.write("- UK English: Professional formatting and spelling\n")
+        f.write("- Structure: Name, Description, Rationale, Sample Jobs/Skills\n\n")
         
-        f.write("NAMING CONFIDENCE DISTRIBUTION:\n")
-        for confidence in ['High', 'Medium', 'Low']:
-            conf_clusters = cluster_stats[cluster_stats['Naming_Confidence'] == confidence]
-            f.write(f"\n{confidence} Confidence ({len(conf_clusters)} clusters):\n")
-            for _, cluster in conf_clusters.head(10).iterrows():
-                f.write(f"  {cluster['Cluster_ID']}: {cluster['Cluster_Name']}\n")
+        f.write("CLUSTER SIZE DISTRIBUTION:\n")
+        size_bins = cluster_stats['Cluster_Size'].value_counts().sort_index()
+        for size, count in size_bins.head(10).items():
+            f.write(f"  {size} jobs: {count} clusters\n")
         
-        f.write("\n\nFUNCTIONAL DIVERSITY ANALYSIS:\n")
-        # Analyze which JobFunctions appear in multiple clusters
-        function_clusters = {}
-        for _, cluster in cluster_stats.iterrows():
-            top_functions = cluster['Top_Functions'].split('; ')
-            for func in top_functions:
-                if func not in function_clusters:
-                    function_clusters[func] = []
-                function_clusters[func].append(cluster['Cluster_ID'])
-        
-        f.write("JobFunctions appearing in multiple clusters:\n")
-        for func, cluster_ids in function_clusters.items():
-            if len(cluster_ids) > 1:
-                f.write(f"  {func}: Clusters {cluster_ids}\n")
+        f.write("\n\nSAMPLE CLUSTER NAMES:\n")
+        f.write("Representative cluster names generated:\n")
+        for _, cluster in cluster_stats.head(10).iterrows():
+            f.write(f"  Cluster {cluster['Cluster_ID']}: {cluster['Cluster_Name']}\n")
     
     print(f"   → Naming analysis: {naming_file}")
     

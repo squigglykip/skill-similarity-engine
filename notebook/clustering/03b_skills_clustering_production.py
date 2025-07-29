@@ -482,93 +482,96 @@ def create_skills_description(composition: Dict, application_level: str, special
 
 def generate_skills_bundle_name(cluster_skills: pd.DataFrame, cluster_id: int) -> Dict[str, str]:
     """
-    Generate structured, human-readable names for skills bundles
+    Generate pragmatic, UK English naming for skills bundles
     
     Returns:
-        Dict with 'bundle_name', 'bundle_title', 'bundle_description', 'confidence', and 'naming_rationale'
+        Dict with 'name', 'description', 'rationale', and 'sample_skills'
     """
     if len(cluster_skills) == 0:
         return {
-            'bundle_name': f"Empty Bundle {cluster_id}",
-            'bundle_title': "Empty Bundle",
-            'bundle_description': "No skills assigned to this bundle",
-            'confidence': 'Low',
-            'naming_rationale': 'No skills in bundle'
+            'name': f"Empty Bundle {cluster_id}",
+            'description': "No skills assigned to this bundle",
+            'rationale': 'No skills in bundle',
+            'sample_skills': ''
         }
     
-    # Analyze bundle composition
-    composition = analyze_skills_composition(cluster_skills)
-    application_level = analyze_skills_application_level(cluster_skills)
+    # Calculate bundle composition
+    category_counts = cluster_skills['Category'].value_counts()
+    total_skills = len(cluster_skills)
+    dominant_category = category_counts.index[0] if not category_counts.empty else "Mixed"
+    category_purity = category_counts.iloc[0] / total_skills if not category_counts.empty else 0
     
-    # Get specialization area
-    sub_categories = get_top_subcategories(cluster_skills, top_n=1)
-    specialization_area = sub_categories[0] if sub_categories else None
-    
-    bundle_size = len(cluster_skills)
-    
-    # TITLE: Professional, concise identifier
-    if composition['primary_category']:
-        if application_level == 'advanced practice':
-            title = f"{composition['primary_category']} - Advanced Practice"
-        elif application_level == 'professional certification':
-            title = f"{composition['primary_category']} - Professional Certification"
-        elif application_level == 'foundational competency':
-            title = f"{composition['primary_category']} - Core Competencies"
-        else:
-            title = f"{composition['primary_category']} - Professional Skills"
+    # Determine confidence level and language
+    if total_skills < 3:
+        confidence_key = 'emerging'
+        prefix = 'Emerging'
+        suffix = 'Skills'
+        description_starter = 'representing niche'
+        qualifier = 'potentially'
+    elif category_purity >= 0.8:
+        confidence_key = 'high'
+        prefix = ''
+        suffix = 'Skills Bundle'
+        description_starter = 'primarily focused on'
+        qualifier = 'consistently'
+    elif category_purity >= 0.6:
+        confidence_key = 'medium'
+        prefix = 'Mixed'
+        suffix = 'Skills'
+        description_starter = 'spanning across'
+        qualifier = 'predominantly'
     else:
-        if application_level == 'advanced practice':
-            title = "Cross-Domain Advanced Practice"
-        elif application_level == 'professional certification':
-            title = "Multi-Domain Professional Certification"
-        else:
-            title = "Integrated Professional Skills"
+        confidence_key = 'low'
+        prefix = 'Diverse'
+        suffix = 'Skills Bundle'
+        description_starter = 'covering various'
+        qualifier = 'generally'
     
-    # SUBTITLE: Specialization context if relevant
-    subtitle = ""
-    if specialization_area and specialization_area != composition['primary_category']:
-        area_short = specialization_area[:30] + "..." if len(specialization_area) > 30 else specialization_area
-        subtitle = f"Specializing in {area_short}"
-    
-    # DESCRIPTION: Full professional description
-    description = create_skills_description(composition, application_level, specialization_area or '', bundle_size)
-    
-    # COMBINED NAME: Title + Subtitle for display
-    if subtitle:
-        bundle_name = f"{title} - {subtitle}"
+    # Create name
+    if confidence_key == 'high':
+        name = f"{dominant_category} {suffix}"
     else:
-        bundle_name = title
+        name = f"{prefix} {dominant_category} {suffix}" if prefix else f"{dominant_category} {suffix}"
     
-    # Confidence assessment
-    confidence = "High"
-    rationale_parts = []
+    # Format name in proper title case
+    name = _format_title_case(name)
     
-    if composition['focus'] in ['exclusively focused', 'predominantly centered', 'primarily concentrated']:
-        rationale_parts.append(f"strong thematic coherence ({composition['focus']} on {composition['primary_category']})")
-    else:
-        confidence = "Medium"
-        rationale_parts.append(f"moderate thematic diversity ({composition['focus']})")
+    # Create description
+    description = f"Skills bundle {description_starter} {dominant_category.lower()}"
     
-    if bundle_size < 5:
-        confidence = "Low"
-        rationale_parts.append("limited bundle size")
-    elif bundle_size >= 15:
-        rationale_parts.append("substantial skill coverage")
+    # Create rationale
+    rationale = f"{qualifier.capitalize()} {dominant_category.lower()} ({category_counts.iloc[0]}/{total_skills} skills, {category_purity:.1%} purity)"
     
-    if application_level != 'mixed proficiency':
-        rationale_parts.append(f"clear {application_level} focus")
-    
-    # Ensure names aren't too long
-    if len(bundle_name) > 75:
-        bundle_name = bundle_name[:72] + "..."
+    # Get sample skills
+    sample_skills = '; '.join(cluster_skills['Skill_Name'].head(5).tolist() if 'Skill_Name' in cluster_skills.columns else [])
     
     return {
-        'bundle_name': bundle_name,
-        'bundle_title': title,
-        'bundle_description': description,
-        'confidence': confidence,
-        'naming_rationale': '; '.join(rationale_parts)
+        'name': name,
+        'description': description,
+        'rationale': rationale,
+        'sample_skills': sample_skills
     }
+
+def _format_title_case(text: str) -> str:
+    """Format text in proper title case for UK English"""
+    if not text:
+        return ""
+    
+    # Words that should remain lowercase in titles (UK style)
+    lowercase_words = {'and', 'or', 'but', 'nor', 'for', 'yet', 'so', 'a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
+    
+    words = text.split()
+    formatted_words = []
+    
+    for i, word in enumerate(words):
+        if i == 0 or word.lower() not in lowercase_words:
+            # First word or content word - capitalise
+            formatted_words.append(word.capitalize())
+        else:
+            # Articles, prepositions, conjunctions - keep lowercase
+            formatted_words.append(word.lower())
+    
+    return ' '.join(formatted_words)
 
 # =============================================================================
 # ANALYSIS AND CHARACTERIZATION
@@ -586,7 +589,7 @@ def analyze_skill_bundles(
     Returns:
         Tuple of (cluster_analysis, bundle_stats, specialized_skills)
     """
-    print("\n📊 ANALYZING SKILL BUNDLES WITH DESCRIPTIVE NAMING")
+    print("\n📊 ANALYZING SKILL BUNDLES WITH PRAGMATIC NAMING")
     print("="*60)
     
     # Create cluster assignments dataframe
@@ -611,29 +614,27 @@ def analyze_skill_bundles(
     bundle_stats = []
     unique_clusters = sorted([c for c in set(cluster_labels) if c != -1])
     
-    print(f"   → Generating descriptive names for {len(unique_clusters)} skill bundles...")
+    print(f"   → Generating pragmatic names for {len(unique_clusters)} skill bundles...")
     
     for cluster_id in unique_clusters:
         cluster_skills = cluster_analysis[cluster_analysis['Cluster_ID'] == cluster_id]
         bundle_size = len(cluster_skills)
         
-        # Generate descriptive name
+        # Generate pragmatic name
         naming_result = generate_skills_bundle_name(cluster_skills, cluster_id)
         
+        # Get jobs that use skills in this bundle
+        bundle_skill_names = cluster_skills['Skill_Name'].tolist() if 'Skill_Name' in cluster_skills.columns else []
+        bundle_jobs = job_skills_df[job_skills_df['Skill_Name'].isin(bundle_skill_names)]
+        
+        # Most common job functions using these skills
+        function_counts = bundle_jobs['JobFunction'].value_counts()
+        top_functions = function_counts.head(3).index.tolist()
+        sample_job_functions = '; '.join(top_functions)
+        
+        # Calculate intra-bundle similarity if bundle is large enough
+        avg_similarity = 0
         if bundle_size >= SkillsClusteringProductionConfig.MIN_BUNDLE_SIZE_ANALYSIS:
-            # Get jobs that use skills in this bundle
-            bundle_skill_names = cluster_skills['Skill_Name'].tolist()
-            bundle_jobs = job_skills_df[job_skills_df['Skill_Name'].isin(bundle_skill_names)]
-            
-            # Most common job functions using these skills
-            function_counts = bundle_jobs['JobFunction'].value_counts()
-            top_functions = function_counts.head(SkillsClusteringProductionConfig.TOP_JOBS_PER_BUNDLE).index.tolist()
-            
-            # Most common skill categories in bundle
-            category_counts = cluster_skills['Category'].value_counts()
-            primary_category = category_counts.index[0] if len(category_counts) > 0 else 'Unknown'
-            
-            # Calculate intra-bundle similarity
             bundle_similarities = []
             for i in range(len(bundle_skill_names)):
                 for j in range(i+1, len(bundle_skill_names)):
@@ -641,29 +642,19 @@ def analyze_skill_bundles(
                     if skill_i in similarity_df.index and skill_j in similarity_df.index:
                         sim = similarity_df.loc[skill_i, skill_j]
                         bundle_similarities.append(sim)
-            
             avg_similarity = np.mean(bundle_similarities) if bundle_similarities else 0
-            
-            # Generate bundle theme based on primary category and top functions
-            bundle_theme = f"{primary_category}"
-            if top_functions:
-                bundle_theme += f" ({top_functions[0]})"
-            
-            bundle_stats.append({
-                'Cluster_ID': cluster_id,
-                'Bundle_Name': naming_result['bundle_name'],
-                'Bundle_Title': naming_result['bundle_title'],
-                'Bundle_Description': naming_result['bundle_description'],
-                'Naming_Confidence': naming_result['confidence'],
-                'Naming_Rationale': naming_result['naming_rationale'],
-                'Bundle_Size': bundle_size,
-                'Bundle_Theme': bundle_theme,
-                'Primary_Category': primary_category,
-                'Avg_Intra_Similarity': avg_similarity,
-                'Top_Job_Functions': '; '.join(top_functions[:3]),
-                'Skills_Sample': '; '.join(bundle_skill_names[:5]),  # First 5 skills for readability
-                'Jobs_Using_Bundle': bundle_jobs['JobProfileID'].nunique()
-            })
+        
+        bundle_stats.append({
+            'Cluster_ID': cluster_id,
+            'Bundle_Name': naming_result['name'],
+            'Bundle_Description': naming_result['description'],
+            'Bundle_Rationale': naming_result['rationale'],
+            'Sample_Skills': naming_result['sample_skills'],
+            'Sample_Job_Functions': sample_job_functions if sample_job_functions else 'No job function data',
+            'Bundle_Size': bundle_size,
+            'Avg_Intra_Similarity': avg_similarity,
+            'Jobs_Using_Bundle': bundle_jobs['JobProfileID'].nunique()
+        })
     
     bundle_stats_df = pd.DataFrame(bundle_stats)
     
@@ -811,8 +802,8 @@ Total Skills: {clustering_metrics['total_skills']}
         
         ax2.barh(y_pos, top_bundles_display['Bundle_Size'].values, color='coral', alpha=0.7)
         ax2.set_yticks(y_pos)
-        bundle_labels = [f"{row['Bundle_Theme'][:25]}..." if len(row['Bundle_Theme']) > 25 
-                        else row['Bundle_Theme'] for _, row in top_bundles_display.iterrows()]
+        bundle_labels = [f"{row['Bundle_Name'][:25]}..." if len(row['Bundle_Name']) > 25 
+                        else row['Bundle_Name'] for _, row in top_bundles_display.iterrows()]
         ax2.set_yticklabels(bundle_labels, fontsize=9)
         ax2.set_xlabel('Bundle Size')
         ax2.set_title('Top 10 Largest Skill Bundles')
@@ -834,37 +825,42 @@ def save_skills_outputs(
     job_skills_df: pd.DataFrame
 ):
     """Save all skills clustering outputs to files"""
-    print("\n💾 SAVING SKILLS CLUSTERING OUTPUTS")
-    print("="*40)
+    print("\n💾 SAVING SKILLS CLUSTERING OUTPUTS WITH PRAGMATIC NAMING")
+    print("="*55)
     
     timestamp = create_timestamp()
     
-    # 1. Primary skills cluster assignments CSV
+    # 1. Primary skills cluster assignments CSV with pragmatic naming
     output_df = cluster_analysis.copy()
     output_df['Is_Specialized'] = output_df['Cluster_ID'] == -1
     
-    # Add bundle information
-    bundle_info = bundle_stats.set_index('Cluster_ID')[['Bundle_Theme', 'Bundle_Size']].to_dict('index')
+    # Add bundle information from bundle_stats
+    bundle_name_mapping = bundle_stats.set_index('Cluster_ID')['Bundle_Name'].to_dict()
+    bundle_description_mapping = bundle_stats.set_index('Cluster_ID')['Bundle_Description'].to_dict()
+    bundle_rationale_mapping = bundle_stats.set_index('Cluster_ID')['Bundle_Rationale'].to_dict()
+    sample_skills_mapping = bundle_stats.set_index('Cluster_ID')['Sample_Skills'].to_dict()
+    sample_functions_mapping = bundle_stats.set_index('Cluster_ID')['Sample_Job_Functions'].to_dict()
+    bundle_size_mapping = bundle_stats.set_index('Cluster_ID')['Bundle_Size'].to_dict()
     
-    def get_bundle_info(row):
-        if row['Cluster_ID'] != -1 and row['Cluster_ID'] in bundle_info:
-            return bundle_info[row['Cluster_ID']]['Bundle_Theme']
-        elif row['Cluster_ID'] == -1:
-            return 'Specialized/Emerging'
-        else:
-            return 'Small Bundle'
+    # Apply mappings with defaults for specialized/small bundles
+    output_df['Bundle_Name'] = output_df['Cluster_ID'].map(bundle_name_mapping)
+    output_df['Bundle_Description'] = output_df['Cluster_ID'].map(bundle_description_mapping)
+    output_df['Bundle_Rationale'] = output_df['Cluster_ID'].map(bundle_rationale_mapping)
+    output_df['Sample_Skills'] = output_df['Cluster_ID'].map(sample_skills_mapping)
+    output_df['Sample_Job_Functions'] = output_df['Cluster_ID'].map(sample_functions_mapping)
+    output_df['Bundle_Size'] = output_df['Cluster_ID'].map(bundle_size_mapping)
     
-    def get_bundle_size(row):
-        if row['Cluster_ID'] != -1 and row['Cluster_ID'] in bundle_info:
-            return bundle_info[row['Cluster_ID']]['Bundle_Size']
-        elif row['Cluster_ID'] == -1:
-            return 1
-        else:
-            # Calculate size for small bundles not in bundle_stats
-            return len(cluster_analysis[cluster_analysis['Cluster_ID'] == row['Cluster_ID']])
-    
-    output_df['Bundle_Theme'] = output_df.apply(get_bundle_info, axis=1)
-    output_df['Bundle_Size'] = output_df.apply(get_bundle_size, axis=1)
+    # Fill defaults for specialized and small bundles
+    output_df['Bundle_Name'] = output_df['Bundle_Name'].fillna(output_df.apply(
+        lambda row: 'Specialised/Emerging Skill' if row['Cluster_ID'] == -1 else f'Small Bundle {row["Cluster_ID"]}', axis=1
+    ))
+    output_df['Bundle_Description'] = output_df['Bundle_Description'].fillna(
+        'Specialised or emerging skill not grouped into a bundle'
+    )
+    output_df['Bundle_Rationale'] = output_df['Bundle_Rationale'].fillna('Single skill or small cluster')
+    output_df['Sample_Skills'] = output_df['Sample_Skills'].fillna('')
+    output_df['Sample_Job_Functions'] = output_df['Sample_Job_Functions'].fillna('')
+    output_df['Bundle_Size'] = output_df['Bundle_Size'].fillna(1)
     
     primary_output_file = f"skills_clusters_production_{timestamp}.csv"
     output_df.to_csv(primary_output_file, index=False)
@@ -893,7 +889,7 @@ def save_skills_outputs(
         
         f.write("TOP 15 SKILL BUNDLES:\n")
         display_bundles = bundle_stats.head(15) if len(bundle_stats) >= 15 else bundle_stats
-        f.write(display_bundles[['Cluster_ID', 'Bundle_Size', 'Bundle_Theme', 'Top_Job_Functions', 'Jobs_Using_Bundle']].to_string(index=False))
+        f.write(display_bundles[['Cluster_ID', 'Bundle_Size', 'Bundle_Name', 'Sample_Job_Functions', 'Jobs_Using_Bundle']].to_string(index=False))
         
         f.write("\n\nL&D PATHWAY RECOMMENDATIONS:\n")
         f.write("  - Use skill bundles to design comprehensive learning curricula\n")
@@ -927,21 +923,21 @@ def save_skills_outputs(
             foundational_bundles = bundle_stats.nlargest(5, 'Jobs_Using_Bundle')
             f.write("FOUNDATIONAL SKILLS PATHWAYS (High Job Coverage):\n")
             for _, bundle in foundational_bundles.iterrows():
-                f.write(f"\n{bundle['Bundle_Theme']} Bundle (ID: {bundle['Cluster_ID']}):\n")
+                f.write(f"\n{bundle['Bundle_Name']} Bundle (ID: {bundle['Cluster_ID']}):\n")
                 f.write(f"  - Bundle Size: {bundle['Bundle_Size']} skills\n")
                 f.write(f"  - Job Coverage: {bundle['Jobs_Using_Bundle']} different job profiles\n")
-                f.write(f"  - Primary Functions: {bundle['Top_Job_Functions']}\n")
+                f.write(f"  - Primary Functions: {bundle['Sample_Job_Functions']}\n")
                 f.write(f"  - Learning Priority: HIGH (widespread applicability)\n")
             
             # Specialized bundles for advanced pathways
             specialized_bundles = bundle_stats.nsmallest(5, 'Jobs_Using_Bundle')
-            f.write(f"\n\nSPECIALIZED SKILLS PATHWAYS (Targeted Coverage):\n")
+            f.write(f"\n\nSPECIALISED SKILLS PATHWAYS (Targeted Coverage):\n")
             for _, bundle in specialized_bundles.iterrows():
-                f.write(f"\n{bundle['Bundle_Theme']} Bundle (ID: {bundle['Cluster_ID']}):\n")
+                f.write(f"\n{bundle['Bundle_Name']} Bundle (ID: {bundle['Cluster_ID']}):\n")
                 f.write(f"  - Bundle Size: {bundle['Bundle_Size']} skills\n")
                 f.write(f"  - Job Coverage: {bundle['Jobs_Using_Bundle']} specific job profiles\n")
-                f.write(f"  - Primary Functions: {bundle['Top_Job_Functions']}\n")
-                f.write(f"  - Learning Priority: TARGETED (specialized roles)\n")
+                f.write(f"  - Primary Functions: {bundle['Sample_Job_Functions']}\n")
+                f.write(f"  - Learning Priority: TARGETED (specialised roles)\n")
         
         f.write(f"\n\nEMERGING/SPECIALIZED SKILLS ({len(specialized_skills)} skills):\n")
         f.write("  - Consider for innovation and future-skills programs\n")
