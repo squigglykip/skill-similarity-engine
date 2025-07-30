@@ -90,9 +90,9 @@ class DataLoader:
 
             config_search_paths = self.config_manager.get_nested_value(
 
-                'business_context', 'file_discovery', 'config_search_paths',
+                'business_context', 'database', 'file_discovery', 'config_search_paths',
 
-                default=[]  # No hardcoded fallback - force proper config discovery
+                default=["config/data/sources.yaml"]  # Fallback to known path
 
             )
 
@@ -220,8 +220,14 @@ class DataLoader:
         
 
         # Define loading sequence (order matters for foreign keys)
-
-        loading_sequence = ['jobs', 'skills', 'job_skills', 'positions', 'position_history', 'workforce_context']
+        # Use the sequence from configuration, fallback to hardcoded if not found
+        loading_sequence = self.config.get('loading_sequence', [
+            'core_job_architecture', 
+            'core_skills_taxonomy', 
+            'job_skills',  # Note: config calls this job_skills, table is core_job_skill_requirements
+            'core_workforce_current', 
+            'position_history'  # Note: config calls this position_history, table is core_position_timeline
+        ])
 
         
 
@@ -341,57 +347,11 @@ class DataLoader:
 
             
 
-            # Handle position enrichment if configured
+            # Handle enrichment if configured (new flexible format)
 
-            if dataset_name == 'positions' and dataset_config.get('enrichment', {}).get('enabled', False):
+            if 'enrichment' in dataset_config:
 
-                enrichment_config = dataset_config['enrichment']
-
-                mapping_file_path = file_path.parent.parent / enrichment_config['mapping_file']
-
-                
-
-                if mapping_file_path.exists():
-
-                    logger.info(f"Loading position-job mapping from {mapping_file_path}")
-
-                    df_mapping = pd.read_csv(mapping_file_path)
-
-                    
-
-                    # Merge positions with JobProfileID mapping
-
-                    merge_key = enrichment_config.get('merge_key', 'Position Number')
-
-                    df = df.merge(
-
-                        df_mapping, 
-
-                        left_on=merge_key, 
-
-                        right_on='Position_Number',
-
-                        how='left'
-
-                    )
-
-                    
-
-                    # Log enrichment statistics
-
-                    positions_with_jobs = df['JobProfileID'].notna().sum()
-
-                    total_positions = len(df)
-
-                    enrichment_rate = (positions_with_jobs / total_positions * 100) if total_positions > 0 else 0
-
-                    logger.info(f"Position enrichment: {positions_with_jobs:,} of {total_positions:,} positions have JobProfileID ({enrichment_rate:.1f}%)")
-
-                else:
-
-                    logger.warning(f"Position-job mapping file not found: {mapping_file_path}")
-
-                    df['JobProfileID'] = ''
+                df = self._apply_enrichment(df, dataset_config['enrichment'], dataset_name, file_path)
 
             
 
@@ -414,6 +374,14 @@ class DataLoader:
                 
 
             df_mapped = df[available_columns].rename(columns=column_mapping)
+
+            
+
+            # Handle primary key generation if configured (after column mapping)
+
+            if 'primary_key_generation' in dataset_config:
+
+                df_mapped = self._apply_primary_key_generation(df_mapped, dataset_config['primary_key_generation'])
 
             
 
@@ -504,6 +472,20 @@ class DataLoader:
                 df_mapped = df_mapped[df_mapped['Skill_ID'] != '']
 
                 df_mapped = df_mapped.drop_duplicates(subset=['Skill_ID'])
+
+            elif dataset_name == 'position_history' and 'position_timeline_id' in df_mapped.columns:
+
+                # Remove duplicates based on the generated primary key to avoid UNIQUE constraint failures
+
+                initial_count = len(df_mapped)
+
+                df_mapped = df_mapped.drop_duplicates(subset=['position_timeline_id'])
+
+                final_count = len(df_mapped)
+
+                if initial_count > final_count:
+
+                    logger.info(f"Removed {initial_count - final_count} duplicate position timeline records")
 
             
 
@@ -1733,4 +1715,113 @@ class DataLoader:
             logger.error(f"Failed to load career pathways from parquet: {e}")
 
             raise 
+
+    def _apply_enrichment(self, df: pd.DataFrame, enrichment_config: Dict[str, Any], dataset_name: str, file_path: Path) -> pd.DataFrame:
+        """
+        Apply enrichment to a DataFrame using the new flexible enrichment configuration format.
+        
+        Args:
+            df: Source DataFrame to enrich
+            enrichment_config: Enrichment configuration from sources.yaml
+            dataset_name: Name of the dataset being processed
+            file_path: Path to the source CSV file
+            
+        Returns:
+            Enriched DataFrame with additional columns
+        """
+        try:
+            logger.info(f"Applying enrichment to {dataset_name}...")
+            
+            # Handle each enrichment column separately
+            for enrich_col_name, enrich_config in enrichment_config.items():
+                if isinstance(enrich_config, dict) and 'source_file' in enrich_config:
+                    # Get enrichment mapping file path
+                    mapping_file_path = file_path.parent.parent / enrich_config['source_file']
+                    
+                    if mapping_file_path.exists():
+                        logger.info(f"Loading enrichment mapping from {mapping_file_path}")
+                        df_mapping = pd.read_csv(mapping_file_path)
+                        
+                        # Get mapping configuration
+                        mapping_key = enrich_config.get('mapping_key', 'Position Number')
+                        target_key = enrich_config.get('target_key', 'Position_Number')
+                        value_column = enrich_config.get('value_column', 'JobProfileID')
+                        
+                        # Perform the merge
+                        df = df.merge(
+                            df_mapping[[target_key, value_column]], 
+                            left_on=mapping_key, 
+                            right_on=target_key,
+                            how='left'
+                        )
+                        
+                        # Rename the enriched column to match the desired name
+                        if value_column in df.columns and value_column != enrich_col_name:
+                            df = df.rename(columns={value_column: enrich_col_name})
+                        
+                        # Remove the duplicate mapping key column if it exists
+                        if target_key in df.columns and target_key != mapping_key:
+                            df = df.drop(columns=[target_key])
+                        
+                        # Log enrichment statistics
+                        enriched_count = df[enrich_col_name].notna().sum()
+                        total_count = len(df)
+                        enrichment_rate = (enriched_count / total_count * 100) if total_count > 0 else 0
+                        
+                        logger.info(f"Enrichment success: {enriched_count:,} of {total_count:,} records have {enrich_col_name} ({enrichment_rate:.1f}%)")
+                        
+                    else:
+                        logger.warning(f"Enrichment mapping file not found: {mapping_file_path}")
+                        # Add empty column if mapping not available
+                        df[enrich_col_name] = ''
+            
+            return df
+            
+        except Exception as e:
+            logger.error(f"Failed to apply enrichment to {dataset_name}: {e}")
+            # Return original DataFrame if enrichment fails
+            return df
+    
+    def _apply_primary_key_generation(self, df: pd.DataFrame, pk_config: Dict[str, str]) -> pd.DataFrame:
+        """
+        Apply primary key generation based on configuration.
+        
+        Args:
+            df: DataFrame to add primary keys to
+            pk_config: Primary key generation configuration
+            
+        Returns:
+            DataFrame with generated primary key columns
+        """
+        try:
+            for pk_column, generation_rule in pk_config.items():
+                if '+' in generation_rule:
+                    # Handle concatenation rules like "Position_Number + '_' + Week_Ending"
+                    parts = [part.strip().strip("'\"") for part in generation_rule.split('+')]
+                    
+                    # Build the concatenated value
+                    df[pk_column] = ''
+                    for i, part in enumerate(parts):
+                        if part.startswith("'") and part.endswith("'"):
+                            # Literal string
+                            literal_value = part[1:-1]  # Remove quotes
+                            if i == 0:
+                                df[pk_column] = literal_value
+                            else:
+                                df[pk_column] = df[pk_column] + literal_value
+                        else:
+                            # Column reference
+                            if part in df.columns:
+                                if i == 0:
+                                    df[pk_column] = df[part].astype(str)
+                                else:
+                                    df[pk_column] = df[pk_column] + df[part].astype(str)
+                    
+                    logger.info(f"Generated primary key column '{pk_column}' using rule: {generation_rule}")
+                
+            return df
+            
+        except Exception as e:
+            logger.error(f"Failed to generate primary keys: {e}")
+            return df 
 

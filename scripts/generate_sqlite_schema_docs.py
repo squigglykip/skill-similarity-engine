@@ -1373,7 +1373,7 @@ def main():
     """Main execution function."""
     # Find database file
     project_root = Path(__file__).parent.parent
-    db_path = project_root / "models" / "2025-Q3" / "workforce_intelligence.sqlite"
+    db_path = project_root / "models" / "2025-Q3" / "business_context.sqlite"
     
     if not db_path.exists():
         print(f"âŒ Database not found at: {db_path}")

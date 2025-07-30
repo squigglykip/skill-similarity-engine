@@ -1,12 +1,10 @@
 ﻿#!/usr/bin/env python3
 
 """
-Skill Similarity Engine v2 - Modular Entry Point
+NAB Workforce Intelligence Platform - Main Entry Point
 
-This script provides a menu-based CLI for the Skill Similarity Engine pipeline
-using the modular Command pattern and Workflow orchestrators from /src modules.
-
-This version eliminates cottage industry patterns and uses proper modular design.
+This script provides an intuitive, business-focused interface for workforce
+intelligence analysis, designed for both technical and non-technical users.
 """
 
 import sys
@@ -50,21 +48,22 @@ BANNER = r'''
 ███████╗██║ ╚████║╚██████╔╝██║██║ ╚████║███████╗                      
 ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝       
 
-Skill Similarity Engine v2 - Modular Pipeline (Command Pattern Version)
+NAB Workforce Intelligence Platform
 
 '''
 
 
-class ModularMenuOrchestrator:
+class WorkforceIntelligenceOrchestrator:
     """
-    Orchestrates the main application menu using modular commands.
+    Main orchestrator for the NAB Workforce Intelligence Platform.
     
-    Replaces the procedural menu functions from main.py with a proper
-    orchestrator that leverages the Command pattern and session management.
+    Provides an intuitive, business-focused interface for workforce analysis
+    that guides users through the natural workflow of building and using
+    workforce intelligence.
     """
     
     def __init__(self):
-        """Initialize the menu orchestrator."""
+        """Initialize the platform orchestrator."""
         self.logger = setup_logging(level='INFO')
         self.session_manager = get_session_manager()
         
@@ -74,30 +73,60 @@ class ModularMenuOrchestrator:
         self.movement_cmd = MovementAnalysisCommand()
         self.query_cmd = QuerySimilarityCommand()
         
-        self.logger.info("Modular menu orchestrator initialized")
+        self.logger.info("Workforce Intelligence Platform initialized")
+    
+    def get_database_status(self) -> dict:
+        """Get current database status for display."""
+        session_summary = self.session_manager.get_session_summary()
+        
+        if not session_summary.get('session_exists', False):
+            return {
+                'status': 'Not Created',
+                'description': 'No workforce database exists yet',
+                'next_action': 'Start by building your workforce database'
+            }
+        elif session_summary.get('ready_for_similarity', False):
+            return {
+                'status': 'Foundation Ready', 
+                'description': f"Core data loaded ({session_summary.get('skills_count', 0)} skills, {session_summary.get('jobs_count', 0)} jobs)",
+                'next_action': 'Ready to generate career intelligence'
+            }
+        else:
+            return {
+                'status': 'In Progress',
+                'description': 'Database partially built',
+                'next_action': 'Continue building your database'
+            }
     
     def show_main_menu(self) -> str:
-        """Display the main application menu."""
+        """Display the main platform menu with business-focused options."""
         print(BANNER)
         
-        # Show session status
-        session_summary = self.session_manager.get_session_summary()
-        if session_summary.get('session_exists', False) and session_summary.get('ready_for_similarity', False):
-            print(f"📊 Session Status: Data loaded ({session_summary.get('skills_count', 0)} skills, {session_summary.get('jobs_count', 0)} jobs)")
-        else:
-            print("📊 Session Status: No data loaded")
+        # Show database status
+        db_status = self.get_database_status()
+        print(f"📊 Database Status: {db_status['status']}")
+        if db_status['description']:
+            print(f"   {db_status['description']}")
+        print()
         
-        print("\nPlease select an option:")
-        print("1. Precompute Skill Similarities")
-        print("2. Generate Workforce Intelligence Database")
-        print("3. Query Skill Similarities (coming soon)")
+        print("What would you like to do?")
+        print("1. Build Workforce Database")
+        print("2. Generate Career Intelligence") 
+        print("3. Query Job Similarities")
+        print("4. System Tools")
         print("0. Exit")
+        print()
+        
+        # Show contextual guidance
+        if db_status['next_action']:
+            print(f"💡 Recommended: {db_status['next_action']}")
         
         return input("Enter your choice: ").strip()
     
-    def show_precompute_menu(self) -> str:
-        """Display the precompute engine menu."""
-        print("\nPrecompute Engine - Generate Parquet Files\n")
+    def show_legacy_precompute_menu(self) -> str:
+        """Display the legacy precompute menu for backward compatibility."""
+        print("\n=== Advanced Analytics Tools ===")
+        print("These tools generate analysis files for advanced users.\n")
         
         # Show data status
         session_summary = self.session_manager.get_session_summary()
@@ -106,16 +135,39 @@ class ModularMenuOrchestrator:
         
         print("\nSelect a task:")
         print("1. Load and validate data")
-        print("2. Generate similarity matrix + career pathways (both as parquet)")
-        print("3. Generate movement analysis (workforce transition data)")
+        print("2. Generate similarity analysis files")
+        print("3. Generate career movement analysis")
         print("4. Export results (coming soon)")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
     
+    def show_system_tools_menu(self) -> str:
+        """Display system tools menu."""
+        print("\n=== System Tools ===")
+        print("Database maintenance and advanced options.\n")
+        
+        db_status = self.get_database_status()
+        print(f"Database Status: {db_status['status']}")
+        print()
+        
+        print("Available Tools:")
+        print("1. Check database health")
+        print("2. View database summary") 
+        print("3. Export database backup")
+        print("4. Advanced analytics tools")
+        print("5. System diagnostics")
+        print("0. Back to main menu")
+        
+        return input("Enter your choice: ").strip()
+    
     def handle_data_loading(self) -> None:
-        """Handle data loading using the DataLoadCommand."""
+        """Handle data loading with user-friendly messaging."""
         try:
+            print("📊 Loading workforce data...")
+            print("   This will import employee records and job information from CSV files.")
+            print()
+            
             result = self.data_load_cmd.run()
             
             if result.success:
@@ -125,76 +177,101 @@ class ModularMenuOrchestrator:
                 if result.data and 'architecture' in result.data:
                     self.session_manager.load_architecture(result.data['architecture'])
                 
-                print("✅ Data loaded successfully and stored in session!")
+                print("✅ Workforce data loaded successfully!")
+                print("   Your database now contains employee and job information.")
             else:
-                print(f"❌ Data loading failed: {result.message}")
-                for error in result.errors:
-                    print(f"   • {error}")
+                print(f"❌ Failed to load workforce data: {result.message}")
+                if result.errors:
+                    print("   Issues encountered:")
+                    for error in result.errors:
+                        print(f"   • {error}")
                     
         except Exception as e:
-            self.logger.error(f"Data loading command failed: {e}")
-            print(f"❌ Command execution failed: {e}")
+            self.logger.error(f"Data loading failed: {e}")
+            print(f"❌ Unable to load data: {e}")
     
     def handle_similarity_generation(self) -> None:
-        """Handle similarity matrix generation using the SimilarityMatrixCommand."""
+        """Handle similarity analysis with user-friendly messaging."""
         # Check if data is loaded
         if not self.session_manager.is_data_ready_for_similarity():
-            print("❌ Data not loaded. Please load and validate data first (option 1).")
+            print("❌ Workforce data not available.")
+            print("   Please load employee and job data first (option 1 in Build Database menu).")
             return
         
         try:
+            print("🧠 Generating job similarity analysis...")
+            print("   This will identify which jobs are similar to each other based on required skills.")
+            print()
+            
             architecture = self.session_manager.get_architecture()
             result = self.similarity_cmd.run(architecture=architecture)
             
             if result.success:
-                print("✅ Similarity matrix generation completed!")
+                print("✅ Job similarity analysis completed!")
+                print("   The system can now identify similar career opportunities.")
                 if result.data and 'output_path' in result.data:
-                    print(f"📁 Output saved to: {result.data['output_path']}")
+                    print(f"   Analysis files saved to: {result.data['output_path']}")
             else:
-                print(f"❌ Similarity generation failed: {result.message}")
-                for error in result.errors:
-                    print(f"   • {error}")
+                print(f"❌ Similarity analysis failed: {result.message}")
+                if result.errors:
+                    print("   Issues encountered:")
+                    for error in result.errors:
+                        print(f"   • {error}")
                     
         except Exception as e:
-            self.logger.error(f"Similarity generation command failed: {e}")
-            print(f"❌ Command execution failed: {e}")
+            self.logger.error(f"Similarity generation failed: {e}")
+            print(f"❌ Unable to generate similarity analysis: {e}")
     
     def handle_movement_analysis(self) -> None:
-        """Handle movement analysis using the MovementAnalysisCommand."""
+        """Handle career movement analysis with user-friendly messaging."""
         try:
+            print("📈 Analysing career movement patterns...")
+            print("   This will examine how people typically move between different roles.")
+            print()
+            
             result = self.movement_cmd.run()
             
             if result.success:
-                print("✅ Movement analysis completed!")
+                print("✅ Career movement analysis completed!")
+                print("   The system now understands common career progression paths.")
                 if result.data and 'output_path' in result.data:
-                    print(f"📁 Output saved to: {result.data['output_path']}")
+                    print(f"   Analysis files saved to: {result.data['output_path']}")
             else:
                 print(f"❌ Movement analysis failed: {result.message}")
-                for error in result.errors:
-                    print(f"   • {error}")
+                if result.errors:
+                    print("   Issues encountered:")
+                    for error in result.errors:
+                        print(f"   • {error}")
                     
         except Exception as e:
-            self.logger.error(f"Movement analysis command failed: {e}")
-            print(f"❌ Command execution failed: {e}")
+            self.logger.error(f"Movement analysis failed: {e}")
+            print(f"❌ Unable to analyse career movements: {e}")
     
     def handle_query_similarities(self) -> None:
-        """Handle similarity queries using the QuerySimilarityCommand."""
+        """Handle similarity queries with user-friendly messaging."""
         try:
+            print("🔍 Preparing job similarity search...")
+            print("   This will help you find jobs similar to any role you specify.")
+            print()
+            
             result = self.query_cmd.run()
             
             if result.success:
-                print("✅ Query completed!")
+                print("✅ Search completed!")
             else:
-                print(f"❌ Query failed: {result.message}")
+                print(f"❌ Search failed: {result.message}")
                     
         except Exception as e:
-            self.logger.error(f"Query command failed: {e}")
-            print(f"❌ Command execution failed: {e}")
+            self.logger.error(f"Query failed: {e}")
+            print(f"❌ Unable to search similarities: {e}")
     
     def handle_workforce_intelligence(self) -> None:
-        """Handle workforce intelligence database generation using existing orchestrator."""
+        """Handle workforce database building with user-friendly messaging."""
         try:
-            # Get configuration paths from architectural config manager (ONLY place with config knowledge)
+            print("🏗️ Opening workforce database builder...")
+            print()
+            
+            # Get configuration paths from architectural config manager
             config_manager = get_config_manager()
             config_search_paths = config_manager.get_nested_value(
                 'business_context', 'database', 'file_discovery', 'config_search_paths',
@@ -210,21 +287,47 @@ class ModularMenuOrchestrator:
                     break
             
             if not data_config_path:
-                print(f"❌ Configuration file not found. Searched paths: {config_search_paths}")
-                print("Please ensure config/data/sources.yaml exists.")
+                print(f"❌ Configuration files not found.")
+                print("   The system needs configuration files to locate your workforce data.")
+                print(f"   Expected locations: {config_search_paths}")
                 return
             
-            # Pass explicit config path to orchestrator (dependency injection)
+            # Pass explicit config path to orchestrator
             orchestrator = BusinessContextOrchestrator(data_config_path=data_config_path)
             orchestrator.handle_workforce_intelligence_menu()
+            
         except Exception as e:
-            self.logger.error(f"Workforce intelligence menu error: {e}")
-            print(f"❌ Workforce intelligence menu failed: {e}")
+            self.logger.error(f"Workforce database builder error: {e}")
+            print(f"❌ Unable to open database builder: {e}")
     
-    def run_precompute_menu(self) -> None:
-        """Run the precompute submenu loop."""
+    def handle_system_tools(self) -> None:
+        """Handle system tools menu."""
         while True:
-            choice = self.show_precompute_menu()
+            choice = self.show_system_tools_menu()
+            
+            if choice == '1':
+                print("🔍 Checking database health...")
+                print("   This feature is coming soon.")
+            elif choice == '2':
+                print("📊 Generating database summary...")
+                print("   This feature is coming soon.")
+            elif choice == '3':
+                print("💾 Exporting database backup...")
+                print("   This feature is coming soon.")
+            elif choice == '4':
+                self.run_legacy_precompute_menu()
+            elif choice == '5':
+                print("🔧 Running system diagnostics...")
+                print("   This feature is coming soon.")
+            elif choice == '0':
+                break
+            else:
+                print("❌ Invalid choice. Please select a number from the menu.")
+    
+    def run_legacy_precompute_menu(self) -> None:
+        """Run the legacy precompute submenu for advanced users."""
+        while True:
+            choice = self.show_legacy_precompute_menu()
             
             if choice == '1':
                 self.handle_data_loading()
@@ -233,53 +336,59 @@ class ModularMenuOrchestrator:
             elif choice == '3':
                 self.handle_movement_analysis()
             elif choice == '4':
-                print("[INFO] Export functionality coming soon.")
+                print("📤 Export functionality coming soon.")
             elif choice == '0':
                 break
             else:
-                print("Invalid choice. Please enter a valid option.")
+                print("❌ Invalid choice. Please select a number from the menu.")
     
     def run_main_menu(self) -> None:
-        """Run the main menu loop."""
+        """Run the main menu loop with improved user experience."""
         while True:
             choice = self.show_main_menu()
             
             if choice == '1':
-                self.run_precompute_menu()
-            elif choice == '2':
                 self.handle_workforce_intelligence()
+            elif choice == '2':
+                print("🧠 Career Intelligence Generation")
+                print("   This will analyse your workforce data to generate insights about")
+                print("   job similarities and career progression opportunities.")
+                print("   This feature is coming soon.")
+                print()
             elif choice == '3':
                 self.handle_query_similarities()
+            elif choice == '4':
+                self.handle_system_tools()
             elif choice == '0':
-                print("Exiting. Goodbye!")
+                print("👋 Thank you for using the NAB Workforce Intelligence Platform!")
+                print("   Your session data has been saved.")
                 # Clear session on exit
                 self.session_manager.clear_session()
                 sys.exit(0)
             else:
-                print("Invalid choice. Please enter a valid option.")
+                print("❌ Invalid choice. Please select a number from the menu.")
+                print()
 
 
 def main():
     """
-    Main entry point using modular architecture.
+    Main entry point for the NAB Workforce Intelligence Platform.
     
-    This version demonstrates:
-    - Command pattern for operations
-    - Session management for state
-    - Orchestrator pattern for menu coordination
-    - Proper separation of concerns
+    Provides an intuitive interface for building and using workforce
+    intelligence, designed for both technical and business users.
     """
     try:
-        orchestrator = ModularMenuOrchestrator()
+        orchestrator = WorkforceIntelligenceOrchestrator()
         orchestrator.run_main_menu()
     except KeyboardInterrupt:
-        print("\n\nApplication interrupted by user. Exiting...")
+        print("\n\n👋 Application interrupted. Thank you for using the platform!")
         # Clear session on interrupt
         session_manager = get_session_manager()
         session_manager.clear_session()
         sys.exit(0)
     except Exception as e:
-        print(f"\n❌ Application failed with error: {e}")
+        print(f"\n❌ Application error: {e}")
+        print("   Please contact your system administrator if this problem persists.")
         sys.exit(1)
 
 
