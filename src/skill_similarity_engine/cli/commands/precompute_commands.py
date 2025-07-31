@@ -192,7 +192,7 @@ class SimilarityMatrixCommand(BaseCommand):
             print(f"\n🧠 Setting up enhanced similarity algorithms...")
             
             # Import enhanced similarity components
-            from ...similarity.enhanced_algorithms import SkillIntelligenceEngine
+            from ...similarity.asymmetric import SkillIntelligenceEngine
             
             # Initialize skill intelligence engine
             skill_engine = SkillIntelligenceEngine()

@@ -122,7 +122,7 @@ class SchemaBuilder:
             'core_job_skill_requirements',
             
             # Core data tables
-            'core_position_timeline', 'core_workforce_current', 
+            'core_colleague_positions_history', 'core_position_timeline', 'core_workforce_current', 
             'core_skills_taxonomy', 'core_job_architecture',
             
             # System tables
@@ -145,6 +145,7 @@ class SchemaBuilder:
         self._create_core_job_skill_requirements_table(conn)
         self._create_core_workforce_current_table(conn)
         self._create_core_position_timeline_table(conn)
+        self._create_core_colleague_positions_history_table(conn)
         
     def _create_analytics_tables_phase_0(self, conn: sqlite3.Connection) -> None:
         """Create analytics tables ready for Phase 0 (populated by modules)."""
@@ -354,6 +355,43 @@ class SchemaBuilder:
         """
         conn.execute(sql)
         logger.debug("Created core_position_timeline table with complete CSV data preservation")
+    
+    def _create_core_colleague_positions_history_table(self, conn: sqlite3.Connection) -> None:
+        """Create core_colleague_positions_history table - Monthly colleague position snapshots for Phase 2 movement analysis."""
+        # Create the table
+        table_sql = """
+        CREATE TABLE core_colleague_positions_history (
+            -- Raw CSV data (preserve exact field names)
+            "Week Ending" TEXT,                        -- From CSV: Week Ending (DD/MM/YYYY)
+            "Employee Number" INTEGER,                  -- From CSV: Employee Number
+            "Operational" BOOLEAN,                      -- From CSV: Operational (True/False)
+            "Position Start Date" TEXT,                 -- From CSV: Position Start Date (nullable, DD/MM/YYYY)
+            "PosIDLookupKey" REAL PRIMARY KEY,         -- From CSV: PosIDLookupKey (scientific notation) - UNIQUE KEY
+            "Position Number" INTEGER,                  -- From CSV: Position Number
+            
+            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+            
+            -- Foreign key relationship to positions (via PosIDLookupKey)
+            -- Note: No direct FK constraint due to temporal data complexity
+            -- Relationship established through PosIDLookupKey matching
+        );
+        """
+        conn.execute(table_sql)
+        
+        # Create indexes for Phase 2 movement analysis queries
+        indexes = [
+            'CREATE INDEX idx_colleague_positions_employee ON core_colleague_positions_history ("Employee Number");',
+            'CREATE INDEX idx_colleague_positions_position ON core_colleague_positions_history ("Position Number");',
+            'CREATE INDEX idx_colleague_positions_week ON core_colleague_positions_history ("Week Ending");',
+            'CREATE INDEX idx_colleague_positions_lookup_key ON core_colleague_positions_history ("PosIDLookupKey");',
+            'CREATE INDEX idx_colleague_positions_temporal ON core_colleague_positions_history ("Employee Number", "Week Ending");',
+            'CREATE INDEX idx_colleague_positions_movement ON core_colleague_positions_history ("Employee Number", "Position Number", "Week Ending");'
+        ]
+        
+        for index_sql in indexes:
+            conn.execute(index_sql)
+        
+        logger.debug("Created core_colleague_positions_history table with indexes for Phase 2 movement analysis")
     
     # Analytics Tables - Phase 0 (1 table)
     

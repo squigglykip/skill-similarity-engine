@@ -1,0 +1,113 @@
+# =============================================================================
+# Core - Similarity Parameters Configuration
+# =============================================================================
+# 
+# CRITICAL PARAMETERS - These values are the result of Optuna Bayesian optimization
+# and are fundamental to the career pathway intelligence algorithms.
+# 
+# DO NOT MODIFY without extensive testing and validation.
+# =============================================================================
+
+# Optuna-Optimized Parameters (2025-07-31)
+# Based on full dataset optimization with asymmetric Jaccard + corpus normalization
+optuna_optimal:
+  # Defining skills threshold - Top % rarest skills per job profile
+  # Optuna Result: 8.8% provides optimal balance of smoothness + differentiation
+  defining_skills_percentile: 8.8
+  
+  # Similarity boost multiplier for shared defining skills
+  # Optuna Result: 1.206x provides optimal enhancement without overwhelming base matches
+  defining_skills_multiplier: 1.206
+  
+  # Optimization metadata for transparency
+  optimization_metadata:
+    optimization_date: "2025-07-31"
+    optimization_method: "Optuna TPE Sampler + Median Pruner"
+    dataset_size: "715 jobs, ~510K job pairs"
+    objective_function: "Composite (70% smoothness, 20% improvement, 10% efficiency)"
+    trial_count: 25
+    best_trial: 23
+    smoothness_score: 0.7723
+    average_improvement: 0.0057  # 0.57%
+    normalization_factor: 2.6499
+    scores_above_1_percent: 44.76
+
+# Rarity Analysis Parameters
+rarity_thresholds:
+  # Skill prevalence thresholds for categorization
+  rare_threshold: 5.0          # Skills in <5% of jobs = rare
+  uncommon_threshold: 20.0     # Skills in 5-20% of jobs = uncommon
+  common_threshold: 50.0       # Skills in 20-50% of jobs = common
+  # Skills in >50% of jobs = very common (implicit)
+
+# Similarity Calculation Method
+similarity_method:
+  # Core algorithm type
+  algorithm: "asymmetric_jaccard"  # Job A → Job B career pathway analysis
+  description: "Asymmetric Jaccard measures transition readiness (|A ∩ B| / |A|)"
+  
+  # Corpus normalization settings
+  corpus_normalization:
+    enabled: true
+    method: "max_normalization"  # Normalize by maximum score in corpus
+    preserve_differentiation: true
+    allow_intermediate_scores_above_1: true
+
+# Algorithm Configuration
+algorithm_config:
+  # Enhanced similarity calculation steps
+  calculation_steps:
+    1: "Calculate asymmetric Jaccard baseline (|shared| / |job_a_skills|)"
+    2: "Identify defining skills for both jobs (top 8.8% rarest per job)"
+    3: "Find shared defining skills between jobs"
+    4: "Apply 1.206x multiplier boost for shared defining skills"
+    5: "Allow scores >1.0 for corpus normalization"
+    6: "Normalize entire corpus to 0-1 range preserving differentiation"
+  
+  # Database storage
+  store_both_raw_and_normalized: true
+  primary_score_field: "similarity_score"      # Normalized 0-1 scores
+  raw_score_field: "raw_similarity_score"      # Pre-normalization scores
+
+# Validation and Quality Assurance
+validation:
+  # Expected performance characteristics
+  expected_performance:
+    smoothness_score_min: 0.70
+    average_improvement_min: 0.005  # 0.5%
+    normalization_factor_range: [1.0, 5.0]
+    scores_above_1_percent_max: 60.0
+  
+  # Quality checks
+  quality_checks:
+    validate_asymmetric_calculation: true
+    verify_defining_skills_logic: true
+    check_corpus_normalization: true
+    ensure_0_1_final_range: true
+
+# Legacy/Alternative Parameters (for comparison/fallback)
+legacy_parameters:
+  # Original empirical parameters (pre-Optuna)
+  original_defining_skills_percentile: 20.0
+  original_defining_skills_multiplier: 1.05
+  
+  # Alternative algorithms (for future experimentation)
+  symmetric_jaccard:
+    description: "Traditional Jaccard similarity |A ∩ B| / |A ∪ B|"
+    use_case: "Bidirectional similarity (not career pathways)"
+  
+  cosine_similarity:
+    description: "Vector-based similarity with TF-IDF weighting"
+    use_case: "Skill proficiency-weighted similarity"
+
+# Configuration Metadata
+metadata:
+  version: "2.0"
+  last_updated: "2025-07-31"
+  optimization_source: "Optuna Bayesian Optimization"
+  critical_for_modules:
+    - "similarity/defining_skills.py"
+    - "similarity/rarity_weighted.py" 
+    - "similarity/asymmetric.py"
+    - "business_context/analytics_orchestrator.py"
+  description: "Core similarity parameters optimized for career pathway intelligence"

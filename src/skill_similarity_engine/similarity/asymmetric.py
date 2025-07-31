@@ -6,6 +6,9 @@ from ..models.jobs import JobArchitecture
 from ..models.skills import SkillTaxonomy
 from ..config.architectural_config_manager import get_config_manager
 from ..error_handling.recovery import retry, circuit_breaker, fallback_on_failure
+from .rarity_weighted import RarityWeightedCalculator
+from .skill_rarity import SkillRarityAnalyzer
+from .defining_skills import DefiningSkillsAnalyzer
 
 class AsymmetricCoverageCalculator:
     """
@@ -194,8 +197,8 @@ class AsymmetricCoverageCalculator:
         defining_skill_boost = len(shared_defining_skills) * (gentle_multiplier - 1.0)
         enhanced_similarity = basic_similarity * (1.0 + defining_skill_boost)
         
-        # Step 5: Cap at 1.0 to maintain similarity interpretation
-        enhanced_similarity = min(1.0, enhanced_similarity)
+        # Step 5: Allow >1.0 for corpus normalization (no capping)
+        # Note: Corpus normalizer will handle final scaling to preserve differentiation
         
         return {
             'basic_similarity': round(basic_similarity, 4),
@@ -423,4 +426,187 @@ class AsymmetricCoverageCalculator:
             'min_skills_per_job': min(skill_counts) if skill_counts else 0,
             'max_skills_per_job': max(skill_counts) if skill_counts else 0,
             'total_job_skill_assignments': sum(skill_counts),
-        } 
+        }
+
+
+class DefiningSkillsAnalyzer:
+    """
+    Analyzer for identifying defining skills per job profile.
+    
+    This class provides methods to identify the rarest skills for each job,
+    which are used to boost similarity calculations for jobs that share
+    these rare, defining characteristics.
+    """
+    
+    def __init__(self, asymmetric_calculator: AsymmetricCoverageCalculator):
+        """
+        Initialize the analyzer.
+        
+        Args:
+            asymmetric_calculator: The asymmetric calculator with skill universe data
+        """
+        self.calculator = asymmetric_calculator
+        self.config_manager = get_config_manager()
+    
+    def create_job_defining_skills_map(self, job_to_skills: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
+        """
+        Create a map of job profiles to their defining skills.
+        
+        Args:
+            job_to_skills: Dictionary mapping job IDs to their skill sets
+            
+        Returns:
+            Dictionary mapping job IDs to their defining skill sets
+        """
+        defining_skills_map = {}
+        
+        for job_id, skills in job_to_skills.items():
+            defining_skills = self.calculator._get_defining_skills_for_skillset(skills)
+            defining_skills_map[job_id] = defining_skills
+            
+        return defining_skills_map
+
+
+class SkillIntelligenceEngine:
+    """
+    Enhanced Skill Intelligence Engine using modular architecture.
+    
+    This class provides the interface that the CLI expects while using the
+    new modular components for rarity-weighted similarity calculations.
+    """
+    
+    def __init__(self):
+        """Initialize the skill intelligence engine."""
+        self.config_manager = get_config_manager()
+        self._skill_universe_df = None
+        self._job_to_skills = None
+        self._job_defining_skills = None
+        
+        # Initialize modular components
+        self._rarity_analyzer = SkillRarityAnalyzer()
+        self._defining_analyzer = DefiningSkillsAnalyzer()
+        self._rarity_calculator = RarityWeightedCalculator()
+        
+        # Load enhanced similarity configuration
+        self._enhanced_config = self._load_enhanced_config()
+        
+    def _load_enhanced_config(self) -> Dict[str, Any]:
+        """Load enhanced similarity configuration."""
+        return self.config_manager.get_nested_value(
+            'similarity', 'rarity_weighted_algorithms',
+            default={
+                'defining_skills_percentile': 20,
+                'gentle_multiplier': 1.05,
+                'rarity_thresholds': {'rare': 5.0, 'uncommon': 20.0}
+            }
+        )
+    
+    @property
+    def enhanced_config(self) -> Dict[str, Any]:
+        """Get enhanced similarity configuration."""
+        return self._enhanced_config
+    
+    @property
+    def skill_universe_df(self) -> pd.DataFrame:
+        """Get skill universe DataFrame with rarity data."""
+        if self._skill_universe_df is None:
+            self._load_skill_universe()
+        return self._skill_universe_df if self._skill_universe_df is not None else pd.DataFrame()
+    
+    @property 
+    def job_to_skills(self) -> Dict[str, Set[str]]:
+        """Get job to skills mapping."""
+        if self._job_to_skills is None:
+            self._load_job_to_skills()
+        return self._job_to_skills or {}
+    
+    @property
+    def defining_skills_analyzer(self) -> DefiningSkillsAnalyzer:
+        """Get defining skills analyzer."""
+        return self._defining_analyzer
+    
+    @property
+    def rarity_weighted_calculator(self) -> RarityWeightedCalculator:
+        """Get rarity-weighted calculator."""
+        return self._rarity_calculator
+    
+    @property
+    def job_defining_skills(self) -> Dict[str, Set[str]]:
+        """Get job-specific defining skills mapping."""
+        if self._job_defining_skills is None:
+            self._load_job_defining_skills()
+        return self._job_defining_skills or {}
+    
+    def _load_skill_universe(self):
+        """Load skill universe data with rarity information using modular components."""
+        try:
+            # Get database path from model versioning
+            from ..models.versioning import ModelVersionManager
+            version_manager = ModelVersionManager()
+            output_dir = version_manager.setup_output_directory(
+                interactive=False, 
+                output_type='business_context'
+            )
+            db_path = str(output_dir / 'business_context.sqlite')
+            
+            # Use the modular rarity analyzer to load skill universe
+            self._skill_universe_df = self._rarity_analyzer.load_skill_universe_from_database(db_path)
+                    
+        except Exception as e:
+            # Fallback: create empty DataFrame with required columns
+            self._skill_universe_df = pd.DataFrame(columns=[
+                'Skill_ID', 'Skill_Name', 'Category', 'Subcategory', 'SkillType',
+                'job_profiles_with_skill', 'prevalence_percentage', 'rarity_category'
+            ])
+    
+    def _load_job_to_skills(self):
+        """Load job to skills mapping from database using modular components."""
+        try:
+            # Get database path from model versioning
+            from ..models.versioning import ModelVersionManager
+            version_manager = ModelVersionManager()
+            output_dir = version_manager.setup_output_directory(
+                interactive=False, 
+                output_type='business_context'
+            )
+            db_path = str(output_dir / 'business_context.sqlite')
+            
+            # Load job-skill relationships using defining skills analyzer
+            job_skills_df = self._defining_analyzer.load_job_skills_from_database(db_path)
+            
+            # Convert to job_id -> set of skill names mapping
+            self._job_to_skills = {}
+            for job_id, group in job_skills_df.groupby('JobProfileID'):
+                self._job_to_skills[job_id] = set(group['Skill_Name'].tolist())
+                
+        except Exception as e:
+            self._job_to_skills = {}
+    
+    def _load_job_defining_skills(self):
+        """Load job-specific defining skills using modular components."""
+        try:
+            # Ensure we have skill universe and job skills loaded
+            skill_universe = self.skill_universe_df
+            if skill_universe.empty:
+                self._job_defining_skills = {}
+                return
+                
+            # Get database path for loading job skills
+            from ..models.versioning import ModelVersionManager
+            version_manager = ModelVersionManager()
+            output_dir = version_manager.setup_output_directory(
+                interactive=False, 
+                output_type='business_context'
+            )
+            db_path = str(output_dir / 'business_context.sqlite')
+            
+            # Load job-skill relationships
+            job_skills_df = self._defining_analyzer.load_job_skills_from_database(db_path)
+            
+            # Create job-specific defining skills
+            self._job_defining_skills = self._defining_analyzer.create_job_specific_defining_skills(
+                skill_universe, job_skills_df
+            )
+            
+        except Exception as e:
+            self._job_defining_skills = {} 

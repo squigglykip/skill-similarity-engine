@@ -38,6 +38,8 @@ from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
 
+from ..utils.progress import MultiProgressTracker, progress_context
+
 from datetime import datetime
 
 from ..config.architectural_config_manager import get_config_manager
@@ -209,18 +211,14 @@ class DataLoader:
 
         
 
-        logger.info("Starting comprehensive data loading from configuration...")
-
-        
+        print("🔄 Loading workforce data from CSV files...")
+        print("   This will import all employee records, job information, and historical data.")
+        print()
 
         # Get data sources from configuration
-
         data_sources = self.config.get('data_sources', {})
 
-        
-
         # Define loading sequence (order matters for foreign keys)
-        # Use the sequence from configuration, fallback to hardcoded if not found
         loading_sequence = self.config.get('loading_sequence', [
             'core_job_architecture', 
             'core_skills_taxonomy', 
@@ -229,53 +227,66 @@ class DataLoader:
             'position_history'  # Note: config calls this position_history, table is core_position_timeline
         ])
 
-        
-
-        for dataset_name in loading_sequence:
-
-            if dataset_name not in data_sources:
-
-                logger.warning(f"Dataset {dataset_name} not found in configuration")
-
-                continue
-
-                
-
-            dataset_config = data_sources[dataset_name]
-
+        # Use MultiProgressTracker for clean progress display
+        with MultiProgressTracker() as progress_tracker:
             
+            for dataset_name in loading_sequence:
 
-            # Load from CSV file(s)
-            if 'file_pattern' in dataset_config:
-                # Handle multiple files with pattern
-                import glob
-                pattern = str(data_root_path / dataset_config['file_pattern'])
-                matching_files = glob.glob(pattern)
-                
-                if matching_files:
-                    logger.info(f"Loading {dataset_name} from {len(matching_files)} files matching pattern: {dataset_config['file_pattern']}")
-                    if not self._load_multiple_files_from_config(dataset_name, matching_files, dataset_config):
-                        logger.error(f"Failed to load {dataset_name}")
-                        success = False
+                if dataset_name not in data_sources:
+                    print(f"⚠️  Dataset {dataset_name} not found in configuration")
+                    continue
+
+                dataset_config = data_sources[dataset_name]
+
+                # Determine how many files we'll be loading for progress tracking
+                if 'file_pattern' in dataset_config:
+                    # Handle multiple files with pattern
+                    import glob
+                    pattern = str(data_root_path / dataset_config['file_pattern'])
+                    matching_files = glob.glob(pattern)
+                    
+                    if matching_files:
+                        # Create progress tracker for this dataset with file count
+                        tracker = progress_tracker.add_tracker(
+                            dataset_name, 
+                            total=len(matching_files),
+                            desc=f"Loading {dataset_name}",
+                            memory_tracking=False,
+                            show_tqdm=True
+                        )
+                        
+                        if not self._load_multiple_files_with_progress(dataset_name, matching_files, dataset_config, tracker):
+                            print(f"❌ Failed to load {dataset_name}")
+                            success = False
+                        
+                        progress_tracker.stop_tracker(dataset_name)
                     else:
-                        logger.info(f"✅ Successfully loaded {dataset_name}")
-                else:
-                    logger.warning(f"No files found matching pattern: {pattern}")
-                    success = False
-            else:
-                # Handle single file
-                file_path = data_root_path / dataset_config['file_path']
-                
-                if file_path.exists():
-                    logger.info(f"Loading {dataset_name} from {file_path}")
-                    if not self._load_dataset_from_config(dataset_name, file_path, dataset_config):
-                        logger.error(f"Failed to load {dataset_name}")
+                        print(f"⚠️  No files found matching pattern: {pattern}")
                         success = False
-                    else:
-                        logger.info(f"✅ Successfully loaded {dataset_name}")
                 else:
-                    logger.warning(f"Data file not found: {file_path}")
-                    success = False
+                    # Handle single file
+                    file_path = data_root_path / dataset_config['file_path']
+                    
+                    if file_path.exists():
+                        # Create progress tracker for single file (indeterminate)
+                        tracker = progress_tracker.add_tracker(
+                            dataset_name,
+                            total=1,
+                            desc=f"Loading {dataset_name}",
+                            memory_tracking=False,
+                            show_tqdm=True
+                        )
+                        
+                        if not self._load_dataset_from_config(dataset_name, file_path, dataset_config):
+                            print(f"❌ Failed to load {dataset_name}")
+                            success = False
+                        else:
+                            tracker.update(1)  # Mark as complete
+                        
+                        progress_tracker.stop_tracker(dataset_name)
+                    else:
+                        print(f"❌ Data file not found: {file_path}")
+                        success = False
 
         
 
@@ -1314,33 +1325,62 @@ class DataLoader:
             logger.error(f"Failed to load multiple files for {dataset_name}: {e}")
             return False
     
+    def _load_multiple_files_with_progress(self, dataset_name: str, file_paths: List[str], dataset_config: Dict[str, Any], progress_tracker) -> bool:
+        """Load and combine multiple CSV files for a single dataset with progress tracking."""
+        try:
+            total_rows_loaded = 0
+            
+            for file_path in sorted(file_paths):  # Sort to ensure consistent order
+                file_path_obj = Path(file_path)
+                
+                # Use existing single-file loading method
+                if self._load_dataset_from_config(dataset_name, file_path_obj, dataset_config):
+                    # Get the row count from load_stats if available
+                    if dataset_name in self.load_stats:
+                        total_rows_loaded += self.load_stats[dataset_name].get('rows_loaded', 0)
+                    progress_tracker.update(1)  # Update progress for this file
+                else:
+                    print(f"  ⚠️  Failed to load {file_path_obj.name}")
+                    progress_tracker.update(1)  # Still update progress even on failure
+            
+            return True
+            
+        except Exception as e:
+            print(f"  ❌ Failed to load multiple files for {dataset_name}: {e}")
+            return False
+    
 # Note: Dataset generation methods removed - all datasets now loaded from CSV files
 
     def _print_load_summary(self) -> None:
-
-        """Print summary of all data loading operations."""
-
-        print("\n=== Data Loading Summary ===")
-
+        """Print a clean, user-friendly summary of all data loading operations."""
         
-
+        print("\n" + "=" * 50)
+        print("📊 DATA LOADING COMPLETE")
+        print("=" * 50)
+        
         total_rows = 0
-
-        for table_name, stats in self.load_stats.items():
-
-            rows = stats['rows_loaded']
-
-            total_rows += rows
-
-            print(f"✅ {table_name}: {rows:,} rows loaded")
-
-            print(f"  Source: {Path(stats['source_file']).name}")
-
         
-
-        print(f"\nTotal records loaded: {total_rows:,}")
-
-        print("=" * 31)
+        for table_name, stats in self.load_stats.items():
+            rows = stats['rows_loaded']
+            total_rows += rows
+            
+            # Format the table name for better readability
+            display_name = table_name.replace('_', ' ').title()
+            if display_name.startswith('Core '):
+                display_name = display_name[5:]  # Remove 'Core ' prefix
+                
+            # Show file count for multi-file datasets
+            if 'total_rows' in stats and stats['total_rows'] != rows:
+                file_count = stats.get('file_count', 1)
+                print(f"✅ {display_name:<25} {rows:>10,} rows ({file_count} files)")
+            else:
+                print(f"✅ {display_name:<25} {rows:>10,} rows")
+        
+        print("-" * 50)
+        print(f"📈 Total Records Loaded:     {total_rows:>10,}")
+        print("=" * 50)
+        print("🎉 Your workforce database is ready!")
+        print()
 
     
 

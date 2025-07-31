@@ -49,6 +49,9 @@ files:
   similarity_enhancement: "config/similarity_enhancement_factors.yaml"
   data_validation_schema: "config/data_validation_schema.yaml"
   
+  # Core configuration files
+  similarity_parameters: "config/core/similarity_parameters.yaml"
+  
   # Default output files
   jobs_csv: "data/jobs.csv"
   skills_csv: "data/skills.csv"
@@ -140,6 +143,40 @@ similarity:
   batch_size: 1000
   use_sparse_matrices: false
   cache_intermediate_results: true
+
+# =============================================================================
+# Core Similarity Parameters (Optuna-Optimized)
+# =============================================================================
+# CRITICAL PARAMETERS - Result of Optuna Bayesian optimization (2025-07-31)
+# DO NOT MODIFY without extensive testing and validation
+core:
+  similarity_parameters:
+    # Optuna-optimized parameters (Trial 23, best result)
+    optuna_optimal:
+      defining_skills_percentile: 8.8    # Top 8.8% rarest skills per job
+      defining_skills_multiplier: 1.206  # 1.206x boost for shared defining skills
+      
+      # Optimization metadata for transparency
+      optimization_metadata:
+        optimization_date: "2025-07-31"
+        optimization_method: "Optuna TPE Sampler + Median Pruner"
+        dataset_size: "715 jobs, ~510K job pairs"
+        best_trial: 23
+        smoothness_score: 0.7723
+        average_improvement: 0.0057  # 0.57%
+        normalization_factor: 2.6499
+        scores_above_1_percent: 44.76
+    
+    # Rarity analysis thresholds
+    rarity_thresholds:
+      rare_threshold: 5.0          # Skills in <5% of jobs = rare
+      uncommon_threshold: 20.0     # Skills in 5-20% of jobs = uncommon
+      common_threshold: 50.0       # Skills in 20-50% of jobs = common
+    
+    # Algorithm configuration
+    similarity_method:
+      algorithm: "asymmetric_jaccard"  # Job A → Job B career pathway analysis
+      corpus_normalization: true      # Normalize entire corpus to 0-1 range
 
 # =============================================================================
 # Utils Module Configuration (Phase 1.4.7 - Utils Module Refactoring)

@@ -1,14 +1,14 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Workforce Intelligence Database
 
-**Generated**: 2025-07-30 16:25:18
+**Generated**: 2025-07-31 17:53:25
 **Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q3\business_context.sqlite`
-**Database Size**: 197.18 MB
+**Database Size**: 443.95 MB
 **SQLite Version**: 3.45.3
 **Page Size**: 4096 bytes
-**Total Pages**: 50,477
+**Total Pages**: 113,650
 **Foreign Keys**: Disabled
-**Last Modified**: 2025-07-30T16:24:12.349573
+**Last Modified**: 2025-07-31T17:50:55.709755
 
 ---
 
@@ -41,9 +41,9 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 ## Database Statistics
 
 - **Total Tables**: 15
-- **Total Records**: 596,835
+- **Total Records**: 1,117,132
 - **Total Indexes**: 49
-- **Database Size**: 197.18 MB
+- **Database Size**: 443.95 MB
 
 ### Key Business Metrics
 
@@ -92,24 +92,29 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 
 **Small Tables:**
 - analytics_bundle_characteristics: 0 rows
-- analytics_job_defining_skills: 0 rows
 - analytics_job_families: 0 rows
-- analytics_job_similarities: 0 rows
 - analytics_movement_patterns: 0 rows
 - analytics_skill_bundles: 0 rows
 - analytics_skill_demand_trends: 0 rows
-- analytics_skill_rarity: 0 rows
 - analytics_specialized_skills: 0 rows
 - core_job_architecture: 715 rows
 - sys_schema_metadata: 12 rows
 
 **Medium Tables:**
+- analytics_job_defining_skills: 7,728 rows
+- analytics_skill_rarity: 2,059 rows
 - core_job_skill_requirements: 40,170 rows
 - core_skills_taxonomy: 38,525 rows
 - core_workforce_current: 35,000 rows
 
 **Large Tables:**
+- analytics_job_similarities: 510,510 rows
 - core_position_timeline: 482,413 rows
+
+### Query Optimization Recommendations
+
+- **foreign_key_indexing**: Foreign key column 'skill_id' not indexed
+  - Recommendation: CREATE INDEX idx_analytics_skill_rarity_skill_id ON analytics_skill_rarity(skill_id)
 
 ## Entity Relationship Diagram
 
@@ -551,7 +556,7 @@ CREATE TABLE analytics_bundle_characteristics (
 **Sample Data by Column:**
 
 
-### 2. **analytics_job_defining_skills** - 0 records
+### 2. **analytics_job_defining_skills** - 7,728 records
 
 ```sql
 CREATE TABLE analytics_job_defining_skills (
@@ -580,24 +585,116 @@ CREATE TABLE analytics_job_defining_skills (
 
 **Column Statistics:**
 
-- **job_profile_id**: 0 unique values (0 non-null), avg length 0
-- **skill_id**: 0 unique values (0 non-null), avg length 0
-- **skill_name**: 0 unique values (0 non-null), avg length 0
-- **job_profile**: 0 unique values (0 non-null), avg length 0
-- **category**: 0 unique values (0 non-null), avg length 0
-- **subcategory**: 0 unique values (0 non-null), avg length 0
-- **skill_type**: 0 unique values (0 non-null), avg length 0
-- **prevalence_percentage**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **total_profiles_with_skill**: 0 unique values (0 non-null), range 0 - 0
-- **rarity_category**: 0 unique values (0 non-null), avg length 0
-- **defining_skill_rank**: 0 unique values (0 non-null), range 0 - 0
-- **defining_skill_score**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **analysis_date**: 0 unique values (0 non-null), avg length 0
-- **percentile_threshold**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **created_timestamp**: 0 unique values (0 non-null), avg length 0
+- **job_profile_id**: 715 unique values (7,728 non-null), avg length 7.0
+- **skill_id**: 1,676 unique values (7,728 non-null), avg length 20.0
+- **skill_name**: 1,676 unique values (7,728 non-null), avg length 21.69
+- **job_profile**: 309 unique values (7,728 non-null), avg length 22.46
+- **category**: 29 unique values (7,728 non-null), avg length 17.2
+- **subcategory**: 236 unique values (7,728 non-null), avg length 20.87
+- **skill_type**: 3 unique values (7,728 non-null), avg length 16.58
+- **prevalence_percentage**: 47 unique values (7,728 non-null), range 0.1400 - 7.8300, avg 1.3261
+- **total_profiles_with_skill**: 47 unique values (7,728 non-null), range 1 - 56
+- **rarity_category**: 2 unique values (7,728 non-null), avg length 4.05
+- **defining_skill_rank**: 19 unique values (7,728 non-null), range 1 - 19
+- **defining_skill_score**: 47 unique values (7,728 non-null), range 92.1678 - 99.8601, avg 98.6751
+- **analysis_date**: 1 unique values (7,728 non-null), avg length 10.0
+- **percentile_threshold**: 1 unique values (7,728 non-null), range 20.0000 - 20.0000, avg 20.0000
+- **created_timestamp**: 1 unique values (7,728 non-null), avg length 19.0
+
+**Data Quality - Completeness:**
+
+- **job_profile_id**: 100% complete
+- **skill_id**: 100% complete
+- **skill_name**: 100% complete
+- **job_profile**: 100% complete
+- **category**: 100% complete
+- **subcategory**: 100% complete
+- **skill_type**: 100% complete
+- **prevalence_percentage**: 100% complete
+- **total_profiles_with_skill**: 100% complete
+- **rarity_category**: 100% complete
+- **defining_skill_rank**: 100% complete
+- **defining_skill_score**: 100% complete
+- **analysis_date**: 100% complete
+- **percentile_threshold**: 100% complete
+- **created_timestamp**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
 
 **Sample Data by Column:**
 
+- **job_profile_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **skill_id**: `BGS10EE289B9FDE2C4B1`, `BGS11665AC6BD06C5EBD`, `BGS117E3FE9519A5B542`, `BGS1241B6719A7FE041D`, `BGS1250D82C4B027A171`, `BGS147DBB4CF132F0523`, `BGS152BE1A314EFF3FE3`, `BGS166A638195D1E2BAE`, `BGS16C952D775A16E650`, `BGS1737E89A3E6B7A57C`
+- **skill_name**: `A3 Problem Solving Techniques`, `AWS Devops`, `AWS Identity And Access Man...`, `Access Controls`, `Account Development`, `Account Growth`, `Account Management`, `Account Reconciliation`, `Account Segmentation`, `Account Strategy`
+- **job_profile**: `Budget Manager (Ungraded)`, `Budget Manager - 0`, `Budget Manager - 2`, `Budget Manager - 3`, `Budget Manager - 4`, `Budget Manager - 5`, `Budget Manager - 6`, `Budget Manager - 7`, `Budget Manager - II`, `Business Analyst - 0`
+- **category**: `Administration`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Economics, Policy, and Soci...`, `Education and Training`, `Energy and Utilities`, `Engineering`
+- **subcategory**: `Account Management`, `Accounting and Finance Soft...`, `Accounts Payable and Receiv...`, `Administrative Support and ...`, `Agile Software Development`, `Animation and Game Design`, `Application Programming Int...`, `Architectural Design`, `Artificial Intelligence and...`, `Auditing`
+- **skill_type**: `Certification`, `Common Skill`, `Specialized Skill`
+- **prevalence_percentage**: `0.14`, `0.28`, `0.42`, `0.56`, `0.7`, `0.84`, `0.98`, `1.12`, `1.26`, `1.4`
+- **total_profiles_with_skill**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+- **rarity_category**: `Rare`, `Uncommon`
+- **defining_skill_rank**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+- **defining_skill_score**: `92.16783216783217`, `93.28671328671328`, `93.56643356643357`, `93.7062937062937`, `93.84615384615384`, `94.12587412587412`, `94.26573426573427`, `94.4055944055944`, `94.54545454545455`, `94.68531468531468`
+- **analysis_date**: `2025-07-31`
+- **percentile_threshold**: `20.0`
+- **created_timestamp**: `2025-07-31 07:50:55`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `job_profile_id`: R0001.5
+  - `skill_id`: ESF18614E2FC278FD985
+  - `skill_name`: Risk Management Strategies
+  - `job_profile`: Payment Systems Analyst - 5
+  - `category`: Business
+  - `subcategory`: Risk Management
+  - `skill_type`: Specialized Skill
+  - `prevalence_percentage`: 1.54
+  - `total_profiles_with_skill`: 11
+  - `rarity_category`: Rare
+  - `defining_skill_rank`: 7
+  - `defining_skill_score`: 98.46153846153847
+  - `analysis_date`: 2025-07-31
+  - `percentile_threshold`: 20.0
+  - `created_timestamp`: 2025-07-31 07:50:55
+
+**Record 2:**
+  - `job_profile_id`: R0001.5
+  - `skill_id`: KS122CJ6ZVCCTTDGYB6B
+  - `skill_name`: Contract Negotiation
+  - `job_profile`: Payment Systems Analyst - 5
+  - `category`: Business
+  - `subcategory`: Contract Management
+  - `skill_type`: Specialized Skill
+  - `prevalence_percentage`: 1.4
+  - `total_profiles_with_skill`: 10
+  - `rarity_category`: Rare
+  - `defining_skill_rank`: 6
+  - `defining_skill_score`: 98.6013986013986
+  - `analysis_date`: 2025-07-31
+  - `percentile_threshold`: 20.0
+  - `created_timestamp`: 2025-07-31 07:50:55
+
+**Record 3:**
+  - `job_profile_id`: R0001.5
+  - `skill_id`: KS122P679TKY3RR1HMFC
+  - `skill_name`: Data Hub
+  - `job_profile`: Payment Systems Analyst - 5
+  - `category`: Information Technology
+  - `subcategory`: Data Management
+  - `skill_type`: Specialized Skill
+  - `prevalence_percentage`: 1.54
+  - `total_profiles_with_skill`: 11
+  - `rarity_category`: Rare
+  - `defining_skill_rank`: 8
+  - `defining_skill_score`: 98.46153846153847
+  - `analysis_date`: 2025-07-31
+  - `percentile_threshold`: 20.0
+  - `created_timestamp`: 2025-07-31 07:50:55
+
+---
 
 ### 3. **analytics_job_families** - 0 records
 
@@ -658,7 +755,7 @@ CREATE TABLE analytics_job_families (
 **Sample Data by Column:**
 
 
-### 4. **analytics_job_similarities** - 0 records
+### 4. **analytics_job_similarities** - 510,510 records
 
 ```sql
 CREATE TABLE analytics_job_similarities (
@@ -689,26 +786,128 @@ CREATE TABLE analytics_job_similarities (
 
 **Column Statistics:**
 
-- **similarity_id**: 0 unique values (0 non-null), avg length 0
-- **job_from**: 0 unique values (0 non-null), avg length 0
-- **job_to**: 0 unique values (0 non-null), avg length 0
-- **similarity_score**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **enhanced_similarity_score**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **rarity_weighted_score**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **shared_defining_skills_count**: 0 unique values (0 non-null), range 0 - 0
-- **defining_skill_boost**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **shared_skills_count**: 0 unique values (0 non-null), range 0 - 0
-- **total_skills_from**: 0 unique values (0 non-null), range 0 - 0
-- **total_skills_to**: 0 unique values (0 non-null), range 0 - 0
-- **skill_overlap_percentage**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **shared_skills**: 0 unique values (0 non-null), avg length 0
-- **shared_defining_skills**: 0 unique values (0 non-null), avg length 0
-- **skill_gap_analysis**: 0 unique values (0 non-null), avg length 0
-- **calculation_algorithm**: 0 unique values (0 non-null), avg length 0
-- **created_timestamp**: 0 unique values (0 non-null), avg length 0
+- **similarity_id**: 510,510 unique values (510,510 non-null), avg length 15.0
+- **job_from**: 715 unique values (510,510 non-null), avg length 7.0
+- **job_to**: 715 unique values (510,510 non-null), avg length 7.0
+- **similarity_score**: 512 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.2125
+- **enhanced_similarity_score**: 588 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.2144
+- **rarity_weighted_score**: 588 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.2144
+- **shared_defining_skills_count**: 19 unique values (510,510 non-null), range 0 - 19
+- **defining_skill_boost**: 19 unique values (510,510 non-null), range 0.0000 - 0.9500, avg 0.0087
+- **shared_skills_count**: 80 unique values (510,510 non-null), range 0 - 96
+- **total_skills_from**: 53 unique values (510,510 non-null), range 23 - 96
+- **total_skills_to**: 53 unique values (510,510 non-null), range 23 - 96
+- **skill_overlap_percentage**: 637 unique values (510,510 non-null), range 0.0000 - 100.0000, avg 34.2701
+- **shared_skills**: 7,719 unique values (510,510 non-null), avg length 167.02
+- **shared_defining_skills**: 1,355 unique values (510,510 non-null), avg length 3.83
+- **skill_gap_analysis**: 567 unique values (510,510 non-null), avg length 35.74
+- **calculation_algorithm**: 1 unique values (510,510 non-null), avg length 20.0
+- **created_timestamp**: 20 unique values (510,510 non-null), avg length 19.0
+
+**Data Quality - Completeness:**
+
+- **similarity_id**: 100% complete
+- **job_from**: 100% complete
+- **job_to**: 100% complete
+- **similarity_score**: 100% complete
+- **enhanced_similarity_score**: 100% complete
+- **rarity_weighted_score**: 100% complete
+- **shared_defining_skills_count**: 100% complete
+- **defining_skill_boost**: 100% complete
+- **shared_skills_count**: 100% complete
+- **total_skills_from**: 100% complete
+- **total_skills_to**: 100% complete
+- **skill_overlap_percentage**: 100% complete
+- **shared_skills**: 100% complete
+- **shared_defining_skills**: 100% complete
+- **skill_gap_analysis**: 100% complete
+- **calculation_algorithm**: 100% complete
+- **created_timestamp**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
 
 **Sample Data by Column:**
 
+- **similarity_id**: `R0001.5_R0001.6`, `R0001.5_R0002.0`, `R0001.5_R0002.1`, `R0001.5_R0002.2`, `R0001.5_R0002.3`, `R0001.5_R0002.4`, `R0001.5_R0003.0`, `R0001.5_R0003.2`, `R0001.5_R0005.1`, `R0001.5_R0007.1`
+- **job_from**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **job_to**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
+- **similarity_score**: `0.0`, `0.008`, `0.009000000000000001`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`
+- **enhanced_similarity_score**: `0.0`, `0.008`, `0.009000000000000001`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`
+- **rarity_weighted_score**: `0.0`, `0.008`, `0.009000000000000001`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`
+- **shared_defining_skills_count**: `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`
+- **defining_skill_boost**: `0.0`, `0.05`, `0.1`, `0.15`, `0.2`, `0.25`, `0.3`, `0.35`, `0.4`, `0.45`
+- **shared_skills_count**: `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`
+- **total_skills_from**: `23`, `25`, `26`, `27`, `31`, `32`, `33`, `34`, `36`, `37`
+- **total_skills_to**: `23`, `25`, `26`, `27`, `31`, `32`, `33`, `34`, `36`, `37`
+- **skill_overlap_percentage**: `0.0`, `1.0`, `1.1`, `1.2`, `1.3`, `1.4`, `1.5`, `1.6`, `1.7`, `1.8`
+- **shared_skills**: ``, `Active Listening`, `Adaptability, Customer Cent...`, `Adaptability, Risk Manageme...`, `Agile Coaching, Agile Produ...`, `Agile Coaching, Agile Produ...`, `Agile Coaching, Risk Manage...`, `Agile Coaching, Stakeholder...`, `Agile Coaching, Stakeholder...`, `Agile Coaching, Stakeholder...`
+- **shared_defining_skills**: ``, `A3 Problem Solving Techniques`, `Account Development, Accoun...`, `Account Growth`, `Account Growth, Account Man...`, `Account Growth, Account Man...`, `Account Management`, `Account Management, Account...`, `Account Management, Decisio...`, `Account Management, Loan Ap...`
+- **skill_gap_analysis**: `Skills needed: 0, Defining ...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`
+- **calculation_algorithm**: `rarity_weighted_v1.0`
+- **created_timestamp**: `2025-07-31 07:50:36`, `2025-07-31 07:50:37`, `2025-07-31 07:50:38`, `2025-07-31 07:50:39`, `2025-07-31 07:50:40`, `2025-07-31 07:50:41`, `2025-07-31 07:50:42`, `2025-07-31 07:50:43`, `2025-07-31 07:50:44`, `2025-07-31 07:50:45`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `similarity_id`: R0001.5_R0001.6
+  - `job_from`: R0001.5
+  - `job_to`: R0001.6
+  - `similarity_score`: 1.0
+  - `enhanced_similarity_score`: 1.0
+  - `rarity_weighted_score`: 1.0
+  - `shared_defining_skills_count`: 13
+  - `defining_skill_boost`: 0.65
+  - `shared_skills_count`: 68
+  - `total_skills_from`: 68
+  - `total_skills_to`: 68
+  - `skill_overlap_percentage`: 100.0
+  - `shared_skills`: Strategic Planning, Strategic Partnership, Data...
+  - `shared_defining_skills`: Contract Negotiation, Data Hub, Data Normalizat...
+  - `skill_gap_analysis`: Skills needed: 0, Defining gaps: 0
+  - `calculation_algorithm`: rarity_weighted_v1.0
+  - `created_timestamp`: 2025-07-31 07:50:36
+
+**Record 2:**
+  - `similarity_id`: R0001.5_R0002.0
+  - `job_from`: R0001.5
+  - `job_to`: R0002.0
+  - `similarity_score`: 0.258
+  - `enhanced_similarity_score`: 0.271
+  - `rarity_weighted_score`: 0.271
+  - `shared_defining_skills_count`: 1
+  - `defining_skill_boost`: 0.05
+  - `shared_skills_count`: 24
+  - `total_skills_from`: 68
+  - `total_skills_to`: 49
+  - `skill_overlap_percentage`: 49.0
+  - `shared_skills`: Customer Centricity, Safety Culture, Power BI, ...
+  - `shared_defining_skills`: Power BI
+  - `skill_gap_analysis`: Skills needed: 25, Defining gaps: 9
+  - `calculation_algorithm`: rarity_weighted_v1.0
+  - `created_timestamp`: 2025-07-31 07:50:36
+
+**Record 3:**
+  - `similarity_id`: R0001.5_R0002.1
+  - `job_from`: R0001.5
+  - `job_to`: R0002.1
+  - `similarity_score`: 0.258
+  - `enhanced_similarity_score`: 0.271
+  - `rarity_weighted_score`: 0.271
+  - `shared_defining_skills_count`: 1
+  - `defining_skill_boost`: 0.05
+  - `shared_skills_count`: 24
+  - `total_skills_from`: 68
+  - `total_skills_to`: 49
+  - `skill_overlap_percentage`: 49.0
+  - `shared_skills`: Customer Centricity, Safety Culture, Power BI, ...
+  - `shared_defining_skills`: Power BI
+  - `skill_gap_analysis`: Skills needed: 25, Defining gaps: 9
+  - `calculation_algorithm`: rarity_weighted_v1.0
+  - `created_timestamp`: 2025-07-31 07:50:36
+
+---
 
 ### 5. **analytics_movement_patterns** - 0 records
 
@@ -891,7 +1090,7 @@ CREATE TABLE analytics_skill_demand_trends (
 **Sample Data by Column:**
 
 
-### 8. **analytics_skill_rarity** - 0 records
+### 8. **analytics_skill_rarity** - 2,059 records
 
 ```sql
 CREATE TABLE analytics_skill_rarity (
@@ -920,24 +1119,121 @@ CREATE TABLE analytics_skill_rarity (
 
 **Column Statistics:**
 
-- **skill_id**: 0 unique values (0 non-null), avg length 0
-- **skill_name**: 0 unique values (0 non-null), avg length 0
-- **category**: 0 unique values (0 non-null), avg length 0
-- **subcategory**: 0 unique values (0 non-null), avg length 0
-- **skill_type**: 0 unique values (0 non-null), avg length 0
-- **total_profiles_with_skill**: 0 unique values (0 non-null), range 0 - 0
-- **total_jobs**: 0 unique values (0 non-null), range 0 - 0
-- **prevalence_percentage**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **rarity_category**: 0 unique values (0 non-null), avg length 0
-- **rarity_score**: 0 unique values (0 non-null), range 0.0000 - 0.0000, avg 0.0000
-- **defining_for_jobs_count**: 0 unique values (0 non-null), range 0 - 0
-- **defining_for_jobs**: 0 unique values (0 non-null), avg length 0
-- **analysis_date**: 0 unique values (0 non-null), avg length 0
-- **algorithm_version**: 0 unique values (0 non-null), avg length 0
-- **created_timestamp**: 0 unique values (0 non-null), avg length 0
+- **skill_id**: 2,059 unique values (2,059 non-null), avg length 20.0
+- **skill_name**: 2,059 unique values (2,059 non-null), avg length 21.71
+- **category**: 29 unique values (2,059 non-null), avg length 17.64
+- **subcategory**: 242 unique values (2,059 non-null), avg length 21.11
+- **skill_type**: 3 unique values (2,059 non-null), avg length 16.56
+- **total_profiles_with_skill**: 118 unique values (2,059 non-null), range 1 - 666
+- **total_jobs**: 1 unique values (2,059 non-null), range 715 - 715
+- **prevalence_percentage**: 118 unique values (2,059 non-null), range 0.1400 - 93.1500, avg 2.7209
+- **rarity_category**: 4 unique values (2,059 non-null), avg length 4.39
+- **rarity_score**: 118 unique values (2,059 non-null), range 6.8500 - 99.8600, avg 97.2791
+- **defining_for_jobs_count**: 1 unique values (2,059 non-null), range 0 - 0
+- **defining_for_jobs**: 1 unique values (2,059 non-null), avg length 0
+- **analysis_date**: 1 unique values (2,059 non-null), avg length 10.0
+- **algorithm_version**: 1 unique values (2,059 non-null), avg length 20.0
+- **created_timestamp**: 1 unique values (2,059 non-null), avg length 19.0
+
+**Data Quality - Completeness:**
+
+- **skill_id**: 100% complete
+- **skill_name**: 100% complete
+- **category**: 100% complete
+- **subcategory**: 100% complete
+- **skill_type**: 100% complete
+- **total_profiles_with_skill**: 100% complete
+- **total_jobs**: 100% complete
+- **prevalence_percentage**: 100% complete
+- **rarity_category**: 100% complete
+- **rarity_score**: 100% complete
+- **is_defining_skill**: 100% complete
+- **defining_for_jobs_count**: 100% complete
+- **defining_for_jobs**: 100% complete
+- **analysis_date**: 100% complete
+- **algorithm_version**: 100% complete
+- **created_timestamp**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
 
 **Sample Data by Column:**
 
+- **skill_id**: `BGS10EE289B9FDE2C4B1`, `BGS11665AC6BD06C5EBD`, `BGS117E3FE9519A5B542`, `BGS1241B6719A7FE041D`, `BGS1250D82C4B027A171`, `BGS147DBB4CF132F0523`, `BGS152BE1A314EFF3FE3`, `BGS166A638195D1E2BAE`, `BGS16C952D775A16E650`, `BGS1737E89A3E6B7A57C`
+- **skill_name**: `A3 Problem Solving Techniques`, `ADP Enterprise`, `AWS Certified DevOps Engineer`, `AWS Devops`, `AWS Identity And Access Man...`, `Access Controls`, `Account Development`, `Account Growth`, `Account Management`, `Account Reconciliation`
+- **category**: `Administration`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Economics, Policy, and Soci...`, `Education and Training`, `Energy and Utilities`, `Engineering`
+- **subcategory**: `Account Management`, `Accounting and Finance Soft...`, `Accounts Payable and Receiv...`, `Administrative Support and ...`, `Agile Software Development`, `Animation and Game Design`, `Application Programming Int...`, `Architectural Design`, `Artificial Intelligence and...`, `Auditing`
+- **skill_type**: `Certification`, `Common Skill`, `Specialized Skill`
+- **total_profiles_with_skill**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
+- **total_jobs**: `715`
+- **prevalence_percentage**: `0.14`, `0.28`, `0.42`, `0.56`, `0.7`, `0.84`, `0.98`, `1.12`, `1.26`, `1.4`
+- **rarity_category**: `Common`, `Rare`, `Uncommon`, `Universal`
+- **rarity_score**: `6.85`, `6.99`, `8.39`, `9.09`, `9.37`, `9.65`, `9.79`, `9.93`, `10.21`, `47.27`
+- **is_defining_skill**: `0`, `1`
+- **defining_for_jobs_count**: `0`
+- **defining_for_jobs**: ``
+- **analysis_date**: `2025-07-31`
+- **algorithm_version**: `rarity_analyzer_v1.0`
+- **created_timestamp**: `2025-07-31 07:50:55`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `skill_id`: BGS11665AC6BD06C5EBD
+  - `skill_name`: Payroll Reporting
+  - `category`: Human Resources
+  - `subcategory`: Payroll
+  - `skill_type`: Specialized Skill
+  - `total_profiles_with_skill`: 1
+  - `total_jobs`: 715
+  - `prevalence_percentage`: 0.14
+  - `rarity_category`: Rare
+  - `rarity_score`: 99.86
+  - `is_defining_skill`: 1
+  - `defining_for_jobs_count`: 0
+  - `defining_for_jobs`: 
+  - `analysis_date`: 2025-07-31
+  - `algorithm_version`: rarity_analyzer_v1.0
+  - `created_timestamp`: 2025-07-31 07:50:55
+
+**Record 2:**
+  - `skill_id`: BGS166A638195D1E2BAE
+  - `skill_name`: Account Strategy
+  - `category`: Sales
+  - `subcategory`: Account Management
+  - `skill_type`: Specialized Skill
+  - `total_profiles_with_skill`: 1
+  - `total_jobs`: 715
+  - `prevalence_percentage`: 0.14
+  - `rarity_category`: Rare
+  - `rarity_score`: 99.86
+  - `is_defining_skill`: 1
+  - `defining_for_jobs_count`: 0
+  - `defining_for_jobs`: 
+  - `analysis_date`: 2025-07-31
+  - `algorithm_version`: rarity_analyzer_v1.0
+  - `created_timestamp`: 2025-07-31 07:50:55
+
+**Record 3:**
+  - `skill_id`: BGS2EBE8AB8957186FB4
+  - `skill_name`: Construction Inspection
+  - `category`: Architecture and Construction
+  - `subcategory`: Construction Inspection
+  - `skill_type`: Specialized Skill
+  - `total_profiles_with_skill`: 1
+  - `total_jobs`: 715
+  - `prevalence_percentage`: 0.14
+  - `rarity_category`: Rare
+  - `rarity_score`: 99.86
+  - `is_defining_skill`: 1
+  - `defining_for_jobs_count`: 0
+  - `defining_for_jobs`: 
+  - `analysis_date`: 2025-07-31
+  - `algorithm_version`: rarity_analyzer_v1.0
+  - `created_timestamp`: 2025-07-31 07:50:55
+
+---
 
 ### 9. **analytics_specialized_skills** - 0 records
 
@@ -2313,9 +2609,9 @@ This comprehensive schema documentation should be used to:
 
 ## Analysis Summary
 
-- **Database Analysis Date**: 2025-07-30 16:25:18
+- **Database Analysis Date**: 2025-07-31 17:53:25
 - **Tables Analyzed**: 15
 - **Relationships Mapped**: 15
-- **Performance Recommendations**: 0
+- **Performance Recommendations**: 1
 - **Data Quality Checks**: Completeness, duplicates, referential integrity
 - **Business Insights**: Movement patterns, career pathways, skill distributions

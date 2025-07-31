@@ -9,17 +9,17 @@ database:
   default_filename: "workforce_intelligence.sqlite"
   schema_version: "2.0"  # Updated to enhanced schema version
   
-  # Enhanced schema structure (15 tables)
+  # Enhanced schema structure (16 tables)
   tables:
-    total_count: 15
-    core_data_count: 5
+    total_count: 16
+    core_data_count: 6
     analytics_count: 10
     system_count: 1
     
   # Phase implementation tracking
   phases:
     phase_0:
-      populated_tables: 6  # 5 core + 1 analytics
+      populated_tables: 7  # 6 core + 1 analytics
       description: "Foundation data with core tables and movement analytics"
     phase_1:
       additional_tables: 2

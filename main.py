@@ -300,6 +300,123 @@ class WorkforceIntelligenceOrchestrator:
             self.logger.error(f"Workforce database builder error: {e}")
             print(f"❌ Unable to open database builder: {e}")
     
+    def show_analytics_phases_menu(self) -> str:
+        """Display analytics phases menu."""
+        print("\n=== Career Intelligence Generation ===")
+        print("Generate advanced analytics directly into your database.\n")
+        
+
+        
+        print("Select analytics phase:")
+        print("1. Phase 1: Enhanced Similarity Analytics")
+        print("2. Phase 2: Movement & Career Flow Analytics") 
+        print("3. Phase 3: Clustering & Velocity Analytics")
+        print("4. Run All Phases (Recommended)")
+        print("0. Back to main menu")
+        
+        return input("Enter your choice: ").strip()
+    
+    def handle_career_intelligence_generation(self) -> None:
+        """Handle career intelligence generation with database integration."""
+        try:
+            # Initialize analytics orchestrator (auto-detects correct database path)
+            from skill_similarity_engine.business_context.analytics_orchestrator import AnalyticsOrchestrator
+            orchestrator = AnalyticsOrchestrator()
+            
+            # Check Phase 0 completion using orchestrator's verification
+            if not orchestrator._verify_phase_0_completion():
+                print("❌ Foundation database required. Please complete Phase 0 first.")
+                print("   Use option 1 'Build Workforce Database' to create the foundation data.")
+                return
+            
+            while True:
+                choice = self.show_analytics_phases_menu()
+                
+                if choice == '1':
+                    print("\n🧠 Executing Phase 1: Enhanced Similarity Analytics...")
+                    print("   This will calculate enhanced job similarities using configuration-driven algorithms")
+                    print("   with Optuna-optimized parameters and populate analytics tables directly in your database.")
+                    print("   • Parameters: 8.8% defining skills threshold, 1.206x multiplier")
+                    print("   • Algorithm: Asymmetric Jaccard with corpus normalization")
+                    print()
+                    
+                    success = orchestrator.execute_phase_1_enhanced_similarity()
+                    if success:
+                        print("✅ Phase 1 completed! Enhanced similarity data added to database.")
+                        print("   Your database now contains:")
+                        print("   • Enhanced job similarity calculations")
+                        print("   • Skill rarity analysis")
+                        print("   • Job-specific defining skills")
+                    else:
+                        print("❌ Phase 1 failed. Check logs for details.")
+                        print("   This may be due to missing data or configuration issues.")
+                        
+                elif choice == '2':
+                    print("\n📈 Executing Phase 2: Movement & Career Flow Analytics...")
+                    print("   This will analyse historical career movements and populate")
+                    print("   analytics tables with movement patterns.")
+                    print()
+                    
+                    success = orchestrator.execute_phase_2_movement_analysis()
+                    if success:
+                        print("✅ Phase 2 completed! Movement patterns added to database.")
+                    else:
+                        print("❌ Phase 2 failed or not yet implemented. Check logs for details.")
+                        
+                elif choice == '3':
+                    print("\n🎯 Executing Phase 3: Clustering & Velocity Analytics...")
+                    print("   This will perform job clustering, skills bundling, and velocity")
+                    print("   analysis to provide strategic workforce insights.")
+                    print()
+                    
+                    success = orchestrator.execute_phase_3_clustering_velocity()
+                    if success:
+                        print("✅ Phase 3 completed! Clustering insights added to database.")
+                    else:
+                        print("❌ Phase 3 failed or not yet implemented. Check logs for details.")
+                        
+                elif choice == '4':
+                    print("\n🚀 Executing All Phases...")
+                    print("   This will run Phase 1, 2, and 3 in sequence.")
+                    print()
+                    
+                    phase1_success = orchestrator.execute_phase_1_enhanced_similarity()
+                    if phase1_success:
+                        print("✅ Phase 1 (Enhanced Similarity) completed")
+                    else:
+                        print("❌ Phase 1 failed")
+                    
+                    phase2_success = orchestrator.execute_phase_2_movement_analysis()
+                    if phase2_success:
+                        print("✅ Phase 2 (Movement Analysis) completed")
+                    else:
+                        print("⚠️ Phase 2 failed or not implemented")
+                    
+                    phase3_success = orchestrator.execute_phase_3_clustering_velocity()
+                    if phase3_success:
+                        print("✅ Phase 3 (Clustering & Velocity) completed")
+                    else:
+                        print("⚠️ Phase 3 failed or not implemented")
+                    
+                    if phase1_success:
+                        print("\n✅ Analytics generation completed! Your database now contains enhanced analytics.")
+                        print("   At minimum, Phase 1 enhanced similarity data is available for queries.")
+                    else:
+                        print("\n❌ Analytics generation failed. No analytics data was generated.")
+                        
+                elif choice == '0':
+                    break
+                else:
+                    print("❌ Invalid choice. Please select a number from the menu.")
+                
+                if choice != '0':
+                    input("\nPress Enter to continue...")
+                    
+        except Exception as e:
+            self.logger.error(f"Career intelligence generation failed: {e}")
+            print(f"❌ Unable to generate career intelligence: {e}")
+            print("   Please check that your foundation database is properly configured.")
+    
     def handle_system_tools(self) -> None:
         """Handle system tools menu."""
         while True:
@@ -350,11 +467,7 @@ class WorkforceIntelligenceOrchestrator:
             if choice == '1':
                 self.handle_workforce_intelligence()
             elif choice == '2':
-                print("🧠 Career Intelligence Generation")
-                print("   This will analyse your workforce data to generate insights about")
-                print("   job similarities and career progression opportunities.")
-                print("   This feature is coming soon.")
-                print()
+                self.handle_career_intelligence_generation()
             elif choice == '3':
                 self.handle_query_similarities()
             elif choice == '4':

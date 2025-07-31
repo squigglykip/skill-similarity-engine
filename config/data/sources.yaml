@@ -160,6 +160,21 @@ data_sources:
       Operational: Operational
       OrgUnitIDLookupKey: OrgUnitIDLookupKey
 
+  # 6. CORE COLLEAGUE POSITIONS HISTORY (6 columns, 4 files)
+  colleague_positions_history:
+    file_pattern: "colleague_positions_history/d_colleague_position_fy*.csv"
+    table_name: "core_colleague_positions_history"
+    description: "Monthly snapshots of colleague position assignments over time (Phase 2 movement analysis)"
+    # No primary key generation needed - PosIDLookupKey is already unique
+    column_mapping:
+      # Direct mapping - preserve raw CSV field names exactly
+      "Week Ending": "Week Ending"
+      "Employee Number": "Employee Number"
+      "Operational": "Operational"
+      "Position Start Date": "Position Start Date"
+      "PosIDLookupKey": "PosIDLookupKey"
+      "Position Number": "Position Number"
+
 # ================================================================================
 # ENRICHMENT DATA SOURCES
 # ================================================================================
@@ -208,6 +223,7 @@ loading_sequence:
   - job_skills                                    # References both job_architecture and skills
   - core_workforce_current                        # References job_architecture (via enrichment)
   - position_history                              # References job_architecture (via enrichment)
+  - colleague_positions_history                   # Phase 2 movement analysis data
 
 # ================================================================================
 # QUALITY VALIDATION
@@ -221,6 +237,7 @@ quality_checks:
     job_skills: 40170
     core_workforce_current: 35000
     position_history: 600000                     # Total across 5 files
+    colleague_positions_history: 500000          # Total across 4 files (FY22-FY25)
   
   # Data quality documentation
   known_issues:
@@ -230,15 +247,16 @@ quality_checks:
       People_Leader_Number: "29.8% NULL - normal for non-leadership roles"
 
 # ================================================================================
-# SUMMARY: 93 COLUMNS PRESERVED ACROSS 5 TABLES
+# SUMMARY: 99 COLUMNS PRESERVED ACROSS 6 TABLES
 # ================================================================================
 # 
-# core_job_architecture:     16 columns ✅
-# core_skills_taxonomy:      18 columns ✅ 
-# core_job_skill_requirements: 2 columns ✅
-# core_workforce_current:     48 columns ✅
-# core_position_timeline:      9 columns ✅
-# ────────────────────────────────────────
-# TOTAL:                      93 columns ✅
+# core_job_architecture:          16 columns ✅
+# core_skills_taxonomy:           18 columns ✅ 
+# core_job_skill_requirements:     2 columns ✅
+# core_workforce_current:          48 columns ✅
+# core_position_timeline:           9 columns ✅
+# core_colleague_positions_history: 6 columns ✅ (Phase 2 movement analysis)
+# ──────────────────────────────────────────────
+# TOTAL:                           99 columns ✅
 #
 # RESULT: 100% data preservation with zero information loss 
