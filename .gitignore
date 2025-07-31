@@ -189,3 +189,5 @@ models/*/job_similarity_matrix.csv
 models/*/job_similarity_matrix.parquet
 models/2025-Q2/business_context.sqlite
 *.sqlite
+*.db
+test_*.db
