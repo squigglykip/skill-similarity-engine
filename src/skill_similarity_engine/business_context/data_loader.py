@@ -446,6 +446,12 @@ class DataLoader:
                     if dtype == 'numeric':
 
                         df_mapped[col] = pd.to_numeric(df_mapped[col], errors='coerce')
+                    
+                    elif dtype == 'text':
+                        
+                        # Convert to string and ensure no NaN values for TEXT database columns
+                        
+                        df_mapped[col] = df_mapped[col].astype(str).replace('nan', '')
 
             
 
@@ -512,6 +518,12 @@ class DataLoader:
             # Load into database
 
             with sqlite3.connect(self.db_path) as conn:
+                
+                # Clear table if configured to do so (prevents UNIQUE constraint conflicts)
+                if dataset_config.get('clear_table_before_load', False):
+                    logger.info(f"Clearing existing data from {table_name} table")
+                    conn.execute(f"DELETE FROM {table_name}")
+                    conn.commit()
 
                 if chunk_size and len(df_mapped) > chunk_size:
 

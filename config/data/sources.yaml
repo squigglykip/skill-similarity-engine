@@ -76,8 +76,13 @@ data_sources:
       JobProfileID:
         source_file: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
         mapping_key: "Position Number"
-        target_key: "Position Number"
+        target_key: "Position_Number"
         value_column: "JobProfileID"
+    data_types:
+      # Ensure proper data type conversion for database insertion
+      employee_number: "text"
+      position_number: "text"
+    clear_table_before_load: true  # Clear existing data to prevent UNIQUE constraint conflicts
     column_mapping:
       # Direct mapping - only available columns (19 columns, JobProfileID added via enrichment)
       "Employee Number": employee_number           # PRIMARY KEY
@@ -111,7 +116,7 @@ data_sources:
       JobProfileID:
         source_file: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
         mapping_key: "Position Number"
-        target_key: "Position Number"
+        target_key: "Position_Number"
         value_column: "JobProfileID"
     primary_key_generation:
       # Generate composite primary key
