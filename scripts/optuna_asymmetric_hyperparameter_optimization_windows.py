@@ -1,29 +1,21 @@
 #!/usr/bin/env python3
 """
-OPTUNA BAYESIAN HYPERPARAMETER OPTIMIZATION - Full Dataset Career Pathway Tuning
-=================================================================================
+OPTUNA BAYESIAN HYPERPARAMETER OPTIMIZATION - Windows Compatible Version
+=========================================================================
 
-Advanced Bayesian optimization using Optuna for finding optimal hyperparameters
-for asymmetric career pathway similarity scoring. Uses the FULL dataset instead
-of sampling for maximum accuracy and reliability.
+Simplified version for Windows systems that avoids multiprocessing issues.
+Uses sequential processing but maintains full dataset accuracy.
 
 Key Features:
-- Bayesian optimization with Optuna for efficient parameter search
+- Windows-compatible single-threaded processing
 - Full dataset processing (all jobs, all pairs) for accurate results
-- Multi-objective optimization (smoothness + improvement)
-- Advanced pruning for early stopping of poor trials
-- Comprehensive visualization and analysis
+- Bayesian optimization with Optuna
+- No sklearn dependencies to avoid threadpool issues
 - Memory-efficient processing with progress tracking
 - Asymmetric Jaccard similarity with corpus normalization
 
-Expected Performance:
-- ~15-25 trials instead of 56+ grid search evaluations
-- Full dataset accuracy with ~500K+ job pair comparisons per trial
-- Automatic parameter space exploration and exploitation
-- Uncertainty quantification and confidence intervals
-
 Usage:
-    python optuna_asymmetric_hyperparameter_optimization.py
+    python optuna_asymmetric_hyperparameter_optimization_windows.py
 """
 
 import pandas as pd
@@ -33,8 +25,6 @@ import warnings
 import optuna
 from optuna.samplers import TPESampler
 from optuna.pruners import MedianPruner
-# Note: Visualization imports moved to avoid multiprocessing issues on Windows
-# from optuna.visualization import plot_optimization_history, plot_param_importances
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -43,9 +33,6 @@ import scipy.stats
 import math
 import pickle
 import json
-from concurrent.futures import ProcessPoolExecutor
-import multiprocessing as mp
-import os
 
 warnings.filterwarnings('ignore')
 
@@ -56,22 +43,22 @@ warnings.filterwarnings('ignore')
 DATABASE_FILE = "models/2025-Q3/business_context.sqlite"
 
 class OptunaOptimizationConfig:
-    """Configuration for Optuna-based hyperparameter optimization"""
+    """Configuration for Windows-compatible Optuna optimization"""
     
     DATABASE_PATH = DATABASE_FILE
     
     # Optuna optimization settings
     OPTIMIZATION = {
-        'n_trials': 25,                    # Number of Bayesian optimization trials
-        'n_startup_trials': 5,             # Random trials before Bayesian starts
-        'n_warmup_steps': 3,               # Steps before pruning kicks in
+        'n_trials': 15,                    # Reduced for Windows compatibility
+        'n_startup_trials': 3,             # Reduced startup trials
+        'n_warmup_steps': 2,               # Reduced warmup
         'sampler': 'TPE',                  # Tree-structured Parzen Estimator
         'pruner': 'MedianPruner',          # Prune poor performing trials early
         'direction': 'minimize',           # Minimize composite smoothness score
-        'timeout': 7200,                   # 2 hours maximum optimization time
+        'timeout': 3600,                   # 1 hour maximum optimization time
     }
     
-    # Parameter search space (wider than grid search)
+    # Parameter search space
     PARAMETER_SPACE = {
         'percentile_threshold': (5, 50),   # 5% to 50% of rarest skills
         'multiplier': (1.01, 1.50),       # 1% to 50% boost
@@ -84,17 +71,15 @@ class OptunaOptimizationConfig:
         'efficiency_bonus': 0.1,          # Tertiary: parameter efficiency
     }
     
-    # Processing configuration for full dataset
+    # Processing configuration optimized for Windows
     PROCESSING = {
         'use_full_dataset': True,         # Use all jobs, not sample
-        'max_job_pairs_per_trial': None,  # No limit - use all pairs
-        'enable_multiprocessing': True,   # Parallel processing
-        'max_workers': None,              # Auto-detect CPU cores
-        'chunk_size': 5000,              # Chunk size for memory management (reduced for Windows)
-        'progress_reporting_interval': 50000,  # Progress every 50k pairs
+        'enable_multiprocessing': False,  # Disabled for Windows compatibility
+        'chunk_size': 25000,              # Larger chunks for sequential processing
+        'progress_reporting_interval': 100000,  # Progress every 100k pairs
     }
     
-    # Smoothness metric weights (same as before)
+    # Smoothness metric weights
     SMOOTHNESS_WEIGHTS = {
         'gini_coefficient': 0.3,
         'coefficient_variation': 0.3,
@@ -109,7 +94,7 @@ class OptunaOptimizationConfig:
 def setup_logging():
     """Setup comprehensive logging for optimization tracking"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = f"optuna_optimization_{timestamp}.log"
+    log_file = f"optuna_optimization_windows_{timestamp}.log"
     
     logging.basicConfig(
         level=logging.INFO,
@@ -126,7 +111,7 @@ def setup_logging():
     return logging.getLogger(__name__)
 
 # =============================================================================
-# CORPUS NORMALIZATION (Full implementation)
+# CORPUS NORMALIZATION
 # =============================================================================
 
 class FullCorpusNormalizer:
@@ -175,7 +160,7 @@ class FullCorpusNormalizer:
         return normalized_scores, self.stats
 
 # =============================================================================
-# SMOOTHNESS ANALYSIS (Enhanced)
+# SMOOTHNESS ANALYSIS
 # =============================================================================
 
 def calculate_gini_coefficient(scores: np.ndarray) -> float:
@@ -218,7 +203,6 @@ def calculate_comprehensive_smoothness_score(scores: np.ndarray) -> Dict[str, fl
     cv_norm = min(1.0, cv / 0.5)
     kurtosis_norm = min(1.0, kurtosis / 3.0)
     spread_norm = min(1.0, max(0.0, (spread_ratio - 1.0) / 2.0))
-    skewness_norm = min(1.0, skewness / 2.0)
     
     # Calculate weighted composite score
     weights = OptunaOptimizationConfig.SMOOTHNESS_WEIGHTS
@@ -239,17 +223,16 @@ def calculate_comprehensive_smoothness_score(scores: np.ndarray) -> Dict[str, fl
         'gini_norm': gini_norm,
         'cv_norm': cv_norm,
         'kurtosis_norm': kurtosis_norm,
-        'spread_norm': spread_norm,
-        'skewness_norm': skewness_norm
+        'spread_norm': spread_norm
     }
 
 # =============================================================================
-# FULL DATASET LOADING
+# DATASET LOADING
 # =============================================================================
 
 def load_full_dataset(logger) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Load the complete dataset for maximum accuracy"""
-    logger.info("🗄️ Loading FULL dataset for maximum optimization accuracy...")
+    logger.info("🗄️ Loading FULL dataset for Windows-compatible optimization...")
     
     try:
         conn = sqlite3.connect(OptunaOptimizationConfig.DATABASE_PATH)
@@ -284,7 +267,7 @@ def load_full_dataset(logger) -> Tuple[pd.DataFrame, pd.DataFrame]:
         job_skills_df = pd.read_sql_query(job_skills_query, conn)
         conn.close()
         
-        logger.info(f"✅ Full dataset loaded:")
+        logger.info(f"✅ Full dataset loaded (Windows sequential processing):")
         logger.info(f"   → Total jobs: {len(all_jobs_df):,}")
         logger.info(f"   → Total job-skill relationships: {len(job_skills_df):,}")
         logger.info(f"   → Unique skills: {job_skills_df['Skill_ID'].nunique():,}")
@@ -319,8 +302,6 @@ def create_defining_skills_for_percentile_full(
         skill_prevalence['JobProfileID'] / total_jobs * 100
     )
     
-    logger.info(f"   → Calculated prevalence for {len(skill_prevalence):,} unique skills")
-    
     # Create job-specific defining skills
     job_defining_skills = {}
     job_groups = list(job_skills_df.groupby('JobProfileID'))
@@ -354,7 +335,7 @@ def create_defining_skills_for_percentile_full(
     return job_defining_skills
 
 # =============================================================================
-# ASYMMETRIC SIMILARITY CALCULATION (Optimized for Full Dataset)
+# SIMILARITY CALCULATION
 # =============================================================================
 
 def calculate_asymmetric_similarity_optimized(
@@ -364,10 +345,7 @@ def calculate_asymmetric_similarity_optimized(
     job_b_defining: Set[str],
     multiplier: float
 ) -> float:
-    """
-    Optimized asymmetric similarity calculation for full dataset processing.
-    Returns only the enhanced similarity score for efficiency.
-    """
+    """Optimized asymmetric similarity calculation for sequential processing"""
     if not job_a_skills or not job_b_skills:
         return 0.0
     
@@ -385,36 +363,12 @@ def calculate_asymmetric_similarity_optimized(
     
     return enhanced_similarity
 
-def process_job_pairs_chunk(args):
-    """
-    Process a chunk of job pairs for multiprocessing.
-    Returns list of enhanced similarity scores.
-    """
-    job_pairs_chunk, job_to_skills, job_defining_skills, multiplier = args
-    
-    similarities = []
-    for job_a_id, job_b_id in job_pairs_chunk:
-        if job_a_id == job_b_id:
-            continue
-            
-        job_a_skills = job_to_skills.get(job_a_id, set())
-        job_b_skills = job_to_skills.get(job_b_id, set())
-        job_a_defining = job_defining_skills.get(job_a_id, set())
-        job_b_defining = job_defining_skills.get(job_b_id, set())
-        
-        similarity = calculate_asymmetric_similarity_optimized(
-            job_a_skills, job_b_skills, job_a_defining, job_b_defining, multiplier
-        )
-        similarities.append(similarity)
-    
-    return similarities
-
 # =============================================================================
 # OPTUNA OBJECTIVE FUNCTION
 # =============================================================================
 
-class OptunaObjectiveFunction:
-    """Sophisticated objective function for Optuna optimization"""
+class WindowsOptunaObjectiveFunction:
+    """Windows-compatible objective function for Optuna optimization"""
     
     def __init__(self, jobs_df: pd.DataFrame, job_skills_df: pd.DataFrame, logger):
         self.jobs_df = jobs_df
@@ -429,7 +383,7 @@ class OptunaObjectiveFunction:
         self.job_ids = list(self.job_to_skills.keys())
         self.total_pairs = len(self.job_ids) * (len(self.job_ids) - 1)
         
-        self.logger.info(f"🎯 Objective function initialized:")
+        self.logger.info(f"🎯 Windows objective function initialized:")
         self.logger.info(f"   → Jobs: {len(self.job_ids):,}")
         self.logger.info(f"   → Total pairs per trial: {self.total_pairs:,}")
         
@@ -438,10 +392,7 @@ class OptunaObjectiveFunction:
         self.best_score = float('inf')
     
     def __call__(self, trial):
-        """
-        Optuna objective function - this is called for each trial.
-        Returns the score to minimize (composite smoothness score).
-        """
+        """Optuna objective function - Windows sequential processing version"""
         self.trial_count += 1
         trial_start_time = datetime.now()
         
@@ -465,43 +416,32 @@ class OptunaObjectiveFunction:
                 self.job_skills_df, percentile_threshold, self.logger
             )
             
-            # Generate all job pairs
-            job_pairs = [(job_a, job_b) for job_a in self.job_ids for job_b in self.job_ids if job_a != job_b]
-            
-            # Process with multiprocessing for efficiency
-            chunk_size = OptunaOptimizationConfig.PROCESSING['chunk_size']
-            job_pair_chunks = [job_pairs[i:i + chunk_size] for i in range(0, len(job_pairs), chunk_size)]
-            
-            self.logger.info(f"   → Processing {len(job_pairs):,} job pairs in {len(job_pair_chunks)} chunks")
-            
-            # Prepare arguments for multiprocessing
-            chunk_args = [
-                (chunk, self.job_to_skills, job_defining_skills, multiplier)
-                for chunk in job_pair_chunks
-            ]
-            
-            # Process chunks - disable multiprocessing on Windows due to import issues
+            # Process all job pairs sequentially for Windows compatibility
             all_similarities = []
-            use_multiprocessing = (
-                OptunaOptimizationConfig.PROCESSING['enable_multiprocessing'] and 
-                os.name != 'nt'  # Disable on Windows (nt) to avoid sklearn/threadpool issues
-            )
+            pairs_processed = 0
             
-            if use_multiprocessing:
-                self.logger.info(f"   → Using multiprocessing with {mp.cpu_count()} workers")
-                max_workers = OptunaOptimizationConfig.PROCESSING['max_workers'] or mp.cpu_count()
-                with ProcessPoolExecutor(max_workers=max_workers) as executor:
-                    chunk_results = list(executor.map(process_job_pairs_chunk, chunk_args))
-                    for chunk_similarities in chunk_results:
-                        all_similarities.extend(chunk_similarities)
-            else:
-                # Sequential processing (safer for Windows)
-                self.logger.info(f"   → Using sequential processing (Windows compatibility)")
-                for i, chunk_arg in enumerate(chunk_args):
-                    if i % 50 == 0:  # Progress every 50 chunks
-                        self.logger.info(f"      Processing chunk {i+1}/{len(chunk_args)}")
-                    chunk_similarities = process_job_pairs_chunk(chunk_arg)
-                    all_similarities.extend(chunk_similarities)
+            self.logger.info(f"   → Processing {self.total_pairs:,} job pairs sequentially")
+            
+            for i, job_a in enumerate(self.job_ids):
+                if i % 100 == 0 and i > 0:  # Progress reporting
+                    progress_pct = (pairs_processed / self.total_pairs) * 100
+                    self.logger.info(f"      Progress: {pairs_processed:,}/{self.total_pairs:,} pairs ({progress_pct:.1f}%)")
+                
+                job_a_skills = self.job_to_skills.get(job_a, set())
+                job_a_defining = job_defining_skills.get(job_a, set())
+                
+                for job_b in self.job_ids:
+                    if job_a == job_b:
+                        continue
+                    
+                    job_b_skills = self.job_to_skills.get(job_b, set())
+                    job_b_defining = job_defining_skills.get(job_b, set())
+                    
+                    similarity = calculate_asymmetric_similarity_optimized(
+                        job_a_skills, job_b_skills, job_a_defining, job_b_defining, multiplier
+                    )
+                    all_similarities.append(similarity)
+                    pairs_processed += 1
             
             self.logger.info(f"   → Calculated {len(all_similarities):,} similarity scores")
             
@@ -515,8 +455,23 @@ class OptunaObjectiveFunction:
             
             # Calculate improvement statistics
             raw_scores = np.array(all_similarities)
-            baseline_scores = np.array([len(self.job_to_skills[job_a] & self.job_to_skills[job_b]) / len(self.job_to_skills[job_a]) 
-                                      for job_a, job_b in job_pairs if job_a != job_b])
+            baseline_scores = []
+            pairs_processed = 0
+            
+            for job_a in self.job_ids:
+                job_a_skills = self.job_to_skills.get(job_a, set())
+                for job_b in self.job_ids:
+                    if job_a == job_b:
+                        continue
+                    job_b_skills = self.job_to_skills.get(job_b, set())
+                    if job_a_skills:
+                        baseline = len(job_a_skills & job_b_skills) / len(job_a_skills)
+                    else:
+                        baseline = 0.0
+                    baseline_scores.append(baseline)
+                    pairs_processed += 1
+            
+            baseline_scores = np.array(baseline_scores)
             improvements = raw_scores - baseline_scores
             
             avg_improvement = np.mean(improvements)
@@ -526,10 +481,10 @@ class OptunaObjectiveFunction:
             # Multi-objective scoring
             smoothness_score = smoothness_metrics['composite_smoothness_score']
             
-            # Penalty for low improvement (we want meaningful enhancement)
-            improvement_penalty = max(0, 0.005 - avg_improvement) * 100  # Penalty if avg improvement < 0.5%
+            # Penalty for low improvement
+            improvement_penalty = max(0, 0.005 - avg_improvement) * 100
             
-            # Efficiency bonus (prefer simpler parameters if performance is similar)
+            # Efficiency bonus
             efficiency_bonus = (percentile_threshold - 20) * 0.001 + (multiplier - 1.05) * 0.01
             
             # Combined objective (to minimize)
@@ -548,7 +503,6 @@ class OptunaObjectiveFunction:
             self.logger.info(f"      • Average improvement: {avg_improvement*100:.2f}%")
             self.logger.info(f"      • Positive improvements: {positive_improvement_rate:.1f}%")
             self.logger.info(f"      • Scores above 1.0: {normalization_stats['percentage_above_1']:.1f}%")
-            self.logger.info(f"      • Normalization factor: {normalization_stats['normalization_factor']:.3f}")
             self.logger.info(f"      • Combined objective: {combined_objective:.4f}")
             
             # Track best score
@@ -568,7 +522,6 @@ class OptunaObjectiveFunction:
             
         except Exception as e:
             self.logger.error(f"   ❌ Trial {self.trial_count} failed: {e}")
-            # Return a high penalty score for failed trials
             return 1000.0
 
 # =============================================================================
@@ -576,16 +529,16 @@ class OptunaObjectiveFunction:
 # =============================================================================
 
 def run_optuna_optimization(logger) -> optuna.Study:
-    """Run the main Optuna optimization with full dataset"""
+    """Run the main Optuna optimization with Windows compatibility"""
     
-    logger.info("[START] Starting Optuna Bayesian Optimization")
+    logger.info("[START] Starting Windows-Compatible Optuna Optimization")
     logger.info("=" * 70)
     
     # Load full dataset
     jobs_df, job_skills_df = load_full_dataset(logger)
     
     # Create objective function
-    objective = OptunaObjectiveFunction(jobs_df, job_skills_df, logger)
+    objective = WindowsOptunaObjectiveFunction(jobs_df, job_skills_df, logger)
     
     # Configure Optuna study
     sampler = TPESampler(
@@ -603,10 +556,10 @@ def run_optuna_optimization(logger) -> optuna.Study:
         direction=OptunaOptimizationConfig.OPTIMIZATION['direction'],
         sampler=sampler,
         pruner=pruner,
-        study_name=f"asymmetric_career_pathway_optimization_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        study_name=f"asymmetric_career_pathway_windows_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     )
     
-    logger.info(f"[CONFIG] Optimization Configuration:")
+    logger.info(f"[CONFIG] Windows Optimization Configuration:")
     logger.info(f"   -> Trials: {OptunaOptimizationConfig.OPTIMIZATION['n_trials']}")
     logger.info(f"   -> Startup trials: {OptunaOptimizationConfig.OPTIMIZATION['n_startup_trials']}")
     logger.info(f"   -> Parameter space: {OptunaOptimizationConfig.PARAMETER_SPACE}")
@@ -622,7 +575,7 @@ def run_optuna_optimization(logger) -> optuna.Study:
             show_progress_bar=True
         )
         
-        logger.info("[SUCCESS] Optimization completed successfully!")
+        logger.info("[SUCCESS] Windows optimization completed successfully!")
         
     except KeyboardInterrupt:
         logger.info("[WARNING] Optimization interrupted by user")
@@ -636,7 +589,7 @@ def analyze_optimization_results(study: optuna.Study, logger):
     """Comprehensive analysis of optimization results"""
     
     logger.info("\n" + "=" * 80)
-    logger.info("📊 OPTUNA OPTIMIZATION RESULTS - COMPREHENSIVE ANALYSIS")
+    logger.info("📊 WINDOWS OPTUNA OPTIMIZATION RESULTS")
     logger.info("=" * 80)
     
     # Best trial analysis
@@ -654,19 +607,6 @@ def analyze_optimization_results(study: optuna.Study, logger):
             logger.info(f"      • {key}: {value:.4f}")
         else:
             logger.info(f"      • {key}: {value}")
-    
-    # Parameter importance analysis (disabled on Windows due to sklearn issues)
-    logger.info(f"\n📈 PARAMETER IMPORTANCE:")
-    if os.name != 'nt':
-        try:
-            importance = optuna.importance.get_param_importances(study)
-            for param, imp in importance.items():
-                logger.info(f"   • {param}: {imp:.3f}")
-        except Exception as e:
-            logger.warning(f"Could not calculate parameter importance: {e}")
-    else:
-        logger.info("   • Parameter importance analysis disabled on Windows")
-        logger.info("   • Use the trial results to manually assess parameter impact")
     
     # Trial statistics
     completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
@@ -697,7 +637,7 @@ def analyze_optimization_results(study: optuna.Study, logger):
             logger.info(f"      Improvement: {trial.user_attrs['avg_improvement']*100:.2f}%")
     
     # Recommendations
-    logger.info(f"\n💡 OPTIMIZATION RECOMMENDATIONS:")
+    logger.info(f"\n💡 WINDOWS OPTIMIZATION RECOMMENDATIONS:")
     logger.info(f"🥇 Optimal parameters for asymmetric career pathway scoring:")
     logger.info(f"   • Percentile threshold: {best_trial.params['percentile_threshold']:.1f}%")
     logger.info(f"   • Multiplier: {best_trial.params['multiplier']:.3f}x")
@@ -711,20 +651,22 @@ def save_optimization_results(study: optuna.Study, best_trial, logger):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Save study object
-    study_file = f"optuna_study_{timestamp}.pkl"
+    study_file = f"optuna_study_windows_{timestamp}.pkl"
     with open(study_file, 'wb') as f:
         pickle.dump(study, f)
     logger.info(f"💾 Study object saved: {study_file}")
     
     # Save results DataFrame
     trials_df = study.trials_dataframe()
-    results_file = f"optuna_optimization_results_{timestamp}.csv"
+    results_file = f"optuna_optimization_results_windows_{timestamp}.csv"
     trials_df.to_csv(results_file, index=False)
     logger.info(f"💾 Results DataFrame saved: {results_file}")
     
     # Save best parameters as JSON
     best_params = {
         'optimization_timestamp': timestamp,
+        'platform': 'Windows',
+        'processing_mode': 'Sequential',
         'best_trial_number': best_trial.number,
         'best_objective_score': best_trial.value,
         'optimal_parameters': best_trial.params,
@@ -736,7 +678,7 @@ def save_optimization_results(study: optuna.Study, best_trial, logger):
         }
     }
     
-    params_file = f"optimal_parameters_{timestamp}.json"
+    params_file = f"optimal_parameters_windows_{timestamp}.json"
     with open(params_file, 'w') as f:
         json.dump(best_params, f, indent=2)
     logger.info(f"💾 Optimal parameters saved: {params_file}")
@@ -748,13 +690,13 @@ def save_optimization_results(study: optuna.Study, best_trial, logger):
 # =============================================================================
 
 def main():
-    """Main execution function"""
+    """Main execution function for Windows"""
     logger = setup_logging()
     
-    logger.info("[OPTUNA] BAYESIAN HYPERPARAMETER OPTIMIZATION")
+    logger.info("[OPTUNA-WINDOWS] BAYESIAN HYPERPARAMETER OPTIMIZATION")
     logger.info("=" * 80)
-    logger.info("[TARGET] Advanced optimization for asymmetric career pathway similarity")
-    logger.info("[DATA] Using FULL dataset with Bayesian parameter search")
+    logger.info("[TARGET] Windows-compatible asymmetric career pathway similarity optimization")
+    logger.info("[DATA] Using FULL dataset with sequential processing")
     logger.info("[BOOST] Multi-objective optimization with corpus normalization")
     logger.info("")
     
@@ -768,7 +710,7 @@ def main():
         # Save results
         results_file, params_file = save_optimization_results(study, best_trial, logger)
         
-        logger.info(f"\n[COMPLETE] OPTUNA OPTIMIZATION COMPLETE!")
+        logger.info(f"\n[COMPLETE] WINDOWS OPTUNA OPTIMIZATION COMPLETE!")
         logger.info(f"[FILES] Results saved:")
         logger.info(f"   • Detailed results: {results_file}")
         logger.info(f"   • Optimal parameters: {params_file}")
@@ -781,6 +723,4 @@ def main():
         raise
 
 if __name__ == "__main__":
-    # Required for Windows multiprocessing compatibility
-    mp.freeze_support()
     study, best_trial = main()
