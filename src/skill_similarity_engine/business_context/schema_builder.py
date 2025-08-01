@@ -337,10 +337,13 @@ class SchemaBuilder:
             "Employee Number" INTEGER,                  -- From CSV: Employee Number
             "Operational" BOOLEAN,                      -- From CSV: Operational (True/False)
             "Position Start Date" TEXT,                 -- From CSV: Position Start Date (nullable, DD/MM/YYYY)
-            "PosIDLookupKey" REAL PRIMARY KEY,         -- From CSV: PosIDLookupKey (scientific notation) - UNIQUE KEY
+            "PosIDLookupKey" REAL,                     -- From CSV: PosIDLookupKey (scientific notation) - NOT unique across time
             "Position Number" INTEGER,                  -- From CSV: Position Number
             
-            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            
+            -- Composite primary key: same position can exist across multiple weeks
+            PRIMARY KEY ("PosIDLookupKey", "Week Ending")
             
             -- Foreign key relationship to positions (via PosIDLookupKey)
             -- Note: No direct FK constraint due to temporal data complexity
