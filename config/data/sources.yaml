@@ -79,10 +79,9 @@ data_sources:
         target_key: "Position_Number"
         value_column: "JobProfileID"
     column_mapping:
-      # Direct mapping - only available columns (19 columns + enriched JobProfileID)
+      # Direct mapping - only available columns (19 columns, JobProfileID added via enrichment)
       "Employee Number": employee_number           # PRIMARY KEY
       "Position Number": position_number           # Used for enrichment
-      JobProfileID: JobProfileID                   # ENRICHED COLUMN
       "Position Name": position_name
       "Employee Group": Employee_Group
       "Employee Subgroup": Employee_Subgroup
