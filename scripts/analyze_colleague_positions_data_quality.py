@@ -12,6 +12,7 @@ This script analyzes all colleague positions history files to identify:
 import sys
 import os
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import json
 import logging
@@ -238,10 +239,20 @@ def analyze_colleague_positions_data_quality():
     print(f"   Constraint violations: {results['summary']['constraint_violations_found']}")
     print(f"   Ready for database loading: {results['summary']['ready_for_database_loading']}")
     
-    # Save results
+    # Save results (with JSON serialization fix for numpy types)
+    def json_serializer(obj):
+        """JSON serializer for objects not serializable by default json code"""
+        if isinstance(obj, (np.integer, np.int64)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+    
     results_file = project_root / "colleague_positions_data_quality_analysis.json"
     with open(results_file, 'w') as f:
-        json.dump(results, f, indent=2)
+        json.dump(results, f, indent=2, default=json_serializer)
     
     print(f"\n💾 Detailed results saved to: {results_file}")
     
