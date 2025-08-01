@@ -260,7 +260,7 @@ class SchemaBuilder:
         logger.debug("Created core_job_skill_requirements table")
     
     def _create_core_workforce_current_table(self, conn: sqlite3.Connection) -> None:
-        """Create core_workforce_current table - Complete workforce data with all 48 CSV columns preserved."""
+        """Create core_workforce_current table - Workforce data with 19 available CSV columns preserved."""
         sql = """
         CREATE TABLE core_workforce_current (
             -- Core required columns
@@ -269,56 +269,27 @@ class SchemaBuilder:
             position_name TEXT,                     -- From CSV: Position Name
             JobProfileID TEXT,                      -- From ENRICHMENT: job_arch_to_positions_mapping
             
-            -- ALL workforce context data (preserve everything - 48 columns total)
-            Week_Ending TEXT,                       -- From CSV: Week Ending
-            Bucket TEXT,                            -- From CSV: Bucket
-            Operational TEXT,                       -- From CSV: Operational
-            FTE_raw_value_in_SAP REAL,             -- From CSV: FTE (raw value in SAP)
-            Position_Start_Date TEXT,               -- From CSV: Position Start Date
-            People_Leader_Flag TEXT,                -- From CSV: People Leader Flag
+            -- Employee classification data
+            Employee_Group TEXT,                    -- From CSV: Employee Group
+            Employee_Subgroup TEXT,                 -- From CSV: Employee Subgroup
             Salary_Group TEXT,                      -- From CSV: Salary Group
-            Street TEXT,                            -- From CSV: Street
-            Suburb TEXT,                            -- From CSV: Suburb
+            
+            -- Location data
             Location TEXT,                          -- From CSV: Location
             Rg TEXT,                                -- From CSV: Rg
             Cty TEXT,                               -- From CSV: Cty
-            Global_Region TEXT,                     -- From CSV: Global Region
-            Cost_ctr TEXT,                          -- From CSV: Cost ctr
-            Cost_Center TEXT,                       -- From CSV: Cost Center
-            Org_Unit_Number INTEGER,                -- From CSV: Org Unit Number
-            Org_Unit_Name TEXT,                     -- From CSV: Org Unit Name
             
-            -- Complete SAP organizational hierarchy (all 10 levels)
-            ORG_UNIT_NO_1 INTEGER,                  -- From CSV: ORG_UNIT_NO_1
+            -- SAP organizational hierarchy (names only - no numbers available in CSV)
             ORG_UNIT_NAME_1 TEXT,                   -- From CSV: ORG_UNIT_NAME_1
-            ORG_UNIT_NO_2 INTEGER,                  -- From CSV: ORG_UNIT_NO_2
             ORG_UNIT_NAME_2 TEXT,                   -- From CSV: ORG_UNIT_NAME_2
-            ORG_UNIT_NO_3 INTEGER,                  -- From CSV: ORG_UNIT_NO_3
             ORG_UNIT_NAME_3 TEXT,                   -- From CSV: ORG_UNIT_NAME_3
-            ORG_UNIT_NO_4 INTEGER,                  -- From CSV: ORG_UNIT_NO_4
             ORG_UNIT_NAME_4 TEXT,                   -- From CSV: ORG_UNIT_NAME_4
-            ORG_UNIT_NO_5 INTEGER,                  -- From CSV: ORG_UNIT_NO_5
             ORG_UNIT_NAME_5 TEXT,                   -- From CSV: ORG_UNIT_NAME_5
-            ORG_UNIT_NO_6 INTEGER,                  -- From CSV: ORG_UNIT_NO_6
             ORG_UNIT_NAME_6 TEXT,                   -- From CSV: ORG_UNIT_NAME_6
-            ORG_UNIT_NO_7 INTEGER,                  -- From CSV: ORG_UNIT_NO_7
             ORG_UNIT_NAME_7 TEXT,                   -- From CSV: ORG_UNIT_NAME_7
-            ORG_UNIT_NO_8 INTEGER,                  -- From CSV: ORG_UNIT_NO_8
             ORG_UNIT_NAME_8 TEXT,                   -- From CSV: ORG_UNIT_NAME_8
-            ORG_UNIT_NO_9 INTEGER,                  -- From CSV: ORG_UNIT_NO_9
             ORG_UNIT_NAME_9 TEXT,                   -- From CSV: ORG_UNIT_NAME_9
-            ORG_UNIT_NO_10 INTEGER,                 -- From CSV: ORG_UNIT_NO_10
             ORG_UNIT_NAME_10 TEXT,                  -- From CSV: ORG_UNIT_NAME_10
-            
-            -- Employee details (preserve everything)
-            Employee_Name TEXT,                     -- From CSV: Employee Name
-            Email_Address TEXT,                     -- From CSV: Email Address
-            Gender_Key TEXT,                        -- From CSV: Gender Key
-            Entry TEXT,                             -- From CSV: Entry
-            Employee_Group TEXT,                    -- From CSV: Employee Group
-            Employee_Subgroup TEXT,                 -- From CSV: Employee Subgroup
-            People_Leader_Number REAL,              -- From CSV: People Leader Number
-            People_Leader_Name TEXT,                -- From CSV: People Leader Name
             
             created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
             
@@ -326,7 +297,7 @@ class SchemaBuilder:
         );
         """
         conn.execute(sql)
-        logger.debug("Created core_workforce_current table with complete CSV data preservation")
+        logger.debug("Created core_workforce_current table with 19 available CSV columns preserved")
     
     def _create_core_position_timeline_table(self, conn: sqlite3.Connection) -> None:
         """Create core_position_timeline table - Complete position history with all CSV data preserved."""

@@ -1,0 +1,552 @@
+
+    "csv_analysis": {
+      "files": {
+        "d_colleague_position_fy20.csv": {
+          "path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\colleague_positions_history\\d_colleague_position_fy20.csv",
+          "relative_path": "data\\colleague_positions_history\\d_colleague_position_fy20.csv",
+          "directory": "colleague_positions_history",
+          "size_mb": 25.42,
+          "total_rows": 1000,
+          "total_columns": 5,
+          "columns": [
+            "Week Ending",
+            "Employee Number",
+            "Operational",
+            "Position Start Date",
+            "PosIDLookupKey"
+          ],
+          "column_types": {
+            "Week Ending": "object",
+            "Employee Number": "int64",
+            "Operational": "bool",
+            "Position Start Date": "object",
+            "PosIDLookupKey": "int64"
+          },
+          "sample_data": [
+            {
+              "Week Ending": "2020-04-30",
+              "Employee Number": 21091693,
+              "Operational": true,
+              "Position Start Date": "2020-09-07",
+              "PosIDLookupKey": 136795258520
+            },
+            {
+              "Week Ending": "2020-04-30",
+              "Employee Number": 21308227,
+              "Operational": true,
+              "Position Start Date": "2020-09-07",
+              "PosIDLookupKey": 172518355949
+            },
+            {
+              "Week Ending": "2020-04-30",
+              "Employee Number": 21482424,
+              "Operational": true,
+              "Position Start Date": "2020-09-07",
+              "PosIDLookupKey": 167530012860
+            }
+          ],
+          "null_counts": {
+            "Week Ending": 0,
+            "Employee Number": 0,
+            "Operational": 0,
+            "Position Start Date": 3,
+            "PosIDLookupKey": 0
+          },
+          "unique_counts": {
+            "Week Ending": 12,
+            "Employee Number": 437,
+            "Operational": 2,
+            "Position Start Date": 234,
+            "PosIDLookupKey": 1000
+          },
+          "total_rows_estimated": 260265
+        },
+        "job_architecture.csv": {
+          "path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\job_architecture\\job_architecture.csv",
+          "relative_path": "data\\job_architecture\\job_architecture.csv",
+          "directory": "job_architecture",
+          "size_mb": 0.33,
+          "total_rows": 1765,
+          "total_columns": 16,
+          "columns": [
+            "JobID",
+            "Job",
+            "JobProfileID",
+            "JobProfile",
+            "ProfileTitleSuffix",
+            "ManagementLevel",
+            "JobSubFunctionID",
+            "JobSubFunction",
+            "JobFunctionID",
+            "JobFunction",
+            "JobCategoryID",
+            "JobCategory",
+            "Customer Facing",
+            "is Banker",
+            "Executive Leadership Group",
+            "Accountability Scope"
+          ],
+          "column_types": {
+            "JobID": "object",
+            "Job": "object",
+            "JobProfileID": "object",
+            "JobProfile": "object",
+            "ProfileTitleSuffix": "object",
+            "ManagementLevel": "object",
+            "JobSubFunctionID": "object",
+            "JobSubFunction": "object",
+            "JobFunctionID": "object",
+            "JobFunction": "object",
+            "JobCategoryID": "object",
+            "JobCategory": "object",
+            "Customer Facing": "object",
+            "is Banker": "object",
+            "Executive Leadership Group": "object",
+            "Accountability Scope": "object"
+          },
+          "sample_data": [
+            {
+              "JobID": "R0429",
+              "Job": "Business Manager",
+              "JobProfileID": "R0429.00",
+              "JobProfile": "Business Manager - 00",
+              "ProfileTitleSuffix": "UNGRADED",
+              "ManagementLevel": "Group NA",
+              "JobSubFunctionID": "JF0001",
+              "JobSubFunction": "Business Services",
+              "JobFunctionID": "JFG001",
+              "JobFunction": "Administrative & Business Services",
+              "JobCategoryID": "JC2",
+              "JobCategory": "Support",
+              "Customer Facing": "Non-Customer Facing",
+              "is Banker": "Non-Banker",
+              "Executive Leadership Group": NaN,
+              "Accountability Scope": NaN
+            },
+            {
+              "JobID": "R0456",
+              "Job": "Business Operations & Enablement",
+              "JobProfileID": "R0456.00",
+              "JobProfile": "Business Operations & Enablement - 00",
+              "ProfileTitleSuffix": "UNGRADED",
+              "ManagementLevel": "Group NA",
+              "JobSubFunctionID": "JF0001",
+              "JobSubFunction": "Business Services",
+              "JobFunctionID": "JFG001",
+              "JobFunction": "Administrative & Business Services",
+              "JobCategoryID": "JC2",
+              "JobCategory": "Support",
+              "Customer Facing": "Non-Customer Facing",
+              "is Banker": "Non-Banker",
+              "Executive Leadership Group": NaN,
+              "Accountability Scope": NaN
+            },
+            {
+              "JobID": "R0426",
+              "Job": "Physical Security",
+              "JobProfileID": "R0426.00",
+              "JobProfile": "Physical Security - 00",
+              "ProfileTitleSuffix": "UNGRADED",
+              "ManagementLevel": "Group NA",
+              "JobSubFunctionID": "JF0001",
+              "JobSubFunction": "Business Services",
+              "JobFunctionID": "JFG001",
+              "JobFunction": "Administrative & Business Services",
+              "JobCategoryID": "JC2",
+              "JobCategory": "Support",
+              "Customer Facing": "Non-Customer Facing",
+              "is Banker": "Non-Banker",
+              "Executive Leadership Group": NaN,
+              "Accountability Scope": NaN
+            }
+          ],
+          "null_counts": {
+            "JobID": 0,
+            "Job": 0,
+            "JobProfileID": 0,
+            "JobProfile": 0,
+            "ProfileTitleSuffix": 0,
+            "ManagementLevel": 0,
+            "JobSubFunctionID": 0,
+            "JobSubFunction": 0,
+            "JobFunctionID": 0,
+            "JobFunction": 0,
+            "JobCategoryID": 0,
+            "JobCategory": 0,
+            "Customer Facing": 11,
+            "is Banker": 11,
+            "Executive Leadership Group": 925,
+            "Accountability Scope": 846
+          },
+          "unique_counts": {
+            "JobID": 283,
+            "Job": 283,
+            "JobProfileID": 1000,
+            "JobProfile": 1000,
+            "ProfileTitleSuffix": 17,
+            "ManagementLevel": 8,
+            "JobSubFunctionID": 92,
+            "JobSubFunction": 92,
+            "JobFunctionID": 27,
+            "JobFunction": 27,
+            "JobCategoryID": 4,
+            "JobCategory": 4,
+            "Customer Facing": 2,
+            "is Banker": 2,
+            "Executive Leadership Group": 1,
+            "Accountability Scope": 2
+          }
+        },
+        "job_arch_to_positions_mapping.csv": {
+          "path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\job_arch_to_positions_mapping\\job_arch_to_positions_mapping.csv",
+          "relative_path": "data\\job_arch_to_positions_mapping\\job_arch_to_positions_mapping.csv",
+          "directory": "job_arch_to_positions_mapping",
+          "size_mb": 1.16,
+          "total_rows": 63780,
+          "total_columns": 2,
+          "columns": [
+            "JobProfileID",
+            "Position_Number"
+          ],
+          "column_types": {
+            "JobProfileID": "object",
+            "Position_Number": "int64"
+          },
+          "sample_data": [
+            {
+              "JobProfileID": "R0349.15",
+              "Position_Number": 65013999
+            },
+            {
+              "JobProfileID": "R0349.15",
+              "Position_Number": 65014803
+            },
+            {
+              "JobProfileID": "R0349.15",
+              "Position_Number": 65014846
+            }
+          ],
+          "null_counts": {
+            "JobProfileID": 0,
+            "Position_Number": 0
+          },
+          "unique_counts": {
+            "JobProfileID": 34,
+            "Position_Number": 1000
+          }
+        },
+        "job_skill_mapping.csv": {
+          "path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\job_skill_mapping\\job_skill_mapping.csv",
+          "relative_path": "data\\job_skill_mapping\\job_skill_mapping.csv",
+          "directory": "job_skill_mapping",
+          "size_mb": 2.28,
+          "total_rows": 77204,
+          "total_columns": 2,
+          "columns": [
+            "JobProfileID",
+            "Skill_ID"
+          ],
+          "column_types": {
+            "JobProfileID": "object",
+            "Skill_ID": "object"
+          },
+          "sample_data": [
+            {
+              "JobProfileID": "R0001.15",
+              "Skill_ID": "KS122P76RK0FDFPLR32K"
+            },
+            {
+              "JobProfileID": "R0001.15",
+              "Skill_ID": "KS122P679TKY3RR1HMFC"
+            },
+            {
+              "JobProfileID": "R0001.15",
+              "Skill_ID": "KS7XETJMZTTE8HS4J7SL"
+            }
+          ],
+          "null_counts": {
+            "JobProfileID": 0,
+            "Skill_ID": 0
+          },
+          "unique_counts": {
+            "JobProfileID": 27,
+            "Skill_ID": 196
+          }
+        },
+        "d_positions_fy20.csv": {
+          "path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\positions_history\\d_positions_fy20.csv",
+          "relative_path": "data\\positions_history\\d_positions_fy20.csv",
+          "directory": "positions_history",
+          "size_mb": 75.95,
+          "total_rows": 1000,
+          "total_columns": 11,
+          "columns": [
+            "Week Ending",
+            "Position Number",
+            "Position Name",
+            "People Leader Number",
+            "Salary Group",
+            "People Leader Flag",
+            "Employee Group",
+            "Employee Subgroup",
+            "PosIDLookupKey",
+            "OrgUnitIDLookupKey",
+            "GlobalRegionLookupKey"
+          ],
+          "column_types": {
+            "Week Ending": "object",
+            "Position Number": "int64",
+            "Position Name": "object",
+            "People Leader Number": "int64",
+            "Salary Group": "object",
+            "People Leader Flag": "object",
+            "Employee Group": "object",
+            "Employee Subgroup": "object",
+            "PosIDLookupKey": "int64",
+            "OrgUnitIDLookupKey": "int64",
+            "GlobalRegionLookupKey": "int64"
+          },
+          "sample_data": [
+            {
+              "Week Ending": "2020-04-30",
+              "Position Number": 65274106,
+              "Position Name": "Senior Analyst Engineer",
+              "People Leader Number": 20808752,
+              "Salary Group": "Group 3",
+              "People Leader Flag": "Non-People Leader",
+              "Employee Group": "Permanent Full Time",
+              "Employee Subgroup": "Employee",
+              "PosIDLookupKey": 136795258520,
+              "OrgUnitIDLookupKey": 2020043055026817,
+              "GlobalRegionLookupKey": 4120121191212293
+            },
+            {
+              "Week Ending": "2020-04-30",
+              "Position Number": 65274123,
+              "Position Name": "Senior Analyst Engineer",
+              "People Leader Number": 22780460,
+              "Salary Group": "Group 3",
+              "People Leader Flag": "Non-People Leader",
+              "Employee Group": "Permanent Full Time",
+              "Employee Subgroup": "Employee",
+              "PosIDLookupKey": 172518355949,
+              "OrgUnitIDLookupKey": 2020043055029280,
+              "GlobalRegionLookupKey": 4120121191212293
+            },
+            {
+              "Week Ending": "2020-04-30",
+              "Position Number": 65274097,
+              "Position Name": "Senior Analyst Engineer",
+              "People Leader Number": 22741079,
+              "Salary Group": "Group 3",
+              "People Leader Flag": "Non-People Leader",
+              "Employee Group": "Permanent Full Time",
+              "Employee Subgroup": "Employee",
+              "PosIDLookupKey": 167530012860,
+              "OrgUnitIDLookupKey": 2020043055027740,
+              "GlobalRegionLookupKey": 4120121191212293
+            }
+          ],
+          "null_counts": {
+            "Week Ending": 0,
+            "Position Number": 0,
+            "Position Name": 0,
+            "People Leader Number": 0,
+            "Salary Group": 0,
+            "People Leader Flag": 0,
+            "Employee Group": 0,
+            "Employee Subgroup": 0,
+            "PosIDLookupKey": 0,
+            "OrgUnitIDLookupKey": 0,
+            "GlobalRegionLookupKey": 0
+          },
+          "unique_counts": {
+            "Week Ending": 12,
+            "Position Number": 434,
+            "Position Name": 2,
+            "People Leader Number": 198,
+            "Salary Group": 1,
+            "People Leader Flag": 1,
+            "Employee Group": 1,
+            "Employee Subgroup": 1,
+            "PosIDLookupKey": 1000,
+            "OrgUnitIDLookupKey": 706,
+            "GlobalRegionLookupKey": 1
+          },
+          "total_rows_estimated": 777758
+        },
+        "workforce_context.csv": {
+          "path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\workforce_context\\workforce_context.csv",
+          "relative_path": "data\\workforce_context\\workforce_context.csv",
+          "directory": "workforce_context",
+          "size_mb": 12.91,
+          "total_rows": 1000,
+          "total_columns": 19,
+          "columns": [
+            "Employee Number",
+            "Position Number",
+            "Position Name",
+            "Employee Group",
+            "Employee Subgroup",
+            "Salary Group",
+            "Location",
+            "Rg",
+            "Cty",
+            "ORG_UNIT_NAME_1",
+            "ORG_UNIT_NAME_2",
+            "ORG_UNIT_NAME_3",
+            "ORG_UNIT_NAME_4",
+            "ORG_UNIT_NAME_5",
+            "ORG_UNIT_NAME_6",
+            "ORG_UNIT_NAME_7",
+            "ORG_UNIT_NAME_8",
+            "ORG_UNIT_NAME_9",
+            "ORG_UNIT_NAME_10"
+          ],
+          "column_types": {
+            "Employee Number": "int64",
+            "Position Number": "int64",
+            "Position Name": "object",
+            "Employee Group": "object",
+            "Employee Subgroup": "object",
+            "Salary Group": "object",
+            "Location": "object",
+            "Rg": "object",
+            "Cty": "object",
+            "ORG_UNIT_NAME_1": "object",
+            "ORG_UNIT_NAME_2": "object",
+            "ORG_UNIT_NAME_3": "object",
+            "ORG_UNIT_NAME_4": "object",
+            "ORG_UNIT_NAME_5": "object",
+            "ORG_UNIT_NAME_6": "object",
+            "ORG_UNIT_NAME_7": "object",
+            "ORG_UNIT_NAME_8": "object",
+            "ORG_UNIT_NAME_9": "object",
+            "ORG_UNIT_NAME_10": "object"
+          },
+          "sample_data": [
+            {
+              "Employee Number": 20796128,
+              "Position Number": 65304494,
+              "Position Name": "Senior BD Manager Comm Broker Metro",
+              "Employee Group": "Permanent Full Time",
+              "Employee Subgroup": "Employee",
+              "Salary Group": "Group 4",
+              "Location": "VIC",
+              "Rg": "VIC",
+              "Cty": "AU",
+              "ORG_UNIT_NAME_1": "Group CEO",
+              "ORG_UNIT_NAME_2": "Business and Private",
+              "ORG_UNIT_NAME_3": "Business Lending",
+              "ORG_UNIT_NAME_4": "NAB Commercial Broker",
+              "ORG_UNIT_NAME_5": "Commercial Broker  EF VIC/TAS",
+              "ORG_UNIT_NAME_6": "Commercial Broker  EF VIC/TAS",
+              "ORG_UNIT_NAME_7": "Commercial Broker  EF VIC/TAS",
+              "ORG_UNIT_NAME_8": "Commercial Broker  EF VIC/TAS",
+              "ORG_UNIT_NAME_9": "Commercial Broker  EF VIC/TAS",
+              "ORG_UNIT_NAME_10": "Commercial Broker  EF VIC/TAS"
+            },
+            {
+              "Employee Number": 20993093,
+              "Position Number": 65313384,
+              "Position Name": "Senior Consultant Business Improvement",
+              "Employee Group": "Permanent Full Time",
+              "Employee Subgroup": "Employee",
+              "Salary Group": "Group 4",
+              "Location": "VIC",
+              "Rg": "VIC",
+              "Cty": "AU",
+              "ORG_UNIT_NAME_1": "Group CEO",
+              "ORG_UNIT_NAME_2": "Business and Private",
+              "ORG_UNIT_NAME_3": "COO B&PB",
+              "ORG_UNIT_NAME_4": "BPB Strategy Performance Execution",
+              "ORG_UNIT_NAME_5": "B&PB Banker & Customer Improvement",
+              "ORG_UNIT_NAME_6": "Banker & Customer Improvement BCI 1",
+              "ORG_UNIT_NAME_7": "Banker & Customer Improvement BCI 1",
+              "ORG_UNIT_NAME_8": "Banker & Customer Improvement BCI 1",
+              "ORG_UNIT_NAME_9": "Banker & Customer Improvement BCI 1",
+              "ORG_UNIT_NAME_10": "Banker & Customer Improvement BCI 1"
+            },
+            {
+              "Employee Number": 21478436,
+              "Position Number": 65271771,
+              "Position Name": "Associate Director",
+              "Employee Group": "Permanent Full Time",
+              "Employee Subgroup": "Employee",
+              "Salary Group": "Group 4",
+              "Location": "VIC",
+              "Rg": "VIC",
+              "Cty": "AU",
+              "ORG_UNIT_NAME_1": "Group CEO",
+              "ORG_UNIT_NAME_2": "Business and Private",
+              "ORG_UNIT_NAME_3": "COO B&PB",
+              "ORG_UNIT_NAME_4": "BPB DCO Enablement",
+              "ORG_UNIT_NAME_5": "Credit Coaching",
+              "ORG_UNIT_NAME_6": "Credit Coaching",
+              "ORG_UNIT_NAME_7": "Credit Coaching",
+              "ORG_UNIT_NAME_8": "Credit Coaching",
+              "ORG_UNIT_NAME_9": "Credit Coaching",
+              "ORG_UNIT_NAME_10": "Credit Coaching"
+            }
+          ],
+          "null_counts": {
+            "Employee Number": 0,
+            "Position Number": 0,
+            "Position Name": 0,
+            "Employee Group": 0,
+            "Employee Subgroup": 0,
+            "Salary Group": 0,
+            "Location": 0,
+            "Rg": 0,
+            "Cty": 0,
+            "ORG_UNIT_NAME_1": 0,
+            "ORG_UNIT_NAME_2": 0,
+            "ORG_UNIT_NAME_3": 0,
+            "ORG_UNIT_NAME_4": 0,
+            "ORG_UNIT_NAME_5": 0,
+            "ORG_UNIT_NAME_6": 0,
+            "ORG_UNIT_NAME_7": 0,
+            "ORG_UNIT_NAME_8": 0,
+            "ORG_UNIT_NAME_9": 0,
+            "ORG_UNIT_NAME_10": 0
+          },
+          "unique_counts": {
+            "Employee Number": 1000,
+            "Position Number": 997,
+            "Position Name": 682,
+            "Employee Group": 1,
+            "Employee Subgroup": 1,
+            "Salary Group": 7,
+            "Location": 1,
+            "Rg": 1,
+            "Cty": 1,
+            "ORG_UNIT_NAME_1": 1,
+            "ORG_UNIT_NAME_2": 10,
+            "ORG_UNIT_NAME_3": 78,
+            "ORG_UNIT_NAME_4": 281,
+            "ORG_UNIT_NAME_5": 561,
+            "ORG_UNIT_NAME_6": 675,
+            "ORG_UNIT_NAME_7": 710,
+            "ORG_UNIT_NAME_8": 711,
+            "ORG_UNIT_NAME_9": 711,
+            "ORG_UNIT_NAME_10": 711
+          },
+          "total_rows_estimated": 132211
+        }
+      },
+      "summary": {
+        "total_files": 28,
+        "total_size_mb": 837.39,
+        "total_rows": 8679549,
+        "directories": [
+          "job_architecture",
+          "skills_library",
+          "workforce_context",
+          "skills_library_backup_20250801_083534",
+          "positions_history",
+          "colleague_positions_history",
+          "job_arch_to_positions_mapping",
+          "job_skill_mapping"
+        ]
+      }
+    }

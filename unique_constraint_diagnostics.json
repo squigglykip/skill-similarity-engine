@@ -1,0 +1,43 @@
+{
+    "csv_analysis": {
+      "file_path": "C:\\Users\\P729965\\OneDrive - nab\\Documents\\GitHub\\skill-similarity-engine\\data\\workforce_context\\workforce_context.csv",
+      "total_rows": 43096,
+      "unique_employees": 43096,
+      "duplicate_count": "0",
+      "has_duplicates": "False"
+    },
+    "database_state": {
+      "models\\2025-Q3\\business_context.sqlite": {
+        "table_exists": true,
+        "row_count": 0,
+        "db_duplicates": [],
+        "sample_employees": [],
+        "has_data": false
+      }
+    },
+    "loading_config": {
+      "to_sql_calls": [
+        ".to_sql(table_name, conn, if_exists='append', index=False, chunksize=chunk_size)",
+        ".to_sql(table_name, conn, if_exists='append', index=False)",
+        ".to_sql('jobs', conn, if_exists='append', index=False)",
+        ".to_sql('skills', conn, if_exists='append', index=False, chunksize=chunk_size)",
+        ".to_sql('job_skills', conn, if_exists='append', index=False)",
+        ".to_sql('positions', conn, if_exists='append', index=False)"
+      ],
+      "uses_append": true,
+      "uses_replace": false,
+      "content_snippet": "to_sql(table_name, conn, if_exists='append', index=False, chunksize=chunk_size)\n\n                else:\n\n                    df_mapped.to_sql(table_name, conn, if_exists='append', index=False)\n\n       "
+    },
+    "final_diagnosis": {
+      "root_cause": "Possible transaction or connection issue",
+      "recommendations": [
+        "Check database connection handling",
+        "Verify schema creation completed successfully",
+        "Check for concurrent access to database",
+        "Review transaction commit/rollback logic"
+      ],
+      "csv_clean": true,
+      "database_has_data": false,
+      "uses_append_mode": true
+    }
+  }

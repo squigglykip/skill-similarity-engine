@@ -66,11 +66,11 @@ data_sources:
       JobProfileID: JobProfileID                   # FOREIGN KEY
       Skill_ID: Skill_ID                          # FOREIGN KEY
 
-  # 4. CORE WORKFORCE CURRENT (48 columns + enrichment)
+  # 4. CORE WORKFORCE CURRENT (19 columns + enrichment)
   core_workforce_current:
     file_path: "workforce_context/workforce_context.csv"
     table_name: "core_workforce_current"
-    description: "Complete workforce data with all 48 CSV columns + JobProfileID enrichment"
+    description: "Workforce data with 19 available CSV columns + JobProfileID enrichment"
     enrichment:
       # Add JobProfileID using position mapping
       JobProfileID:
@@ -79,58 +79,28 @@ data_sources:
         target_key: "Position_Number"
         value_column: "JobProfileID"
     column_mapping:
-      # Direct mapping - preserve everything (48 columns + enriched JobProfileID)
-      "Week Ending": Week_Ending
-      Bucket: Bucket
-      Operational: Operational
-      "Position Number": position_number           # PRIMARY KEY for enrichment
+      # Direct mapping - only available columns (19 columns + enriched JobProfileID)
+      "Employee Number": employee_number           # PRIMARY KEY
+      "Position Number": position_number           # Used for enrichment
       JobProfileID: JobProfileID                   # ENRICHED COLUMN
       "Position Name": position_name
-      "FTE (raw value in SAP)": FTE_raw_value_in_SAP
-      "Position Start Date": Position_Start_Date
-      "People Leader Flag": People_Leader_Flag
+      "Employee Group": Employee_Group
+      "Employee Subgroup": Employee_Subgroup
       "Salary Group": Salary_Group
-      Street: Street
-      Suburb: Suburb
       Location: Location
       Rg: Rg
       Cty: Cty
-      "Global Region": Global_Region
-      "Cost ctr": Cost_ctr
-      "Cost Center": Cost_Center
-      "Org Unit Number": Org_Unit_Number
-      "Org Unit Name": Org_Unit_Name
-      # Complete SAP organizational hierarchy
-      ORG_UNIT_NO_1: ORG_UNIT_NO_1
+      # Organizational hierarchy (names only - no numbers available)
       ORG_UNIT_NAME_1: ORG_UNIT_NAME_1
-      ORG_UNIT_NO_2: ORG_UNIT_NO_2
       ORG_UNIT_NAME_2: ORG_UNIT_NAME_2
-      ORG_UNIT_NO_3: ORG_UNIT_NO_3
       ORG_UNIT_NAME_3: ORG_UNIT_NAME_3
-      ORG_UNIT_NO_4: ORG_UNIT_NO_4
       ORG_UNIT_NAME_4: ORG_UNIT_NAME_4
-      ORG_UNIT_NO_5: ORG_UNIT_NO_5
       ORG_UNIT_NAME_5: ORG_UNIT_NAME_5
-      ORG_UNIT_NO_6: ORG_UNIT_NO_6
       ORG_UNIT_NAME_6: ORG_UNIT_NAME_6
-      ORG_UNIT_NO_7: ORG_UNIT_NO_7
       ORG_UNIT_NAME_7: ORG_UNIT_NAME_7
-      ORG_UNIT_NO_8: ORG_UNIT_NO_8
       ORG_UNIT_NAME_8: ORG_UNIT_NAME_8
-      ORG_UNIT_NO_9: ORG_UNIT_NO_9
       ORG_UNIT_NAME_9: ORG_UNIT_NAME_9
-      ORG_UNIT_NO_10: ORG_UNIT_NO_10
       ORG_UNIT_NAME_10: ORG_UNIT_NAME_10
-      # Employee details
-      "Employee Number": employee_number           # PRIMARY KEY
-      "Employee Name": Employee_Name
-      "Email Address": Email_Address
-      "Gender Key": Gender_Key
-      Entry: Entry
-      "Employee Group": Employee_Group
-      "Employee Subgroup": Employee_Subgroup
-      "People Leader Number": People_Leader_Number
-      "People Leader Name": People_Leader_Name
 
   # 5. CORE POSITION TIMELINE (9 columns + enrichment, 5 files)
   position_history:
@@ -247,16 +217,16 @@ quality_checks:
       People_Leader_Number: "29.8% NULL - normal for non-leadership roles"
 
 # ================================================================================
-# SUMMARY: 99 COLUMNS PRESERVED ACROSS 6 TABLES
+# SUMMARY: 70 COLUMNS PRESERVED ACROSS 6 TABLES
 # ================================================================================
 # 
 # core_job_architecture:          16 columns ✅
 # core_skills_taxonomy:           18 columns ✅ 
 # core_job_skill_requirements:     2 columns ✅
-# core_workforce_current:          48 columns ✅
+# core_workforce_current:          19 columns ✅ (adapted to available CSV columns)
 # core_position_timeline:           9 columns ✅
 # core_colleague_positions_history: 6 columns ✅ (Phase 2 movement analysis)
 # ──────────────────────────────────────────────
-# TOTAL:                           99 columns ✅
+# TOTAL:                           70 columns ✅
 #
-# RESULT: 100% data preservation with zero information loss 
+# RESULT: 100% preservation of available data with zero information loss 
