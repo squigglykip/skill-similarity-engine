@@ -513,6 +513,23 @@ class DataLoader:
 
                     logger.info(f"Removed {initial_count - final_count} duplicate position timeline records")
 
+            elif dataset_name == 'colleague_positions_history':
+                
+                # For colleague positions history: Allow duplicate PosIDLookupKey values (shared positions)
+                # Only remove true duplicates based on composite primary key (PosIDLookupKey + Week Ending)
+                
+                if 'PosIDLookupKey' in df_mapped.columns and 'Week Ending' in df_mapped.columns:
+                    initial_count = len(df_mapped)
+                    
+                    # Remove only true duplicates (same position + same week)
+                    df_mapped = df_mapped.drop_duplicates(subset=['PosIDLookupKey', 'Week Ending'])
+                    
+                    final_count = len(df_mapped)
+                    
+                    if initial_count > final_count:
+                        logger.info(f"Removed {initial_count - final_count} true duplicate colleague position records (same PosIDLookupKey + Week Ending)")
+                        logger.info(f"Note: Preserved {final_count:,} records with shared PosIDLookupKey values (different weeks/employees)")
+
             
 
             # Load into database
