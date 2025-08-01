@@ -376,6 +376,15 @@ class DataLoader:
 
             available_columns = [col for col in column_mapping.keys() if col in df.columns]
 
+            # Add enriched columns that aren't in column_mapping but exist in DataFrame
+            if 'enrichment' in dataset_config:
+                enriched_column_names = list(dataset_config['enrichment'].keys())
+                for enrich_col in enriched_column_names:
+                    if enrich_col in df.columns and enrich_col not in available_columns:
+                        available_columns.append(enrich_col)
+                        # Add identity mapping for enriched columns (they keep their name)
+                        column_mapping[enrich_col] = enrich_col
+
             if not available_columns:
 
                 logger.error(f"No expected columns found in {file_path}")
