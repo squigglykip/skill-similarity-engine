@@ -1368,11 +1368,25 @@ class DataLoader:
         try:
             total_rows_loaded = 0
             
+            # Clear table once before loading all files (for datasets that need it)
+            if dataset_config.get('clear_table_before_load', False):
+                table_name = dataset_config.get('table_name', dataset_name)
+                with sqlite3.connect(self.db_path) as conn:
+                    logger.info(f"Clearing existing data from {table_name} table before loading {len(file_paths)} files")
+                    conn.execute(f"DELETE FROM {table_name}")
+                    conn.commit()
+                
+                # Temporarily disable clearing for individual file loads
+                dataset_config_copy = dataset_config.copy()
+                dataset_config_copy['clear_table_before_load'] = False
+            else:
+                dataset_config_copy = dataset_config
+            
             for file_path in sorted(file_paths):  # Sort to ensure consistent order
                 file_path_obj = Path(file_path)
                 
-                # Use existing single-file loading method
-                if self._load_dataset_from_config(dataset_name, file_path_obj, dataset_config):
+                # Use existing single-file loading method with modified config
+                if self._load_dataset_from_config(dataset_name, file_path_obj, dataset_config_copy):
                     # Get the row count from load_stats if available
                     if dataset_name in self.load_stats:
                         total_rows_loaded += self.load_stats[dataset_name].get('rows_loaded', 0)

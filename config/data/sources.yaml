@@ -140,6 +140,8 @@ data_sources:
     table_name: "core_colleague_positions_history"
     description: "Monthly snapshots of colleague position assignments over time (Phase 2 movement analysis)"
     # No primary key generation needed - uses composite primary key (PosIDLookupKey, Week Ending) in schema
+    clear_table_before_load: true  # Clear table once before loading all files to prevent primary key conflicts
+
     column_mapping:
       # Direct mapping - preserve raw CSV field names exactly
       "Week Ending": "Week Ending"
