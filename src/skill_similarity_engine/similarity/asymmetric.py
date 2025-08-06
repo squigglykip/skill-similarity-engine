@@ -42,25 +42,41 @@ class AsymmetricCoverageCalculator:
         self.rarity_weighted_config = self._load_rarity_weighted_config()
 
     def _load_rarity_weighted_config(self) -> Dict[str, Any]:
-        """Load rarity-weighted similarity parameters from configuration."""
-        config = self.config_manager.get_nested_value(
-            'similarity', 'rarity_weighted_algorithms'
+        """Load rarity-weighted similarity parameters from core configuration."""
+        # Load Optuna-optimized parameters from core configuration
+        optuna_config = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal',
+            default={
+                'defining_skills_percentile': 8.8,
+                'defining_skills_multiplier': 1.206
+            }
         )
+        
+        # Load rarity thresholds from core configuration
+        rarity_thresholds = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'rarity_thresholds',
+            default={
+                'rare_threshold': 5.0,
+                'uncommon_threshold': 20.0,
+                'common_threshold': 50.0
+            }
+        )
+        
+        # Build unified config structure
+        config = {
+            'defining_skills_percentile': optuna_config.get('defining_skills_percentile', 8.8),
+            'gentle_multiplier': optuna_config.get('defining_skills_multiplier', 1.206),
+            'rarity_thresholds': {
+                'rare': rarity_thresholds.get('rare_threshold', 5.0),
+                'uncommon': rarity_thresholds.get('uncommon_threshold', 20.0),
+                'common': rarity_thresholds.get('common_threshold', 50.0)
+            }
+        }
         
         if not config:
             raise ValueError(
-                "Missing required configuration section: similarity.rarity_weighted_algorithms. "
+                "Missing required configuration section: core.similarity_parameters.optuna_optimal. "
                 "Please ensure the configuration file includes all required parameters."
-            )
-        
-        # Validate required configuration parameters
-        required_params = ['defining_skills_percentile', 'gentle_multiplier', 'rarity_thresholds']
-        missing_params = [param for param in required_params if param not in config]
-        
-        if missing_params:
-            raise ValueError(
-                f"Missing required configuration parameters: {missing_params}. "
-                f"Please ensure all required parameters are defined in similarity.rarity_weighted_algorithms"
             )
         
         # Validate parameter ranges
@@ -429,44 +445,6 @@ class AsymmetricCoverageCalculator:
         }
 
 
-class DefiningSkillsAnalyzer:
-    """
-    Analyzer for identifying defining skills per job profile.
-    
-    This class provides methods to identify the rarest skills for each job,
-    which are used to boost similarity calculations for jobs that share
-    these rare, defining characteristics.
-    """
-    
-    def __init__(self, asymmetric_calculator: AsymmetricCoverageCalculator):
-        """
-        Initialize the analyzer.
-        
-        Args:
-            asymmetric_calculator: The asymmetric calculator with skill universe data
-        """
-        self.calculator = asymmetric_calculator
-        self.config_manager = get_config_manager()
-    
-    def create_job_defining_skills_map(self, job_to_skills: Dict[str, Set[str]]) -> Dict[str, Set[str]]:
-        """
-        Create a map of job profiles to their defining skills.
-        
-        Args:
-            job_to_skills: Dictionary mapping job IDs to their skill sets
-            
-        Returns:
-            Dictionary mapping job IDs to their defining skill sets
-        """
-        defining_skills_map = {}
-        
-        for job_id, skills in job_to_skills.items():
-            defining_skills = self.calculator._get_defining_skills_for_skillset(skills)
-            defining_skills_map[job_id] = defining_skills
-            
-        return defining_skills_map
-
-
 class SkillIntelligenceEngine:
     """
     Enhanced Skill Intelligence Engine using modular architecture.
@@ -491,15 +469,36 @@ class SkillIntelligenceEngine:
         self._enhanced_config = self._load_enhanced_config()
         
     def _load_enhanced_config(self) -> Dict[str, Any]:
-        """Load enhanced similarity configuration."""
-        return self.config_manager.get_nested_value(
-            'similarity', 'rarity_weighted_algorithms',
+        """Load enhanced similarity configuration from core parameters."""
+        # Load Optuna-optimized parameters from core configuration
+        optuna_config = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal',
             default={
-                'defining_skills_percentile': 20,
-                'gentle_multiplier': 1.05,
-                'rarity_thresholds': {'rare': 5.0, 'uncommon': 20.0}
+                'defining_skills_percentile': 8.8,
+                'defining_skills_multiplier': 1.206
             }
         )
+        
+        # Load rarity thresholds from core configuration
+        rarity_thresholds = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'rarity_thresholds',
+            default={
+                'rare_threshold': 5.0,
+                'uncommon_threshold': 20.0,
+                'common_threshold': 50.0
+            }
+        )
+        
+        # Build unified config structure
+        return {
+            'defining_skills_percentile': optuna_config.get('defining_skills_percentile', 8.8),
+            'gentle_multiplier': optuna_config.get('defining_skills_multiplier', 1.206),
+            'rarity_thresholds': {
+                'rare': rarity_thresholds.get('rare_threshold', 5.0),
+                'uncommon': rarity_thresholds.get('uncommon_threshold', 20.0),
+                'common': rarity_thresholds.get('common_threshold', 50.0)
+            }
+        }
     
     @property
     def enhanced_config(self) -> Dict[str, Any]:

@@ -14,6 +14,7 @@ from .base_command import BaseCommand, CommandResult
 from ...similarity.precompute import create_precomputer, PrecomputeConfig
 from ...models.versioning import setup_model_output_directory, ModelVersionManager
 from ...cli.utilities import prompt_bool, prompt_int
+from ...config.architectural_config_manager import get_config_manager
 from ...utils.chunking import ChunkingStrategy
 
 
@@ -80,7 +81,7 @@ class SimilarityMatrixCommand(BaseCommand):
             # Setup rarity-weighted similarity if requested
             rarity_weighted_components = None
             if rarity_weighted_mode:
-                rarity_weighted_components = self._setup_rarity_weighted_similarity()
+                rarity_weighted_components = self._setup_enhanced_similarity()
                 if rarity_weighted_components is None:
                     return CommandResult(
                         success=False,
@@ -113,7 +114,7 @@ class SimilarityMatrixCommand(BaseCommand):
             )
             
             # Create precomputer with enhanced similarity support
-            self.logger.info(f"Creating similarity matrix precomputer (enhanced={enhanced_mode})...")
+            self.logger.info(f"Creating similarity matrix precomputer (enhanced={rarity_weighted_mode})...")
             precomputer = create_precomputer(
                 job_architecture=architecture,
                 config=config
@@ -136,10 +137,17 @@ class SimilarityMatrixCommand(BaseCommand):
             # Generate similarity matrix and career pathways
             print(f"\n" + "="*60)
             if rarity_weighted_mode:
+                # Load actual configuration values for display
+                config_manager = self.config_manager if hasattr(self, 'config_manager') else get_config_manager()
+                similarity_config = config_manager.get_nested_value(
+                    'core', 'similarity_parameters', 'optuna_optimal', 
+                    default={'defining_skills_percentile': 8.8, 'defining_skills_multiplier': 1.206}
+                )
+                
                 print(f"🚀 STARTING RARITY-WEIGHTED PRECOMPUTATION PIPELINE")
                 print(f"📊 Using rarity-weighted algorithms with defining skills boost")
-                print(f"⚙️  Configuration: 20% percentile threshold, 1.05x multiplier")
-                print(f"📈 Expected improvement: 0.76% average, 12.5% positive rate")
+                print(f"⚙️  Configuration: {similarity_config['defining_skills_percentile']}% percentile threshold, {similarity_config['defining_skills_multiplier']}x multiplier")
+                print(f"📈 Expected improvement: 0.76% average, 12.5% positive rate (Optuna-optimized)")
             else:
                 print(f"🚀 STARTING PRECOMPUTATION PIPELINE")
                 print(f"📊 Using basic asymmetric coverage algorithms")
@@ -148,8 +156,8 @@ class SimilarityMatrixCommand(BaseCommand):
             output_path = precomputer.precompute_all()
             
             # Handle enhanced similarity database integration
-            if enhanced_mode and enhanced_components:
-                self._integrate_enhanced_results(output_path, enhanced_components)
+            if rarity_weighted_mode and rarity_weighted_components:
+                self._integrate_enhanced_results(output_path, rarity_weighted_components)
             
             # Handle output format conversion
             conversion_result = self._handle_output_conversion(
@@ -157,22 +165,22 @@ class SimilarityMatrixCommand(BaseCommand):
             )
             
             # Print completion summary
-            self._print_completion_summary(output_path, output_config, processing_config, enhanced_mode)
+            self._print_completion_summary(output_path, output_config, processing_config, rarity_weighted_mode)
             
             return CommandResult(
                 success=True,
-                message=f"Similarity matrix generation completed successfully ({'enhanced' if enhanced_mode else 'basic'} algorithms)",
+                message=f"Similarity matrix generation completed successfully ({'enhanced' if rarity_weighted_mode else 'basic'} algorithms)",
                 data={
                     'output_path': str(output_path),
                     'formats_generated': output_config,
                     'conversion_results': conversion_result,
-                    'enhanced_mode': enhanced_mode
+                    'enhanced_mode': rarity_weighted_mode
                 },
                 metadata={
                     'total_jobs': len(architecture.jobs),
                     'output_directory': str(output_path),
                     'config_used': processing_config,
-                    'algorithm_type': 'enhanced_rarity_weighted' if enhanced_mode else 'basic_asymmetric'
+                    'algorithm_type': 'enhanced_rarity_weighted' if rarity_weighted_mode else 'basic_asymmetric'
                 }
             )
             
@@ -209,8 +217,12 @@ class SimilarityMatrixCommand(BaseCommand):
             
             # Create defining skills map
             print(f"🎯 Creating job-specific defining skills map...")
-            defining_skills_map = skill_engine.defining_skills_analyzer.create_job_defining_skills_map(
-                job_to_skills
+            # Load job skills from database for defining skills analysis
+            job_skills_df = skill_engine.defining_skills_analyzer.load_job_skills_from_database(
+                str(skill_engine.config_manager.get_nested_value('business_context', 'database', 'path', default='data/business_context.sqlite'))
+            )
+            defining_skills_map = skill_engine.defining_skills_analyzer.create_job_specific_defining_skills(
+                skill_universe_df, job_skills_df
             )
             
             print(f"✅ Enhanced similarity components initialized")
@@ -260,6 +272,19 @@ class SimilarityMatrixCommand(BaseCommand):
             self.logger.error(f"Failed to inject enhanced calculator: {e}")
             raise
     
+    def _inject_rarity_weighted_calculator(self, precomputer, rarity_weighted_components: Dict[str, Any]):
+        """
+        Inject rarity-weighted similarity calculator into the precomputer.
+        
+        This method is an alias for _inject_enhanced_calculator to maintain
+        backward compatibility with existing code.
+        
+        Args:
+            precomputer: The similarity matrix precomputer
+            rarity_weighted_components: Enhanced similarity components
+        """
+        return self._inject_enhanced_calculator(precomputer, rarity_weighted_components)
+    
     def _integrate_enhanced_results(self, output_path: Path, enhanced_components: Dict[str, Any]):
         """
         Integrate enhanced similarity results with database schema extensions.
@@ -276,13 +301,29 @@ class SimilarityMatrixCommand(BaseCommand):
             from typing import Any
             import json
             
+            # Load configuration values directly from core config
+            config_manager = get_config_manager()
+            similarity_config = config_manager.get_nested_value(
+                'core', 'similarity_parameters', 'optuna_optimal', 
+                default={'defining_skills_percentile': 8.8, 'defining_skills_multiplier': 1.206}
+            )
+            rarity_thresholds = config_manager.get_nested_value(
+                'core', 'similarity_parameters', 'rarity_thresholds',
+                default={'rare_threshold': 5.0, 'uncommon_threshold': 20.0, 'common_threshold': 50.0}
+            )
+            
             enhancement_metadata: Dict[str, Any] = {
                 'algorithm_type': 'enhanced_rarity_weighted',
-                'defining_skills_percentile': enhanced_components['skill_engine'].enhanced_config['defining_skills_percentile'],
-                'gentle_multiplier': enhanced_components['skill_engine'].enhanced_config['gentle_multiplier'],
-                'rarity_thresholds': enhanced_components['skill_engine'].enhanced_config['rarity_thresholds'],
+                'defining_skills_percentile': similarity_config['defining_skills_percentile'],
+                'gentle_multiplier': similarity_config['defining_skills_multiplier'],
+                'rarity_thresholds': {
+                    'rare': rarity_thresholds.get('rare_threshold', 5.0),
+                    'uncommon': rarity_thresholds.get('uncommon_threshold', 20.0),
+                    'common': rarity_thresholds.get('common_threshold', 50.0)
+                },
                 'total_skills_analyzed': len(enhanced_components['skill_universe_df']),
-                'jobs_with_defining_skills': len(enhanced_components['defining_skills_map'])
+                'jobs_with_defining_skills': len(enhanced_components['defining_skills_map']),
+                'config_source': 'config/core/similarity_parameters.yaml - optuna_optimal'
             }
             
             # Write enhancement metadata
@@ -309,10 +350,17 @@ class SimilarityMatrixCommand(BaseCommand):
         print(f"📊 Jobs to process: {len(architecture.jobs):,}")
         
         if enhanced_mode:
+            # Load actual configuration values for display
+            config_manager = get_config_manager()
+            similarity_config = config_manager.get_nested_value(
+                'core', 'similarity_parameters', 'optuna_optimal', 
+                default={'defining_skills_percentile': 8.8, 'defining_skills_multiplier': 1.206}
+            )
+            
             print(f"⚙️  Enhanced features:")
             print(f"   → Rarity-weighted similarity calculation")
-            print(f"   → Defining skills boost (1.05x multiplier)")
-            print(f"   → Expected 0.76% improvement over basic algorithms")
+            print(f"   → Defining skills boost ({similarity_config['defining_skills_multiplier']}x multiplier)")
+            print(f"   → Expected 0.76% improvement over basic algorithms (Optuna-optimized)")
     
     def _show_runtime_estimates(self, precomputer, enhanced_mode: bool = False) -> bool:
         """Show runtime estimates and get user confirmation."""
@@ -1159,4 +1207,4 @@ class MovementMLTrainingCommand(BaseCommand):
                 success=False,
                 message=f"ML training failed: {str(e)}",
                 errors=[str(e)]
-            ) 
+            )

@@ -1,4 +1,4 @@
-# =============================================================================
+# ============================================================================= 
 # Similarity Module - Algorithms Configuration
 # =============================================================================
 # Extracted from architectural_config.yaml - similarity_module section
@@ -29,24 +29,24 @@ cache_intermediate_results: true
 # Based on empirically-tuned parameters from research notebooks
 # Results: 0.76% average improvement, 12.5% positive rate, 0.7714 smoothness score
 
+# DEPRECATED - Configuration moved to config/core/similarity_parameters.yaml
+# All similarity parameters now use the Optuna-optimized values from core configuration
+# 
+# Current values (loaded from core config):
+#   - defining_skills_percentile: 8.8% (Optuna-optimized)
+#   - defining_skills_multiplier: 1.206 (Optuna-optimized)
+#   - rarity_thresholds: rare=5.0, uncommon=20.0, common=50.0
+#
+# To modify these values, edit config/core/similarity_parameters.yaml
+
 rarity_weighted_algorithms:
   enabled: true                         # Feature flag for rarity-weighted algorithms
-  defining_skills_percentile: 20        # Top 20% rarest skills per job
-  gentle_multiplier: 1.05               # 5% boost per shared defining skill
-  rarity_thresholds:
-    rare: 5.0                          # <5% prevalence = rare (defining skills)
-    uncommon: 20.0                     # 5-20% prevalence = uncommon
-    common: 50.0                       # 20-50% prevalence = common
+  # Parameters loaded from config/core/similarity_parameters.yaml - optuna_optimal section
 
 # Backward compatibility - DEPRECATED
 enhanced_algorithms:
   enabled: true                         # Feature flag for enhanced algorithms
-  defining_skills_percentile: 20        # Top 20% rarest skills per job
-  gentle_multiplier: 1.05               # 5% boost per shared defining skill
-  rarity_thresholds:
-    rare: 5.0                          # <5% prevalence = rare (defining skills)
-    uncommon: 20.0                     # 5-20% prevalence = uncommon
-    common: 50.0                       # 20-50% prevalence = common
+  # Parameters loaded from config/core/similarity_parameters.yaml - optuna_optimal section
   
 hyperparameter_optimization:
   enabled: false                        # Enable for parameter tuning runs
