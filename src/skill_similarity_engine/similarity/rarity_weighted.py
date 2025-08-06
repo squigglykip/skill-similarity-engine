@@ -22,16 +22,18 @@ _config_manager = get_config_manager()
 
 # Load Optuna-optimized parameters from core configuration
 _similarity_params = _config_manager.get_nested_value(
-    'core', 'similarity_parameters', 'optuna_optimal',
-    default={
-        'defining_skills_percentile': 8.8,
-        'defining_skills_multiplier': 1.206
-    }  # Fallback to optimal values
+    'core', 'similarity_parameters', 'optuna_optimal'
 )
 
+if not _similarity_params:
+    raise ValueError(
+        "Missing required configuration: core.similarity_parameters.optuna_optimal. "
+        "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+    )
+
 # Configuration constants (loaded from config/core/similarity_parameters.yaml)
-DEFINING_SKILLS_PERCENTILE = _similarity_params.get('defining_skills_percentile', 8.8)
-GENTLE_MULTIPLIER = _similarity_params.get('defining_skills_multiplier', 1.206)
+DEFINING_SKILLS_PERCENTILE = _similarity_params['defining_skills_percentile']
+GENTLE_MULTIPLIER = _similarity_params['defining_skills_multiplier']
 
 
 class RarityWeightedCalculator:

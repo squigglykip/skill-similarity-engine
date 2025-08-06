@@ -13,7 +13,7 @@
 optuna_optimal:
   # Defining skills threshold - Top % rarest skills per job profile
   # Optuna Result: 8.8% provides optimal balance of smoothness + differentiation
-  defining_skills_percentile: 8.8
+  defining_skills_percentile: 2
   
   # Similarity boost multiplier for shared defining skills
   # Optuna Result: 1.206x provides optimal enhancement without overwhelming base matches

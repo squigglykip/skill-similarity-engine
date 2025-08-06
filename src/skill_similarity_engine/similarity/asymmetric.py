@@ -45,31 +45,34 @@ class AsymmetricCoverageCalculator:
         """Load rarity-weighted similarity parameters from core configuration."""
         # Load Optuna-optimized parameters from core configuration
         optuna_config = self.config_manager.get_nested_value(
-            'core', 'similarity_parameters', 'optuna_optimal',
-            default={
-                'defining_skills_percentile': 8.8,
-                'defining_skills_multiplier': 1.206
-            }
+            'core', 'similarity_parameters', 'optuna_optimal'
         )
+        
+        if not optuna_config:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.optuna_optimal. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
         
         # Load rarity thresholds from core configuration
         rarity_thresholds = self.config_manager.get_nested_value(
-            'core', 'similarity_parameters', 'rarity_thresholds',
-            default={
-                'rare_threshold': 5.0,
-                'uncommon_threshold': 20.0,
-                'common_threshold': 50.0
-            }
+            'core', 'similarity_parameters', 'rarity_thresholds'
         )
+        
+        if not rarity_thresholds:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.rarity_thresholds. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
         
         # Build unified config structure
         config = {
-            'defining_skills_percentile': optuna_config.get('defining_skills_percentile', 8.8),
-            'gentle_multiplier': optuna_config.get('defining_skills_multiplier', 1.206),
+            'defining_skills_percentile': optuna_config['defining_skills_percentile'],
+            'gentle_multiplier': optuna_config['defining_skills_multiplier'],
             'rarity_thresholds': {
-                'rare': rarity_thresholds.get('rare_threshold', 5.0),
-                'uncommon': rarity_thresholds.get('uncommon_threshold', 20.0),
-                'common': rarity_thresholds.get('common_threshold', 50.0)
+                'rare': rarity_thresholds['rare_threshold'],
+                'uncommon': rarity_thresholds['uncommon_threshold'],
+                'common': rarity_thresholds['common_threshold']
             }
         }
         
@@ -472,31 +475,34 @@ class SkillIntelligenceEngine:
         """Load enhanced similarity configuration from core parameters."""
         # Load Optuna-optimized parameters from core configuration
         optuna_config = self.config_manager.get_nested_value(
-            'core', 'similarity_parameters', 'optuna_optimal',
-            default={
-                'defining_skills_percentile': 8.8,
-                'defining_skills_multiplier': 1.206
-            }
+            'core', 'similarity_parameters', 'optuna_optimal'
         )
+        
+        if not optuna_config:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.optuna_optimal. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
         
         # Load rarity thresholds from core configuration
         rarity_thresholds = self.config_manager.get_nested_value(
-            'core', 'similarity_parameters', 'rarity_thresholds',
-            default={
-                'rare_threshold': 5.0,
-                'uncommon_threshold': 20.0,
-                'common_threshold': 50.0
-            }
+            'core', 'similarity_parameters', 'rarity_thresholds'
         )
+        
+        if not rarity_thresholds:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.rarity_thresholds. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
         
         # Build unified config structure
         return {
-            'defining_skills_percentile': optuna_config.get('defining_skills_percentile', 8.8),
-            'gentle_multiplier': optuna_config.get('defining_skills_multiplier', 1.206),
+            'defining_skills_percentile': optuna_config['defining_skills_percentile'],
+            'gentle_multiplier': optuna_config['defining_skills_multiplier'],
             'rarity_thresholds': {
-                'rare': rarity_thresholds.get('rare_threshold', 5.0),
-                'uncommon': rarity_thresholds.get('uncommon_threshold', 20.0),
-                'common': rarity_thresholds.get('common_threshold', 50.0)
+                'rare': rarity_thresholds['rare_threshold'],
+                'uncommon': rarity_thresholds['uncommon_threshold'],
+                'common': rarity_thresholds['common_threshold']
             }
         }
     

@@ -152,9 +152,10 @@ similarity:
 core:
   similarity_parameters:
     # Optuna-optimized parameters (Trial 23, best result)
+    # NOTE: These values are overridden by config/core/similarity_parameters.yaml in modular structure
     optuna_optimal:
-      defining_skills_percentile: 8.8    # Top 8.8% rarest skills per job
-      defining_skills_multiplier: 1.206  # 1.206x boost for shared defining skills
+      defining_skills_percentile: 50      # Top 50% rarest skills per job (DEPRECATED - see core/similarity_parameters.yaml)
+      defining_skills_multiplier: 1.206  # 1.206x boost for shared defining skills (DEPRECATED - see core/similarity_parameters.yaml)
       
       # Optimization metadata for transparency
       optimization_metadata:

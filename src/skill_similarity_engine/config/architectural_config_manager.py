@@ -121,6 +121,7 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
             'processing.yaml': ('processing',),
             'datetime.yaml': ('datetime',),
             'configuration_management.yaml': ('configuration_management',),
+            'similarity_parameters.yaml': ('core',),
             'file_patterns.yaml': ('workforce_data_patterns', 'skills_data_patterns', 'position_mapping_patterns', 'output_patterns', 'database_patterns')
         }
         
@@ -128,9 +129,19 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
             file_path = core_path / filename
             if file_path.exists():
                 file_config = self._load_yaml_safe(file_path)
-                for section in sections:
-                    if section in file_config:
-                        config[section] = file_config[section]
+                
+                # Special handling for similarity_parameters.yaml
+                if filename == 'similarity_parameters.yaml':
+                    # Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.similarity_parameters
+                    config['core']['similarity_parameters'] = file_config
+                else:
+                    # Normal section-based loading for other files
+                    for section in sections:
+                        if section in file_config:
+                            config[section] = file_config[section]
         
         return config
     

@@ -140,9 +140,17 @@ class SimilarityMatrixCommand(BaseCommand):
                 # Load actual configuration values for display
                 config_manager = self.config_manager if hasattr(self, 'config_manager') else get_config_manager()
                 similarity_config = config_manager.get_nested_value(
-                    'core', 'similarity_parameters', 'optuna_optimal', 
-                    default={'defining_skills_percentile': 8.8, 'defining_skills_multiplier': 1.206}
+                    'core', 'similarity_parameters', 'optuna_optimal'
                 )
+                
+                if not similarity_config:
+                    print("❌ Configuration Error: Missing core.similarity_parameters.optuna_optimal section")
+                    print("   Please ensure config/core/similarity_parameters.yaml contains the required parameters.")
+                    return CommandResult(
+                        success=False,
+                        message="Configuration error: Missing similarity parameters",
+                        errors=["Missing core.similarity_parameters.optuna_optimal configuration"]
+                    )
                 
                 print(f"🚀 STARTING RARITY-WEIGHTED PRECOMPUTATION PIPELINE")
                 print(f"📊 Using rarity-weighted algorithms with defining skills boost")
@@ -304,22 +312,25 @@ class SimilarityMatrixCommand(BaseCommand):
             # Load configuration values directly from core config
             config_manager = get_config_manager()
             similarity_config = config_manager.get_nested_value(
-                'core', 'similarity_parameters', 'optuna_optimal', 
-                default={'defining_skills_percentile': 8.8, 'defining_skills_multiplier': 1.206}
+                'core', 'similarity_parameters', 'optuna_optimal'
             )
             rarity_thresholds = config_manager.get_nested_value(
-                'core', 'similarity_parameters', 'rarity_thresholds',
-                default={'rare_threshold': 5.0, 'uncommon_threshold': 20.0, 'common_threshold': 50.0}
+                'core', 'similarity_parameters', 'rarity_thresholds'
             )
+            
+            if not similarity_config or not rarity_thresholds:
+                self.logger.warning("Missing similarity configuration for metadata generation")
+                similarity_config = {'defining_skills_percentile': 'Unknown', 'defining_skills_multiplier': 'Unknown'}
+                rarity_thresholds = {'rare_threshold': 'Unknown', 'uncommon_threshold': 'Unknown', 'common_threshold': 'Unknown'}
             
             enhancement_metadata: Dict[str, Any] = {
                 'algorithm_type': 'enhanced_rarity_weighted',
                 'defining_skills_percentile': similarity_config['defining_skills_percentile'],
                 'gentle_multiplier': similarity_config['defining_skills_multiplier'],
                 'rarity_thresholds': {
-                    'rare': rarity_thresholds.get('rare_threshold', 5.0),
-                    'uncommon': rarity_thresholds.get('uncommon_threshold', 20.0),
-                    'common': rarity_thresholds.get('common_threshold', 50.0)
+                    'rare': rarity_thresholds['rare_threshold'],
+                    'uncommon': rarity_thresholds['uncommon_threshold'],
+                    'common': rarity_thresholds['common_threshold']
                 },
                 'total_skills_analyzed': len(enhanced_components['skill_universe_df']),
                 'jobs_with_defining_skills': len(enhanced_components['defining_skills_map']),
@@ -353,9 +364,13 @@ class SimilarityMatrixCommand(BaseCommand):
             # Load actual configuration values for display
             config_manager = get_config_manager()
             similarity_config = config_manager.get_nested_value(
-                'core', 'similarity_parameters', 'optuna_optimal', 
-                default={'defining_skills_percentile': 8.8, 'defining_skills_multiplier': 1.206}
+                'core', 'similarity_parameters', 'optuna_optimal'
             )
+            
+            if not similarity_config:
+                print("❌ Configuration Error: Missing core.similarity_parameters.optuna_optimal section")
+                print("   Please ensure config/core/similarity_parameters.yaml contains the required parameters.")
+                return
             
             print(f"⚙️  Enhanced features:")
             print(f"   → Rarity-weighted similarity calculation")

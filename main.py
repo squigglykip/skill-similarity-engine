@@ -335,7 +335,19 @@ class WorkforceIntelligenceOrchestrator:
                     print("\n🧠 Executing Phase 1: Enhanced Similarity Analytics...")
                     print("   This will calculate enhanced job similarities using configuration-driven algorithms")
                     print("   with Optuna-optimized parameters and populate analytics tables directly in your database.")
-                    print("   • Parameters: 8.8% defining skills threshold, 1.206x multiplier")
+                    
+                    # Load actual configuration values for display
+                    config_manager = get_config_manager()
+                    similarity_config = config_manager.get_nested_value(
+                        'core', 'similarity_parameters', 'optuna_optimal'
+                    )
+                    
+                    if not similarity_config:
+                        print("❌ Configuration Error: Missing core.similarity_parameters.optuna_optimal section")
+                        print("   Please ensure config/core/similarity_parameters.yaml contains the required parameters.")
+                        continue
+                    
+                    print(f"   • Parameters: {similarity_config['defining_skills_percentile']}% defining skills threshold, {similarity_config['defining_skills_multiplier']}x multiplier")
                     print("   • Algorithm: Asymmetric Jaccard with corpus normalization")
                     print()
                     
