@@ -82,7 +82,7 @@ class MovementFactBuilder:
         for _, movement in movements_df.iterrows():
             try:
                 # Extract month and year from movement date
-                movement_date = pd.to_datetime(movement['to_date'])
+                movement_date = pd.to_datetime(movement['to_date'], format='%d/%m/%Y', errors='coerce')
                 month_key = movement_date.strftime("%Y-%m")
                 
                 # Create movement pattern key (from_position -> to_position)
@@ -132,27 +132,33 @@ class MovementFactBuilder:
                 # Calculate percentage of total movements
                 pct_total_movements = (movement_count / monthly_total * 100) if monthly_total > 0 else 0
                 
-                # Create fact table record
+                # Create unique fact table record matching analytics_movement_patterns schema
+                # Use length of fact_records list to ensure absolute uniqueness
+                record_number = len(fact_records) + 1
+                movement_pattern_id = f"pattern_{record_number:06d}"
+                
                 fact_record = {
-                    'Movement_Month': month,
+                    # Database schema columns (exact match)
+                    'movement_pattern_id': movement_pattern_id,
+                    'movement_month': month,
+                    'from_position': from_position,
+                    'to_position': to_position,
+                    'from_job_profile_id': None,  # Will be enriched later
+                    'to_job_profile_id': None,    # Will be enriched later
+                    'movement_count': movement_count,
+                    'unique_employees': unique_employees,
+                    'avg_days_between': round(avg_days_between, 1),
+                    'pct_total_movements': round(pct_total_movements, 2),
+                    'movement_type': movements[0].get('movement_type', 'lateral'),  # Use first movement's type
+                    'skill_similarity_score': None,  # Will be calculated later if needed
+                    'difficulty_score': None,       # Will be calculated later if needed
+                    'success_rate': None,           # Will be calculated later if needed
+                    
+                    # Additional columns for internal use (not in database)
                     'Movement_Year': year,
-                    'From_Position': from_position,
-                    'To_Position': to_position,
                     'Movement_Pattern': f"{from_position} → {to_position}",
-                    'Movement_Count': movement_count,
-                    'Unique_Employees': unique_employees,
                     'Monthly_Total_Movements': monthly_total
                 }
-                
-                # Add percentage metrics if configured
-                if self.include_percentages:
-                    fact_record['Pct_Total_Movements'] = round(pct_total_movements, 2)
-                
-                # Add tenure metrics if configured
-                if self.include_tenure_metrics:
-                    fact_record['Avg_Days_Between'] = round(avg_days_between, 1)
-                    fact_record['Min_Days_Between'] = min(m['days_between'] for m in movements)
-                    fact_record['Max_Days_Between'] = max(m['days_between'] for m in movements)
                 
                 fact_records.append(fact_record)
         
@@ -161,7 +167,7 @@ class MovementFactBuilder:
         
         # Sort by month and movement count (descending)
         if len(fact_table_df) > 0:
-            fact_table_df = fact_table_df.sort_values(['Movement_Month', 'Movement_Count'], 
+            fact_table_df = fact_table_df.sort_values(['movement_month', 'movement_count'], 
                                                      ascending=[True, False])
         
         logger.info(f"Generated {len(fact_table_df):,} movement fact table records")
@@ -183,8 +189,8 @@ class MovementFactBuilder:
             Number of days between dates
         """
         try:
-            from_dt = pd.to_datetime(from_date)
-            to_dt = pd.to_datetime(to_date)
+            from_dt = pd.to_datetime(from_date, format='%d/%m/%Y', errors='coerce')
+            to_dt = pd.to_datetime(to_date, format='%d/%m/%Y', errors='coerce')
             delta = to_dt - from_dt
             return max(0, delta.days)  # Ensure non-negative
         except Exception as e:

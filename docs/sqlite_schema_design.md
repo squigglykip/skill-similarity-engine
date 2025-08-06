@@ -1,14 +1,14 @@
 # SQLite Schema Design for NAB Skill Similarity Engine
 ## Workforce Intelligence Database
 
-**Generated**: 2025-07-31 17:53:25
+**Generated**: 2025-08-04 11:16:55
 **Database File**: `C:\Users\kipjo\OneDrive\Documents\GitHub\skill-similarity-engine\models\2025-Q3\business_context.sqlite`
-**Database Size**: 443.95 MB
+**Database Size**: 1750.55 MB
 **SQLite Version**: 3.45.3
 **Page Size**: 4096 bytes
-**Total Pages**: 113,650
+**Total Pages**: 448,141
 **Foreign Keys**: Disabled
-**Last Modified**: 2025-07-31T17:50:55.709755
+**Last Modified**: 2025-07-31T21:35:16.456796
 
 ---
 
@@ -22,6 +22,13 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 
 **Core Tables for Query Development:**
 
+- **`analytics_job_similarities`** (510,510 records) - job_from, job_to, similarity_score
+- **`analytics_movement_patterns`** (0 records) - movement_pattern, movement_count, month, avg_days_in_position
+- **`core_colleague_positions_history`** (2,000,000 records) - Employee Number, Position Number, Week Ending, PosIDLookupKey
+- **`core_job_architecture`** (715 records) - JobProfileID, JobProfile, JobFamily, JobFamilyGroup
+- **`core_job_skill_requirements`** (40,170 records) - JobProfileID, Skill_ID, Skill_Weight
+- **`core_skills_taxonomy`** (38,525 records) - Skill_ID, Skill_Name, Category, SkillType
+- **`core_workforce_current`** (35,000 records) - JobProfileID, Division, Business_Unit, Location, Team
 
 **Key Relationships:**
 - `jobs.JobProfileID` â†’ `career_pathways.source_job_id/target_job_id`
@@ -40,10 +47,10 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 
 ## Database Statistics
 
-- **Total Tables**: 15
-- **Total Records**: 1,117,132
-- **Total Indexes**: 49
-- **Database Size**: 443.95 MB
+- **Total Tables**: 16
+- **Total Records**: 3,112,559
+- **Total Indexes**: 55
+- **Database Size**: 1750.55 MB
 
 ### Key Business Metrics
 
@@ -101,7 +108,7 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 - sys_schema_metadata: 12 rows
 
 **Medium Tables:**
-- analytics_job_defining_skills: 7,728 rows
+- analytics_job_defining_skills: 3,155 rows
 - analytics_skill_rarity: 2,059 rows
 - core_job_skill_requirements: 40,170 rows
 - core_skills_taxonomy: 38,525 rows
@@ -110,6 +117,9 @@ to support career pathway analysis, workforce planning, and strategic workforce 
 **Large Tables:**
 - analytics_job_similarities: 510,510 rows
 - core_position_timeline: 482,413 rows
+
+**Very Large Tables:**
+- core_colleague_positions_history: 2,000,000 rows
 
 ### Query Optimization Recommendations
 
@@ -335,6 +345,16 @@ erDiagram
         text created_timestamp
     }
 
+    CORE_COLLEAGUE_POSITIONS_HISTORY {
+        text Week_Ending
+        integer Employee_Number
+        boolean Operational
+        text Position_Start_Date
+        real PosIDLookupKey PK
+        integer Position_Number
+        text created_timestamp
+    }
+
     CORE_JOB_ARCHITECTURE {
         text JobProfileID PK
         text JobProfile
@@ -556,7 +576,7 @@ CREATE TABLE analytics_bundle_characteristics (
 **Sample Data by Column:**
 
 
-### 2. **analytics_job_defining_skills** - 7,728 records
+### 2. **analytics_job_defining_skills** - 3,155 records
 
 ```sql
 CREATE TABLE analytics_job_defining_skills (
@@ -585,21 +605,21 @@ CREATE TABLE analytics_job_defining_skills (
 
 **Column Statistics:**
 
-- **job_profile_id**: 715 unique values (7,728 non-null), avg length 7.0
-- **skill_id**: 1,676 unique values (7,728 non-null), avg length 20.0
-- **skill_name**: 1,676 unique values (7,728 non-null), avg length 21.69
-- **job_profile**: 309 unique values (7,728 non-null), avg length 22.46
-- **category**: 29 unique values (7,728 non-null), avg length 17.2
-- **subcategory**: 236 unique values (7,728 non-null), avg length 20.87
-- **skill_type**: 3 unique values (7,728 non-null), avg length 16.58
-- **prevalence_percentage**: 47 unique values (7,728 non-null), range 0.1400 - 7.8300, avg 1.3261
-- **total_profiles_with_skill**: 47 unique values (7,728 non-null), range 1 - 56
-- **rarity_category**: 2 unique values (7,728 non-null), avg length 4.05
-- **defining_skill_rank**: 19 unique values (7,728 non-null), range 1 - 19
-- **defining_skill_score**: 47 unique values (7,728 non-null), range 92.1678 - 99.8601, avg 98.6751
-- **analysis_date**: 1 unique values (7,728 non-null), avg length 10.0
-- **percentile_threshold**: 1 unique values (7,728 non-null), range 20.0000 - 20.0000, avg 20.0000
-- **created_timestamp**: 1 unique values (7,728 non-null), avg length 19.0
+- **job_profile_id**: 715 unique values (3,155 non-null), avg length 7.0
+- **skill_id**: 947 unique values (3,155 non-null), avg length 20.0
+- **skill_name**: 947 unique values (3,155 non-null), avg length 22.02
+- **job_profile**: 309 unique values (3,155 non-null), avg length 22.46
+- **category**: 29 unique values (3,155 non-null), avg length 18.04
+- **subcategory**: 201 unique values (3,155 non-null), avg length 21.13
+- **skill_type**: 3 unique values (3,155 non-null), avg length 16.48
+- **prevalence_percentage**: 25 unique values (3,155 non-null), range 0.1400 - 5.0300, avg 0.7885
+- **total_profiles_with_skill**: 25 unique values (3,155 non-null), range 1 - 36
+- **rarity_category**: 2 unique values (3,155 non-null), avg length 4.0
+- **defining_skill_rank**: 8 unique values (3,155 non-null), range 1 - 8
+- **defining_skill_score**: 25 unique values (3,155 non-null), range 94.9650 - 99.8601, avg 99.2123
+- **analysis_date**: 1 unique values (3,155 non-null), avg length 10.0
+- **percentile_threshold**: 1 unique values (3,155 non-null), range 8.8000 - 8.8000, avg 8.8000
+- **created_timestamp**: 1 unique values (3,155 non-null), avg length 19.0
 
 **Data Quality - Completeness:**
 
@@ -626,73 +646,73 @@ CREATE TABLE analytics_job_defining_skills (
 **Sample Data by Column:**
 
 - **job_profile_id**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
-- **skill_id**: `BGS10EE289B9FDE2C4B1`, `BGS11665AC6BD06C5EBD`, `BGS117E3FE9519A5B542`, `BGS1241B6719A7FE041D`, `BGS1250D82C4B027A171`, `BGS147DBB4CF132F0523`, `BGS152BE1A314EFF3FE3`, `BGS166A638195D1E2BAE`, `BGS16C952D775A16E650`, `BGS1737E89A3E6B7A57C`
-- **skill_name**: `A3 Problem Solving Techniques`, `AWS Devops`, `AWS Identity And Access Man...`, `Access Controls`, `Account Development`, `Account Growth`, `Account Management`, `Account Reconciliation`, `Account Segmentation`, `Account Strategy`
+- **skill_id**: `BGS10EE289B9FDE2C4B1`, `BGS1241B6719A7FE041D`, `BGS147DBB4CF132F0523`, `BGS152BE1A314EFF3FE3`, `BGS166A638195D1E2BAE`, `BGS16C952D775A16E650`, `BGS1737E89A3E6B7A57C`, `BGS1D85D5D514CF5B6F3`, `BGS1E1E5481D0EDB3769`, `BGS24A3CBA3151D8E4A5`
+- **skill_name**: `A3 Problem Solving Techniques`, `ADP Enterprise`, `AWS Certified DevOps Engineer`, `AWS Devops`, `AWS Identity And Access Man...`, `Access Controls`, `Account Development`, `Account Growth`, `Account Segmentation`, `Account Strategy`
 - **job_profile**: `Budget Manager (Ungraded)`, `Budget Manager - 0`, `Budget Manager - 2`, `Budget Manager - 3`, `Budget Manager - 4`, `Budget Manager - 5`, `Budget Manager - 6`, `Budget Manager - 7`, `Budget Manager - II`, `Business Analyst - 0`
 - **category**: `Administration`, `Analysis`, `Architecture and Construction`, `Business`, `Customer and Client Support`, `Design`, `Economics, Policy, and Soci...`, `Education and Training`, `Energy and Utilities`, `Engineering`
-- **subcategory**: `Account Management`, `Accounting and Finance Soft...`, `Accounts Payable and Receiv...`, `Administrative Support and ...`, `Agile Software Development`, `Animation and Game Design`, `Application Programming Int...`, `Architectural Design`, `Artificial Intelligence and...`, `Auditing`
+- **subcategory**: `Account Management`, `Accounting and Finance Soft...`, `Accounts Payable and Receiv...`, `Administrative Support and ...`, `Agile Software Development`, `Application Programming Int...`, `Architectural Design`, `Artificial Intelligence and...`, `Auditing`, `Automation Engineering`
 - **skill_type**: `Certification`, `Common Skill`, `Specialized Skill`
 - **prevalence_percentage**: `0.14`, `0.28`, `0.42`, `0.56`, `0.7`, `0.84`, `0.98`, `1.12`, `1.26`, `1.4`
 - **total_profiles_with_skill**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
 - **rarity_category**: `Rare`, `Uncommon`
-- **defining_skill_rank**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`
-- **defining_skill_score**: `92.16783216783217`, `93.28671328671328`, `93.56643356643357`, `93.7062937062937`, `93.84615384615384`, `94.12587412587412`, `94.26573426573427`, `94.4055944055944`, `94.54545454545455`, `94.68531468531468`
+- **defining_skill_rank**: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`
+- **defining_skill_score**: `94.96503496503496`, `95.52447552447552`, `95.94405594405595`, `96.08391608391608`, `96.78321678321679`, `96.92307692307692`, `97.2027972027972`, `97.34265734265735`, `97.48251748251748`, `97.62237762237763`
 - **analysis_date**: `2025-07-31`
-- **percentile_threshold**: `20.0`
-- **created_timestamp**: `2025-07-31 07:50:55`
+- **percentile_threshold**: `8.8`
+- **created_timestamp**: `2025-07-31 11:35:16`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `job_profile_id`: R0001.5
-  - `skill_id`: ESF18614E2FC278FD985
-  - `skill_name`: Risk Management Strategies
+  - `skill_id`: KS120016K8T4NSLN5Q6K
+  - `skill_name`: Microsoft Access
   - `job_profile`: Payment Systems Analyst - 5
-  - `category`: Business
-  - `subcategory`: Risk Management
+  - `category`: Administration
+  - `subcategory`: Office and Productivity Equipment and Technology
   - `skill_type`: Specialized Skill
-  - `prevalence_percentage`: 1.54
-  - `total_profiles_with_skill`: 11
+  - `prevalence_percentage`: 0.28
+  - `total_profiles_with_skill`: 2
   - `rarity_category`: Rare
-  - `defining_skill_rank`: 7
-  - `defining_skill_score`: 98.46153846153847
+  - `defining_skill_rank`: 1
+  - `defining_skill_score`: 99.72027972027972
   - `analysis_date`: 2025-07-31
-  - `percentile_threshold`: 20.0
-  - `created_timestamp`: 2025-07-31 07:50:55
+  - `percentile_threshold`: 8.8
+  - `created_timestamp`: 2025-07-31 11:35:16
 
 **Record 2:**
   - `job_profile_id`: R0001.5
-  - `skill_id`: KS122CJ6ZVCCTTDGYB6B
-  - `skill_name`: Contract Negotiation
+  - `skill_id`: KS126485WGPSSLRQMF29
+  - `skill_name`: Managerial Finance
   - `job_profile`: Payment Systems Analyst - 5
-  - `category`: Business
-  - `subcategory`: Contract Management
+  - `category`: Finance
+  - `subcategory`: General Finance
   - `skill_type`: Specialized Skill
-  - `prevalence_percentage`: 1.4
-  - `total_profiles_with_skill`: 10
+  - `prevalence_percentage`: 0.84
+  - `total_profiles_with_skill`: 6
   - `rarity_category`: Rare
-  - `defining_skill_rank`: 6
-  - `defining_skill_score`: 98.6013986013986
+  - `defining_skill_rank`: 2
+  - `defining_skill_score`: 99.16083916083916
   - `analysis_date`: 2025-07-31
-  - `percentile_threshold`: 20.0
-  - `created_timestamp`: 2025-07-31 07:50:55
+  - `percentile_threshold`: 8.8
+  - `created_timestamp`: 2025-07-31 11:35:16
 
 **Record 3:**
   - `job_profile_id`: R0001.5
-  - `skill_id`: KS122P679TKY3RR1HMFC
-  - `skill_name`: Data Hub
+  - `skill_id`: KS13USA80NE38XJHA2TL
+  - `skill_name`: Power BI
   - `job_profile`: Payment Systems Analyst - 5
-  - `category`: Information Technology
-  - `subcategory`: Data Management
+  - `category`: Analysis
+  - `subcategory`: Business Intelligence Software
   - `skill_type`: Specialized Skill
-  - `prevalence_percentage`: 1.54
-  - `total_profiles_with_skill`: 11
+  - `prevalence_percentage`: 1.26
+  - `total_profiles_with_skill`: 9
   - `rarity_category`: Rare
-  - `defining_skill_rank`: 8
-  - `defining_skill_score`: 98.46153846153847
+  - `defining_skill_rank`: 5
+  - `defining_skill_score`: 98.74125874125875
   - `analysis_date`: 2025-07-31
-  - `percentile_threshold`: 20.0
-  - `created_timestamp`: 2025-07-31 07:50:55
+  - `percentile_threshold`: 8.8
+  - `created_timestamp`: 2025-07-31 11:35:16
 
 ---
 
@@ -789,20 +809,20 @@ CREATE TABLE analytics_job_similarities (
 - **similarity_id**: 510,510 unique values (510,510 non-null), avg length 15.0
 - **job_from**: 715 unique values (510,510 non-null), avg length 7.0
 - **job_to**: 715 unique values (510,510 non-null), avg length 7.0
-- **similarity_score**: 512 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.2125
-- **enhanced_similarity_score**: 588 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.2144
-- **rarity_weighted_score**: 588 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.2144
-- **shared_defining_skills_count**: 19 unique values (510,510 non-null), range 0 - 19
-- **defining_skill_boost**: 19 unique values (510,510 non-null), range 0.0000 - 0.9500, avg 0.0087
+- **similarity_score**: 800 unique values (510,510 non-null), range 0.0000 - 1.0000, avg 0.0783
+- **enhanced_similarity_score**: 800 unique values (510,510 non-null), range 0.0000 - 4.4750, avg 0.3502
+- **rarity_weighted_score**: 800 unique values (510,510 non-null), range 0.0000 - 4.4750, avg 0.3502
+- **shared_defining_skills_count**: 9 unique values (510,510 non-null), range 0 - 8
+- **defining_skill_boost**: 556 unique values (510,510 non-null), range 0.0000 - 3.4748, avg 0.0075
 - **shared_skills_count**: 80 unique values (510,510 non-null), range 0 - 96
 - **total_skills_from**: 53 unique values (510,510 non-null), range 23 - 96
 - **total_skills_to**: 53 unique values (510,510 non-null), range 23 - 96
 - **skill_overlap_percentage**: 637 unique values (510,510 non-null), range 0.0000 - 100.0000, avg 34.2701
-- **shared_skills**: 7,719 unique values (510,510 non-null), avg length 167.02
-- **shared_defining_skills**: 1,355 unique values (510,510 non-null), avg length 3.83
-- **skill_gap_analysis**: 567 unique values (510,510 non-null), avg length 35.74
+- **shared_skills**: 5,417 unique values (510,510 non-null), avg length 201.18
+- **shared_defining_skills**: 459 unique values (510,510 non-null), avg length 0.82
+- **skill_gap_analysis**: 316 unique values (510,510 non-null), avg length 35.0
 - **calculation_algorithm**: 1 unique values (510,510 non-null), avg length 20.0
-- **created_timestamp**: 20 unique values (510,510 non-null), avg length 19.0
+- **created_timestamp**: 11 unique values (510,510 non-null), avg length 19.0
 
 **Data Quality - Completeness:**
 
@@ -833,20 +853,20 @@ CREATE TABLE analytics_job_similarities (
 - **similarity_id**: `R0001.5_R0001.6`, `R0001.5_R0002.0`, `R0001.5_R0002.1`, `R0001.5_R0002.2`, `R0001.5_R0002.3`, `R0001.5_R0002.4`, `R0001.5_R0003.0`, `R0001.5_R0003.2`, `R0001.5_R0005.1`, `R0001.5_R0007.1`
 - **job_from**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
 - **job_to**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
-- **similarity_score**: `0.0`, `0.008`, `0.009000000000000001`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`
-- **enhanced_similarity_score**: `0.0`, `0.008`, `0.009000000000000001`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`
-- **rarity_weighted_score**: `0.0`, `0.008`, `0.009000000000000001`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`
-- **shared_defining_skills_count**: `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`
-- **defining_skill_boost**: `0.0`, `0.05`, `0.1`, `0.15`, `0.2`, `0.25`, `0.3`, `0.35`, `0.4`, `0.45`
+- **similarity_score**: `0.0`, `0.00223463687150838`, `0.0024581005586592182`, `0.0026815642458100563`, `0.0029050279329608944`, `0.0031284916201117317`, `0.0033519553072625698`, `0.0035754189944134083`, `0.0037988826815642464`, `0.004022346368715085`
+- **enhanced_similarity_score**: `0.0`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`, `0.017`, `0.018000000000000002`
+- **rarity_weighted_score**: `0.0`, `0.01`, `0.011000000000000001`, `0.012`, `0.013000000000000001`, `0.013999999999999999`, `0.015`, `0.016`, `0.017`, `0.018000000000000002`
+- **shared_defining_skills_count**: `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`
+- **defining_skill_boost**: `0.0`, `0.0042`, `0.0044`, `0.0054`, `0.0057`, `0.0094`, `0.0096`, `0.0106`, `0.0107`, `0.0112`
 - **shared_skills_count**: `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`
 - **total_skills_from**: `23`, `25`, `26`, `27`, `31`, `32`, `33`, `34`, `36`, `37`
 - **total_skills_to**: `23`, `25`, `26`, `27`, `31`, `32`, `33`, `34`, `36`, `37`
 - **skill_overlap_percentage**: `0.0`, `1.0`, `1.1`, `1.2`, `1.3`, `1.4`, `1.5`, `1.6`, `1.7`, `1.8`
-- **shared_skills**: ``, `Active Listening`, `Adaptability, Customer Cent...`, `Adaptability, Risk Manageme...`, `Agile Coaching, Agile Produ...`, `Agile Coaching, Agile Produ...`, `Agile Coaching, Risk Manage...`, `Agile Coaching, Stakeholder...`, `Agile Coaching, Stakeholder...`, `Agile Coaching, Stakeholder...`
-- **shared_defining_skills**: ``, `A3 Problem Solving Techniques`, `Account Development, Accoun...`, `Account Growth`, `Account Growth, Account Man...`, `Account Growth, Account Man...`, `Account Management`, `Account Management, Account...`, `Account Management, Decisio...`, `Account Management, Loan Ap...`
-- **skill_gap_analysis**: `Skills needed: 0, Defining ...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`
+- **shared_skills**: ``, `A3 Problem Solving Techniqu...`, `Active Listening`, `Active Listening, Problem S...`, `Agile Project Management, S...`, `Agile Project Management, S...`, `Agile Project Management, S...`, `Agile Project Management, S...`, `Agile Project Management, S...`, `Agile Projects, Learning De...`
+- **shared_defining_skills**: ``, `A3 Problem Solving Techniques`, `AWS Devops, Azure Data Fact...`, `AWS Identity And Access Man...`, `Account Growth`, `Account Growth, Account Dev...`, `Account Growth, Wholesale B...`, `Accountability, Business In...`, `Accounting Cycle, Business ...`, `Accounting For Income Taxes`
+- **skill_gap_analysis**: `Skills needed: 0, Defining ...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 10, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 11, Defining...`, `Skills needed: 12, Defining...`
 - **calculation_algorithm**: `rarity_weighted_v1.0`
-- **created_timestamp**: `2025-07-31 07:50:36`, `2025-07-31 07:50:37`, `2025-07-31 07:50:38`, `2025-07-31 07:50:39`, `2025-07-31 07:50:40`, `2025-07-31 07:50:41`, `2025-07-31 07:50:42`, `2025-07-31 07:50:43`, `2025-07-31 07:50:44`, `2025-07-31 07:50:45`
+- **created_timestamp**: `2025-07-31 11:35:05`, `2025-07-31 11:35:06`, `2025-07-31 11:35:07`, `2025-07-31 11:35:08`, `2025-07-31 11:35:09`, `2025-07-31 11:35:10`, `2025-07-31 11:35:11`, `2025-07-31 11:35:12`, `2025-07-31 11:35:13`, `2025-07-31 11:35:14`
 
 **Sample Complete Records:**
 
@@ -854,58 +874,58 @@ CREATE TABLE analytics_job_similarities (
   - `similarity_id`: R0001.5_R0001.6
   - `job_from`: R0001.5
   - `job_to`: R0001.6
-  - `similarity_score`: 1.0
-  - `enhanced_similarity_score`: 1.0
-  - `rarity_weighted_score`: 1.0
-  - `shared_defining_skills_count`: 13
-  - `defining_skill_boost`: 0.65
+  - `similarity_score`: 0.5700558659217878
+  - `enhanced_similarity_score`: 2.551
+  - `rarity_weighted_score`: 2.551
+  - `shared_defining_skills_count`: 5
+  - `defining_skill_boost`: 1.5512
   - `shared_skills_count`: 68
   - `total_skills_from`: 68
   - `total_skills_to`: 68
   - `skill_overlap_percentage`: 100.0
-  - `shared_skills`: Strategic Planning, Strategic Partnership, Data...
-  - `shared_defining_skills`: Contract Negotiation, Data Hub, Data Normalizat...
+  - `shared_skills`: Microsoft Access, Risk Management Framework, Ma...
+  - `shared_defining_skills`: Microsoft Access, Managerial Finance, Predictiv...
   - `skill_gap_analysis`: Skills needed: 0, Defining gaps: 0
   - `calculation_algorithm`: rarity_weighted_v1.0
-  - `created_timestamp`: 2025-07-31 07:50:36
+  - `created_timestamp`: 2025-07-31 11:35:05
 
 **Record 2:**
   - `similarity_id`: R0001.5_R0002.0
   - `job_from`: R0001.5
   - `job_to`: R0002.0
-  - `similarity_score`: 0.258
-  - `enhanced_similarity_score`: 0.271
-  - `rarity_weighted_score`: 0.271
+  - `similarity_score`: 0.09519553072625699
+  - `enhanced_similarity_score`: 0.426
+  - `rarity_weighted_score`: 0.426
   - `shared_defining_skills_count`: 1
-  - `defining_skill_boost`: 0.05
+  - `defining_skill_boost`: 0.0727
   - `shared_skills_count`: 24
   - `total_skills_from`: 68
   - `total_skills_to`: 49
   - `skill_overlap_percentage`: 49.0
-  - `shared_skills`: Customer Centricity, Safety Culture, Power BI, ...
+  - `shared_skills`: Vision Development, Change Management, Strategi...
   - `shared_defining_skills`: Power BI
-  - `skill_gap_analysis`: Skills needed: 25, Defining gaps: 9
+  - `skill_gap_analysis`: Skills needed: 25, Defining gaps: 4
   - `calculation_algorithm`: rarity_weighted_v1.0
-  - `created_timestamp`: 2025-07-31 07:50:36
+  - `created_timestamp`: 2025-07-31 11:35:05
 
 **Record 3:**
   - `similarity_id`: R0001.5_R0002.1
   - `job_from`: R0001.5
   - `job_to`: R0002.1
-  - `similarity_score`: 0.258
-  - `enhanced_similarity_score`: 0.271
-  - `rarity_weighted_score`: 0.271
+  - `similarity_score`: 0.09519553072625699
+  - `enhanced_similarity_score`: 0.426
+  - `rarity_weighted_score`: 0.426
   - `shared_defining_skills_count`: 1
-  - `defining_skill_boost`: 0.05
+  - `defining_skill_boost`: 0.0727
   - `shared_skills_count`: 24
   - `total_skills_from`: 68
   - `total_skills_to`: 49
   - `skill_overlap_percentage`: 49.0
-  - `shared_skills`: Customer Centricity, Safety Culture, Power BI, ...
+  - `shared_skills`: Vision Development, Change Management, Strategi...
   - `shared_defining_skills`: Power BI
-  - `skill_gap_analysis`: Skills needed: 25, Defining gaps: 9
+  - `skill_gap_analysis`: Skills needed: 25, Defining gaps: 4
   - `calculation_algorithm`: rarity_weighted_v1.0
-  - `created_timestamp`: 2025-07-31 07:50:36
+  - `created_timestamp`: 2025-07-31 11:35:05
 
 ---
 
@@ -1175,7 +1195,7 @@ CREATE TABLE analytics_skill_rarity (
 - **defining_for_jobs**: ``
 - **analysis_date**: `2025-07-31`
 - **algorithm_version**: `rarity_analyzer_v1.0`
-- **created_timestamp**: `2025-07-31 07:50:55`
+- **created_timestamp**: `2025-07-31 11:35:16`
 
 **Sample Complete Records:**
 
@@ -1195,7 +1215,7 @@ CREATE TABLE analytics_skill_rarity (
   - `defining_for_jobs`: 
   - `analysis_date`: 2025-07-31
   - `algorithm_version`: rarity_analyzer_v1.0
-  - `created_timestamp`: 2025-07-31 07:50:55
+  - `created_timestamp`: 2025-07-31 11:35:16
 
 **Record 2:**
   - `skill_id`: BGS166A638195D1E2BAE
@@ -1213,7 +1233,7 @@ CREATE TABLE analytics_skill_rarity (
   - `defining_for_jobs`: 
   - `analysis_date`: 2025-07-31
   - `algorithm_version`: rarity_analyzer_v1.0
-  - `created_timestamp`: 2025-07-31 07:50:55
+  - `created_timestamp`: 2025-07-31 11:35:16
 
 **Record 3:**
   - `skill_id`: BGS2EBE8AB8957186FB4
@@ -1231,7 +1251,7 @@ CREATE TABLE analytics_skill_rarity (
   - `defining_for_jobs`: 
   - `analysis_date`: 2025-07-31
   - `algorithm_version`: rarity_analyzer_v1.0
-  - `created_timestamp`: 2025-07-31 07:50:55
+  - `created_timestamp`: 2025-07-31 11:35:16
 
 ---
 
@@ -1300,7 +1320,85 @@ CREATE TABLE analytics_specialized_skills (
 **Sample Data by Column:**
 
 
-### 10. **core_job_architecture** - 715 records
+### 10. **core_colleague_positions_history** - 2,000,000 records
+
+```sql
+CREATE TABLE core_colleague_positions_history (
+    Week Ending TEXT,
+    Employee Number INTEGER,
+    Operational BOOLEAN,
+    Position Start Date TEXT,
+    PosIDLookupKey REAL PRIMARY KEY,
+    Position Number INTEGER,
+    created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Column Statistics:**
+
+- **Week Ending**: 212 unique values (2,000,000 non-null), avg length 10.0
+- **Employee Number**: 210,197 unique values (2,000,000 non-null), range 56458214 - 162274117
+- **Position Start Date**: 1,854 unique values (2,000,000 non-null), avg length 10.0
+- **PosIDLookupKey**: 2,000,000 unique values (2,000,000 non-null), range 100000008442.6019 - 299999911501.7607, avg 200067812537.9894
+- **Position Number**: 4,997 unique values (2,000,000 non-null), range 50000000 - 50004999
+- **created_timestamp**: 76 unique values (2,000,000 non-null), avg length 19.0
+
+**Data Quality - Completeness:**
+
+- **Week Ending**: 100% complete
+- **Employee Number**: 100% complete
+- **Operational**: 100% complete
+- **Position Start Date**: 100% complete
+- **PosIDLookupKey**: 100% complete
+- **Position Number**: 100% complete
+- **created_timestamp**: 100% complete
+
+**Data Quality - Duplicates:**
+
+- ✅ No duplicate records found
+
+**Sample Data by Column:**
+
+- **Week Ending**: `01/06/2024`, `01/07/2021`, `01/07/2022`, `01/07/2023`, `01/07/2024`, `02/03/2024`, `02/06/2022`, `02/06/2023`, `02/06/2025`, `02/09/2021`
+- **Employee Number**: `56458214`, `56458702`, `56459238`, `56459636`, `56460126`, `56460896`, `56461657`, `56461723`, `56462479`, `56463182`
+- **Operational**: `0`, `1`
+- **Position Start Date**: `01/01/2020`, `01/01/2021`, `01/01/2022`, `01/01/2023`, `01/01/2024`, `01/02/2020`, `01/02/2021`, `01/02/2022`, `01/02/2023`, `01/02/2024`
+- **PosIDLookupKey**: `100000008442.60191`, `100000108445.32857`, `100000649784.00414`, `100000653512.44124`, `100000675152.16376`, `100000686267.6695`, `100000690682.33176`, `100000877038.86438`, `100000907568.13928`, `100000909753.7719`
+- **Position Number**: `50000000`, `50000001`, `50000002`, `50000003`, `50000004`, `50000005`, `50000006`, `50000007`, `50000008`, `50000009`
+- **created_timestamp**: `2025-07-31 11:29:33`, `2025-07-31 11:29:34`, `2025-07-31 11:29:35`, `2025-07-31 11:29:36`, `2025-07-31 11:29:37`, `2025-07-31 11:29:38`, `2025-07-31 11:29:39`, `2025-07-31 11:29:40`, `2025-07-31 11:29:41`, `2025-07-31 11:29:42`
+
+**Sample Complete Records:**
+
+**Record 1:**
+  - `Week Ending`: 02/06/2022
+  - `Employee Number`: 56458214
+  - `Operational`: 0
+  - `Position Start Date`: 12/05/2022
+  - `PosIDLookupKey`: 296010023813.0843
+  - `Position Number`: 50000271
+  - `created_timestamp`: 2025-07-31 11:29:33
+
+**Record 2:**
+  - `Week Ending`: 05/05/2022
+  - `Employee Number`: 56458214
+  - `Operational`: 0
+  - `Position Start Date`: 22/07/2021
+  - `PosIDLookupKey`: 272870049445.15167
+  - `Position Number`: 50002228
+  - `created_timestamp`: 2025-07-31 11:29:33
+
+**Record 3:**
+  - `Week Ending`: 07/10/2021
+  - `Employee Number`: 56458214
+  - `Operational`: 0
+  - `Position Start Date`: 22/07/2021
+  - `PosIDLookupKey`: 125649025160.79231
+  - `Position Number`: 50002228
+  - `created_timestamp`: 2025-07-31 11:29:33
+
+---
+
+### 11. **core_job_architecture** - 715 records
 
 ```sql
 CREATE TABLE core_job_architecture (
@@ -1389,8 +1487,8 @@ CREATE TABLE core_job_architecture (
 - **is_Banker**: ``, `Banker`, `Non-Banker`
 - **Executive_Leadership_Group**: ``, `Executive Leadership Group`
 - **Accountability_Scope**: ``, `Direct`, `Supports`
-- **created_timestamp**: `2025-07-30 06:23:59`
-- **updated_timestamp**: `2025-07-30 06:23:59`
+- **created_timestamp**: `2025-07-31 11:29:21`
+- **updated_timestamp**: `2025-07-31 11:29:21`
 
 **Sample Complete Records:**
 
@@ -1411,8 +1509,8 @@ CREATE TABLE core_job_architecture (
   - `is_Banker`: Non-Banker
   - `Executive_Leadership_Group`: 
   - `Accountability_Scope`: 
-  - `created_timestamp`: 2025-07-30 06:23:59
-  - `updated_timestamp`: 2025-07-30 06:23:59
+  - `created_timestamp`: 2025-07-31 11:29:21
+  - `updated_timestamp`: 2025-07-31 11:29:21
 
 **Record 2:**
   - `JobProfileID`: R0001.6
@@ -1431,8 +1529,8 @@ CREATE TABLE core_job_architecture (
   - `is_Banker`: Banker
   - `Executive_Leadership_Group`: Executive Leadership Group
   - `Accountability_Scope`: 
-  - `created_timestamp`: 2025-07-30 06:23:59
-  - `updated_timestamp`: 2025-07-30 06:23:59
+  - `created_timestamp`: 2025-07-31 11:29:21
+  - `updated_timestamp`: 2025-07-31 11:29:21
 
 **Record 3:**
   - `JobProfileID`: R0002.0
@@ -1451,12 +1549,12 @@ CREATE TABLE core_job_architecture (
   - `is_Banker`: Banker
   - `Executive_Leadership_Group`: 
   - `Accountability_Scope`: 
-  - `created_timestamp`: 2025-07-30 06:23:59
-  - `updated_timestamp`: 2025-07-30 06:23:59
+  - `created_timestamp`: 2025-07-31 11:29:21
+  - `updated_timestamp`: 2025-07-31 11:29:21
 
 ---
 
-### 11. **core_job_skill_requirements** - 40,170 records
+### 12. **core_job_skill_requirements** - 40,170 records
 
 ```sql
 CREATE TABLE core_job_skill_requirements (
@@ -1491,28 +1589,28 @@ CREATE TABLE core_job_skill_requirements (
 
 - **JobProfileID**: `R0001.5`, `R0001.6`, `R0002.0`, `R0002.1`, `R0002.2`, `R0002.3`, `R0002.4`, `R0003.0`, `R0003.2`, `R0005.1`
 - **Skill_ID**: `BGS10EE289B9FDE2C4B1`, `BGS11665AC6BD06C5EBD`, `BGS117E3FE9519A5B542`, `BGS1241B6719A7FE041D`, `BGS1250D82C4B027A171`, `BGS147DBB4CF132F0523`, `BGS152BE1A314EFF3FE3`, `BGS166A638195D1E2BAE`, `BGS16C952D775A16E650`, `BGS1737E89A3E6B7A57C`
-- **created_timestamp**: `2025-07-30 06:24:00`
+- **created_timestamp**: `2025-07-31 11:29:23`
 
 **Sample Complete Records:**
 
 **Record 1:**
   - `JobProfileID`: R0001.5
   - `Skill_ID`: BGSD16A8EEF4F5775E15
-  - `created_timestamp`: 2025-07-30 06:24:00
+  - `created_timestamp`: 2025-07-31 11:29:23
 
 **Record 2:**
   - `JobProfileID`: R0001.5
   - `Skill_ID`: ES147CB8BEA5CF1AF1F6
-  - `created_timestamp`: 2025-07-30 06:24:00
+  - `created_timestamp`: 2025-07-31 11:29:23
 
 **Record 3:**
   - `JobProfileID`: R0001.5
   - `Skill_ID`: ES203B9B0426DA590EDF
-  - `created_timestamp`: 2025-07-30 06:24:00
+  - `created_timestamp`: 2025-07-31 11:29:23
 
 ---
 
-### 12. **core_position_timeline** - 482,413 records
+### 13. **core_position_timeline** - 482,413 records
 
 ```sql
 CREATE TABLE core_position_timeline (
@@ -1547,7 +1645,7 @@ CREATE TABLE core_position_timeline (
 - **Position_Title**: 1 unique values (482,413 non-null), avg length 0
 - **People_Leader**: 113,216 unique values (482,413 non-null), range 20000096.0000 - 0.0000, avg 17450960.3757
 - **OrgUnitIDLookupKey**: 469,476 unique values (482,413 non-null), range 1000052 - 9999965
-- **created_timestamp**: 12 unique values (482,413 non-null), avg length 19.0
+- **created_timestamp**: 9 unique values (482,413 non-null), avg length 19.0
 
 **Data Quality - Completeness:**
 
@@ -1581,7 +1679,7 @@ CREATE TABLE core_position_timeline (
 - **People_Leader**: `20000096.0`, `20000338.0`, `20000658.0`, `20000664.0`, `20000681.0`, `20000815.0`, `20001248.0`, `20001326.0`, `20001393.0`, `20001498.0`
 - **Operational**: `0`, `1`
 - **OrgUnitIDLookupKey**: `1000052`, `1000088`, `1000099`, `1000111`, `1000120`, `1000132`, `1000159`, `1000177`, `1000181`, `1000182`
-- **created_timestamp**: `2025-07-30 06:24:01`, `2025-07-30 06:24:02`, `2025-07-30 06:24:03`, `2025-07-30 06:24:04`, `2025-07-30 06:24:05`, `2025-07-30 06:24:06`, `2025-07-30 06:24:07`, `2025-07-30 06:24:08`, `2025-07-30 06:24:09`, `2025-07-30 06:24:10`
+- **created_timestamp**: `2025-07-31 11:29:24`, `2025-07-31 11:29:25`, `2025-07-31 11:29:26`, `2025-07-31 11:29:27`, `2025-07-31 11:29:28`, `2025-07-31 11:29:29`, `2025-07-31 11:29:30`, `2025-07-31 11:29:31`, `2025-07-31 11:29:32`
 
 **Sample Complete Records:**
 
@@ -1597,7 +1695,7 @@ CREATE TABLE core_position_timeline (
   - `People_Leader`: 22615063.0
   - `Operational`: 1
   - `OrgUnitIDLookupKey`: 7379873
-  - `created_timestamp`: 2025-07-30 06:24:01
+  - `created_timestamp`: 2025-07-31 11:29:24
 
 **Record 2:**
   - `position_timeline_id`: 5000000002/06/2021
@@ -1611,7 +1709,7 @@ CREATE TABLE core_position_timeline (
   - `People_Leader`: 20703164.0
   - `Operational`: 1
   - `OrgUnitIDLookupKey`: 5035291
-  - `created_timestamp`: 2025-07-30 06:24:01
+  - `created_timestamp`: 2025-07-31 11:29:24
 
 **Record 3:**
   - `position_timeline_id`: 5000000002/12/2020
@@ -1625,11 +1723,11 @@ CREATE TABLE core_position_timeline (
   - `People_Leader`: 20703164.0
   - `Operational`: 1
   - `OrgUnitIDLookupKey`: 7975908
-  - `created_timestamp`: 2025-07-30 06:24:01
+  - `created_timestamp`: 2025-07-31 11:29:24
 
 ---
 
-### 13. **core_skills_taxonomy** - 38,525 records
+### 14. **core_skills_taxonomy** - 38,525 records
 
 ```sql
 CREATE TABLE core_skills_taxonomy (
@@ -1724,8 +1822,8 @@ CREATE TABLE core_skills_taxonomy (
 - **tags**: `[]`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`, `[{"key": "wikipediaExtract"...`
 - **type**: `{"id": "ST1", "name": "Spec...`, `{"id": "ST2", "name": "Comm...`, `{"id": "ST3", "name": "Cert...`
 - **type_id**: `ST1`, `ST2`, `ST3`
-- **created_timestamp**: `2025-07-30 06:23:59`, `2025-07-30 06:24:00`
-- **updated_timestamp**: `2025-07-30 06:23:59`, `2025-07-30 06:24:00`
+- **created_timestamp**: `2025-07-31 11:29:22`, `2025-07-31 11:29:23`
+- **updated_timestamp**: `2025-07-31 11:29:22`, `2025-07-31 11:29:23`
 
 **Sample Complete Records:**
 
@@ -1748,8 +1846,8 @@ CREATE TABLE core_skills_taxonomy (
   - `tags`: []
   - `type`: {"id": "ST1", "name": "Specialized Skill"}
   - `type_id`: ST1
-  - `created_timestamp`: 2025-07-30 06:23:59
-  - `updated_timestamp`: 2025-07-30 06:23:59
+  - `created_timestamp`: 2025-07-31 11:29:22
+  - `updated_timestamp`: 2025-07-31 11:29:22
 
 **Record 2:**
   - `Skill_ID`: BGS105C99F084505B956
@@ -1770,8 +1868,8 @@ CREATE TABLE core_skills_taxonomy (
   - `tags`: [{"key": "wikipediaExtract", "value": "Sysprep ...
   - `type`: {"id": "ST1", "name": "Specialized Skill"}
   - `type_id`: ST1
-  - `created_timestamp`: 2025-07-30 06:23:59
-  - `updated_timestamp`: 2025-07-30 06:23:59
+  - `created_timestamp`: 2025-07-31 11:29:22
+  - `updated_timestamp`: 2025-07-31 11:29:22
 
 **Record 3:**
   - `Skill_ID`: BGS1080D1F8CED414379
@@ -1792,12 +1890,12 @@ CREATE TABLE core_skills_taxonomy (
   - `tags`: []
   - `type`: {"id": "ST1", "name": "Specialized Skill"}
   - `type_id`: ST1
-  - `created_timestamp`: 2025-07-30 06:23:59
-  - `updated_timestamp`: 2025-07-30 06:23:59
+  - `created_timestamp`: 2025-07-31 11:29:22
+  - `updated_timestamp`: 2025-07-31 11:29:22
 
 ---
 
-### 14. **core_workforce_current** - 35,000 records
+### 15. **core_workforce_current** - 35,000 records
 
 ```sql
 CREATE TABLE core_workforce_current (
@@ -1909,7 +2007,7 @@ CREATE TABLE core_workforce_current (
 - **Employee_Subgroup**: 3 unique values (35,000 non-null), avg length 8.01
 - **People_Leader_Number**: 17,679 unique values (35,000 non-null), range 100000.0000 - 0.0000, avg 82542.8097
 - **People_Leader_Name**: 225 unique values (35,000 non-null), avg length 9.2
-- **created_timestamp**: 2 unique values (35,000 non-null), avg length 19.0
+- **created_timestamp**: 1 unique values (35,000 non-null), avg length 19.0
 
 **Data Quality - Completeness:**
 
@@ -2019,7 +2117,7 @@ CREATE TABLE core_workforce_current (
 - **Employee_Subgroup**: `Casual`, `Full Time`, `Part Time`
 - **People_Leader_Number**: `100000.0`, `100004.0`, `100005.0`, `100016.0`, `100019.0`, `100020.0`, `100021.0`, `100022.0`, `100023.0`, `100025.0`
 - **People_Leader_Name**: ``, `Amanda Brown`, `Amanda Davis`, `Amanda Garcia`, `Amanda Gonzalez`, `Amanda Hernandez`, `Amanda Johnson`, `Amanda Jones`, `Amanda Lopez`, `Amanda Martinez`
-- **created_timestamp**: `2025-07-30 06:24:00`, `2025-07-30 06:24:01`
+- **created_timestamp**: `2025-07-31 11:29:24`
 
 **Sample Complete Records:**
 
@@ -2073,7 +2171,7 @@ CREATE TABLE core_workforce_current (
   - `Employee_Subgroup`: Full Time
   - `People_Leader_Number`: 110250.0
   - `People_Leader_Name`: Michelle Hernandez
-  - `created_timestamp`: 2025-07-30 06:24:00
+  - `created_timestamp`: 2025-07-31 11:29:24
 
 **Record 2:**
   - `employee_number`: 100001
@@ -2125,7 +2223,7 @@ CREATE TABLE core_workforce_current (
   - `Employee_Subgroup`: Full Time
   - `People_Leader_Number`: 132458.0
   - `People_Leader_Name`: Andrew Johnson
-  - `created_timestamp`: 2025-07-30 06:24:00
+  - `created_timestamp`: 2025-07-31 11:29:24
 
 **Record 3:**
   - `employee_number`: 100002
@@ -2177,11 +2275,11 @@ CREATE TABLE core_workforce_current (
   - `Employee_Subgroup`: Casual
   - `People_Leader_Number`: 102122.0
   - `People_Leader_Name`: Jessica Jones
-  - `created_timestamp`: 2025-07-30 06:24:00
+  - `created_timestamp`: 2025-07-31 11:29:24
 
 ---
 
-### 15. **sys_schema_metadata** - 12 records
+### 16. **sys_schema_metadata** - 12 records
 
 ```sql
 CREATE TABLE sys_schema_metadata (
@@ -2219,11 +2317,11 @@ CREATE TABLE sys_schema_metadata (
 **Sample Data by Column:**
 
 - **metadata_key**: `analytics_tables_count`, `core_tables_count`, `created_date`, `last_data_refresh`, `naming_convention`, `phase0_populated_tables`, `phase_status`, `purpose`, `schema_version`, `source_document`
-- **metadata_value**: ``, `0`, `1`, `10`, `15`, `2.0`, `2025-07-30T16:23:58.977108`, `5`, `NAB Skills Intelligence Pla...`, `Phase_0_Schema_Complete`
+- **metadata_value**: ``, `0`, `1`, `10`, `16`, `2.0`, `2025-07-31T21:29:21.452325`, `6`, `NAB Skills Intelligence Pla...`, `Phase_0_Schema_Complete`
 - **metadata_category**: `schema`, `stats`, `version`
 - **description**: `Business-meaningful table n...`, `Current implementation phas...`, `Database purpose`, `Enhanced database schema ve...`, `Number of analytics tables`, `Number of core data tables`, `Number of system tables`, `Number of tables populated ...`, `Source schema specification`, `Timestamp of last complete ...`
-- **created_timestamp**: `2025-07-30 06:23:58`
-- **updated_timestamp**: `2025-07-30 06:23:58`
+- **created_timestamp**: `2025-07-31 11:29:21`
+- **updated_timestamp**: `2025-07-31 11:29:21`
 
 **Sample Complete Records:**
 
@@ -2232,26 +2330,99 @@ CREATE TABLE sys_schema_metadata (
   - `metadata_value`: 2.0
   - `metadata_category`: schema
   - `description`: Enhanced database schema version
-  - `created_timestamp`: 2025-07-30 06:23:58
-  - `updated_timestamp`: 2025-07-30 06:23:58
+  - `created_timestamp`: 2025-07-31 11:29:21
+  - `updated_timestamp`: 2025-07-31 11:29:21
 
 **Record 2:**
   - `metadata_key`: table_count
-  - `metadata_value`: 15
+  - `metadata_value`: 16
   - `metadata_category`: stats
   - `description`: Total number of tables in enhanced schema
-  - `created_timestamp`: 2025-07-30 06:23:58
-  - `updated_timestamp`: 2025-07-30 06:23:58
+  - `created_timestamp`: 2025-07-31 11:29:21
+  - `updated_timestamp`: 2025-07-31 11:29:21
 
 **Record 3:**
   - `metadata_key`: core_tables_count
-  - `metadata_value`: 5
+  - `metadata_value`: 6
   - `metadata_category`: stats
   - `description`: Number of core data tables
-  - `created_timestamp`: 2025-07-30 06:23:58
-  - `updated_timestamp`: 2025-07-30 06:23:58
+  - `created_timestamp`: 2025-07-31 11:29:21
+  - `updated_timestamp`: 2025-07-31 11:29:21
 
 ---
+
+## Key Data Distributions
+
+Top values for important categorical columns:
+
+### core_workforce_current.Location
+
+- **Brisbane City**: 6,261 records
+- **Adelaide**: 6,115 records
+- **Parramatta**: 5,942 records
+- **Docklands**: 5,608 records
+- **Sydney**: 5,542 records
+- **Perth**: 5,532 records
+
+### core_skills_taxonomy.Category
+
+- **Information Technology**: 10,681 records
+- **Health Care**: 3,737 records
+- **Engineering**: 2,203 records
+- **Science and Research**: 1,852 records
+- **Finance**: 1,625 records
+- **Business**: 1,543 records
+- **Media and Communications**: 1,432 records
+- **Analysis**: 1,267 records
+- **Law, Regulation, and Compliance**: 1,135 records
+- **Manufacturing and Production**: 1,111 records
+- **Design**: 875 records
+- **Marketing and Public Relations**: 716 records
+- **Transportation, Supply Chain, and Logistics**: 699 records
+- **Maintenance, Repair, and Facility Services**: 678 records
+- **Architecture and Construction**: 591 records
+
+### core_skills_taxonomy.SkillType
+
+- **Specialized Skill**: 34,500 records
+- **Certification**: 3,526 records
+- **Common Skill**: 499 records
+
+### core_colleague_positions_history.Employee Number
+
+- **146034136**: 25 records
+- **95406287**: 24 records
+- **110334935**: 24 records
+- **77092421**: 23 records
+- **91077073**: 23 records
+- **102154373**: 23 records
+- **103593791**: 23 records
+- **140236362**: 23 records
+- **153007276**: 23 records
+- **67638796**: 22 records
+- **83231767**: 22 records
+- **112882487**: 22 records
+- **132943259**: 22 records
+- **144537076**: 22 records
+- **150745944**: 22 records
+
+### core_colleague_positions_history.Position Number
+
+- **50000656**: 1,157 records
+- **50004225**: 1,134 records
+- **50003252**: 1,047 records
+- **50003803**: 972 records
+- **50001745**: 971 records
+- **50002681**: 970 records
+- **50002685**: 968 records
+- **50004037**: 962 records
+- **50000381**: 954 records
+- **50003270**: 948 records
+- **50003747**: 944 records
+- **50004431**: 937 records
+- **50003047**: 936 records
+- **50000660**: 930 records
+- **50000028**: 926 records
 
 ## Database Indexes
 
@@ -2435,6 +2606,38 @@ CREATE INDEX idx_analytics_specialized_skills_lifecycle ON analytics_specialized
 CREATE INDEX idx_analytics_specialized_skills_prevalence ON analytics_specialized_skills(prevalence_percent)
 ```
 
+### core_colleague_positions_history table indexes
+
+**idx_colleague_positions_employee**
+```sql
+CREATE INDEX idx_colleague_positions_employee ON core_colleague_positions_history ("Employee Number")
+```
+
+**idx_colleague_positions_lookup_key**
+```sql
+CREATE INDEX idx_colleague_positions_lookup_key ON core_colleague_positions_history ("PosIDLookupKey")
+```
+
+**idx_colleague_positions_movement**
+```sql
+CREATE INDEX idx_colleague_positions_movement ON core_colleague_positions_history ("Employee Number", "Position Number", "Week Ending")
+```
+
+**idx_colleague_positions_position**
+```sql
+CREATE INDEX idx_colleague_positions_position ON core_colleague_positions_history ("Position Number")
+```
+
+**idx_colleague_positions_temporal**
+```sql
+CREATE INDEX idx_colleague_positions_temporal ON core_colleague_positions_history ("Employee Number", "Week Ending")
+```
+
+**idx_colleague_positions_week**
+```sql
+CREATE INDEX idx_colleague_positions_week ON core_colleague_positions_history ("Week Ending")
+```
+
 ### core_job_architecture table indexes
 
 **idx_core_job_architecture_category**
@@ -2534,6 +2737,117 @@ CREATE INDEX idx_core_workforce_current_position ON core_workforce_current(posit
 
 Key data patterns and distributions across business tables:
 
+### core_job_architecture Distribution
+
+**JobProfile** (20 unique values):
+
+- Cloud Architect - 4: 9 (7.6%)
+- Financial Controller - 3: 8 (6.7%)
+- Digital Product Manager - 3: 7 (5.9%)
+- Payment Systems Analyst - 0: 6 (5.0%)
+- Operations Analyst - 5: 6 (5.0%)
+- Legal Counsel - 4: 6 (5.0%)
+- HR Business Partner - 3: 6 (5.0%)
+- Financial Analyst - 0: 6 (5.0%)
+- Cybersecurity Analyst - 3: 6 (5.0%)
+- Credit Risk Manager - 3: 6 (5.0%)
+
+
+### core_skills_taxonomy Distribution
+
+**Skill_Name** (20 unique values):
+
+- z/OS: 1 (5.0%)
+- xVal: 1 (5.0%)
+- watchOS: 1 (5.0%)
+- vMix (Software): 1 (5.0%)
+- tvOS: 1 (5.0%)
+- t-SNE (t-distributed Stochastic Neighbor Embedding): 1 (5.0%)
+- spatialNET: 1 (5.0%)
+- shRNA: 1 (5.0%)
+- qTest: 1 (5.0%)
+- phpList: 1 (5.0%)
+
+**Category** (20 unique values):
+
+- Information Technology: 10,681 (29.9%)
+- Health Care: 3,737 (10.5%)
+- : 3,374 (9.4%)
+- Engineering: 2,203 (6.2%)
+- Science and Research: 1,852 (5.2%)
+- Finance: 1,625 (4.5%)
+- Business: 1,543 (4.3%)
+- Media and Communications: 1,432 (4.0%)
+- Analysis: 1,267 (3.5%)
+- Law, Regulation, and Compliance: 1,135 (3.2%)
+
+**SkillType** (3 unique values):
+
+- Specialized Skill: 34,500 (89.6%)
+- Certification: 3,526 (9.2%)
+- Common Skill: 499 (1.3%)
+
+
+### core_workforce_current Distribution
+
+**Location** (6 unique values):
+
+- Brisbane City: 6,261 (17.9%)
+- Adelaide: 6,115 (17.5%)
+- Parramatta: 5,942 (17.0%)
+- Docklands: 5,608 (16.0%)
+- Sydney: 5,542 (15.8%)
+- Perth: 5,532 (15.8%)
+
+
+### analytics_job_similarities Distribution
+
+**similarity_score** (20 unique values):
+
+- 0.08938547486033521: 11,783 (8.3%)
+- 0.0: 9,896 (6.9%)
+- 0.07441340782122904: 9,771 (6.9%)
+- 0.0846927374301676: 8,685 (6.1%)
+- 0.07709497206703911: 8,293 (5.8%)
+- 0.07329608938547486: 7,624 (5.4%)
+- 0.0887150837988827: 7,339 (5.2%)
+- 0.0911731843575419: 7,279 (5.1%)
+- 0.08134078212290503: 7,248 (5.1%)
+- 0.0958659217877095: 6,879 (4.8%)
+
+
+### core_colleague_positions_history Distribution
+
+**Employee Number** (20 unique values):
+
+- 146034136: 25 (5.5%)
+- 95406287: 24 (5.3%)
+- 110334935: 24 (5.3%)
+- 77092421: 23 (5.1%)
+- 91077073: 23 (5.1%)
+- 102154373: 23 (5.1%)
+- 103593791: 23 (5.1%)
+- 140236362: 23 (5.1%)
+- 153007276: 23 (5.1%)
+- 67638796: 22 (4.9%)
+
+**Position Number** (20 unique values):
+
+- 50000656: 1,157 (6.0%)
+- 50004225: 1,134 (5.9%)
+- 50003252: 1,047 (5.4%)
+- 50003803: 972 (5.0%)
+- 50001745: 971 (5.0%)
+- 50002681: 970 (5.0%)
+- 50002685: 968 (5.0%)
+- 50004037: 962 (5.0%)
+- 50000381: 954 (4.9%)
+- 50003270: 948 (4.9%)
+
+
+### analytics_movement_patterns Distribution
+
+
 ## Common Query Patterns
 
 ### 1. Career Pathway Exploration
@@ -2609,8 +2923,8 @@ This comprehensive schema documentation should be used to:
 
 ## Analysis Summary
 
-- **Database Analysis Date**: 2025-07-31 17:53:25
-- **Tables Analyzed**: 15
+- **Database Analysis Date**: 2025-08-04 11:16:55
+- **Tables Analyzed**: 16
 - **Relationships Mapped**: 15
 - **Performance Recommendations**: 1
 - **Data Quality Checks**: Completeness, duplicates, referential integrity

@@ -156,7 +156,14 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_movement_patterns")
+                conn.commit()  # Ensure deletion is committed before insertion
                 self.logger.info("Cleared existing movement patterns data")
+                
+                # Validate movement pattern IDs
+                duplicate_ids = movement_df['movement_pattern_id'].duplicated().sum()
+                if duplicate_ids > 0:
+                    self.logger.warning(f"Found {duplicate_ids} duplicate movement_pattern_id values in DataFrame!")
+                    raise ValueError(f"Duplicate movement_pattern_id values detected: {duplicate_ids} duplicates")
                 
                 # Insert new data
                 movement_df.to_sql('analytics_movement_patterns', conn, if_exists='append', index=False)
@@ -169,6 +176,46 @@ class DatabaseIntegrator:
                 
         except Exception as e:
             self.logger.error(f"Failed to populate movement patterns: {e}", exc_info=True)
+            return False
+    
+    @retry(max_attempts=3)
+    @circuit_breaker(failure_threshold=3)
+    def populate_pathway_predictions(self, predictions_df: pd.DataFrame) -> bool:
+        """
+        Populate analytics_pathway_predictions table with ML predictions.
+        
+        Args:
+            predictions_df: DataFrame with ML pathway predictions
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.logger.info(f"Populating pathway predictions table with {len(predictions_df):,} records")
+            
+            with sqlite3.connect(self.db_path) as conn:
+                # Clear existing data
+                conn.execute("DELETE FROM analytics_pathway_predictions")
+                conn.commit()  # Ensure deletion is committed before insertion
+                self.logger.info("Cleared existing pathway predictions data")
+                
+                # Validate prediction IDs
+                duplicate_ids = predictions_df['prediction_id'].duplicated().sum()
+                if duplicate_ids > 0:
+                    self.logger.warning(f"Found {duplicate_ids} duplicate prediction_id values in DataFrame!")
+                    raise ValueError(f"Duplicate prediction_id values detected: {duplicate_ids} duplicates")
+                
+                # Insert new data
+                predictions_df.to_sql('analytics_pathway_predictions', conn, if_exists='append', index=False)
+                
+                # Update metadata
+                self._update_table_metadata(conn, 'analytics_pathway_predictions', len(predictions_df))
+                
+                self.logger.info(f"Successfully populated analytics_pathway_predictions with {len(predictions_df):,} records")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"Failed to populate pathway predictions: {e}", exc_info=True)
             return False
     
     @retry(max_attempts=3)

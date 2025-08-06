@@ -1,0 +1,115 @@
+{
+  "training_timestamp": "2025-08-04T18:07:19.176326",
+  "model_performance": {
+    "Random Forest": {
+      "r2_score": 0.9925100416077927,
+      "mse": 0.0009048433234597753,
+      "mae": 0.006184657984504559,
+      "rmse": 0.030080613748056657,
+      "cv_mean": 0.9847404482229439,
+      "cv_std": 0.010350553754126328,
+      "training_time": 0.9689192771911621
+    },
+    "Gradient Boosting": {
+      "r2_score": 0.9852038269695783,
+      "mse": 0.0017874890190660948,
+      "mae": 0.021253119569752357,
+      "rmse": 0.04227870644977321,
+      "cv_mean": 0.9844594565331773,
+      "cv_std": 0.005664699049714992,
+      "training_time": 1.5272152423858643
+    },
+    "XGBoost": {
+      "r2_score": 0.995176813182993,
+      "mse": 0.0005826772540830877,
+      "mae": 0.01044534483972222,
+      "rmse": 0.024138708625009078,
+      "cv_mean": 0.991390351069137,
+      "cv_std": 0.0052195220240111705,
+      "training_time": 1.6551744937896729
+    }
+  },
+  "best_model": "XGBoost",
+  "feature_count": 16,
+  "feature_columns": [
+    "total_movement_count",
+    "total_unique_employees",
+    "avg_days_between",
+    "avg_pct_total_movements",
+    "transition_frequency",
+    "years_active",
+    "avg_movements_per_year",
+    "recency_boost",
+    "source_mobility_score",
+    "target_mobility_score",
+    "same_job_function",
+    "same_job_sub_function",
+    "same_management_level",
+    "same_job_category",
+    "job_function_distance",
+    "management_level_progression"
+  ],
+  "ml_config": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "cv_folds": 5,
+    "temporal_split": true,
+    "model_types": [
+      "random_forest",
+      "gradient_boosting",
+      "xgboost"
+    ],
+    "recency_decay_rate": 0.4,
+    "exclude_columns": [
+      "from_job_id",
+      "to_job_id",
+      "movement_target",
+      "recency_weighted_activity"
+    ],
+    "confidence_level": 0.8,
+    "z_score": 1.28,
+    "agreement_threshold": 0.2,
+    "hyperparameters": {
+      "random_forest": {
+        "n_estimators": 200,
+        "max_depth": 6,
+        "min_samples_split": 20,
+        "min_samples_leaf": 10,
+        "max_features": 0.7,
+        "bootstrap": true,
+        "oob_score": true,
+        "n_jobs": -1
+      },
+      "gradient_boosting": {
+        "n_estimators": 150,
+        "max_depth": 3,
+        "learning_rate": 0.02,
+        "min_samples_split": 25,
+        "min_samples_leaf": 15,
+        "subsample": 0.8,
+        "max_features": 0.8,
+        "validation_fraction": 0.1,
+        "n_iter_no_change": 10
+      },
+      "xgboost": {
+        "n_estimators": 200,
+        "max_depth": 4,
+        "learning_rate": 0.03,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "colsample_bylevel": 0.8,
+        "reg_alpha": 0.1,
+        "reg_lambda": 1.0,
+        "min_child_weight": 5,
+        "gamma": 0.1,
+        "n_jobs": -1
+      }
+    },
+    "batch_size": 10000,
+    "clear_existing": true,
+    "max_memory_usage_mb": 4096,
+    "chunk_size": 50000,
+    "min_r2_score": 0.1,
+    "min_sample_size": 100
+  }
+}

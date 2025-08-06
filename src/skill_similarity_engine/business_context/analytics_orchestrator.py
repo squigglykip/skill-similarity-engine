@@ -129,28 +129,114 @@ class AnalyticsOrchestrator:
             self.logger.error(f"Phase 1 execution failed: {e}", exc_info=True)
             return False
     
-    def execute_phase_2_movement_analysis(self) -> bool:
+    def execute_movement_pattern_analysis(self) -> bool:
         """
-        Execute Phase 2: Movement Analysis directly to database.
+        Execute movement pattern analysis and populate analytics tables.
         
         This method:
-        1. Loads core_position_timeline data
-        2. Executes movement pattern analysis
-        3. Populates analytics_movement_patterns
+        1. Loads historical position data from database
+        2. Detects employee movement patterns
+        3. Populates analytics_movement_patterns table
         
         Returns:
             True if successful, False otherwise
         """
         try:
-            self.logger.info("Starting Phase 2: Movement Analysis")
+            self.logger.info("Starting movement pattern analysis")
             
-            # Phase 2 implementation would go here
-            # For now, return False to indicate not implemented
-            self.logger.warning("Phase 2 implementation not yet available")
-            return False
+            # Import and execute the movement pattern population command
+            from ..cli.commands.precompute_commands import MovementPatternPopulationCommand
+            
+            # Create and execute the command
+            command = MovementPatternPopulationCommand()
+            result = command.run()
+            
+            if result.success:
+                self.logger.info(f"Movement pattern analysis completed: {result.message}")
+                return True
+            else:
+                self.logger.error(f"Movement pattern analysis failed: {result.message}")
+                if result.errors:
+                    for error in result.errors:
+                        self.logger.error(f"  Error: {error}")
+                return False
             
         except Exception as e:
-            self.logger.error(f"Phase 2 execution failed: {e}", exc_info=True)
+            self.logger.error(f"Movement pattern analysis execution failed: {e}", exc_info=True)
+            return False
+    
+    def execute_movement_ml_training(self) -> bool:
+        """
+        Execute ML model training from populated movement patterns.
+        
+        This method:
+        1. Validates that movement patterns are available
+        2. Trains ensemble ML models (Random Forest, XGBoost, Gradient Boosting)
+        3. Generates pathway predictions and populates analytics_pathway_predictions table
+        4. Saves trained models as .joblib files for webapp consumption
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.logger.info("Starting Phase 2.2: ML Model Training")
+            
+            # Verify movement patterns are available
+            if not self._verify_movement_patterns_available():
+                self.logger.error("Movement patterns not available - run movement pattern analysis first")
+                return False
+            
+            # Import and execute the ML training command
+            from ..cli.commands.precompute_commands import MovementMLTrainingCommand
+            
+            # Create and execute the command
+            command = MovementMLTrainingCommand()
+            result = command.run(db_path=str(self.db_path), interactive=True)
+            
+            if result.success:
+                # ML training completed successfully - models saved to quarterly folder
+                self.logger.info(f"ML model training completed: {result.message}")
+                
+                # Get model info from command result for logging
+                model_info = result.data.get('performance_metrics', {}) if result.data else {}
+                if model_info:
+                    total_predictions = model_info.get('total_predictions', 0)
+                    best_model_r2 = model_info.get('best_model_r2', 0)
+                    self.logger.info(f"Models trained with {total_predictions:,} pathway predictions, R²: {best_model_r2:.3f}")
+                    
+                    # Update phase completion status
+                    self._update_phase_completion_status("phase_2_ml", total_predictions)
+                else:
+                    # Update phase completion status with default
+                    self._update_phase_completion_status("phase_2_ml", 0)
+                return True
+            else:
+                self.logger.error(f"ML model training failed: {result.message}")
+                if result.errors:
+                    for error in result.errors:
+                        self.logger.error(f"  Error: {error}")
+                return False
+            
+        except Exception as e:
+            self.logger.error(f"ML model training execution failed: {e}", exc_info=True)
+            return False
+    
+    def _verify_movement_patterns_available(self) -> bool:
+        """Verify that movement patterns are available for ML training."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("SELECT COUNT(*) FROM analytics_movement_patterns")
+                count = cursor.fetchone()[0]
+                
+                if count == 0:
+                    self.logger.error("No movement patterns found in analytics_movement_patterns table")
+                    return False
+                
+                self.logger.info(f"Found {count:,} movement patterns ready for ML training")
+                return True
+                
+        except sqlite3.Error as e:
+            self.logger.error(f"Failed to verify movement patterns availability: {e}")
             return False
     
     def execute_phase_3_clustering_velocity(self) -> bool:

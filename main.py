@@ -301,17 +301,16 @@ class WorkforceIntelligenceOrchestrator:
             print(f"❌ Unable to open database builder: {e}")
     
     def show_analytics_phases_menu(self) -> str:
-        """Display analytics phases menu."""
+        """Display analytics capabilities menu with user-friendly options."""
         print("\n=== Career Intelligence Generation ===")
         print("Generate advanced analytics directly into your database.\n")
         
-
-        
-        print("Select analytics phase:")
-        print("1. Phase 1: Enhanced Similarity Analytics")
-        print("2. Phase 2: Movement & Career Flow Analytics") 
-        print("3. Phase 3: Clustering & Velocity Analytics")
-        print("4. Run All Phases (Recommended)")
+        print("Select analytics capability:")
+        print("1. Enhanced Similarity Analytics")
+        print("2. Generate Movement Analysis")  # NEW: Populate movement patterns
+        print("3. Train Predictive Movement Models")  # NEW: ML training step 
+        print("4. Strategic Clustering Analytics")
+        print("5. Run All Capabilities (Recommended)")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
@@ -352,57 +351,91 @@ class WorkforceIntelligenceOrchestrator:
                         print("   This may be due to missing data or configuration issues.")
                         
                 elif choice == '2':
-                    print("\n📈 Executing Phase 2: Movement & Career Flow Analytics...")
-                    print("   This will analyse historical career movements and populate")
-                    print("   analytics tables with movement patterns.")
+                    print("\n📈 Generating Movement Analysis...")
+                    print("   This will detect historical career movement patterns and populate")
+                    print("   the analytics database with movement intelligence.")
                     print()
                     
-                    success = orchestrator.execute_phase_2_movement_analysis()
+                    success = orchestrator.execute_movement_pattern_analysis()
                     if success:
-                        print("✅ Phase 2 completed! Movement patterns added to database.")
+                        print("✅ Movement analysis completed! Movement patterns added to database.")
+                        print("   Your database now contains career transition intelligence.")
                     else:
-                        print("❌ Phase 2 failed or not yet implemented. Check logs for details.")
+                        print("❌ Movement analysis failed. Check logs for details.")
                         
                 elif choice == '3':
-                    print("\n🎯 Executing Phase 3: Clustering & Velocity Analytics...")
+                    print("\n🤖 Training Predictive Movement Models...")
+                    print("   This will train machine learning models to predict career")
+                    print("   pathway feasibility and transition likelihood.")
+                    print()
+                    
+                    success = orchestrator.execute_movement_ml_training()
+                    if success:
+                        print("✅ ML model training completed! Pathway predictions added to database.")
+                        print("   Your database now contains:")
+                        print("   • Trained ML models saved as .joblib files")
+                        print("   • Pathway feasibility predictions for all job pairs")
+                        print("   • Confidence intervals and model agreement metrics")
+                    else:
+                        print("❌ ML model training failed. Check logs for details.")
+                        print("   This may be due to missing movement patterns or configuration issues.")
+                    
+                elif choice == '4':
+                    print("\n🎯 Strategic Clustering Analytics...")
                     print("   This will perform job clustering, skills bundling, and velocity")
                     print("   analysis to provide strategic workforce insights.")
                     print()
                     
                     success = orchestrator.execute_phase_3_clustering_velocity()
                     if success:
-                        print("✅ Phase 3 completed! Clustering insights added to database.")
+                        print("✅ Strategic clustering completed! Insights added to database.")
                     else:
-                        print("❌ Phase 3 failed or not yet implemented. Check logs for details.")
+                        print("❌ Strategic clustering failed or not yet implemented. Check logs for details.")
                         
-                elif choice == '4':
-                    print("\n🚀 Executing All Phases...")
-                    print("   This will run Phase 1, 2, and 3 in sequence.")
+                elif choice == '5':
+                    print("\n🚀 Running All Capabilities...")
+                    print("   This will execute all available analytics capabilities in sequence.")
                     print()
                     
-                    phase1_success = orchestrator.execute_phase_1_enhanced_similarity()
-                    if phase1_success:
-                        print("✅ Phase 1 (Enhanced Similarity) completed")
+                    # Step 1: Enhanced Similarity
+                    print("Step 1: Enhanced Similarity Analytics...")
+                    similarity_success = orchestrator.execute_phase_1_enhanced_similarity()
+                    if similarity_success:
+                        print("✅ Enhanced similarity analytics completed")
                     else:
-                        print("❌ Phase 1 failed")
+                        print("❌ Enhanced similarity analytics failed")
                     
-                    phase2_success = orchestrator.execute_phase_2_movement_analysis()
-                    if phase2_success:
-                        print("✅ Phase 2 (Movement Analysis) completed")
+                    # Step 2: Movement Analysis
+                    print("\nStep 2: Movement Analysis...")
+                    movement_success = orchestrator.execute_movement_pattern_analysis()
+                    if movement_success:
+                        print("✅ Movement analysis completed")
                     else:
-                        print("⚠️ Phase 2 failed or not implemented")
+                        print("⚠️ Movement analysis failed")
                     
-                    phase3_success = orchestrator.execute_phase_3_clustering_velocity()
-                    if phase3_success:
-                        print("✅ Phase 3 (Clustering & Velocity) completed")
+                    # Step 3: ML Training
+                    print("\nStep 3: ML Model Training...")
+                    ml_success = orchestrator.execute_movement_ml_training()
+                    if ml_success:
+                        print("✅ ML model training completed")
                     else:
-                        print("⚠️ Phase 3 failed or not implemented")
+                        print("⚠️ ML model training failed")
                     
-                    if phase1_success:
-                        print("\n✅ Analytics generation completed! Your database now contains enhanced analytics.")
-                        print("   At minimum, Phase 1 enhanced similarity data is available for queries.")
+                    # Step 4: Strategic Clustering
+                    print("\nStep 4: Strategic Clustering...")
+                    clustering_success = orchestrator.execute_phase_3_clustering_velocity()
+                    if clustering_success:
+                        print("✅ Strategic clustering completed")
                     else:
-                        print("\n❌ Analytics generation failed. No analytics data was generated.")
+                        print("⚠️ Strategic clustering failed or not implemented")
+                    
+                    # Summary
+                    completed_capabilities = sum([similarity_success, movement_success, ml_success])
+                    if completed_capabilities > 0:
+                        print(f"\n✅ Completed {completed_capabilities} capabilities! Your database now contains enhanced analytics.")
+                        print("   Career intelligence data is available for queries and applications.")
+                    else:
+                        print("\n❌ No capabilities completed successfully. Check logs for details.")
                         
                 elif choice == '0':
                     break
