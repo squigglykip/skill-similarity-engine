@@ -939,7 +939,7 @@ class MovementPatternPopulationCommand(BaseCommand):
                 query = """
                 SELECT DISTINCT PosIDLookupKey, Position_Number 
                 FROM core_position_timeline 
-                WHERE Position_Number IS NOT NULL AND JobProfileID IS NOT NULL
+                WHERE Position_Number IS NOT NULL
                 """
                 cursor = conn.execute(query)
                 mappings = {float(row[0]): int(row[1]) for row in cursor.fetchall()}

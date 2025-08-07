@@ -310,12 +310,15 @@ class MovementTracker:
         """Detect movements for a single employee using configured date format."""
         movements = []
         
-        if len(positions) < 2:
-            return movements  # No movements possible with less than 2 positions
+        # Filter out positions with None position_key (orphan records)
+        valid_positions = [pos for pos in positions if pos.position_key is not None]
         
-        for i in range(len(positions) - 1):
-            current_pos = positions[i]
-            next_pos = positions[i + 1]
+        if len(valid_positions) < 2:
+            return movements  # No movements possible with less than 2 valid positions
+        
+        for i in range(len(valid_positions) - 1):
+            current_pos = valid_positions[i]
+            next_pos = valid_positions[i + 1]
             
             # Check if this is a genuine movement (different positions)
             if current_pos.position_key != next_pos.position_key:
@@ -324,8 +327,38 @@ class MovementTracker:
                 
                 try:
                     # Handle both string and date formats for week_ending using configured format
-                    from_date = current_pos.week_ending if isinstance(current_pos.week_ending, str) else current_pos.week_ending.strftime(self.movement_date_format)
-                    to_date = next_pos.week_ending if isinstance(next_pos.week_ending, str) else next_pos.week_ending.strftime(self.movement_date_format)
+                    # Only skip if week_ending specifically is NaT (not position_start_date)
+                    from_date = None
+                    to_date = None
+                    
+                    # Handle from_date safely - check for NaT specifically on week_ending
+                    if isinstance(current_pos.week_ending, str):
+                        from_date = current_pos.week_ending
+                    elif current_pos.week_ending is not None and pd.notna(current_pos.week_ending):
+                        try:
+                            from_date = current_pos.week_ending.strftime(self.movement_date_format)
+                        except (AttributeError, ValueError) as e:
+                            print(f"   ⚠️  Skipping movement for employee {employee_number}: from_date strftime error: {e}")
+                            continue
+                    
+                    # Handle to_date safely - check for NaT specifically on week_ending
+                    if isinstance(next_pos.week_ending, str):
+                        to_date = next_pos.week_ending
+                    elif next_pos.week_ending is not None and pd.notna(next_pos.week_ending):
+                        try:
+                            to_date = next_pos.week_ending.strftime(self.movement_date_format)
+                        except (AttributeError, ValueError) as e:
+                            print(f"   ⚠️  Skipping movement for employee {employee_number}: to_date strftime error: {e}")
+                            continue
+                    
+                    # Skip this movement only if week_ending dates are invalid (not position_start_date)
+                    if from_date is None or to_date is None:
+                        print(f"   ⚠️  Skipping movement for employee {employee_number}: Invalid week_ending data")
+                        continue
+                    
+                    # Assert that position_key is not None (already filtered above)
+                    assert current_pos.position_key is not None, "position_key should not be None after filtering"
+                    assert next_pos.position_key is not None, "position_key should not be None after filtering"
                     
                     movement = MovementEvent(
                         employee_number=employee_number,
