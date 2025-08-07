@@ -302,11 +302,12 @@ class WorkforceIntelligenceOrchestrator:
         print("Generate advanced analytics directly into your database.\n")
         
         print("Select analytics capability:")
-        print("1. Enhanced Similarity Analytics")
-        print("2. Generate Movement Analysis")  # NEW: Populate movement patterns
-        print("3. Train Predictive Movement Models")  # NEW: ML training step 
-        print("4. Strategic Clustering Analytics")
-        print("5. Run All Capabilities (Recommended)")
+        print("1. Optimize Similarity Parameters (Run when data refreshed)")
+        print("2. Enhanced Similarity Analytics")
+        print("3. Generate Movement Analysis")  # NEW: Populate movement patterns
+        print("4. Train Predictive Movement Models")  # NEW: ML training step 
+        print("5. Strategic Clustering Analytics")
+        print("6. Run All Capabilities (Recommended)")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
@@ -328,6 +329,8 @@ class WorkforceIntelligenceOrchestrator:
                 choice = self.show_analytics_phases_menu()
                 
                 if choice == '1':
+                    self.handle_similarity_optimization(orchestrator)
+                elif choice == '2':
                     print("\n🧠 Executing Phase 1: Enhanced Similarity Analytics...")
                     print("   This will calculate enhanced job similarities using configuration-driven algorithms")
                     print("   with Optuna-optimized parameters and populate analytics tables directly in your database.")
@@ -343,8 +346,16 @@ class WorkforceIntelligenceOrchestrator:
                         print("   Please ensure config/core/similarity_parameters.yaml contains the required parameters.")
                         continue
                     
+                    # Enhanced parameter display
+                    opt_metadata = similarity_config.get('optimization_metadata', {})
                     print(f"   • Parameters: {similarity_config['defining_skills_percentile']}% defining skills threshold, {similarity_config['defining_skills_multiplier']}x multiplier")
                     print("   • Algorithm: Asymmetric Jaccard with corpus normalization")
+                    
+                    if opt_metadata:
+                        print(f"   • Optimization Date: {opt_metadata.get('optimization_date', 'Unknown')}")
+                        print(f"   • Selected Trial: {opt_metadata.get('selected_trial', 'Unknown')} (from {opt_metadata.get('trial_count', 'Unknown')} trials)")
+                        print(f"   • Performance: {opt_metadata.get('smoothness_score', 0):.4f} smoothness, {opt_metadata.get('average_improvement', 0)*100:.1f}% avg improvement")
+                        print(f"   • Quality Metrics: {opt_metadata.get('normalization_factor', 0):.1f} norm factor, {opt_metadata.get('scores_above_1_percent', 0):.1f}% scores >1.0")
                     print()
                     
                     success = orchestrator.execute_phase_1_enhanced_similarity()
@@ -358,7 +369,7 @@ class WorkforceIntelligenceOrchestrator:
                         print("❌ Phase 1 failed. Check logs for details.")
                         print("   This may be due to missing data or configuration issues.")
                         
-                elif choice == '2':
+                elif choice == '3':
                     print("\n📈 Generating Movement Analysis...")
                     print("   This will detect historical career movement patterns and populate")
                     print("   the analytics database with movement intelligence.")
@@ -371,7 +382,7 @@ class WorkforceIntelligenceOrchestrator:
                     else:
                         print("❌ Movement analysis failed. Check logs for details.")
                         
-                elif choice == '3':
+                elif choice == '4':
                     print("\n🤖 Training Predictive Movement Models...")
                     print("   This will train machine learning models to predict career")
                     print("   pathway feasibility and transition likelihood.")
@@ -388,7 +399,7 @@ class WorkforceIntelligenceOrchestrator:
                         print("❌ ML model training failed. Check logs for details.")
                         print("   This may be due to missing movement patterns or configuration issues.")
                     
-                elif choice == '4':
+                elif choice == '5':
                     print("\n🎯 Strategic Clustering Analytics...")
                     print("   This will perform job clustering, skills bundling, and velocity")
                     print("   analysis to provide strategic workforce insights.")
@@ -400,7 +411,7 @@ class WorkforceIntelligenceOrchestrator:
                     else:
                         print("❌ Strategic clustering failed or not yet implemented. Check logs for details.")
                         
-                elif choice == '5':
+                elif choice == '6':
                     print("\n🚀 Running All Capabilities...")
                     print("   This will execute all available analytics capabilities in sequence.")
                     print()
@@ -457,6 +468,59 @@ class WorkforceIntelligenceOrchestrator:
             print(f"❌ Unable to generate career intelligence: {e}")
             print("   Please check that your foundation database is properly configured.")
             print("   Ensure the workforce database has been built successfully first.")
+    
+    def handle_similarity_optimization(self, orchestrator) -> None:
+        """Handle similarity parameter optimization using Optuna"""
+        print("\n🎯 Optimizing Similarity Parameters...")
+        print("   This will use Bayesian optimization to find optimal parameters for similarity calculations.")
+        print("   The system will first analyze your data to determine the optimal number of trials needed.")
+        print("   The process may take 10-30 minutes and will completely replace your current configuration.")
+        print()
+        
+        try:
+            from skill_similarity_engine.optimization import OptunaSimilarityOptimizer
+            
+            if not OptunaSimilarityOptimizer.is_available():
+                print("❌ Optuna optimization not available.")
+                print("   Install with: pip install optuna")
+                print("   Or continue with existing parameters.")
+                return
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            
+            # Confirm with user since this overwrites config
+            print(f"⚠️  This will completely replace config/core/similarity_parameters.yaml")
+            print(f"   Database: {db_path}")
+            
+            confirm = input("   Continue? (y/N): ").strip().lower()
+            if confirm != 'y':
+                print("   Optimization cancelled.")
+                return
+            
+            # Run optimization with progress feedback
+            print("🔍 Initializing optimization engine...")
+            optimizer = OptunaSimilarityOptimizer(db_path)
+            print("📊 Starting corpus analysis and optimization...")
+            success = optimizer.optimize_and_update()
+            
+            if success:
+                # Reload configuration to pick up new parameters
+                config_manager = get_config_manager()
+                config_manager.reload_configuration()
+                
+                print("✅ Parameter optimization completed successfully!")
+                print("   Enhanced Similarity Analytics will now use the optimized parameters.")
+                print("   You can proceed to run Enhanced Similarity Analytics (option 2).")
+            else:
+                print("❌ Parameter optimization failed.")
+                
+        except ImportError:
+            print("❌ Optimization module not available.")
+            print("   Optuna dependency may be missing: pip install optuna")
+        except Exception as e:
+            print(f"❌ Optimization failed: {e}")
+            print("   Continue with existing parameters or check your database.")
     
     def handle_system_tools(self) -> None:
         """Handle system tools menu."""
