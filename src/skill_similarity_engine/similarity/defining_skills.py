@@ -72,9 +72,21 @@ class DefiningSkillsAnalyzer:
         Returns:
             Dict mapping JobProfileID to Set of defining skill names for that job
         """
-        self.logger.info(f"Creating job-specific defining skills (top {self.defining_skills_percentile}% rarest per role)")
-        self.logger.info(f"Based on Optuna optimization: 0.57% avg improvement, enhanced differentiation")
-        self.logger.info(f"Smoothness score: 0.7723 (optimal balance of smoothness + practical impact)")
+        # Load configuration metadata for display
+        from ..config.architectural_config_manager import get_config_manager
+        config_manager = get_config_manager()
+        optimization_metadata = config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal', 'optimization_metadata'
+        )
+        
+        print(f"🎯 Creating job-specific defining skills (top {self.defining_skills_percentile}% rarest per role)")
+        if optimization_metadata:
+            avg_improvement = optimization_metadata.get('average_improvement', 0) * 100  # Convert to percentage
+            smoothness_score = optimization_metadata.get('smoothness_score', 0)
+            print(f"   Based on Optuna optimization: {avg_improvement:.2f}% avg improvement, enhanced differentiation")
+            print(f"   Smoothness score: {smoothness_score:.4f} (optimal balance of smoothness + practical impact)")
+        else:
+            print(f"   Using configured parameters for defining skills analysis")
         
         job_defining_skills = {}
         
@@ -111,9 +123,8 @@ class DefiningSkillsAnalyzer:
         total_defining_relationships = sum(len(skills) for skills in job_defining_skills.values())
         avg_defining_per_job = total_defining_relationships / total_jobs if total_jobs > 0 else 0
         
-        self.logger.info(f"Created job-specific defining skills for {total_jobs:,} job profiles")
-        self.logger.info(f"Total job-skill defining relationships: {total_defining_relationships:,}")
-        self.logger.info(f"Average defining skills per job: {avg_defining_per_job:.1f}")
+        print(f"   ✅ Created defining skills for {total_jobs:,} jobs")
+        print(f"   📊 {total_defining_relationships:,} defining skills • {avg_defining_per_job:.1f} per job average")
         
         return job_defining_skills
     
@@ -132,7 +143,7 @@ class DefiningSkillsAnalyzer:
         Returns:
             DataFrame formatted for analytics_job_defining_skills table
         """
-        self.logger.info("Generating job defining skills analysis...")
+        # Starting job defining skills analysis generation
         
         defining_records = []
         total_records = sum(len(skills) for skills in job_defining_skills.values())
@@ -180,16 +191,14 @@ class DefiningSkillsAnalyzer:
         
         defining_df = pd.DataFrame(defining_records)
         
-        self.logger.info(f"Generated defining skills analysis for {len(defining_df):,} job-skill pairs")
+        print(f"   ✅ Generated defining skills analysis for {len(defining_df):,} job-skill pairs")
         
         # Show summary statistics
         unique_jobs = defining_df['job_profile_id'].nunique()
         unique_skills = defining_df['skill_id'].nunique()
         avg_defining_per_job = len(defining_df) / unique_jobs if unique_jobs > 0 else 0
         
-        self.logger.info(f"Unique jobs with defining skills: {unique_jobs:,}")
-        self.logger.info(f"Unique defining skills: {unique_skills:,}")
-        self.logger.info(f"Average defining skills per job: {avg_defining_per_job:.1f}")
+        print(f"   📊 {unique_jobs:,} jobs • {unique_skills:,} defining skills • {avg_defining_per_job:.1f} per job average")
         
         return defining_df
     
@@ -203,7 +212,7 @@ class DefiningSkillsAnalyzer:
         Returns:
             DataFrame with job-skill relationships including job and skill details
         """
-        self.logger.info("Loading job-skill relationships from database...")
+        print("🔗 Loading job-skill relationships from database...")
         
         try:
             conn = sqlite3.connect(db_path)
@@ -229,15 +238,12 @@ class DefiningSkillsAnalyzer:
             job_skills_df = pd.read_sql_query(job_skills_query, conn)
             conn.close()
             
-            self.logger.info(f"Loaded {len(job_skills_df):,} job-skill relationships")
-            
             unique_jobs = job_skills_df['JobProfileID'].nunique()
             unique_skills = job_skills_df['Skill_ID'].nunique()
             avg_skills_per_job = len(job_skills_df) / unique_jobs if unique_jobs > 0 else 0
             
-            self.logger.info(f"Unique jobs: {unique_jobs:,}")
-            self.logger.info(f"Unique skills: {unique_skills:,}")
-            self.logger.info(f"Average skills per job: {avg_skills_per_job:.1f}")
+            print(f"   Loaded {len(job_skills_df):,} job-skill relationships")
+            print(f"   {unique_jobs:,} jobs • {unique_skills:,} skills • {avg_skills_per_job:.1f} skills/job average")
             
             return job_skills_df
             

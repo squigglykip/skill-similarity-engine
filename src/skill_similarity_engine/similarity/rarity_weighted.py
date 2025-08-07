@@ -163,8 +163,8 @@ class RarityWeightedCalculator:
                     job_pairs.append((job_a_id, job_b_id))
         
         total_comparisons = len(job_pairs)
-        self.logger.info(f"Processing {len(job_ids)} jobs for similarity calculations")
-        self.logger.info(f"Total comparisons to compute: {total_comparisons:,}")
+        print(f"⚙️ Processing {len(job_ids)} jobs for similarity calculations")
+        print(f"📊 Total comparisons to compute: {total_comparisons:,}")
         
         similarities = []
         
@@ -198,9 +198,9 @@ class RarityWeightedCalculator:
                 similarities.append(similarity)
                 
                 if i % 10000 == 0 and i > 0:
-                    self.logger.info(f"Processed {i:,} comparisons...")
+                    print(f"Processed {i:,} comparisons...")
         
-        self.logger.info(f"Generated {len(similarities):,} similarity records")
+        print(f"Generated {len(similarities):,} similarity records")
         return similarities
     
     def calculate_single_similarity(self, 

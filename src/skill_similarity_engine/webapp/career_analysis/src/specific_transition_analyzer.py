@@ -34,7 +34,7 @@ class SpecificTransitionAnalyzer:
         """
         self.db = db_connection
         self.job_display_manager = JobDisplayManager(db_connection)
-        logger.info("SpecificTransitionAnalyzer initialized")
+        print("SpecificTransitionAnalyzer initialized")
     
     def analyze_single_transition(self, job_from: str, job_to: str, 
                                 similarity_range: Tuple[float, float] = (0.4, 0.9)) -> Dict[str, Any]:
@@ -53,7 +53,7 @@ class SpecificTransitionAnalyzer:
             - Career move classification
             - Strategic context
         """
-        logger.info(f"Analyzing single transition: {job_from} â†’ {job_to}")
+        print(f"Analyzing single transition: {job_from} â†’ {job_to}")
         
         # Get transition similarity data
         transition_data = self._get_transition_similarity(job_from, job_to)
@@ -103,7 +103,7 @@ class SpecificTransitionAnalyzer:
             )
         }
         
-        logger.info(f"Single transition analysis complete: {analysis['transition_metrics']['similarity_score']}% similarity")
+        print(f"Single transition analysis complete: {analysis['transition_metrics']['similarity_score']}% similarity")
         return analysis
     
     def analyze_multiple_transitions(self, job_from: str, job_to_list: List[str],
@@ -122,7 +122,7 @@ class SpecificTransitionAnalyzer:
             - Comparative rankings
             - Strategic recommendations for portfolio approach
         """
-        logger.info(f"Analyzing multiple transitions from {job_from} to {len(job_to_list)} targets")
+        print(f"Analyzing multiple transitions from {job_from} to {len(job_to_list)} targets")
         
         # Analyze each individual transition
         individual_analyses = []
@@ -159,7 +159,7 @@ class SpecificTransitionAnalyzer:
             'recommendations_rank': self._rank_transition_recommendations(individual_analyses)
         }
         
-        logger.info(f"Multiple transition analysis complete: {len(individual_analyses)} valid transitions analyzed")
+        print(f"Multiple transition analysis complete: {len(individual_analyses)} valid transitions analyzed")
         return comparative_analysis
     
     def get_available_targets(self, job_from: str, similarity_range: Tuple[float, float] = (0.4, 0.9), 
@@ -175,7 +175,7 @@ class SpecificTransitionAnalyzer:
         Returns:
             List of available target jobs with similarity scores
         """
-        logger.info(f"Getting available targets for {job_from} in range {similarity_range}")
+        print(f"Getting available targets for {job_from} in range {similarity_range}")
         
         query = """
         SELECT 
@@ -211,7 +211,7 @@ class SpecificTransitionAnalyzer:
                 'total_skills': row['total_skills_to']
             })
         
-        logger.info(f"Found {len(targets)} available targets")
+        print(f"Found {len(targets)} available targets")
         return targets
     
     def _get_transition_similarity(self, job_from: str, job_to: str) -> Optional[Dict[str, Any]]:

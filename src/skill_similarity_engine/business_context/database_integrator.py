@@ -52,12 +52,12 @@ class DatabaseIntegrator:
             True if successful, False otherwise
         """
         try:
-            self.logger.info(f"Populating job similarities table with {len(similarities_df):,} records")
+            print(f"   📊 Saving {len(similarities_df):,} job similarity records...")
             
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_job_similarities")
-                self.logger.info("Cleared existing job similarities data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 similarities_df.to_sql('analytics_job_similarities', conn, if_exists='append', index=False)
@@ -90,7 +90,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_skill_rarity")
-                self.logger.info("Cleared existing skill rarity data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 rarity_df.to_sql('analytics_skill_rarity', conn, if_exists='append', index=False)
@@ -123,7 +123,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_job_defining_skills")
-                self.logger.info("Cleared existing job defining skills data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 defining_skills_df.to_sql('analytics_job_defining_skills', conn, if_exists='append', index=False)
@@ -157,7 +157,7 @@ class DatabaseIntegrator:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_movement_patterns")
                 conn.commit()  # Ensure deletion is committed before insertion
-                self.logger.info("Cleared existing movement patterns data")
+                # Cleared existing data for fresh analytics
                 
                 # Validate movement pattern IDs
                 duplicate_ids = movement_df['movement_pattern_id'].duplicated().sum()
@@ -197,7 +197,7 @@ class DatabaseIntegrator:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_pathway_predictions")
                 conn.commit()  # Ensure deletion is committed before insertion
-                self.logger.info("Cleared existing pathway predictions data")
+                # Cleared existing data for fresh analytics
                 
                 # Validate prediction IDs
                 duplicate_ids = predictions_df['prediction_id'].duplicated().sum()
@@ -236,7 +236,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_job_families")
-                self.logger.info("Cleared existing job families data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 job_families_df.to_sql('analytics_job_families', conn, if_exists='append', index=False)
@@ -269,7 +269,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_skill_bundles")
-                self.logger.info("Cleared existing skill bundles data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 skill_bundles_df.to_sql('analytics_skill_bundles', conn, if_exists='append', index=False)
@@ -302,7 +302,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_skill_demand_trends")
-                self.logger.info("Cleared existing skill demand trends data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 trends_df.to_sql('analytics_skill_demand_trends', conn, if_exists='append', index=False)
@@ -335,7 +335,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_specialized_skills")
-                self.logger.info("Cleared existing specialized skills data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 specialized_df.to_sql('analytics_specialized_skills', conn, if_exists='append', index=False)
@@ -368,7 +368,7 @@ class DatabaseIntegrator:
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_bundle_characteristics")
-                self.logger.info("Cleared existing bundle characteristics data")
+                # Cleared existing data for fresh analytics
                 
                 # Insert new data
                 characteristics_df.to_sql('analytics_bundle_characteristics', conn, if_exists='append', index=False)
@@ -493,11 +493,12 @@ class DatabaseIntegrator:
                 for table in tables_to_clear:
                     self._update_table_metadata(conn, table, 0)
             
-            self.logger.info(f"Cleared analytics data for {phase or 'all phases'}")
+            print(f"🧹 Cleared analytics data for {phase or 'all phases'}")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to clear analytics data: {e}", exc_info=True)
+            print(f"❌ Failed to clear analytics data: {e}")
+            print("   Check database connectivity and permissions.")
             return False
     
     def _update_table_metadata(self, conn: sqlite3.Connection, table_name: str, record_count: int):
@@ -510,14 +511,25 @@ class DatabaseIntegrator:
             record_count: Number of records in the table
         """
         try:
+            # Insert metadata using the correct schema
+            metadata_key = f"table_{table_name}_record_count"
+            metadata_value = str(record_count)
+            current_time = datetime.now().isoformat()
+            
             conn.execute("""
                 INSERT OR REPLACE INTO sys_schema_metadata 
-                (table_name, record_count, last_updated, phase_completed)
-                VALUES (?, ?, ?, ?)
-            """, (table_name, record_count, datetime.now().isoformat(), record_count > 0))
+                (metadata_key, metadata_value, metadata_category, description, updated_timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                metadata_key,
+                metadata_value,
+                "table_stats",
+                f"Record count for {table_name} table",
+                current_time
+            ))
             
         except Exception as e:
-            self.logger.warning(f"Failed to update metadata for {table_name}: {e}")
+            print(f"⚠️ Failed to update metadata for {table_name}: {e}")
     
     @fallback_on_failure(default=False)
     def test_database_connectivity(self) -> bool:

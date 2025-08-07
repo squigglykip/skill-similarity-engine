@@ -110,7 +110,7 @@ class SimilarityProcessingOrchestrator:
             List of similarity records
         """
         total_pairs = len(job_pairs)
-        self.logger.info(f"Processing orchestrator starting with {total_pairs:,} job pairs")
+        # Removed verbose logging - parent will handle user messaging
         
         # Create a processing function that the orchestrator can call
         def process_single_pair(pair: Tuple[str, str]) -> Dict[str, Any]:
@@ -130,10 +130,7 @@ class SimilarityProcessingOrchestrator:
         """
         Process using intelligent strategy selection (chunking, memory-aware, etc.)
         """
-        self.logger.info(f"Using intelligent processing strategy:")
-        self.logger.info(f"  Memory threshold: {self.config.memory_threshold_mb} MB")
-        self.logger.info(f"  Estimated item size: {self.config.item_size_estimate_bytes} bytes")
-        self.logger.info(f"  Target chunks: {self.config.target_chunk_count}")
+        # Removed verbose processing details - parent will handle user messaging
         
         results = []
         
@@ -149,7 +146,7 @@ class SimilarityProcessingOrchestrator:
                 results.append(result)
                 progress.update(1)
         
-        self.logger.info(f"Intelligent processing completed: {len(results):,} results")
+        # Removed verbose completion logging - parent will handle user messaging
         return results
     
     def _process_simple(self,

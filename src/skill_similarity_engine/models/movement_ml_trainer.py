@@ -80,7 +80,7 @@ class MovementMLTrainer:
         self.feature_columns = []
         self.model_metadata = {}
         
-        self.logger.info(f"MovementMLTrainer initialized with database: {db_path}")
+        print(f"🤖 MovementMLTrainer initialized with database: {db_path}")
     
     def _load_ml_config(self) -> Dict[str, Any]:
         """Load ML configuration parameters from config files."""
@@ -125,7 +125,7 @@ class MovementMLTrainer:
                 'min_sample_size': config.get('production_thresholds', {}).get('min_sample_size', 100),
             }
             
-            self.logger.info("Loaded ML configuration from movement_ml_training.yaml")
+            print("⚙️ Loaded ML configuration from movement_ml_training.yaml")
             return flattened_config
             
         except Exception as e:
@@ -146,14 +146,14 @@ class MovementMLTrainer:
                 }
             }
             
-            self.logger.info("Using minimal fallback ML configuration")
+            print("⚙️ Using minimal fallback ML configuration")
             return fallback_config
     
     @retry(max_attempts=3)
     @circuit_breaker(failure_threshold=3)
     def load_movement_patterns_data(self) -> pd.DataFrame:
         """Load movement patterns data from database."""
-        self.logger.info("Loading movement patterns data from database")
+        print("💾 Loading movement patterns data from database")
         
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -179,7 +179,7 @@ class MovementMLTrainer:
                 if movement_df.empty:
                     raise ValueError("No movement patterns data found in database")
                 
-                self.logger.info(f"Loaded {len(movement_df):,} movement patterns from database")
+                print(f"✅ Loaded {len(movement_df):,} movement patterns from database")
                 return movement_df
                 
         except Exception as e:
@@ -189,7 +189,7 @@ class MovementMLTrainer:
     @retry(max_attempts=3)
     def load_job_architecture_data(self) -> pd.DataFrame:
         """Load job architecture data for feature engineering."""
-        self.logger.info("Loading job architecture data")
+        print("🏗️ Loading job architecture data")
         
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -210,7 +210,7 @@ class MovementMLTrainer:
                 if jobs_df.empty:
                     raise ValueError("No job architecture data found in database")
                 
-                self.logger.info(f"Loaded {len(jobs_df):,} job profiles from database")
+                print(f"✅ Loaded {len(jobs_df):,} job profiles from database")
                 return jobs_df
                 
         except Exception as e:
@@ -219,7 +219,7 @@ class MovementMLTrainer:
     
     def aggregate_movement_patterns_to_job_level(self, movement_df: pd.DataFrame) -> pd.DataFrame:
         """Aggregate movement patterns to job profile level with temporal weighting."""
-        self.logger.info("Aggregating movement patterns to job profile level")
+        print("📋 Aggregating movement patterns to job profile level")
         
         # Calculate recency weights
         movement_df['movement_year'] = pd.to_datetime(movement_df['movement_month']).dt.year
@@ -270,12 +270,12 @@ class MovementMLTrainer:
             job_level_features['recency_weighted_activity'] / job_level_features['total_movement_count']
         )
         
-        self.logger.info(f"Aggregated to {len(job_level_features):,} job profile transition pairs")
+        print(f"✅ Aggregated to {len(job_level_features):,} job profile transition pairs")
         return job_level_features
     
     def calculate_mobility_scores(self, job_level_features: pd.DataFrame) -> Tuple[Dict[str, float], Dict[str, float]]:
         """Calculate mobility scores for source and target jobs."""
-        self.logger.info("Calculating mobility scores")
+        print("📊 Calculating mobility scores")
         
         source_mobility = {}
         target_mobility = {}
@@ -329,13 +329,13 @@ class MovementMLTrainer:
             
             target_mobility[job_id] = mobility_score
         
-        self.logger.info(f"Calculated mobility for {len(source_mobility):,} source and {len(target_mobility):,} target roles")
+        print(f"✅ Calculated mobility for {len(source_mobility):,} source and {len(target_mobility):,} target roles")
         return source_mobility, target_mobility
     
     def create_ml_features(self, job_level_features: pd.DataFrame, source_mobility: Dict[str, float], 
                           target_mobility: Dict[str, float], jobs_df: pd.DataFrame) -> pd.DataFrame:
         """Create ML features from job-level movement data."""
-        self.logger.info("Creating ML features from movement data")
+        print("🤖 Creating ML features from movement data")
         
         features_list = []
         
@@ -398,13 +398,13 @@ class MovementMLTrainer:
             features_list.append(features)
         
         features_df = pd.DataFrame(features_list)
-        self.logger.info(f"Created ML feature matrix: {len(features_df):,} transition pairs with {len(features_df.columns)-2:,} features")
+        print(f"✅ Created ML feature matrix: {len(features_df):,} transition pairs with {len(features_df.columns)-2:,} features")
         
         return features_df
     
     def create_movement_targets(self, features_df: pd.DataFrame) -> Tuple[pd.DataFrame, float]:
         """Create movement targets from recency-weighted data."""
-        self.logger.info("Creating movement volume targets from recency-weighted data")
+        print("🎯 Creating movement volume targets from recency-weighted data")
         
         # Use raw recency-weighted movement count as target
         movement_target = features_df['recency_weighted_activity']
@@ -413,7 +413,7 @@ class MovementMLTrainer:
         # Store max for later feasibility conversion
         max_movement = movement_target.max()
         
-        self.logger.info(f"Movement targets created: range {movement_target.min():.1f} to {movement_target.max():.1f}")
+        print(f"✅ Movement targets created: range {movement_target.min():.1f} to {movement_target.max():.1f}")
         return features_df, max_movement
     
     def get_excluded_feature_columns(self) -> List[str]:
@@ -433,7 +433,7 @@ class MovementMLTrainer:
     
     def prepare_ml_data(self, features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series, List[str]]:
         """Prepare data for ML training with proper feature selection."""
-        self.logger.info("Preparing data for ML training")
+        print("🛠️ Preparing data for ML training")
         
         excluded_columns = self.get_excluded_feature_columns()
         feature_columns = [col for col in features_df.columns if col not in excluded_columns]
@@ -447,29 +447,29 @@ class MovementMLTrainer:
         
         self.feature_columns = feature_columns
         
-        self.logger.info(f"Prepared ML data: {X.shape[1]} features, {X.shape[0]} samples")
-        self.logger.info(f"Excluded columns: {excluded_columns}")
+        print(f"✅ Prepared ML data: {X.shape[1]} features, {X.shape[0]} samples")
+        print(f"🚫 Excluded columns: {excluded_columns}")
         
         return X, y, feature_columns
     
     @retry(max_attempts=2)
     def train_ml_models(self, X: pd.DataFrame, y: pd.Series) -> Tuple[Dict[str, Any], Any, str, pd.DataFrame, pd.Series]:
         """Train ensemble ML models for movement volume prediction."""
-        self.logger.info("Starting ML model training")
+        print("🚀 Starting ML model training")
         
         # Split data for training (temporal split to prevent data leakage)
         if self.ml_config.get('temporal_split', True):
             split_point = int(0.8 * len(X))
             X_train, X_test = X.iloc[:split_point], X.iloc[split_point:]
             y_train, y_test = y.iloc[:split_point], y.iloc[split_point:]
-            self.logger.info("Using temporal split to prevent data leakage")
+            print("⏰ Using temporal split to prevent data leakage")
         else:
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=self.ml_config['test_size'], 
                 random_state=self.ml_config['random_state']
             )
         
-        self.logger.info(f"Training: {len(X_train):,} samples, Testing: {len(X_test):,} samples")
+        print(f"📊 Training: {len(X_train):,} samples, Testing: {len(X_test):,} samples")
         
         # Define models
         models = {}
@@ -497,7 +497,7 @@ class MovementMLTrainer:
         
         with ProgressTracker(total=len(models), desc="Training ML models") as progress:
             for model_name, model in models.items():
-                self.logger.info(f"Training {model_name}...")
+                print(f"📊 Training {model_name}...")
                 
                 start_time = time.time()
                 model.fit(X_train, y_train)
@@ -529,14 +529,14 @@ class MovementMLTrainer:
                     'predictions': y_pred
                 }
                 
-                self.logger.info(f"{model_name} - R²: {r2:.3f}, RMSE: {rmse:.1f}, Training time: {training_time:.2f}s")
+                print(f"✅ {model_name} - R²: {r2:.3f}, RMSE: {rmse:.1f}, Training time: {training_time:.2f}s")
                 progress.update(1)
         
         # Select best model
         best_model_name = max(model_results.keys(), key=lambda k: model_results[k]['r2_score'])
         best_model = model_results[best_model_name]['model']
         
-        self.logger.info(f"Best model: {best_model_name} (R²: {model_results[best_model_name]['r2_score']:.3f})")
+        print(f"🏆 Best model: {best_model_name} (R²: {model_results[best_model_name]['r2_score']:.3f})")
         
         self.trained_models = model_results
         return model_results, best_model, best_model_name, X_test, y_test
@@ -544,7 +544,7 @@ class MovementMLTrainer:
     def generate_pathway_predictions(self, best_model, features_df: pd.DataFrame, jobs_df: pd.DataFrame, 
                                    max_movement: float, model_results: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         """Generate pathway predictions for database insertion."""
-        self.logger.info("Generating pathway predictions for database insertion")
+        print("🔮 Generating pathway predictions for database insertion")
         
         # Use exact same feature columns from training
         X = features_df[self.feature_columns].fillna(0)
@@ -649,13 +649,13 @@ class MovementMLTrainer:
         predictions_df['training_algorithm'] = 'ensemble_v1.0'
         predictions_df['training_timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        self.logger.info(f"Generated {len(predictions_df):,} pathway predictions for database insertion")
+        print(f"✅ Generated {len(predictions_df):,} pathway predictions for database insertion")
         
         return predictions_df
     
     def save_models_and_metadata(self, model_results: Dict[str, Any], output_dir: Path) -> Dict[str, Path]:
         """Save trained models and metadata to files."""
-        self.logger.info(f"Saving models and metadata to {output_dir}")
+        print(f"💾 Saving models and metadata to {output_dir}")
         
         output_dir.mkdir(parents=True, exist_ok=True)
         saved_files = {}
@@ -666,7 +666,7 @@ class MovementMLTrainer:
             model_path = output_dir / model_filename
             joblib.dump(model_info['model'], model_path)
             saved_files[f'{model_name}_model'] = model_path
-            self.logger.info(f"Saved {model_name} model to {model_path}")
+            print(f"✅ Saved {model_name} model to {model_path}")
         
         # Save feature columns (CRITICAL for prediction consistency)
         feature_columns_path = output_dir / 'feature_columns.json'
@@ -700,12 +700,12 @@ class MovementMLTrainer:
             json.dump(metadata, f, indent=2)
         saved_files['metadata'] = metadata_path
         
-        self.logger.info(f"Saved {len(saved_files)} files to {output_dir}")
+        print(f"✅ Saved {len(saved_files)} files to {output_dir}")
         return saved_files
     
     def execute_full_ml_pipeline(self, output_dir: Optional[Path] = None) -> Dict[str, Any]:
         """Execute the complete ML training pipeline."""
-        self.logger.info("Starting complete ML training pipeline")
+        print("🚀 Starting complete ML training pipeline")
         
         try:
             # Step 1: Load data
@@ -743,7 +743,7 @@ class MovementMLTrainer:
             if output_dir:
                 saved_files = self.save_models_and_metadata(model_results, output_dir)
             
-            self.logger.info("ML training pipeline completed successfully")
+            print("✅ ML training pipeline completed successfully")
             
             return {
                 'success': True,

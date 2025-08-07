@@ -197,12 +197,12 @@ if __name__ == '__main__':
     
     # Check if database exists
     if not app.config['DATABASE_PATH'].exists():
-        print(f"âš ï¸  Database not found at: {app.config['DATABASE_PATH']}")
+        print(f"⚠️  Database not found at: {app.config['DATABASE_PATH']}")
         print("   Run the CLI to generate business context database first.")
         exit(1)
     
-    print(f"âœ… Database found at: {app.config['DATABASE_PATH']}")
-    print("ðŸš€ Starting Flask development server...")
+    print(f"✅ Database found at: {app.config['DATABASE_PATH']}")
+    print("🚀 Starting Flask development server...")
     print("   Available routes:")
     print("   - http://localhost:5000/ (Homepage)")
     print("   - http://localhost:5000/components (Component Library)")

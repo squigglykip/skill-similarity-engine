@@ -143,12 +143,12 @@ class CorpusNormalizer:
         self.is_normalized = True
         
         # Log normalization summary
-        self.logger.info(f"Corpus normalization complete:")
-        self.logger.info(f"  Total scores: {len(self.raw_scores):,}")
-        self.logger.info(f"  Raw range: {raw_min:.4f} - {raw_max:.4f}")
-        self.logger.info(f"  Normalization factor: {self._normalization_factor:.4f}")
-        self.logger.info(f"  Scores above 1.0: {scores_above_1:,} ({percentage_above_1:.1f}%)")
-        self.logger.info(f"  Max boost observed: {max_boost_observed:.4f}")
+        print(f"Corpus normalization complete:")
+        print(f"  Total scores: {len(self.raw_scores):,}")
+        print(f"  Raw range: {raw_min:.4f} - {raw_max:.4f}")
+        print(f"  Normalization factor: {self._normalization_factor:.4f}")
+        print(f"  Scores above 1.0: {scores_above_1:,} ({percentage_above_1:.1f}%)")
+        print(f"  Max boost observed: {max_boost_observed:.4f}")
         
         return self.normalization_stats
     
@@ -213,7 +213,7 @@ class CorpusNormalizer:
         self.is_normalized = False
         self.normalization_stats = None
         self._normalization_factor = None
-        self.logger.info("Corpus normalizer reset - ready for new score collection")
+        print("Corpus normalizer reset - ready for new score collection")
     
     def get_corpus_summary(self) -> Dict[str, Any]:
         """

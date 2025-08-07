@@ -62,15 +62,15 @@ class PositionHistoryGenerator:
             DataFrame containing position history records matching database schema
         """
         try:
-            logger.info("🏗️ Generating position history from movement data...")
+            print("🏗️ Generating position history from movement data...")
             
             # Check if we should use enriched colleague positions instead
             if self._should_use_enriched_data():
-                logger.info("Using enriched colleague positions data for better accuracy")
+                print("Using enriched colleague positions data for better accuracy")
                 return self.generate_position_history_from_enriched_data()
             
             # Create position periods from movement data
-            logger.info("Creating position periods from movement data...")
+            print("Creating position periods from movement data...")
             position_periods = self._create_position_periods_from_movements(movements_df)
             
             # Enrich with position data if available
@@ -80,7 +80,7 @@ class PositionHistoryGenerator:
             # Generate final position history records
             position_history = self._generate_position_history_records(position_periods)
             
-            logger.info(f"Generated {len(position_history):,} position history records")
+            print(f"Generated {len(position_history):,} position history records")
             return position_history
             
         except Exception as e:
@@ -104,7 +104,7 @@ class PositionHistoryGenerator:
             DataFrame containing position history records matching database schema
         """
         try:
-            logger.info("🏗️ Generating position history from enriched colleague positions...")
+            print("🏗️ Generating position history from enriched colleague positions...")
             
             # Use PositionEnricher to get enriched colleague positions data
             enriched_df = self.position_enricher.enrich_colleague_positions(
@@ -112,13 +112,13 @@ class PositionHistoryGenerator:
             )
             
             # Create position periods from enriched data
-            logger.info("Creating position periods from enriched data...")
+            print("Creating position periods from enriched data...")
             position_periods = self._create_position_periods_from_enriched_data(enriched_df)
             
             # Generate final position history records
             position_history = self._generate_position_history_records(position_periods)
             
-            logger.info(f"Generated {len(position_history):,} position history records from enriched data")
+            print(f"Generated {len(position_history):,} position history records from enriched data")
             return position_history
             
         except Exception as e:
@@ -167,7 +167,7 @@ class PositionHistoryGenerator:
                 position_periods.extend(periods)
             
             df_periods = pd.DataFrame(position_periods)
-            logger.info(f"Created {len(df_periods):,} position periods from movements")
+            print(f"Created {len(df_periods):,} position periods from movements")
             
             return df_periods
             
@@ -194,7 +194,7 @@ class PositionHistoryGenerator:
                 position_periods.extend(periods)
             
             df_periods = pd.DataFrame(position_periods)
-            logger.info(f"Created {len(df_periods):,} position periods from enriched data")
+            print(f"Created {len(df_periods):,} position periods from enriched data")
             
             return df_periods
             
@@ -293,7 +293,7 @@ class PositionHistoryGenerator:
             # Try to merge with positions data for additional context
             # This is a fallback when we don't have enriched data
             
-            logger.info("Enriching position periods with additional position data...")
+            print("Enriching position periods with additional position data...")
             
             # Prepare positions data for merge
             positions_for_merge = positions_df[['Position Number', 'JobProfileID']].drop_duplicates()
@@ -309,7 +309,7 @@ class PositionHistoryGenerator:
             how='left'
         )
         
-            logger.info(f"Enriched {len(enriched_periods):,} position periods")
+            print(f"Enriched {len(enriched_periods):,} position periods")
             return enriched_periods
         
         except Exception as e:
@@ -360,7 +360,7 @@ class PositionHistoryGenerator:
             if before_filter > after_filter:
                 logger.warning(f"Filtered out {before_filter - after_filter:,} records with missing essential data")
             
-            logger.info(f"Generated {len(position_history):,} position history records")
+            print(f"Generated {len(position_history):,} position history records")
             return position_history
             
         except Exception as e:
@@ -409,7 +409,7 @@ class PositionHistoryGenerator:
                 logger.error(f"Position history has only {len(position_history):,} records, minimum {min_records} required")
                 return False
             
-            logger.info("✅ Position history validation passed")
+            print("✅ Position history validation passed")
             return True 
             
         except Exception as e:

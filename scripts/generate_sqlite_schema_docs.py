@@ -1391,7 +1391,7 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(doc_lines))
         
-        print(f"âœ… Schema documentation generated: {output_file}")
+        print(f"✅ Schema documentation generated: {output_file}")
         print(f"ðŸ“Š Analyzed {len(tables)} tables with {sum(table['row_count'] for table in tables):,} total records")
         print(f"ðŸ“„ Generated {len(doc_lines)} lines of documentation")
 

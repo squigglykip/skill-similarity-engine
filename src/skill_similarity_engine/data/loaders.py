@@ -149,7 +149,7 @@ class SkillTaxonomyLoader:
                     if skill:
                         taxonomy.add_skill(skill)
                     progress.update(1)
-        logger.info(f"Loaded {len(taxonomy.skills)} skills into taxonomy.")
+        print(f"Loaded {len(taxonomy.skills)} skills into taxonomy.")
         return taxonomy
     
     def _parse_category_row(self, row: pd.Series) -> Optional[SkillCategory]:
@@ -498,13 +498,13 @@ class JobArchitectureLoader:
                         progress.update(1)
         else:
             # Auto-generate jobs from job-skill mapping
-            logger.info("No jobs file provided, auto-generating jobs from job-skill mapping")
+            print("No jobs file provided, auto-generating jobs from job-skill mapping")
             self._auto_generate_jobs_from_mapping(architecture, job_skills_file, chunked, chunksize)
                     
         # Load job skills
         self._load_job_skills(architecture, job_skills_file, chunked, chunksize, skills_validator)
         
-        logger.info(f"Loaded {len(architecture.jobs)} jobs into architecture.")
+        print(f"Loaded {len(architecture.jobs)} jobs into architecture.")
         return architecture
     
     def _parse_job_row(self, row: pd.Series) -> Optional[Job]:
@@ -778,7 +778,7 @@ class JobArchitectureLoader:
                     progress.update(1)
         
         # Second pass: create minimal Job objects
-        logger.info(f"Auto-generating {len(unique_job_ids)} jobs from job-skill mapping")
+        print(f"Auto-generating {len(unique_job_ids)} jobs from job-skill mapping")
         with ProgressTracker(total=len(unique_job_ids), desc="Creating minimal job objects", show_tqdm=True) as progress:
             for job_id in unique_job_ids:
                 job = Job(
@@ -792,7 +792,7 @@ class JobArchitectureLoader:
                 architecture.add_job(job)
                 progress.update(1)
         
-        logger.info(f"Auto-generated {len(architecture.jobs)} jobs from job-skill mapping")
+        print(f"Auto-generated {len(architecture.jobs)} jobs from job-skill mapping")
 
     def load_from_excel(self,
                        excel_file: str,

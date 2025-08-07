@@ -90,7 +90,7 @@ class SkillsLibraryUpdater:
                 print("âŒ ERROR: Lightcast API is not healthy")
                 return False
                 
-            print("âœ… Successfully connected to Lightcast API")
+            print("✅ Successfully connected to Lightcast API")
             return True
             
         except Exception as e:
@@ -231,7 +231,7 @@ class SkillsLibraryUpdater:
                 # Since we output directly to skills_library, no file moving required
                 tracker.update(1)
             
-            print(f"âœ… Skills library updated successfully!")
+            print(f"✅ Skills library updated successfully!")
             return True
             
         except Exception as e:
@@ -257,7 +257,7 @@ class SkillsLibraryUpdater:
                 elif item.is_dir():
                     shutil.rmtree(item)
         except Exception as e:
-            print(f"âš ï¸  Warning: Could not clear some files in skills_library: {e}")
+            print(f"⚠️ ï¸  Warning: Could not clear some files in skills_library: {e}")
             print("   This may cause file conflicts but won't prevent the update.")
     
     def _move_extracted_files(self, extraction_dir: Path):
@@ -300,9 +300,9 @@ class SkillsLibraryUpdater:
             if src_file.exists():
                 dst_file = self.skills_library_dir / filename
                 shutil.copy2(src_file, dst_file)
-                print(f"âœ… Updated: {filename}")
+                print(f"✅ Updated: {filename}")
             else:
-                print(f"âš ï¸  Warning: {filename} not found in extraction")
+                print(f"⚠️ ï¸  Warning: {filename} not found in extraction")
         
         # Clean up extraction directory
         try:
@@ -329,7 +329,7 @@ def prompt_skills_update(logger) -> bool:
     update_info = updater.check_for_updates()
     
     if "error" in update_info:
-        print(f"âš ï¸  Could not check for updates: {update_info['error']}")
+        print(f"⚠️ ï¸  Could not check for updates: {update_info['error']}")
         print("   Proceeding with existing skills library...")
         return True
     
@@ -341,7 +341,7 @@ def prompt_skills_update(logger) -> bool:
     print(f"   Latest skills:   {update_info['latest_skill_count']:,}")
     
     if update_info['update_available']:
-        print(f"   ðŸ†• Version update available!")
+        print(f"   🆕 Version update available!")
     
     if update_info['skill_count_changed']:
         skill_diff = update_info['latest_skill_count'] - update_info['current_skill_count']
@@ -351,7 +351,7 @@ def prompt_skills_update(logger) -> bool:
             print(f"   ðŸ“‰ {abs(skill_diff):,} skills removed")
     
     if not update_info['update_available'] and not update_info['skill_count_changed']:
-        print(f"   âœ… Skills library is up to date")
+        print(f"   ✅ Skills library is up to date")
         return True
     
     # Prompt user for update

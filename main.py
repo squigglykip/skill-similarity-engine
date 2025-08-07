@@ -16,7 +16,6 @@ src_path = os.path.join(os.path.dirname(__file__), 'src')
 if os.path.exists(src_path) and src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from skill_similarity_engine.logging.config import setup_logging
 from skill_similarity_engine.cli.utilities import print_banner, prompt_int
 from skill_similarity_engine.cli.commands import (
     DataLoadCommand, SimilarityMatrixCommand, MovementAnalysisCommand, QuerySimilarityCommand
@@ -64,7 +63,6 @@ class WorkforceIntelligenceOrchestrator:
     
     def __init__(self):
         """Initialize the platform orchestrator."""
-        self.logger = setup_logging(level='INFO')
         self.session_manager = get_session_manager()
         
         # Initialize commands
@@ -73,7 +71,7 @@ class WorkforceIntelligenceOrchestrator:
         self.movement_cmd = MovementAnalysisCommand()
         self.query_cmd = QuerySimilarityCommand()
         
-        self.logger.info("Workforce Intelligence Platform initialized")
+        print("🚀 Workforce Intelligence Platform initialized and ready!")
     
     def get_database_status(self) -> dict:
         """Get current database status for display."""
@@ -187,8 +185,8 @@ class WorkforceIntelligenceOrchestrator:
                         print(f"   • {error}")
                     
         except Exception as e:
-            self.logger.error(f"Data loading failed: {e}")
             print(f"❌ Unable to load data: {e}")
+            print("   Please check your data files and configuration.")
     
     def handle_similarity_generation(self) -> None:
         """Handle similarity analysis with user-friendly messaging."""
@@ -219,8 +217,8 @@ class WorkforceIntelligenceOrchestrator:
                         print(f"   • {error}")
                     
         except Exception as e:
-            self.logger.error(f"Similarity generation failed: {e}")
             print(f"❌ Unable to generate similarity analysis: {e}")
+            print("   Please check that your data is properly loaded and configured.")
     
     def handle_movement_analysis(self) -> None:
         """Handle career movement analysis with user-friendly messaging."""
@@ -244,8 +242,8 @@ class WorkforceIntelligenceOrchestrator:
                         print(f"   • {error}")
                     
         except Exception as e:
-            self.logger.error(f"Movement analysis failed: {e}")
             print(f"❌ Unable to analyse career movements: {e}")
+            print("   Please ensure your movement data is available and properly formatted.")
     
     def handle_query_similarities(self) -> None:
         """Handle similarity queries with user-friendly messaging."""
@@ -262,15 +260,12 @@ class WorkforceIntelligenceOrchestrator:
                 print(f"❌ Search failed: {result.message}")
                     
         except Exception as e:
-            self.logger.error(f"Query failed: {e}")
             print(f"❌ Unable to search similarities: {e}")
+            print("   Please check that similarity analysis has been completed first.")
     
     def handle_workforce_intelligence(self) -> None:
-        """Handle workforce database building with user-friendly messaging."""
+        """Handle workforce database building - directly load employee and job data."""
         try:
-            print("🏗️ Opening workforce database builder...")
-            print()
-            
             # Get configuration paths from architectural config manager
             config_manager = get_config_manager()
             config_search_paths = config_manager.get_nested_value(
@@ -292,13 +287,14 @@ class WorkforceIntelligenceOrchestrator:
                 print(f"   Expected locations: {config_search_paths}")
                 return
             
-            # Pass explicit config path to orchestrator
+            # Create orchestrator and directly load foundation data
             orchestrator = BusinessContextOrchestrator(data_config_path=data_config_path)
-            orchestrator.handle_workforce_intelligence_menu()
+            orchestrator._load_foundation_data()
             
         except Exception as e:
-            self.logger.error(f"Workforce database builder error: {e}")
-            print(f"❌ Unable to open database builder: {e}")
+            print(f"❌ Unable to build database: {e}")
+            print("   Please check your configuration and data files.")
+            print("   Ensure all required CSV files are in the correct location.")
     
     def show_analytics_phases_menu(self) -> str:
         """Display analytics capabilities menu with user-friendly options."""
@@ -458,9 +454,9 @@ class WorkforceIntelligenceOrchestrator:
                     input("\nPress Enter to continue...")
                     
         except Exception as e:
-            self.logger.error(f"Career intelligence generation failed: {e}")
             print(f"❌ Unable to generate career intelligence: {e}")
             print("   Please check that your foundation database is properly configured.")
+            print("   Ensure the workforce database has been built successfully first.")
     
     def handle_system_tools(self) -> None:
         """Handle system tools menu."""

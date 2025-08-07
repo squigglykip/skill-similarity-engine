@@ -114,7 +114,7 @@ class SimilarityMatrixCommand(BaseCommand):
             )
             
             # Create precomputer with enhanced similarity support
-            self.logger.info(f"Creating similarity matrix precomputer (enhanced={rarity_weighted_mode})...")
+            print(f"📊 Creating similarity matrix precomputer (enhanced={rarity_weighted_mode})...")
             precomputer = create_precomputer(
                 job_architecture=architecture,
                 config=config
@@ -193,7 +193,8 @@ class SimilarityMatrixCommand(BaseCommand):
             )
             
         except Exception as e:
-            self.logger.error(f"Similarity matrix generation failed: {e}", exc_info=True)
+            print(f"❌ Similarity matrix generation failed: {e}")
+            print("   Please check your data and configuration files.")
             return CommandResult(
                 success=False,
                 message=f"Similarity matrix generation failed: {str(e)}",
@@ -246,7 +247,8 @@ class SimilarityMatrixCommand(BaseCommand):
             }
             
         except Exception as e:
-            self.logger.error(f"Enhanced similarity setup failed: {e}", exc_info=True)
+            print(f"❌ Enhanced similarity setup failed: {e}")
+            print("   Please verify your similarity configuration parameters.")
             print(f"❌ Enhanced similarity setup failed: {e}")
             print(f"   → Falling back to basic similarity algorithms")
             return None
@@ -274,10 +276,11 @@ class SimilarityMatrixCommand(BaseCommand):
             # Store enhanced components for later use
             precomputer._enhanced_components = enhanced_components
             
-            self.logger.info("Enhanced similarity calculator injected into precomputer")
+            print("✨ Enhanced similarity calculator injected into precomputer")
             
         except Exception as e:
-            self.logger.error(f"Failed to inject enhanced calculator: {e}")
+            print(f"❌ Failed to inject enhanced calculator: {e}")
+            print("   Check your enhanced similarity configuration.")
             raise
     
     def _inject_rarity_weighted_calculator(self, precomputer, rarity_weighted_components: Dict[str, Any]):
@@ -319,7 +322,8 @@ class SimilarityMatrixCommand(BaseCommand):
             )
             
             if not similarity_config or not rarity_thresholds:
-                self.logger.warning("Missing similarity configuration for metadata generation")
+                print("⚠️ Missing similarity configuration for metadata generation")
+                print("   Some metadata features may not be available.")
                 similarity_config = {'defining_skills_percentile': 'Unknown', 'defining_skills_multiplier': 'Unknown'}
                 rarity_thresholds = {'rare_threshold': 'Unknown', 'uncommon_threshold': 'Unknown', 'common_threshold': 'Unknown'}
             
@@ -345,7 +349,8 @@ class SimilarityMatrixCommand(BaseCommand):
             print(f"✅ Enhanced similarity metadata saved to {metadata_file}")
             
         except Exception as e:
-            self.logger.warning(f"Failed to integrate enhanced results: {e}")
+            print(f"⚠️ Failed to integrate enhanced results: {e}")
+            print("   Enhanced features may not be available in output.")
             print(f"⚠️  Enhanced results integration failed: {e}")
     
     def _print_header(self, architecture, enhanced_mode: bool = False):
@@ -506,19 +511,19 @@ class SimilarityMatrixCommand(BaseCommand):
                 df = pd.read_csv(csv_file)
                 parquet_file = output_path / "job_similarity_matrix.parquet"
                 df.to_parquet(parquet_file, compression='snappy', index=False)
-                self.logger.info(f"Created Parquet file: {parquet_file}")
+                print(f"📦 Created Parquet file: {parquet_file}")
                 print(f"✅ Parquet file created: {parquet_file}")
                 conversion_results['parquet_created'] = True
                 
             except ImportError:
-                print("[WARNING] Could not create Parquet file - pyarrow not installed")
-                self.logger.warning("pyarrow not available for Parquet conversion")
+                print("⚠️ pyarrow not available for Parquet conversion")
+                print("   Install pyarrow to enable Parquet export: pip install pyarrow")
                 conversion_results['parquet_created'] = False
                 conversion_results['parquet_error'] = "pyarrow not installed"
                 
             except Exception as e:
-                print(f"[WARNING] Could not create Parquet file: {e}")
-                self.logger.warning(f"Parquet conversion failed: {e}")
+                print(f"⚠️ Parquet conversion failed: {e}")
+                print("   CSV export will still be available.")
                 conversion_results['parquet_created'] = False
                 conversion_results['parquet_error'] = str(e)
         
@@ -578,7 +583,7 @@ class MovementAnalysisCommand(BaseCommand):
             # Import and create movement precomputer
             from ...models.movement_precomputer import create_movement_precomputer
             
-            self.logger.info("Creating movement analysis precomputer...")
+            print("📈 Creating movement analysis precomputer...")
             precomputer = create_movement_precomputer()
             
             # Show runtime estimate if requested
@@ -631,14 +636,16 @@ class MovementAnalysisCommand(BaseCommand):
             )
             
         except ImportError as e:
-            self.logger.error(f"Movement analysis import error: {e}")
+            print(f"❌ Movement analysis import error: {e}")
+            print("   Please ensure movement analysis dependencies are installed.")
             return CommandResult(
                 success=False,
                 message=f"Movement analysis module not available: {e}",
                 errors=["Please ensure the movement tracker is properly installed"]
             )
         except Exception as e:
-            self.logger.error(f"Movement analysis generation failed: {e}", exc_info=True)
+            print(f"❌ Movement analysis generation failed: {e}")
+            print("   Check your movement data and configuration.")
             return CommandResult(
                 success=False,
                 message=f"Movement analysis generation failed: {str(e)}",
@@ -745,7 +752,7 @@ class MovementPatternPopulationCommand(BaseCommand):
         performance_metrics = {}
         
         try:
-            self.logger.info("Starting movement pattern population from database")
+            print("💾 Starting movement pattern population from database")
             
             # Step 1: Initialize database connection and validate source data
             with ProgressTracker(total=1, desc="Initializing database connection", memory_tracking=True) as progress:
@@ -767,7 +774,7 @@ class MovementPatternPopulationCommand(BaseCommand):
                 # Initialize database integrator
                 db_integrator = DatabaseIntegrator(db_path)
                 progress.update(1)
-                self.logger.info(f"Connected to database: {db_path}")
+                print(f"🔗 Connected to database: {db_path}")
             
             # Step 2: Validate required source tables exist and have data
             with ProgressTracker(total=1, desc="Validating source data", memory_tracking=True) as progress:
@@ -779,7 +786,7 @@ class MovementPatternPopulationCommand(BaseCommand):
                         errors=["Please ensure core_colleague_positions_history and core_position_timeline are populated"]
                     )
                 progress.update(1)
-                self.logger.info(f"Source validation complete: {source_counts}")
+                print(f"✅ Source validation complete: {source_counts}")
             
             # Step 3: Initialize movement analysis modules
             from ...config.workforce_config_loader import get_workforce_config_loader
@@ -791,11 +798,11 @@ class MovementPatternPopulationCommand(BaseCommand):
             with ProgressTracker(total=1, desc="Loading position mappings", memory_tracking=True) as progress:
                 position_mappings = self._load_position_mappings_from_db(db_path)
                 progress.update(1)
-                self.logger.info(f"Loaded {len(position_mappings):,} position mappings for merge")
+                print(f"🗺️ Loaded {len(position_mappings):,} position mappings for merge")
             
             # Step 5: Load colleague positions with adaptive chunking (2M+ records)
             colleague_positions_count = source_counts['core_colleague_positions_history']
-            self.logger.info(f"Processing {colleague_positions_count:,} colleague position records")
+            print(f"⚙️ Processing {colleague_positions_count:,} colleague position records")
             
             with ProgressTracker(total=colleague_positions_count, desc="Loading and merging colleague positions", memory_tracking=True) as progress:
                 # Use adaptive chunking for memory management
@@ -821,18 +828,18 @@ class MovementPatternPopulationCommand(BaseCommand):
                     total_orphans += chunk_orphans
                     
                     progress.update(len(chunk))
-                    self.logger.debug(f"Chunk processed: {len(chunk):,} records, {chunk_merged:,} merged, {chunk_orphans:,} orphans")
                 
                 # Log merge statistics
                 merge_rate = (total_merged / total_processed * 100) if total_processed > 0 else 0
-                self.logger.info(f"Position merge completed: {total_merged:,}/{total_processed:,} records merged ({merge_rate:.1f}%)")
+                print(f"✅ Position merge completed: {total_merged:,}/{total_processed:,} records merged ({merge_rate:.1f}%)")
                 if total_orphans > 0:
-                    self.logger.warning(f"Found {total_orphans:,} orphan records (PosIDLookupKey not in position timeline)")
+                    print(f"⚠️ Found {total_orphans:,} orphan records (PosIDLookupKey not in position timeline)")
+                    print("   These records will be excluded from movement analysis.")
                 
                 movement_tracker.colleague_positions = colleague_positions
             
             # Step 6: Skip position enrichment - Position Numbers already loaded directly
-            self.logger.info("Position Numbers already available - skipping enrichment step")
+            print("✅ Position Numbers already available - skipping enrichment step")
             
             # Step 7: Detect movements (existing MovementTracker logic)
             employee_count = len(movement_tracker.employee_histories) if hasattr(movement_tracker, 'employee_histories') else len(set(pos.employee_number for pos in colleague_positions))
@@ -841,20 +848,20 @@ class MovementPatternPopulationCommand(BaseCommand):
                 progress.update(employee_count)
             
             movements_count = len(movement_tracker.movement_events)
-            self.logger.info(f"Detected {movements_count:,} movement events")
+            print(f"📊 Detected {movements_count:,} movement events")
             
             # Step 8: Build fact table (existing MovementFactBuilder logic)
             with ProgressTracker(total=1, desc="Building movement fact table", memory_tracking=True) as progress:
                 movements_df = self._convert_movements_to_dataframe(movement_tracker.movement_events)
                 movement_facts_df = fact_builder.build_fact_table_from_movements(movements_df)
                 progress.update(1)
-                self.logger.info(f"Built fact table with {len(movement_facts_df):,} patterns")
+                print(f"📈 Built fact table with {len(movement_facts_df):,} patterns")
             
             # Step 9: Enrich with JobProfileIDs and prepare for database
             with ProgressTracker(total=1, desc="Enriching with job profile data", memory_tracking=True) as progress:
                 enriched_df = self._enrich_with_job_profile_ids(movement_facts_df, db_path)
                 progress.update(1)
-                self.logger.info(f"Enriched {len(enriched_df):,} patterns with job profile data")
+                print(f"✨ Enriched {len(enriched_df):,} patterns with job profile data")
             
             # Step 10: Insert into database using established pattern
             with ProgressTracker(total=len(enriched_df), desc="Inserting movement patterns", memory_tracking=True) as progress:
@@ -891,7 +898,8 @@ class MovementPatternPopulationCommand(BaseCommand):
             )
             
         except Exception as e:
-            self.logger.error(f"Movement pattern population failed: {e}", exc_info=True)
+            print(f"❌ Movement pattern population failed: {e}")
+            print("   Check your database connection and movement data.")
             return CommandResult(
                 success=False,
                 message=f"Movement pattern population failed: {str(e)}",
@@ -920,7 +928,8 @@ class MovementPatternPopulationCommand(BaseCommand):
                     'core_position_timeline': position_count
                 }
         except Exception as e:
-            self.logger.error(f"Source table validation failed: {e}")
+            print(f"❌ Source table validation failed: {e}")
+            print("   Check your database schema and data integrity.")
             return {}
     
     def _load_position_mappings_from_db(self, db_path: Path) -> dict:
@@ -936,7 +945,8 @@ class MovementPatternPopulationCommand(BaseCommand):
                 mappings = {float(row[0]): int(row[1]) for row in cursor.fetchall()}
                 return mappings
         except Exception as e:
-            self.logger.error(f"Failed to load position mappings: {e}")
+            print(f"❌ Failed to load position mappings: {e}")
+            print("   Ensure position timeline data is available.")
             return {}
     
     def _load_colleague_positions_chunked(self, db_path: Path, strategy: ChunkingStrategy):
@@ -983,7 +993,8 @@ class MovementPatternPopulationCommand(BaseCommand):
                     offset += len(chunk_data)
                     
         except Exception as e:
-            self.logger.error(f"Failed to load colleague positions: {e}")
+            print(f"❌ Failed to load colleague positions: {e}")
+            print("   Check colleague positions data availability.")
             yield []
     
     def _merge_position_numbers(self, chunk: list, position_mappings: dict) -> tuple:
@@ -1033,7 +1044,8 @@ class MovementPatternPopulationCommand(BaseCommand):
             
             return pd.DataFrame(movements_data)
         except Exception as e:
-            self.logger.error(f"Failed to convert movements to DataFrame: {e}")
+            print(f"❌ Failed to convert movements to DataFrame: {e}")
+            print("   Check movement data format and structure.")
             return pd.DataFrame()
     
     def _enrich_with_job_profile_ids(self, movement_facts_df: pd.DataFrame, db_path: Path) -> pd.DataFrame:
@@ -1057,10 +1069,17 @@ class MovementPatternPopulationCommand(BaseCommand):
                 
                 # Map positions to job profile IDs (convert strings to integers for lookup)
                 try:
-                    from_position_int = int(row.get('from_position'))
-                    to_position_int = int(row.get('to_position'))
-                    from_job_profile_id = position_to_jobprofile.get(from_position_int)
-                    to_job_profile_id = position_to_jobprofile.get(to_position_int)
+                    from_position = row.get('from_position')
+                    to_position = row.get('to_position')
+                    
+                    if from_position is not None and to_position is not None:
+                        from_position_int = int(from_position)
+                        to_position_int = int(to_position)
+                        from_job_profile_id = position_to_jobprofile.get(from_position_int)
+                        to_job_profile_id = position_to_jobprofile.get(to_position_int)
+                    else:
+                        from_job_profile_id = None
+                        to_job_profile_id = None
                 except (ValueError, TypeError):
                     # Handle non-numeric position identifiers (PosIDLookupKeys)
                     from_job_profile_id = None
@@ -1087,7 +1106,8 @@ class MovementPatternPopulationCommand(BaseCommand):
             return pd.DataFrame(enriched_data)
             
         except Exception as e:
-            self.logger.error(f"Failed to enrich with job profile IDs: {e}")
+            print(f"❌ Failed to enrich with job profile IDs: {e}")
+            print("   Check job architecture data availability.")
             return movement_facts_df
 
 
@@ -1140,7 +1160,7 @@ class MovementMLTrainingCommand(BaseCommand):
                         errors=["analytics_movement_patterns table is empty - run movement pattern population first"]
                     )
                 
-                self.logger.info(f"Found {count:,} movement patterns ready for ML training")
+                print(f"🤖 Found {count:,} movement patterns ready for ML training")
         
         except sqlite3.Error as e:
             return CommandResult(
@@ -1154,7 +1174,7 @@ class MovementMLTrainingCommand(BaseCommand):
     def execute(self, **kwargs) -> CommandResult:
         """Execute ML model training pipeline."""
         try:
-            self.logger.info("Starting Phase 2.2: ML Model Training")
+            print("🚀 Starting Phase 2.2: ML Model Training")
             
             # Get database path
             db_path = Path(kwargs['db_path'])
@@ -1173,7 +1193,7 @@ class MovementMLTrainingCommand(BaseCommand):
             trainer = MovementMLTrainer(db_path=db_path)
             
             # Execute full ML pipeline
-            self.logger.info("Executing complete ML training pipeline...")
+            print("🔧 Executing complete ML training pipeline...")
             results = trainer.execute_full_ml_pipeline(output_dir=output_dir)
             
             if not results['success']:
@@ -1190,12 +1210,12 @@ class MovementMLTrainingCommand(BaseCommand):
             performance_metrics = results['performance_metrics']
             saved_files = results['saved_files']
             
-            self.logger.info(f"ML training completed successfully:")
-            self.logger.info(f"  - Best model: {best_model_name}")
-            self.logger.info(f"  - R² score: {performance_metrics['best_model_r2']:.3f}")
-            self.logger.info(f"  - Average error: {performance_metrics['best_model_mae']:.1f} movements")
-            self.logger.info(f"  - Total predictions: {performance_metrics['total_predictions']:,}")
-            self.logger.info(f"  - Models saved to: {output_dir}")
+            print("✅ ML training completed successfully:")
+            print(f"   • Best model: {best_model_name}")
+            print(f"   • R² score: {performance_metrics['best_model_r2']:.3f}")
+            print(f"   • Average error: {performance_metrics['best_model_mae']:.1f} movements")
+            print(f"   • Total predictions: {performance_metrics['total_predictions']:,}")
+            print(f"   • Models saved to: {output_dir}")
             
             return CommandResult(
                 success=True,
@@ -1217,7 +1237,8 @@ class MovementMLTrainingCommand(BaseCommand):
             )
             
         except Exception as e:
-            self.logger.error(f"ML training command failed: {e}", exc_info=True)
+            print(f"❌ ML training command failed: {e}")
+            print("   Check your training data and model configuration.")
             return CommandResult(
                 success=False,
                 message=f"ML training failed: {str(e)}",

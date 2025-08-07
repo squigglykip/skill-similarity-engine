@@ -58,7 +58,7 @@ class SkillRarityAnalyzer:
         Returns:
             DataFrame with active skills, prevalence percentages, and rarity categories
         """
-        self.logger.info("Loading active skill universe from database...")
+        print("📊 Loading active skill universe from database...")
         
         try:
             conn = sqlite3.connect(db_path)
@@ -92,15 +92,14 @@ class SkillRarityAnalyzer:
                 self.categorise_rarity
             )
             
-            self.logger.info(f"Loaded {len(skill_universe):,} active skills (skills used in job profiles)")
-            self.logger.info(f"Total job profiles: {total_profiles:,}")
+            print(f"   Loaded {len(skill_universe):,} active skills from {total_profiles:,} job profiles")
             
             # Show rarity distribution
             rarity_dist = skill_universe['rarity_category'].value_counts()
-            self.logger.info("Rarity distribution:")
+            print(f"   Rarity distribution:")
             for category, count in rarity_dist.items():
                 percentage = (count / len(skill_universe)) * 100
-                self.logger.info(f"  • {category}: {count:,} skills ({percentage:.1f}%)")
+                print(f"     • {category}: {count:,} skills ({percentage:.1f}%)")
             
             return skill_universe
             
@@ -140,7 +139,7 @@ class SkillRarityAnalyzer:
         Returns:
             DataFrame formatted for analytics_skill_rarity table
         """
-        self.logger.info("Generating skill rarity analysis...")
+        # Starting skill rarity analysis generation
         
         # Create rarity analysis records
         rarity_records = []
@@ -176,11 +175,11 @@ class SkillRarityAnalyzer:
         
         rarity_df = pd.DataFrame(rarity_records)
         
-        self.logger.info(f"Generated rarity analysis for {len(rarity_df):,} skills")
+        print(f"   ✅ Generated rarity analysis for {len(rarity_df):,} skills")
         
         # Show summary statistics
         rare_count = len(rarity_df[rarity_df['is_defining_skill']])
-        self.logger.info(f"Rare skills (defining): {rare_count:,} ({rare_count/len(rarity_df)*100:.1f}%)")
+        print(f"   📊 {rare_count:,} rare/defining skills ({rare_count/len(rarity_df)*100:.1f}%)")
         
         return rarity_df
     
@@ -202,7 +201,7 @@ class SkillRarityAnalyzer:
             skill_universe['prevalence_percentage'] < threshold
         ].copy()
         
-        self.logger.info(f"Found {len(rare_skills):,} rare skills (prevalence < {threshold}%)")
+        print(f"🔍 Found {len(rare_skills):,} rare skills (prevalence < {threshold}%)")
         
         return rare_skills
     

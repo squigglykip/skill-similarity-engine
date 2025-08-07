@@ -29,7 +29,7 @@ class PreviewService:
         self.db = db_connection
         self.analysis_service = CareerAnalysisService(db_connection)
         
-        logger.info("PreviewService initialized")
+        print("PreviewService initialized")
     
     def generate_preview(self, form_data: Dict) -> Dict[str, Any]:
         """
@@ -42,7 +42,7 @@ class PreviewService:
             Dict with structured content ready for frontend consumption
         """
         try:
-            logger.info(f"Generating preview for form data: {form_data}")
+            print(f"Generating preview for form data: {form_data}")
             
             # Extract and validate parameters
             parameters = self._extract_parameters(form_data)
@@ -77,7 +77,7 @@ class PreviewService:
             # Add preview-specific metadata
             preview_metadata = self._enhance_metadata_for_preview(result['metadata'], parameters)
             
-            logger.info(f"Successfully generated preview with {len(processed_content)} sections")
+            print(f"Successfully generated preview with {len(processed_content)} sections")
             
             return {
                 'success': True,
@@ -115,7 +115,7 @@ class PreviewService:
         
         # Log mode mapping for debugging
         if analysis_mode_raw != analysis_mode:
-            logger.info(f"Mapped analysis mode: {analysis_mode_raw} → {analysis_mode}")
+            print(f"Mapped analysis mode: {analysis_mode_raw} → {analysis_mode}")
         
         return {
             'job_from': form_data.get('job_from', ''),

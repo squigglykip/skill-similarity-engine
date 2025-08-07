@@ -41,7 +41,7 @@ class BusinessContextOrchestrator:
             default=self._get_fallback_ui_config()
         )
         
-        self.logger.info("Workforce database orchestrator initialized")
+        # Orchestrator initialized
     
     def _get_fallback_ui_config(self) -> Dict[str, Any]:
         """Provide fallback UI configuration if config file not available."""
@@ -263,9 +263,9 @@ class BusinessContextOrchestrator:
         error_msgs = messages.get('errors', {})
         
         try:
-            # Progress message
-            print(progress_msgs.get('loading_foundation', '📊 Loading workforce data...'))
-            print(progress_msgs.get('loading_details', 'Importing employee records and job information from CSV files.'))
+            print("\n" + "=" * 60)
+            print("🏗️  BUILDING WORKFORCE DATABASE")
+            print("=" * 60)
             print()
             
             # Check for skills library updates before loading (API → CSV → DB workflow)
@@ -279,6 +279,7 @@ class BusinessContextOrchestrator:
             except Exception as e:
                 self.logger.warning(f"Skills update check failed: {e}")
                 print("⚠️  Could not check for skills updates - using existing skills library")
+            print()
             
             # Use versioning system to get proper quarterly database path
             version_manager = ModelVersionManager()
@@ -293,17 +294,23 @@ class BusinessContextOrchestrator:
             # Create schema with versioned path (drop existing for clean rebuild)
             schema_builder = SchemaBuilder(str(db_path))
             schema_builder.create_schema(drop_existing=True)
+            print()
             
             # Load data (Phase 0: core data only, no analytics)
+            print("📊 Loading workforce data from CSV files...")
+            print("   This will import all employee records, job information, and historical data.")
+            print()
             data_loader = DataLoader(str(db_path))
             success = data_loader.load_all_data()
 
             if success:
-                print(success_msgs.get('foundation_loaded', '✅ Employee and job data loaded successfully'))
-                print(success_msgs.get('foundation_details', 'Your database now contains workforce information and is ready for analysis.'))
+                print("\n" + "=" * 60)
+                print("🎉 DATABASE BUILDING COMPLETE!")
+                print("=" * 60)
+                print("✅ Your workforce database is ready for career intelligence generation.")
+                print()
             else:
-                print(error_msgs.get('general_error', '❌ An error occurred'))
-                print("Failed to load foundation data. Please check the logs for details.")
+                print("\n❌ Database building failed. Please check the logs for details.")
 
         except Exception as e:
             self.logger.error(f"Foundation data loading failed: {e}")

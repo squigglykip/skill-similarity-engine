@@ -22,7 +22,7 @@ class ValidationService:
     def __init__(self, db_connection):
         """Initialize with database connection for job validation."""
         self.db = db_connection
-        logger.info("ValidationService initialized")
+        print("ValidationService initialized")
     
     def validate_form_data(self, form_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any], List[str]]:
         """
@@ -50,12 +50,12 @@ class ValidationService:
             # Validate optional job_to (for specific mode)
             if analysis_mode == 'specific':
                 job_to_raw = form_data.get('job_to')
-                logger.info(f"🔍 Validating job_to for specific mode: '{job_to_raw}'")
+                print(f"🔍 Validating job_to for specific mode: '{job_to_raw}'")
                 job_to = self._validate_job_id(job_to_raw, 'job_to', errors)
                 if job_to:
                     cleaned_data['job_to'] = job_to
                     target_count = len(job_to.split(',')) if ',' in job_to else 1
-                    logger.info(f"✅ Validated {target_count} target job(s): {job_to}")
+                    print(f"✅ Validated {target_count} target job(s): {job_to}")
                 else:
                     logger.warning(f"❌ job_to validation failed for: '{job_to_raw}'")
             
@@ -84,7 +84,7 @@ class ValidationService:
             is_valid = len(errors) == 0
             
             if is_valid:
-                logger.info(f"Form validation successful for job {cleaned_data['job_from']}")
+                print(f"Form validation successful for job {cleaned_data['job_from']}")
             else:
                 logger.warning(f"Form validation failed: {errors}")
             

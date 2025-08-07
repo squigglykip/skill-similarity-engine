@@ -117,14 +117,14 @@ class ModelVersionManager:
         
         if custom_path:
             output_dir = Path(custom_path)
-            logger.info(f"Using custom output directory: {output_dir}")
+            print(f"Using custom output directory: {output_dir}")
             return output_dir
         
         # NEW STRATEGY: Check if daily folder strategy is enabled and determine output level
         if self.daily_enabled and self._should_use_daily_folder(output_type):
             # Use daily folder for precompute outputs
             output_dir = self.get_daily_output_directory()
-            logger.info(f"Using daily folder strategy: {output_dir}")
+            print(f"Using daily folder strategy: {output_dir}")
             
             # Handle conflicts at daily level if interactive
             if output_dir.exists() and interactive and not self.overwrite_within_day:
@@ -134,7 +134,7 @@ class ModelVersionManager:
             # Use quarterly folder for business_context or when daily strategy disabled
             current_quarter = self.get_current_quarter()
             output_dir = self.base_models_dir / current_quarter
-            logger.info(f"Using quarterly folder: {output_dir}")
+            # Using quarterly folder for organization
             
             # Handle conflicts at quarterly level if interactive
             if output_dir.exists() and interactive:
@@ -157,7 +157,7 @@ class ModelVersionManager:
         if quarterly_dir.parent == self.base_models_dir:
             self._update_current_symlink(quarterly_dir)
         
-        logger.info(f"Output directory ready: {output_dir}")
+        # Output directory ready
         return output_dir
     
     def _should_use_daily_folder(self, output_type: str) -> bool:
@@ -372,14 +372,14 @@ class ModelVersionManager:
             # Create new symlink
             current_symlink.symlink_to(quarter_dir.name, target_is_directory=True)
             print(f"Updated '{symlink_name}' symlink to point to {quarter_dir.name}")
-            logger.info(f"Updated current symlink: {current_symlink} -> {quarter_dir.name}")
+            print(f"Updated current symlink: {current_symlink} -> {quarter_dir.name}")
             
         except OSError as e:
             # Symlinks require admin privileges on Windows - this is expected behavior
             if str(self.win_error_symlink) in str(e):
                 # Windows privilege error - common and expected
                 logger.debug(f"Symlink creation skipped on Windows (requires admin privileges): {e}")
-                logger.info(f"Note: models/{symlink_name} symlink not created (Windows requires admin privileges)")
+                # Symlink not created on Windows (requires admin privileges)
             else:
                 # Other OS errors
                 print(f"Note: Could not create symlink (models/{symlink_name} -> {quarter_dir.name})")

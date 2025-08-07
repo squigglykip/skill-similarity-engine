@@ -62,7 +62,7 @@ class AnalyticsOrchestrator:
         self.defining_analyzer = DefiningSkillsAnalyzer()
         self.rarity_calculator = RarityWeightedCalculator()
         
-        self.logger.info(f"Analytics orchestrator initialized with database: {self.db_path}")
+        print(f"Analytics orchestrator initialized with database: {self.db_path}")
     
     @retry(max_attempts=3)
     @circuit_breaker(failure_threshold=3)
@@ -79,38 +79,44 @@ class AnalyticsOrchestrator:
             True if successful, False otherwise
         """
         try:
-            self.logger.info("Starting Phase 1: Enhanced Similarity Analytics")
+            print("\n🚀 Starting Enhanced Similarity Analytics...")
+            print()
             
             # Step 1: Verify database prerequisites
             if not self._verify_phase_0_completion():
-                self.logger.error("Phase 0 not complete. Cannot proceed with Phase 1.")
+                print("❌ Foundation database not ready. Cannot proceed with analytics.")
                 return False
             
             # Step 2: Initialize enhanced similarity components
+            print("🔧 Setting up enhanced similarity components...")
             enhanced_components = self._setup_enhanced_similarity()
             if not enhanced_components:
-                self.logger.error("Failed to setup enhanced similarity components")
+                print("❌ Failed to setup enhanced similarity components")
                 return False
             
             # Step 3: Generate enhanced similarity matrix
+            print("\n📊 Calculating enhanced job similarities...")
             similarity_results = self._calculate_enhanced_similarities(enhanced_components)
             if similarity_results is None:
-                self.logger.error("Failed to calculate enhanced similarities")
+                print("❌ Failed to calculate enhanced similarities")
                 return False
             
             # Step 4: Generate skill rarity analysis
+            print("\n🎯 Generating skill rarity analysis...")
             skill_rarity_results = self._generate_skill_rarity_analysis(enhanced_components)
             if skill_rarity_results is None:
-                self.logger.error("Failed to generate skill rarity analysis")
+                print("❌ Failed to generate skill rarity analysis")
                 return False
             
             # Step 5: Generate job defining skills
+            print("\n🔍 Generating job defining skills analysis...")
             defining_skills_results = self._generate_job_defining_skills(enhanced_components)
             if defining_skills_results is None:
-                self.logger.error("Failed to generate job defining skills")
+                print("❌ Failed to generate job defining skills")
                 return False
             
             # Step 6: Populate database tables directly
+            print("\n💾 Populating analytics database...")
             success = True
             success &= self.db_integrator.populate_job_similarities(similarity_results)
             success &= self.db_integrator.populate_skill_rarity(skill_rarity_results) 
@@ -119,14 +125,21 @@ class AnalyticsOrchestrator:
             if success:
                 # Update phase completion status
                 self._update_phase_completion_status("phase_1", len(similarity_results))
-                self.logger.info("Phase 1 enhanced similarity analytics completed successfully")
+                
+                # Show completion summary
+                print(f"\n✅ Enhanced Similarity Analytics Complete!")
+                print(f"   📊 {len(similarity_results):,} job similarity calculations")
+                print(f"   🎯 {len(skill_rarity_results):,} skill rarity analyses")  
+                print(f"   🔍 {len(defining_skills_results):,} job defining skill mappings")
+                print(f"   💾 All data saved to analytics database")
                 return True
             else:
-                self.logger.error("Failed to populate one or more analytics tables")
+                print("❌ Failed to save results to database")
                 return False
                 
         except Exception as e:
-            self.logger.error(f"Phase 1 execution failed: {e}", exc_info=True)
+            print(f"❌ Analytics processing failed: {e}")
+            print(f"Phase 1 execution failed: {e}")
             return False
     
     def execute_movement_pattern_analysis(self) -> bool:
@@ -142,7 +155,7 @@ class AnalyticsOrchestrator:
             True if successful, False otherwise
         """
         try:
-            self.logger.info("Starting movement pattern analysis")
+            print("Starting movement pattern analysis")
             
             # Import and execute the movement pattern population command
             from ..cli.commands.precompute_commands import MovementPatternPopulationCommand
@@ -152,17 +165,17 @@ class AnalyticsOrchestrator:
             result = command.run()
             
             if result.success:
-                self.logger.info(f"Movement pattern analysis completed: {result.message}")
+                print(f"Movement pattern analysis completed: {result.message}")
                 return True
             else:
-                self.logger.error(f"Movement pattern analysis failed: {result.message}")
+                print(f"Movement pattern analysis failed: {result.message}")
                 if result.errors:
                     for error in result.errors:
-                        self.logger.error(f"  Error: {error}")
+                        print(f"  Error: {error}")
                 return False
             
         except Exception as e:
-            self.logger.error(f"Movement pattern analysis execution failed: {e}", exc_info=True)
+            print(f"Movement pattern analysis execution failed: {e}")
             return False
     
     def execute_movement_ml_training(self) -> bool:
@@ -179,11 +192,11 @@ class AnalyticsOrchestrator:
             True if successful, False otherwise
         """
         try:
-            self.logger.info("Starting Phase 2.2: ML Model Training")
+            print("Starting Phase 2.2: ML Model Training")
             
             # Verify movement patterns are available
             if not self._verify_movement_patterns_available():
-                self.logger.error("Movement patterns not available - run movement pattern analysis first")
+                print("Movement patterns not available - run movement pattern analysis first")
                 return False
             
             # Import and execute the ML training command
@@ -195,14 +208,14 @@ class AnalyticsOrchestrator:
             
             if result.success:
                 # ML training completed successfully - models saved to quarterly folder
-                self.logger.info(f"ML model training completed: {result.message}")
+                print(f"ML model training completed: {result.message}")
                 
                 # Get model info from command result for logging
                 model_info = result.data.get('performance_metrics', {}) if result.data else {}
                 if model_info:
                     total_predictions = model_info.get('total_predictions', 0)
                     best_model_r2 = model_info.get('best_model_r2', 0)
-                    self.logger.info(f"Models trained with {total_predictions:,} pathway predictions, R²: {best_model_r2:.3f}")
+                    print(f"Models trained with {total_predictions:,} pathway predictions, R²: {best_model_r2:.3f}")
                     
                     # Update phase completion status
                     self._update_phase_completion_status("phase_2_ml", total_predictions)
@@ -211,14 +224,14 @@ class AnalyticsOrchestrator:
                     self._update_phase_completion_status("phase_2_ml", 0)
                 return True
             else:
-                self.logger.error(f"ML model training failed: {result.message}")
+                print(f"ML model training failed: {result.message}")
                 if result.errors:
                     for error in result.errors:
-                        self.logger.error(f"  Error: {error}")
+                        print(f"  Error: {error}")
                 return False
             
         except Exception as e:
-            self.logger.error(f"ML model training execution failed: {e}", exc_info=True)
+            print(f"ML model training execution failed: {e}")
             return False
     
     def _verify_movement_patterns_available(self) -> bool:
@@ -229,14 +242,14 @@ class AnalyticsOrchestrator:
                 count = cursor.fetchone()[0]
                 
                 if count == 0:
-                    self.logger.error("No movement patterns found in analytics_movement_patterns table")
+                    print("No movement patterns found in analytics_movement_patterns table")
                     return False
                 
-                self.logger.info(f"Found {count:,} movement patterns ready for ML training")
+                print(f"Found {count:,} movement patterns ready for ML training")
                 return True
                 
         except sqlite3.Error as e:
-            self.logger.error(f"Failed to verify movement patterns availability: {e}")
+            print(f"Failed to verify movement patterns availability: {e}")
             return False
     
     def execute_phase_3_clustering_velocity(self) -> bool:
@@ -252,15 +265,15 @@ class AnalyticsOrchestrator:
             True if successful, False otherwise
         """
         try:
-            self.logger.info("Starting Phase 3: Clustering & Velocity Analytics")
+            print("Starting Phase 3: Clustering & Velocity Analytics")
             
             # Phase 3 implementation would go here
             # For now, return False to indicate not implemented
-            self.logger.warning("Phase 3 implementation not yet available")
+            print("Phase 3 implementation not yet available")
             return False
             
         except Exception as e:
-            self.logger.error(f"Phase 3 execution failed: {e}", exc_info=True)
+            print(f"Phase 3 execution failed: {e}")
             return False
     
     def _verify_phase_0_completion(self) -> bool:
@@ -285,14 +298,14 @@ class AnalyticsOrchestrator:
                     cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
                     count = cursor.fetchone()[0]
                     if count == 0:
-                        self.logger.error(f"Phase 0 incomplete: {table} is empty")
+                        print(f"Phase 0 incomplete: {table} is empty")
                         return False
                 
-                self.logger.info("Phase 0 verification complete - all core tables populated")
+                print("Phase 0 verification complete - all core tables populated")
                 return True
                 
         except Exception as e:
-            self.logger.error(f"Failed to verify Phase 0 completion: {e}")
+            print(f"Failed to verify Phase 0 completion: {e}")
             return False
     
     def _setup_enhanced_similarity(self) -> Optional[Dict[str, Any]]:
@@ -303,7 +316,7 @@ class AnalyticsOrchestrator:
             Dictionary with enhanced similarity components or None if setup failed
         """
         try:
-            self.logger.info("Setting up enhanced similarity components")
+            print("Setting up enhanced similarity components")
             
             # Load skill universe with rarity data
             skill_universe_df = self.rarity_analyzer.load_skill_universe_from_database(str(self.db_path))
@@ -321,10 +334,7 @@ class AnalyticsOrchestrator:
                 skill_universe_df, job_skills_df
             )
             
-            self.logger.info(f"Enhanced similarity components loaded:")
-            self.logger.info(f"  - Skills: {len(skill_universe_df):,}")
-            self.logger.info(f"  - Jobs: {len(job_to_skills):,}")
-            self.logger.info(f"  - Defining skills mappings: {len(defining_skills_map):,}")
+            print(f"   ✅ Components ready: {len(skill_universe_df):,} skills • {len(job_to_skills):,} jobs • {len(defining_skills_map):,} defining skill mappings")
             
             return {
                 'skill_universe_df': skill_universe_df,
@@ -334,7 +344,7 @@ class AnalyticsOrchestrator:
             }
             
         except Exception as e:
-            self.logger.error(f"Failed to setup enhanced similarity: {e}", exc_info=True)
+            print(f"Failed to setup enhanced similarity: {e}")
             return None
     
     def _calculate_enhanced_similarities(self, enhanced_components: Dict[str, Any]) -> Optional[pd.DataFrame]:
@@ -348,7 +358,7 @@ class AnalyticsOrchestrator:
             DataFrame with enhanced similarity results or None if failed
         """
         try:
-            self.logger.info("Calculating enhanced similarities with centralized orchestrator")
+            # Starting similarity calculations
             
             job_to_skills = enhanced_components['job_to_skills']
             defining_skills_map = enhanced_components['defining_skills_map']
@@ -361,7 +371,7 @@ class AnalyticsOrchestrator:
                     if job_a_id != job_b_id:  # Skip self-comparison
                         job_pairs.append((job_a_id, job_b_id))
             
-            self.logger.info(f"Processing {len(job_pairs):,} job similarity pairs using orchestrator")
+            print(f"   Processing {len(job_pairs):,} job similarity pairs...")
             
             # Configure processing orchestrator for production workload
             config = ProcessingConfig(
@@ -379,7 +389,7 @@ class AnalyticsOrchestrator:
             
             # Show processing estimates
             estimates = processing_orchestrator.estimate_processing_requirements(len(job_pairs))
-            self.logger.info(f"Processing estimates: {estimates['processing_strategy']} strategy, "
+            print(f"Processing estimates: {estimates['processing_strategy']} strategy, "
                            f"{estimates['estimated_memory_mb']:.1f} MB, "
                            f"{estimates['estimated_chunks']} chunks")
             
@@ -394,7 +404,7 @@ class AnalyticsOrchestrator:
             
             # Convert to DataFrame for corpus normalization
             similarities_df = pd.DataFrame(similarities)
-            self.logger.info(f"Generated {len(similarities_df):,} similarity records via orchestrator")
+            print(f"   ✅ Generated {len(similarities_df):,} similarity calculations")
             
             # Apply corpus normalization to preserve differentiation while ensuring 0-1 range
             normalized_df = self._apply_corpus_normalization(similarities_df)
@@ -402,7 +412,7 @@ class AnalyticsOrchestrator:
             return normalized_df
             
         except Exception as e:
-            self.logger.error(f"Failed to calculate enhanced similarities: {e}", exc_info=True)
+            print(f"Failed to calculate enhanced similarities: {e}")
             return None
     
     def _apply_corpus_normalization(self, similarities_df: pd.DataFrame) -> pd.DataFrame:
@@ -416,7 +426,7 @@ class AnalyticsOrchestrator:
             DataFrame with both raw and normalized similarity scores
         """
         try:
-            self.logger.info("Applying corpus-wide normalization to similarity scores")
+            print(f"   🔧 Applying corpus normalization...")
             
             # Initialize corpus normalizer
             normalizer = CorpusNormalizer()
@@ -448,19 +458,14 @@ class AnalyticsOrchestrator:
             normalized_scores = normalizer.get_normalized_scores_batch(raw_scores)
             similarities_df['similarity_score'] = normalized_scores
             
-            # Log normalization results
-            self.logger.info(f"Corpus normalization complete:")
-            self.logger.info(f"  Total scores: {normalization_stats.total_scores:,}")
-            self.logger.info(f"  Raw range: {normalization_stats.raw_min:.4f} - {normalization_stats.raw_max:.4f}")
-            self.logger.info(f"  Normalized range: 0.0000 - 1.0000")
-            self.logger.info(f"  Normalization factor: {normalization_stats.normalization_factor:.4f}")
-            self.logger.info(f"  Scores above 1.0: {normalization_stats.scores_above_1:,} ({normalization_stats.percentage_above_1:.1f}%)")
-            self.logger.info(f"  Max boost observed: {normalization_stats.max_boost_observed:.4f}")
+            # Show normalization summary
+            print(f"   📊 Normalized {normalization_stats.total_scores:,} scores (range: {normalization_stats.raw_min:.2f} - {normalization_stats.raw_max:.2f} → 0.00 - 1.00)")
+            print(f"   🚀 Normalization factor: {normalization_stats.normalization_factor:.2f} • {normalization_stats.scores_above_1:,} scores ({normalization_stats.percentage_above_1:.1f}%) boosted above 1.0")
             
             return similarities_df
             
         except Exception as e:
-            self.logger.error(f"Failed to apply corpus normalization: {e}", exc_info=True)
+            print(f"Failed to apply corpus normalization: {e}")
             # Return original DataFrame if normalization fails
             return similarities_df
     
@@ -475,19 +480,19 @@ class AnalyticsOrchestrator:
             DataFrame with skill rarity analysis or None if failed
         """
         try:
-            self.logger.info("Generating skill rarity analysis")
+            # Starting skill rarity analysis
             
             skill_universe_df = enhanced_components['skill_universe_df']
             
             # Use the modular rarity analyzer to generate analysis
             rarity_analysis_df = self.rarity_analyzer.generate_skill_rarity_analysis(skill_universe_df)
             
-            self.logger.info(f"Generated rarity analysis for {len(rarity_analysis_df):,} skills")
+            # Rarity analysis completed
             
             return rarity_analysis_df
             
         except Exception as e:
-            self.logger.error(f"Failed to generate skill rarity analysis: {e}", exc_info=True)
+            print(f"Failed to generate skill rarity analysis: {e}")
             return None
     
     def _generate_job_defining_skills(self, enhanced_components: Dict[str, Any]) -> Optional[pd.DataFrame]:
@@ -501,7 +506,7 @@ class AnalyticsOrchestrator:
             DataFrame with job defining skills or None if failed
         """
         try:
-            self.logger.info("Generating job defining skills analysis")
+            # Starting job defining skills analysis
             
             defining_skills_map = enhanced_components['defining_skills_map']
             skill_universe_df = enhanced_components['skill_universe_df']
@@ -512,12 +517,12 @@ class AnalyticsOrchestrator:
                 defining_skills_map, skill_universe_df, job_skills_df
             )
             
-            self.logger.info(f"Generated defining skills for {len(defining_skills_df):,} job-skill pairs")
+            # Defining skills analysis completed
             
             return defining_skills_df
             
         except Exception as e:
-            self.logger.error(f"Failed to generate job defining skills: {e}", exc_info=True)
+            print(f"Failed to generate job defining skills: {e}")
             return None
     
     def _update_phase_completion_status(self, phase: str, record_count: int):
@@ -530,15 +535,27 @@ class AnalyticsOrchestrator:
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                # Update sys_schema_metadata
+                # Update sys_schema_metadata with correct column names
+                metadata_key = f"analytics_{phase}_record_count"
+                metadata_value = str(record_count)
+                updated_timestamp = pd.Timestamp.now().isoformat()
+                
                 conn.execute("""
                     INSERT OR REPLACE INTO sys_schema_metadata 
-                    (table_name, record_count, last_updated, phase_completed)
-                    VALUES (?, ?, ?, ?)
-                """, (f"analytics_{phase}", record_count, pd.Timestamp.now().isoformat(), True))
+                    (metadata_key, metadata_value, metadata_category, description, updated_timestamp)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (metadata_key, metadata_value, "analytics_status", f"Record count for {phase} completion", updated_timestamp))
+                
+                # Also update phase completion flag
+                phase_key = f"analytics_{phase}_completed"
+                conn.execute("""
+                    INSERT OR REPLACE INTO sys_schema_metadata 
+                    (metadata_key, metadata_value, metadata_category, description, updated_timestamp)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (phase_key, "true", "analytics_status", f"Completion status for {phase}", updated_timestamp))
                 
         except Exception as e:
-            self.logger.warning(f"Failed to update phase completion status: {e}")
+            print(f"⚠️ Failed to update phase completion status: {e}")
     
     def _load_job_architecture_from_database(self):
         """
@@ -550,7 +567,7 @@ class AnalyticsOrchestrator:
         try:
             from ..models.jobs import JobArchitecture, Job
             
-            self.logger.info("Loading job architecture from database")
+            print("Loading job architecture from database")
             
             # Create empty architecture
             job_architecture = JobArchitecture()
@@ -609,9 +626,9 @@ class AnalyticsOrchestrator:
                     # Add job to architecture
                     job_architecture.add_job(job)
             
-            self.logger.info(f"Loaded job architecture with {len(job_architecture.jobs)} jobs")
+            print(f"Loaded job architecture with {len(job_architecture.jobs)} jobs")
             return job_architecture
             
         except Exception as e:
-            self.logger.error(f"Failed to load job architecture from database: {e}", exc_info=True)
+            print(f"Failed to load job architecture from database: {e}")
             return None

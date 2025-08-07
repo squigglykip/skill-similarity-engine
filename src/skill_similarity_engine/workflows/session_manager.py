@@ -5,7 +5,6 @@ Manages application session state including loaded data, replacing the global
 variables pattern from main.py with a proper session management system.
 """
 
-import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -82,7 +81,6 @@ class SessionManager:
     def __init__(self):
         """Initialize session manager."""
         if not hasattr(self, '_initialized'):
-            self.logger = logging.getLogger(__name__)
             self._initialized = True
     
     @property
@@ -90,14 +88,14 @@ class SessionManager:
         """Get the current session, creating one if needed."""
         if self._current_session is None:
             self._current_session = SessionData()
-            self.logger.info(f"Created new session: {self._current_session.session_id}")
+            print(f"🆕 Created new session: {self._current_session.session_id}")
         return self._current_session
     
     def start_new_session(self) -> SessionData:
         """Start a new session, clearing any existing data."""
         old_session_id = self._current_session.session_id if self._current_session else "none"
         self._current_session = SessionData()
-        self.logger.info(f"Started new session: {self._current_session.session_id} (previous: {old_session_id})")
+        print(f"🔄 Started new session: {self._current_session.session_id} (previous: {old_session_id})")
         return self._current_session
     
     def load_taxonomy(self, taxonomy: SkillTaxonomy) -> None:
@@ -106,7 +104,7 @@ class SessionManager:
         session.taxonomy = taxonomy
         session.update_timestamp()
         session.metadata['taxonomy_loaded_at'] = datetime.now().isoformat()
-        self.logger.info(f"Loaded taxonomy with {len(taxonomy.skills)} skills")
+        print(f"📚 Loaded taxonomy with {len(taxonomy.skills):,} skills")
     
     def load_architecture(self, architecture: JobArchitecture) -> None:
         """Load job architecture into the current session."""
@@ -114,7 +112,7 @@ class SessionManager:
         session.architecture = architecture
         session.update_timestamp()
         session.metadata['architecture_loaded_at'] = datetime.now().isoformat()
-        self.logger.info(f"Loaded architecture with {len(architecture.jobs)} jobs")
+        print(f"🏗️ Loaded architecture with {len(architecture.jobs):,} jobs")
     
     def load_employee_database(self, employee_database: EmployeeDatabase) -> None:
         """Load employee database into the current session."""
@@ -122,7 +120,7 @@ class SessionManager:
         session.employee_database = employee_database
         session.update_timestamp()
         session.metadata['employee_database_loaded_at'] = datetime.now().isoformat()
-        self.logger.info(f"Loaded employee database with {len(employee_database.employees)} employees")
+        print(f"👥 Loaded employee database with {len(employee_database.employees):,} employees")
     
     def get_taxonomy(self) -> Optional[SkillTaxonomy]:
         """Get the loaded skill taxonomy."""
@@ -146,7 +144,7 @@ class SessionManager:
         if self._current_session:
             old_session_id = self._current_session.session_id
             self._current_session = None
-            self.logger.info(f"Cleared session: {old_session_id}")
+            print(f"🧹 Cleared session: {old_session_id}")
     
     def get_session_summary(self) -> Dict[str, Any]:
         """Get a summary of the current session state."""

@@ -33,13 +33,13 @@ def get_db():
 def api_career_analysis_preview():
     """Generate a preview using the new service layer architecture."""
     try:
-        logger.info("Starting career analysis preview using service layer...")
+        print("Starting career analysis preview using service layer...")
         
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
-        logger.info(f"Processing request for job: {data.get('job_from', 'Unknown')}")
+        print(f"Processing request for job: {data.get('job_from', 'Unknown')}")
         
         # Import services
         from ..career_analysis.services.preview_service import PreviewService
@@ -64,7 +64,7 @@ def api_career_analysis_preview():
         result = preview_service.generate_preview(cleaned_data)
         
         if result['success']:
-            logger.info(f"Successfully generated preview with {len(result.get('content', {}))} sections")
+            print(f"Successfully generated preview with {len(result.get('content', {}))} sections")
             return jsonify(result)
         else:
             logger.error(f"Preview generation failed: {result.get('error', 'Unknown error')}")
@@ -81,14 +81,14 @@ def api_career_analysis_preview():
 def api_career_analysis_document():
     """Generate a downloadable document using the service layer."""
     try:
-        logger.info("Starting document generation using service layer...")
+        print("Starting document generation using service layer...")
         
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
         output_format = data.get('output_format', 'word')
-        logger.info(f"Processing {output_format} document request for job: {data.get('job_from', 'Unknown')}")
+        print(f"Processing {output_format} document request for job: {data.get('job_from', 'Unknown')}")
         
         # Import services
         from ..career_analysis.services.document_service import DocumentService
@@ -113,7 +113,7 @@ def api_career_analysis_document():
         result = document_service.generate_document(cleaned_data, output_format)
         
         if result['success']:
-            logger.info(f"Successfully generated {output_format} document")
+            print(f"Successfully generated {output_format} document")
             
             # Handle document content for JSON response
             import base64

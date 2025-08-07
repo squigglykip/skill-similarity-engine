@@ -34,7 +34,7 @@ class EnhancedContentGenerator:
                                       analysis_data: Dict) -> Dict:
         """Generate unique, role-specific analysis for Top 3 opportunities."""
         
-        print(f"ðŸŽ¯ Generating role-specific analysis for {job_from} with {len(top_matches)} matches")
+        print(f"🎯 Generating role-specific analysis for {job_from} with {len(top_matches)} matches")
         
         # Get enhanced context for source job
         source_context = self._get_comprehensive_job_context(job_from)
@@ -114,7 +114,7 @@ class EnhancedContentGenerator:
             }
             
         except Exception as e:
-            print(f"âš ï¸ Error getting comprehensive job context: {e}")
+            print(f"⚠️ ï¸ Error getting comprehensive job context: {e}")
             return {'error': str(e)}
     
     def _generate_unique_role_analysis(self, job_from: str, match: Dict, 
@@ -126,7 +126,7 @@ class EnhancedContentGenerator:
         
         # Validate target_job_id
         if not target_job_id:
-            print(f"âš ï¸ No target job ID found in match: {match}")
+            print(f"⚠️ ï¸ No target job ID found in match: {match}")
             return {
                 'error': 'Missing target job ID',
                 'rank': rank,
@@ -228,7 +228,7 @@ class EnhancedContentGenerator:
             }
             
         except Exception as e:
-            print(f"âš ï¸ Error in detailed skills analysis: {e}")
+            print(f"⚠️ ï¸ Error in detailed skills analysis: {e}")
             return {'error': str(e), 'metrics': {'shared_count': 0, 'transferable_count': 0, 'develop_count': 0}}
     
     def _generate_business_positioning_analysis(self, source_context: Dict, 

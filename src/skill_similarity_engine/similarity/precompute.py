@@ -172,9 +172,9 @@ class SimilarityMatrixPrecomputer:
         self.progress_tracker = None
         self.checkpoint_manager = None
         
-        logger.info(f"Initialized SimilarityMatrixPrecomputer for {self.num_jobs} jobs")
-        logger.info(f"Estimated chunks: {self.matrix_chunker.estimate_num_chunks()}")
-        logger.info(f"Estimated memory per chunk: {self.matrix_chunker.estimate_memory_requirements():.2f} MB")
+        print(f"Initialized SimilarityMatrixPrecomputer for {self.num_jobs} jobs")
+        print(f"Estimated chunks: {self.matrix_chunker.estimate_num_chunks()}")
+        print(f"Estimated memory per chunk: {self.matrix_chunker.estimate_memory_requirements():.2f} MB")
     
     def _setup_output_directory(self, run_name: Optional[str] = None) -> Path:
         """
@@ -192,7 +192,7 @@ class SimilarityMatrixPrecomputer:
             output_type="similarity_matrix"
         )
         
-        logger.info(f"Using daily folder strategy for similarity matrix output: {output_path}")
+        print(f"Using daily folder strategy for similarity matrix output: {output_path}")
 
         # Setup progress and checkpoint tracking in the daily folder
         if self.config.enable_checkpointing:
@@ -365,7 +365,7 @@ class SimilarityMatrixPrecomputer:
             chunk_results: List of DataFrames from chunk processing
             output_path: Output directory path
         """
-        logger.info("Combining and saving chunk results...")
+        print("Combining and saving chunk results...")
         
         # Combine all chunk results
         if chunk_results:
@@ -381,9 +381,9 @@ class SimilarityMatrixPrecomputer:
         output_file = output_path / "job_similarity_matrix.csv"
         final_df.to_csv(output_file, index=False)
         
-        logger.info(f"Saved similarity matrix to {output_file}")
-        logger.info(f"Matrix shape: {final_df.shape}")
-        logger.info(f"Total job pairs: {len(final_df):,}")
+        print(f"Saved similarity matrix to {output_file}")
+        print(f"Matrix shape: {final_df.shape}")
+        print(f"Total job pairs: {len(final_df):,}")
     
     def precompute_similarity_matrix(self, run_name: Optional[str] = None) -> Path:
         """
@@ -395,19 +395,19 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the output directory containing results
         """
-        logger.info("Starting parallel similarity matrix precomputation...")
+        print("Starting parallel similarity matrix precomputation...")
         
         # Setup output directory
         output_path = self._setup_output_directory(run_name)
-        logger.info(f"Output directory: {output_path}")
+        print(f"Output directory: {output_path}")
         
         # Track overall progress and memory
         total_chunks = self.matrix_chunker.estimate_num_chunks()
-        logger.info(f"Processing {total_chunks} chunks using {self.parallel_processor.max_workers} parallel workers")
+        print(f"Processing {total_chunks} chunks using {self.parallel_processor.max_workers} parallel workers")
         
         try:
             # Use parallel processing for matrix chunks
-            logger.info("Starting parallel chunk processing...")
+            print("Starting parallel chunk processing...")
             
             # Process all chunks in parallel
             chunk_results_dict = self.parallel_processor.process_matrix_chunks(
@@ -427,7 +427,7 @@ class SimilarityMatrixPrecomputer:
                 
                 # Log progress periodically
                 if processed_chunks % 10 == 0:
-                    logger.info(f"Processed {processed_chunks}/{len(chunk_results_dict)} chunks")
+                    print(f"Processed {processed_chunks}/{len(chunk_results_dict)} chunks")
                 
                 # Checkpoint periodically
                 if (self.config.enable_checkpointing and 
@@ -441,7 +441,7 @@ class SimilarityMatrixPrecomputer:
                         'output_path': str(output_path)
                     }
                     self.checkpoint_manager.save_checkpoint(checkpoint_data)
-                    logger.info(f"Checkpoint saved at chunk {processed_chunks}")
+                    print(f"Checkpoint saved at chunk {processed_chunks}")
                     
                     # Also record progress for file-based tracking
                     if self.progress_tracker:
@@ -452,7 +452,7 @@ class SimilarityMatrixPrecomputer:
                             memory_usage_mb=get_memory_usage().current_process_usage_mb
                         )
             
-            logger.info(f"Parallel processing complete! Processed {len(chunk_results)} chunks")
+            print(f"Parallel processing complete! Processed {len(chunk_results)} chunks")
             
             # Save final results
             self._save_chunk_results(chunk_results, output_path)
@@ -461,7 +461,7 @@ class SimilarityMatrixPrecomputer:
             if self.progress_tracker:
                 self.progress_tracker.record_completion()
             
-            logger.info("Parallel similarity matrix precomputation completed successfully!")
+            print("Parallel similarity matrix precomputation completed successfully!")
             return output_path
             
         except Exception as e:
@@ -479,7 +479,7 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the career pathways parquet file
         """
-        logger.info("🚀 Starting parallel career pathways precomputation...")
+        print("🚀 Starting parallel career pathways precomputation...")
         
         # Get configuration for career pathways
         pathways_config = self.config_manager.get_career_pathways_config()
@@ -490,8 +490,8 @@ class SimilarityMatrixPrecomputer:
         job_families = {job_id: getattr(job, 'job_family', 'Unknown') for job_id, job in self.job_architecture.jobs.items()}
         all_job_ids = list(job_families.keys())
         
-        logger.info(f"📊 Generating pathways for {len(all_job_ids)} jobs (top {TOP_N_PATHWAYS} per job)")
-        logger.info(f"🔧 Using {self.parallel_processor.max_workers} parallel workers")
+        print(f"📊 Generating pathways for {len(all_job_ids)} jobs (top {TOP_N_PATHWAYS} per job)")
+        print(f"🔧 Using {self.parallel_processor.max_workers} parallel workers")
         
         try:
             # Create job chunks for parallel processing
@@ -504,7 +504,7 @@ class SimilarityMatrixPrecomputer:
             
             # Convert chunks to list for parallel processing
             job_chunks = list(job_chunker.chunks())
-            logger.info(f"📦 Created {len(job_chunks)} job chunks for parallel processing")
+            print(f"📦 Created {len(job_chunks)} job chunks for parallel processing")
             
             # Prepare data for parallel workers
             chunk_tasks = []
@@ -520,7 +520,7 @@ class SimilarityMatrixPrecomputer:
                 chunk_tasks.append(chunk_task)
             
             # Process chunks in parallel
-            logger.info("🚀 Starting parallel chunk processing...")
+            print("🚀 Starting parallel chunk processing...")
             chunk_results = self.parallel_processor.map(
                 func=self._process_career_pathways_chunk,
                 items=chunk_tasks,
@@ -537,9 +537,9 @@ class SimilarityMatrixPrecomputer:
                 
                 # Log progress periodically
                 if len(pathway_records) % (self.config.initial_chunk_size * 2) == 0:
-                    logger.info(f"📄 Combined {len(pathway_records):,} pathway records so far...")
+                    print(f"📄 Combined {len(pathway_records):,} pathway records so far...")
             
-            logger.info(f"✅ Parallel processing complete! Generated {len(pathway_records):,} pathway records")
+            print(f"✅ Parallel processing complete! Generated {len(pathway_records):,} pathway records")
             
             # Convert to DataFrame with proper column structure
             if pathway_records:
@@ -555,14 +555,14 @@ class SimilarityMatrixPrecomputer:
             pathways_file = output_path / "career_pathways.parquet"
             pathways_df.to_parquet(pathways_file, compression='snappy', index=False)
             
-            logger.info(f"✅ Career pathways saved to {pathways_file}")
-            logger.info(f"📊 Generated {len(pathways_df):,} career pathway relationships")
-            logger.info(f"📊 Average pathways per job: {len(pathways_df) / len(all_job_ids):.1f}")
+            print(f"✅ Career pathways saved to {pathways_file}")
+            print(f"📊 Generated {len(pathways_df):,} career pathway relationships")
+            print(f"📊 Average pathways per job: {len(pathways_df) / len(all_job_ids):.1f}")
             
             # Also save as CSV for compatibility
             csv_file = output_path / "career_pathways.csv"
             pathways_df.to_csv(csv_file, index=False)
-            logger.info(f"✅ Career pathways CSV saved to {csv_file}")
+            print(f"✅ Career pathways CSV saved to {csv_file}")
             
             return pathways_file
             
@@ -580,23 +580,23 @@ class SimilarityMatrixPrecomputer:
         Returns:
             Path to the output directory containing both results
         """
-        logger.info("🚀 Starting complete precomputation pipeline...")
+        print("🚀 Starting complete precomputation pipeline...")
         
         # Step 1: Precompute similarity matrix
-        logger.info("📊 Step 1: Computing job-to-job similarity matrix...")
+        print("📊 Step 1: Computing job-to-job similarity matrix...")
         output_path = self.precompute_similarity_matrix(run_name)
         
         # Step 2: Load similarity matrix and compute career pathways
-        logger.info("🔗 Step 2: Computing career pathways from similarity matrix...")
+        print("🔗 Step 2: Computing career pathways from similarity matrix...")
         
         # Read the similarity matrix we just created
         similarity_file = output_path / "job_similarity_matrix.csv"
         if not similarity_file.exists():
             raise EngineError(f"Similarity matrix file not found: {similarity_file}")
         
-        logger.info(f"📖 Loading similarity matrix from {similarity_file}")
+        print(f"📖 Loading similarity matrix from {similarity_file}")
         similarity_df = pd.read_csv(similarity_file)
-        logger.info(f"📊 Loaded {len(similarity_df):,} similarity relationships")
+        print(f"📊 Loaded {len(similarity_df):,} similarity relationships")
         
         # Generate career pathways
         pathways_file = self.precompute_career_pathways(similarity_df, output_path)
@@ -623,10 +623,10 @@ class SimilarityMatrixPrecomputer:
         with open(str(metadata_file), 'w') as f:
             json.dump(metadata, f)
         
-        logger.info("🎯 Complete precomputation pipeline finished successfully!")
-        logger.info(f"📁 Output directory: {output_path}")
-        logger.info(f"📊 Similarity matrix: {similarity_file}")
-        logger.info(f"🔗 Career pathways: {pathways_file}")
+        print("🎯 Complete precomputation pipeline finished successfully!")
+        print(f"📁 Output directory: {output_path}")
+        print(f"📊 Similarity matrix: {similarity_file}")
+        print(f"🔗 Career pathways: {pathways_file}")
         
         return output_path
     
@@ -645,7 +645,7 @@ class SimilarityMatrixPrecomputer:
         sample_size = min(100, self.num_jobs)
         sample_job_ids = self.job_ids[:sample_size]
         
-        logger.info(f"Estimating runtime based on {sample_size} job sample...")
+        print(f"Estimating runtime based on {sample_size} job sample...")
         
         start_time = time.time()
         sample_count = 0

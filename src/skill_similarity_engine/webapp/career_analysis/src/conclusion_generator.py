@@ -93,7 +93,7 @@ class ConclusionGenerator:
                  similarity_range: tuple = (0.4, 0.9), include_organisational_deployment: bool = False, top_n: int = 3) -> Dict:
         """Generate conclusion content for the Career Transition Analysis."""
         
-        logger.info(f"Generating conclusion for job: {job_from}")
+        print(f"Generating conclusion for job: {job_from}")
         
         # Load appropriate template for mode
         self.template_data = self._load_template(analysis_mode)
@@ -159,7 +159,7 @@ class ConclusionGenerator:
             # Default: Discovery mode
             # Step 1: Get database-derived analysis summary with similarity range filtering
             db_values = self._get_database_summary(job_from, top_n, similarity_range)
-            logger.info(f"Retrieved database summary for conclusion: {len(db_values)} metrics")
+            print(f"Retrieved database summary for conclusion: {len(db_values)} metrics")
             
             # Step 2: Get pathway analysis summary
             pathway_summary = self._get_pathway_analysis_summary(job_from)
@@ -171,18 +171,18 @@ class ConclusionGenerator:
             template_variables = self._populate_template_variables(
                 job_from, db_values, pathway_summary, strategic_context, include_organisational_deployment
             )
-            logger.info(f"Populated {len(template_variables)} template variables for conclusion")
+            print(f"Populated {len(template_variables)} template variables for conclusion")
         
         # Step 5: Generate content sections
         content = self._generate_content_sections(template_variables)
-        logger.info("Generated conclusion content sections")
+        print("Generated conclusion content sections")
         
         # Extract section title from YAML template
         conclusion_config = self.template_data.get('conclusion', {})
         section_config = conclusion_config.get('section_config', {})
         section_title = section_config.get('title', 'Conclusion')
         
-        logger.info("Conclusion generation completed successfully")
+        print("Conclusion generation completed successfully")
         
         return {
             'section_title': section_title,
@@ -400,7 +400,7 @@ class ConclusionGenerator:
         content = {}
         
         try:
-            logger.info(f"Template sections found: {list(content_sections.keys())}")
+            print(f"Template sections found: {list(content_sections.keys())}")
             
             # Opportunity Summary
             opportunity_summary = content_sections.get('opportunity_summary', {})

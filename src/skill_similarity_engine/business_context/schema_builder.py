@@ -74,7 +74,7 @@ class SchemaBuilder:
         """
         try:
             total_tables = self.schema_config['tables']['total_count']
-            logger.info(f"Creating enhanced database schema ({total_tables} tables) at: {self.db_path}")
+            print(f"   📊 Creating database schema ({total_tables} tables)...")
             
             # Ensure parent directory exists
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +84,7 @@ class SchemaBuilder:
                 conn.execute("PRAGMA foreign_keys = ON;")
                 
                 if drop_existing:
-                    logger.info("Dropping existing tables...")
+                    # Dropping existing tables for clean rebuild
                     self._drop_existing_tables(conn)
                 
                 # Create complete 16-table schema structure
@@ -102,7 +102,7 @@ class SchemaBuilder:
                 self._add_enhanced_schema_metadata(conn)
                 
                 conn.commit()
-                logger.info(f"Enhanced database schema ({total_tables} tables) created successfully")
+                print(f"   ✅ Database schema created successfully")
                 return True
                 
         except Exception as e:
@@ -140,7 +140,7 @@ class SchemaBuilder:
     def _create_core_data_tables(self, conn: sqlite3.Connection) -> None:
         """Create core data tables - Master reference data."""
         core_count = self.schema_config['tables']['core_data_count']
-        logger.info(f"Creating core data tables ({core_count} tables)")
+                    # Creating core data tables
         self._create_core_job_architecture_table(conn)
         self._create_core_skills_taxonomy_table(conn)
         self._create_core_job_skill_requirements_table(conn)
@@ -151,13 +151,13 @@ class SchemaBuilder:
     def _create_analytics_tables_phase_0(self, conn: sqlite3.Connection) -> None:
         """Create analytics tables ready for Phase 0 (populated by modules)."""
         phase_0_tables = self.schema_config.get('analytics_tables', {}).get('phase_0', {})
-        logger.info(f"Creating Phase 0 analytics tables ({len(phase_0_tables)} tables)")
+        # Creating Phase 0 analytics tables
         self._create_analytics_movement_patterns_table(conn)
         
     def _create_analytics_tables_phase_1(self, conn: sqlite3.Connection) -> None:
         """Create analytics tables ready for Phase 1 (empty initially)."""
         phase_1_tables = self.schema_config.get('analytics_tables', {}).get('phase_1', {})
-        logger.info(f"Creating Phase 1 analytics tables ({len(phase_1_tables)} tables)")
+        # Creating Phase 1 analytics tables
         self._create_analytics_job_similarities_table(conn)
         self._create_analytics_skill_rarity_table(conn)
         self._create_analytics_job_defining_skills_table(conn)
@@ -165,13 +165,13 @@ class SchemaBuilder:
     def _create_analytics_tables_phase_2(self, conn: sqlite3.Connection) -> None:
         """Create analytics tables ready for Phase 2 (empty initially)."""
         phase_2_tables = self.schema_config.get('analytics_tables', {}).get('phase_2', {})
-        logger.info(f"Creating Phase 2 analytics tables ({len(phase_2_tables)} tables)")
+        # Creating Phase 2 analytics tables
         self._create_analytics_pathway_predictions_table(conn)
         
     def _create_analytics_tables_phase_3(self, conn: sqlite3.Connection) -> None:
         """Create analytics tables ready for Phase 3 (empty initially)."""
         phase_3_tables = self.schema_config.get('analytics_tables', {}).get('phase_3', {})
-        logger.info(f"Creating Phase 3 analytics tables ({len(phase_3_tables)} tables)")
+        # Creating Phase 3 analytics tables
         self._create_analytics_job_families_table(conn)
         self._create_analytics_skill_bundles_table(conn)
         self._create_analytics_skill_demand_trends_table(conn)
@@ -180,7 +180,7 @@ class SchemaBuilder:
         
     def _create_system_tables(self, conn: sqlite3.Connection) -> None:
         """Create system metadata tables (1 table)."""
-        logger.info("Creating system tables (1 table)")
+        # Creating system tables
         self._create_sys_schema_metadata_table(conn)
 
     # Core Data Tables (5 tables)
