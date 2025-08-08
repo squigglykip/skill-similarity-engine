@@ -122,6 +122,8 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
             'datetime.yaml': ('datetime',),
             'configuration_management.yaml': ('configuration_management',),
             'similarity_parameters.yaml': ('core',),
+            'clustering_analysis.yaml': ('core',),
+            'skills_clustering.yaml': ('core',),
             'file_patterns.yaml': ('workforce_data_patterns', 'skills_data_patterns', 'position_mapping_patterns', 'output_patterns', 'database_patterns')
         }
         
@@ -130,13 +132,25 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
             if file_path.exists():
                 file_config = self._load_yaml_safe(file_path)
                 
-                # Special handling for similarity_parameters.yaml
+                # Special handling for similarity_parameters.yaml and clustering_analysis.yaml
                 if filename == 'similarity_parameters.yaml':
                     # Create core section if it doesn't exist
                     if 'core' not in config:
                         config['core'] = {}
                     # Load the entire file content under core.similarity_parameters
                     config['core']['similarity_parameters'] = file_config
+                elif filename == 'clustering_analysis.yaml':
+                    # Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.clustering_analysis
+                    config['core']['clustering_analysis'] = file_config
+                elif filename == 'skills_clustering.yaml':
+                    # Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.skills_clustering
+                    config['core']['skills_clustering'] = file_config
                 else:
                     # Normal section-based loading for other files
                     for section in sections:

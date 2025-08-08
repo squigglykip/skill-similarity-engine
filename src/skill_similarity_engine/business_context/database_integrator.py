@@ -153,6 +153,14 @@ class DatabaseIntegrator:
         try:
             self.logger.info(f"Populating movement patterns table with {len(movement_df):,} records")
             
+            # Fail fast if no movement patterns generated
+            if len(movement_df) == 0:
+                raise ValueError("No movement patterns provided - fact table generation failed")
+            
+            # Fail fast if required column missing
+            if 'movement_pattern_id' not in movement_df.columns:
+                raise ValueError(f"Required column 'movement_pattern_id' missing from DataFrame. Available columns: {list(movement_df.columns)}")
+            
             with sqlite3.connect(self.db_path) as conn:
                 # Clear existing data
                 conn.execute("DELETE FROM analytics_movement_patterns")

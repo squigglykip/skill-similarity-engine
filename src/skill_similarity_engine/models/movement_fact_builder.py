@@ -42,10 +42,15 @@ class MovementFactBuilder:
         self.include_percentages = self.fact_table_config.get('include_percentages', True)
         self.include_tenure_metrics = self.fact_table_config.get('include_tenure_metrics', True)
         
+        # Date format configuration - MUST match MovementTracker format
+        date_formats = self.config.get_models_date_formats()
+        self.movement_date_format = date_formats.get('movement_date_format', '%Y-%m-%d')
+        
         # Results storage
         self.fact_table_records: List[Dict[str, Any]] = []
         
         logger.info(f"Initialized MovementFactBuilder with aggregation level: {self.aggregation_level}")
+        logger.info(f"Using movement date format: {self.movement_date_format}")
     
     def build_fact_table_from_movements(self, movements_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -81,8 +86,13 @@ class MovementFactBuilder:
         
         for _, movement in movements_df.iterrows():
             try:
-                # Extract month and year from movement date
-                movement_date = pd.to_datetime(movement['to_date'], format='%d/%m/%Y', errors='coerce')
+                # Extract month and year from movement date using configured format
+                movement_date = pd.to_datetime(movement['to_date'], format=self.movement_date_format, errors='raise')
+                
+                # Fail fast - if date parsing fails, raise exception immediately
+                if pd.isna(movement_date):
+                    raise ValueError(f"Failed to parse to_date: {movement['to_date']} with format {self.movement_date_format}")
+                    
                 month_key = movement_date.strftime("%Y-%m")
                 
                 # Create movement pattern key (from_position -> to_position)
@@ -179,7 +189,7 @@ class MovementFactBuilder:
     
     def _calculate_days_between(self, from_date: str, to_date: str) -> int:
         """
-        Calculate days between two dates.
+        Calculate days between two dates using configured format.
         
         Args:
             from_date: Start date (string)
@@ -189,13 +199,19 @@ class MovementFactBuilder:
             Number of days between dates
         """
         try:
-            from_dt = pd.to_datetime(from_date, format='%d/%m/%Y', errors='coerce')
-            to_dt = pd.to_datetime(to_date, format='%d/%m/%Y', errors='coerce')
+            # Use configured date format and fail fast
+            from_dt = pd.to_datetime(from_date, format=self.movement_date_format, errors='raise')
+            to_dt = pd.to_datetime(to_date, format=self.movement_date_format, errors='raise')
+            
+            # Fail fast - no fallbacks
+            if pd.isna(from_dt) or pd.isna(to_dt):
+                raise ValueError(f"Date parsing resulted in NaT - from_date: {from_date}, to_date: {to_date}")
+            
             delta = to_dt - from_dt
             return max(0, delta.days)  # Ensure non-negative
         except Exception as e:
-            logger.warning(f"Error calculating days between {from_date} and {to_date}: {e}")
-            return 0
+            # Fail fast - re-raise with context
+            raise ValueError(f"Failed to calculate days between {from_date} and {to_date} using format {self.movement_date_format}: {e}") from e
     
     def get_fact_table_summary(self) -> Dict[str, Any]:
         """

@@ -9,7 +9,16 @@ intelligence analysis, designed for both technical and non-technical users.
 
 import sys
 import os
+import warnings
 from pathlib import Path
+
+# Suppress warnings for cleaner user experience
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", message=".*subprocess.*")
+warnings.filterwarnings("ignore", message=".*joblib.*")
+warnings.filterwarnings("ignore", message=".*loky.*")
 
 # Add the src directory to the Python path if not installed as a package
 src_path = os.path.join(os.path.dirname(__file__), 'src')
@@ -306,8 +315,12 @@ class WorkforceIntelligenceOrchestrator:
         print("2. Enhanced Similarity Analytics")
         print("3. Generate Movement Analysis")  # NEW: Populate movement patterns
         print("4. Train Predictive Movement Models")  # NEW: ML training step 
-        print("5. Strategic Clustering Analytics")
-        print("6. Run All Capabilities (Recommended)")
+        print("5. Optimize Job Clustering Parameters (Run when data refreshed)")
+        print("6. Optimize Skills Clustering Parameters (Run when data refreshed)")
+        print("7. Production Clustering Analytics (Job Families + Skill Bundles)")
+        print("8. Skill Velocity Analysis")
+        print("9. Job Architecture Health Diagnostics")
+        print("10. Run All Capabilities (Recommended)")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
@@ -400,18 +413,21 @@ class WorkforceIntelligenceOrchestrator:
                         print("   This may be due to missing movement patterns or configuration issues.")
                     
                 elif choice == '5':
-                    print("\n🎯 Strategic Clustering Analytics...")
-                    print("   This will perform job clustering, skills bundling, and velocity")
-                    print("   analysis to provide strategic workforce insights.")
-                    print()
+                    self.handle_clustering_optimization(orchestrator)
                     
-                    success = orchestrator.execute_phase_3_clustering_velocity()
-                    if success:
-                        print("✅ Strategic clustering completed! Insights added to database.")
-                    else:
-                        print("❌ Strategic clustering failed or not yet implemented. Check logs for details.")
-                        
                 elif choice == '6':
+                    self.handle_skills_optimization(orchestrator)
+                    
+                elif choice == '7':
+                    self.handle_clustering_analysis(orchestrator)
+                    
+                elif choice == '8':
+                    self.handle_velocity_analysis(orchestrator)
+                    
+                elif choice == '9':
+                    self.handle_diagnostics_analysis(orchestrator)
+                    
+                elif choice == '10':
                     print("\n🚀 Running All Capabilities...")
                     print("   This will execute all available analytics capabilities in sequence.")
                     print()
@@ -521,6 +537,280 @@ class WorkforceIntelligenceOrchestrator:
         except Exception as e:
             print(f"❌ Optimization failed: {e}")
             print("   Continue with existing parameters or check your database.")
+    
+    def handle_clustering_optimization(self, orchestrator) -> None:
+        """Handle clustering parameter optimization using systematic analysis."""
+        print("\n🎯 Optimizing Clustering Parameters...")
+        print("   This will analyze your data to find optimal clustering parameters for:")
+        print("   • Job profile clustering (DBSCAN eps/min_samples)")
+        print("   • Skills clustering and bundling parameters")
+        print("   • Silhouette analysis across parameter ranges")
+        print("   The process will update your configuration with optimized parameters.")
+        print()
+        
+        try:
+            from skill_similarity_engine.cli.commands.precompute_commands import ClusteringOptimizationCommand
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            
+            # Confirm with user since this overwrites config
+            print(f"⚠️  This will update config/core/clustering_analysis.yaml")
+            print(f"   Database: {db_path}")
+            
+            confirm = input("   Continue? (y/N): ").strip().lower()
+            if confirm != 'y':
+                print("   Optimization cancelled.")
+                return
+            
+            # Run optimization command
+            print("🔍 Initializing clustering parameter optimizer...")
+            command = ClusteringOptimizationCommand()
+            result = command.execute(auto_confirm=True)
+            
+            if result.success:
+                print("✅ Clustering parameter optimization completed successfully!")
+                print("   Updated configuration with optimal parameters based on your data.")
+                print("   You can now run 'Strategic Clustering Analytics' (option 6).")
+            else:
+                print("❌ Clustering parameter optimization failed.")
+                print("   Check your database and ensure job similarity data exists.")
+                
+        except ImportError:
+            print("❌ Clustering optimization module not available.")
+            print("   Required dependencies may be missing.")
+        except Exception as e:
+            print(f"❌ Clustering optimization failed: {e}")
+            print("   Check your database and configuration.")
+    
+    def handle_skills_optimization(self, orchestrator) -> None:
+        """Handle skills clustering parameter optimization with multiple algorithms."""
+        print("\n🔗 Optimizing Skills Clustering Parameters...")
+        print("   This will analyze your skills data to find optimal parameters for:")
+        print("   • DBSCAN parameters (eps/min_samples)")
+        print("   • Hierarchical clustering (n_clusters/linkage)")
+        print("   • K-means parameters (n_clusters)")
+        print("   • Multiple similarity measures (Jaccard, Cosine, Combined)")
+        print("   • Taxonomy alignment validation")
+        print()
+        
+        try:
+            from skill_similarity_engine.cli.commands.precompute_commands import SkillsOptimizationCommand
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            
+            print(f"📂 Database: {db_path}")
+            print()
+            print("⚠️  This comprehensive optimization will test multiple algorithms")
+            print("   and similarity measures to find the best configuration.")
+            
+            confirm = input("   Continue? (y/N): ").strip().lower()
+            if confirm != 'y':
+                print("   Optimization cancelled.")
+                return
+            
+            # Run skills optimization command
+            print("🔍 Initializing skills parameter optimizer...")
+            command = SkillsOptimizationCommand()
+            result = command.execute(db_path=db_path)
+            
+            if result.success:
+                print("✅ Skills parameter optimization completed successfully!")
+                print("   Found optimal configuration for skills clustering.")
+                
+                # Display results if available
+                if result.data and 'optimization_results' in result.data:
+                    results = result.data['optimization_results']
+                    print(f"   • Recommended for production skills clustering (option 7)")
+                else:
+                    print("   • Use these parameters for production skills clustering")
+            else:
+                print("❌ Skills parameter optimization failed.")
+                print("   Check your database and ensure skills data exists.")
+                
+        except ImportError:
+            print("❌ Skills optimization module not available.")
+            print("   Required dependencies may be missing.")
+        except Exception as e:
+            print(f"❌ Skills optimization failed: {e}")
+            print("   Check your database and ensure skills data exists.")
+    
+    def handle_clustering_analysis(self, orchestrator) -> None:
+        """Handle strategic clustering analytics execution."""
+        print("\n🧩 Production Clustering Analytics...")
+        print("   This will perform comprehensive clustering analysis:")
+        print("   • Job Families: DBSCAN clustering of job profiles with business naming")
+        print("   • Skill Bundles: DBSCAN clustering of skills with specialization detection")
+        print("   • Cluster quality metrics and validation")
+        print("   • Database population with clustering intelligence")
+        print()
+        
+        try:
+            from skill_similarity_engine.cli.commands.precompute_commands import ClusteringAnalysisCommand
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            print(f"📂 Database: {db_path}")
+            
+            # Check if clustering configuration exists
+            from skill_similarity_engine.config.architectural_config_manager import get_config_manager
+            config_manager = get_config_manager()
+            clustering_config = config_manager.get_nested_value('core', 'clustering_analysis')
+            skills_config = config_manager.get_nested_value('core', 'skills_clustering')
+            
+            if not clustering_config:
+                print("⚠️  No job clustering configuration found.")
+                print("   Run 'Optimize Job Clustering Parameters' (option 5) first for best results.")
+                print("   Proceeding with default parameters...")
+            else:
+                print("✅ Using optimized job clustering parameters from configuration")
+                job_config = clustering_config.get('job_profile_clustering', {})
+                algorithm = job_config.get('algorithm', 'dbscan').upper()
+                job_params = job_config.get('optimal_parameters', {})
+                if job_params:
+                    if algorithm == 'DBSCAN':
+                        print(f"   → Job Families: {algorithm}(eps={job_params.get('eps', 'default')}, min_samples={job_params.get('min_samples', 'default')})")
+                    elif algorithm in ['HIERARCHICAL', 'KMEANS']:
+                        print(f"   → Job Families: {algorithm}(n_clusters={job_params.get('n_clusters', 'default')}, linkage={job_params.get('linkage', 'ward') if algorithm == 'HIERARCHICAL' else 'N/A'})")
+                    else:
+                        print(f"   → Job Families: {algorithm}(parameters from config)")
+            
+            if not skills_config:
+                print("⚠️  No skills clustering configuration found.")
+                print("   Run 'Optimize Skills Clustering Parameters' (option 6) first for best results.")
+                print("   Proceeding with default parameters...")
+            else:
+                print("✅ Using optimized skills clustering parameters from configuration")
+                skills_cluster_config = skills_config.get('skills_clustering', {})
+                skills_algorithm = skills_cluster_config.get('algorithm', 'dbscan').upper()
+                skills_params = skills_cluster_config.get('optimal_parameters', {})
+                if skills_params:
+                    if skills_algorithm == 'DBSCAN':
+                        print(f"   → Skill Bundles: {skills_algorithm}(eps={skills_params.get('eps', 'default')}, min_samples={skills_params.get('min_samples', 'default')})")
+                    elif skills_algorithm in ['HIERARCHICAL', 'KMEANS']:
+                        print(f"   → Skill Bundles: {skills_algorithm}(n_clusters={skills_params.get('n_clusters', 'default')}, linkage={skills_params.get('linkage', 'ward') if skills_algorithm == 'HIERARCHICAL' else 'N/A'})")
+                    else:
+                        print(f"   → Skill Bundles: {skills_algorithm}(parameters from config)")
+            
+            print()
+            
+            # Run clustering analysis command
+            command = ClusteringAnalysisCommand()
+            result = command.execute()
+            
+            if result.success:
+                print("✅ Strategic clustering analytics completed successfully!")
+                print("   Your database now contains comprehensive clustering intelligence.")
+            else:
+                print("❌ Strategic clustering analytics failed.")
+                print("   Check your database and configuration.")
+                
+        except ImportError:
+            print("❌ Clustering analysis module not available.")
+            print("   Required dependencies may be missing.")
+        except Exception as e:
+            print(f"❌ Clustering analysis failed: {e}")
+            print("   Check your database and configuration.")
+    
+    def handle_velocity_analysis(self, orchestrator) -> None:
+        """Handle skill velocity analysis execution."""
+        print("\n📈 Skill Velocity Analysis...")
+        print("   This will analyze skill demand trends over time:")
+        print("   • Multi-timeframe CAGR calculations (1, 2, 3 years)")
+        print("   • Velocity categorization (accelerating, growing, stable, declining)")
+        print("   • Recency-weighted growth metrics")
+        print("   • Strategic trend intelligence for workforce planning")
+        print()
+        
+        try:
+            from skill_similarity_engine.cli.commands.precompute_commands import VelocityAnalysisCommand
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            print(f"📂 Database: {db_path}")
+            print()
+            
+            # Run velocity analysis command
+            command = VelocityAnalysisCommand()
+            result = command.execute()
+            
+            if result.success:
+                print("✅ Skill velocity analysis completed successfully!")
+                print("   Your database now contains temporal skill trend intelligence.")
+                
+                # Display summary if available
+                if result.data:
+                    summary = result.data
+                    categories = summary.get('velocity_categories', {})
+                    print("\n📊 Quick Summary:")
+                    print(f"   • Total Skills Analyzed: {summary.get('total_skills_analyzed', 0)}")
+                    print(f"   • Accelerating: {categories.get('accelerating', 0)} | Growing: {categories.get('growing', 0)}")
+                    print(f"   • Stable: {categories.get('stable', 0)} | Declining: {categories.get('declining', 0)}")
+            else:
+                print("❌ Skill velocity analysis failed.")
+                print("   Check your database and ensure temporal data exists.")
+                
+        except ImportError:
+            print("❌ Velocity analysis module not available.")
+            print("   Required dependencies may be missing.")
+        except Exception as e:
+            print(f"❌ Velocity analysis failed: {e}")
+            print("   Check your database and ensure temporal data exists.")
+    
+    def handle_diagnostics_analysis(self, orchestrator) -> None:
+        """Handle job architecture health diagnostics execution."""
+        print("\n🏥 Job Architecture Health Diagnostics...")
+        print("   This will analyze job architecture structural integrity:")
+        print("   • Silhouette score analysis (role differentiation)")
+        print("   • Near-duplicate role detection")
+        print("   • Network analysis (hub skills, communities)")
+        print("   • Entropy analysis (role focus vs generality)")
+        print("   • Executive summary with governance recommendations")
+        print()
+        
+        try:
+            from skill_similarity_engine.cli.commands.precompute_commands import DiagnosticsAnalysisCommand
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            print(f"📂 Database: {db_path}")
+            print()
+            
+            # Run diagnostics analysis command
+            command = DiagnosticsAnalysisCommand()
+            result = command.execute()
+            
+            if result.success:
+                print("✅ Job architecture diagnostics completed successfully!")
+                print("   Your database now contains comprehensive architecture health intelligence.")
+                
+                # Display summary if available
+                if result.data:
+                    summary = result.data
+                    print("\n📊 Quick Summary:")
+                    print(f"   • Total Roles Analyzed: {summary.get('total_roles_analyzed', 0)}")
+                    print(f"   • Near-Duplicate Pairs: {summary.get('near_duplicate_pairs', 0)}")
+                    print(f"   • Hub Skills Identified: {summary.get('hub_skills_count', 0)}")
+                    print(f"   • Communities Detected: {summary.get('communities_detected', 0)}")
+                    
+                    # Show governance recommendations if available
+                    recommendations = summary.get('governance_recommendations', [])
+                    if recommendations:
+                        print("   • Key Recommendations:")
+                        for i, rec in enumerate(recommendations[:3], 1):
+                            print(f"     {i}. {rec}")
+                        
+            else:
+                print("❌ Job architecture diagnostics failed.")
+                print("   Check your database and ensure job architecture data exists.")
+                
+        except ImportError:
+            print("❌ Diagnostics analysis module not available.")
+            print("   Required dependencies may be missing.")
+        except Exception as e:
+            print(f"❌ Diagnostics analysis failed: {e}")
+            print("   Check your database and ensure job architecture data exists.")
     
     def handle_system_tools(self) -> None:
         """Handle system tools menu."""
