@@ -29,6 +29,7 @@ from skill_similarity_engine.cli.utilities import print_banner, prompt_int
 from skill_similarity_engine.cli.commands import (
     DataLoadCommand, SimilarityMatrixCommand, MovementAnalysisCommand, QuerySimilarityCommand
 )
+from skill_similarity_engine.cli.commands.precompute_commands import ExcelConverterCommand, SchemaDocumentationCommand
 from skill_similarity_engine.workflows.session_manager import get_session_manager
 from skill_similarity_engine.business_context import BusinessContextOrchestrator
 from skill_similarity_engine.config.architectural_config_manager import get_config_manager
@@ -75,6 +76,8 @@ class WorkforceIntelligenceOrchestrator:
         self.session_manager = get_session_manager()
         
         # Initialize commands
+        self.excel_converter_cmd = ExcelConverterCommand()
+        self.schema_doc_cmd = SchemaDocumentationCommand()
         self.data_load_cmd = DataLoadCommand()
         self.similarity_cmd = SimilarityMatrixCommand()
         self.movement_cmd = MovementAnalysisCommand()
@@ -117,9 +120,9 @@ class WorkforceIntelligenceOrchestrator:
         print()
         
         print("What would you like to do?")
-        print("1. Build Workforce Database")
-        print("2. Generate Career Intelligence") 
-        print("3. Query Job Similarities")
+        print("1. Data Pipeline Setup")
+        print("2. Build Workforce Database")
+        print("3. Generate Career Intelligence") 
         print("4. System Tools")
         print("0. Exit")
         print()
@@ -159,11 +162,12 @@ class WorkforceIntelligenceOrchestrator:
         print()
         
         print("Available Tools:")
-        print("1. Check database health")
-        print("2. View database summary") 
-        print("3. Export database backup")
-        print("4. Advanced analytics tools")
-        print("5. System diagnostics")
+        print("1. Generate Database Schema Documentation")
+        print("2. Check database health")
+        print("3. View database summary") 
+        print("4. Export database backup")
+        print("5. Advanced analytics tools")
+        print("6. System diagnostics")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
@@ -272,6 +276,48 @@ class WorkforceIntelligenceOrchestrator:
             print(f"❌ Unable to search similarities: {e}")
             print("   Please check that similarity analysis has been completed first.")
     
+    def handle_data_pipeline_setup(self) -> None:
+        """Handle data pipeline setup - convert Excel to CSV."""
+        try:
+            print("\n" + "="*60)
+            print("📊 DATA PIPELINE SETUP")
+            print("="*60)
+            print()
+            print("🔄 This will convert your Excel workbook to organized CSV files.")
+            print("   You will be prompted to specify the path to your Excel file.")
+            print("   Supported formats: .xlsx, .xls, .xlsm")
+            print()
+            
+            # Ask for confirmation
+            confirm = input("   Proceed with Excel to CSV conversion? (y/N): ").strip().lower()
+            if confirm != 'y':
+                print("   Data pipeline setup cancelled.")
+                print()
+                return
+            
+            # Execute the Excel converter command
+            result = self.excel_converter_cmd.execute()
+            
+            if result.success:
+                print()
+                print("✅ Data pipeline setup completed successfully!")
+                print("   Your Excel data has been converted to CSV files in the data/ directory.")
+                print("   You can now proceed to 'Build Workforce Database' (Option 1).")
+            else:
+                print()
+                print("❌ Data pipeline setup failed.")
+                if result.errors:
+                    for error in result.errors:
+                        print(f"   Error: {error}")
+                print("   Please check your Excel file and try again.")
+            
+            input("\nPress Enter to continue...")
+            
+        except Exception as e:
+            print(f"❌ Error during data pipeline setup: {e}")
+            print("   Please check your Excel file and permissions.")
+            input("\nPress Enter to continue...")
+    
     def handle_workforce_intelligence(self) -> None:
         """Handle workforce database building - directly load employee and job data."""
         try:
@@ -320,7 +366,8 @@ class WorkforceIntelligenceOrchestrator:
         print("7. Production Clustering Analytics (Job Families + Skill Bundles)")
         print("8. Skill Velocity Analysis")
         print("9. Job Architecture Health Diagnostics")
-        print("10. Run All Capabilities (Recommended)")
+        print("10. Clear Unneeded Database Tables")
+        print("11. Run All Capabilities (Recommended)")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
@@ -428,49 +475,69 @@ class WorkforceIntelligenceOrchestrator:
                     self.handle_diagnostics_analysis(orchestrator)
                     
                 elif choice == '10':
+                    self.handle_database_cleanup(orchestrator)
+                    
+                elif choice == '11':
                     print("\n🚀 Running All Capabilities...")
                     print("   This will execute all available analytics capabilities in sequence.")
                     print()
                     
-                    # Step 1: Enhanced Similarity
-                    print("Step 1: Enhanced Similarity Analytics...")
+                    # Step 1: Optimize Similarity Parameters
+                    print("Step 1: Optimizing Similarity Parameters...")
+                    self.handle_similarity_optimization(orchestrator)
+                    
+                    # Step 2: Enhanced Similarity Analytics
+                    print("\nStep 2: Enhanced Similarity Analytics...")
                     similarity_success = orchestrator.execute_phase_1_enhanced_similarity()
                     if similarity_success:
                         print("✅ Enhanced similarity analytics completed")
                     else:
                         print("❌ Enhanced similarity analytics failed")
                     
-                    # Step 2: Movement Analysis
-                    print("\nStep 2: Movement Analysis...")
+                    # Step 3: Generate Movement Analysis
+                    print("\nStep 3: Movement Analysis...")
                     movement_success = orchestrator.execute_movement_pattern_analysis()
                     if movement_success:
                         print("✅ Movement analysis completed")
                     else:
                         print("⚠️ Movement analysis failed")
                     
-                    # Step 3: ML Training
-                    print("\nStep 3: ML Model Training...")
+                    # Step 4: Train Predictive Movement Models
+                    print("\nStep 4: ML Model Training...")
                     ml_success = orchestrator.execute_movement_ml_training()
                     if ml_success:
                         print("✅ ML model training completed")
                     else:
                         print("⚠️ ML model training failed")
                     
-                    # Step 4: Strategic Clustering
-                    print("\nStep 4: Strategic Clustering...")
-                    clustering_success = orchestrator.execute_phase_3_clustering_velocity()
-                    if clustering_success:
-                        print("✅ Strategic clustering completed")
-                    else:
-                        print("⚠️ Strategic clustering failed or not implemented")
+                    # Step 5: Optimize Job Clustering Parameters
+                    print("\nStep 5: Optimizing Job Clustering Parameters...")
+                    self.handle_clustering_optimization(orchestrator)
+                    
+                    # Step 6: Optimize Skills Clustering Parameters
+                    print("\nStep 6: Optimizing Skills Clustering Parameters...")
+                    self.handle_skills_optimization(orchestrator)
+                    
+                    # Step 7: Production Clustering Analytics
+                    print("\nStep 7: Strategic Clustering...")
+                    self.handle_clustering_analysis(orchestrator)
+                    
+                    # Step 8: Skill Velocity Analysis
+                    print("\nStep 8: Skill Velocity Analysis...")
+                    self.handle_velocity_analysis(orchestrator)
+                    
+                    # Step 9: Job Architecture Health Diagnostics
+                    print("\nStep 9: Job Architecture Health Diagnostics...")
+                    self.handle_diagnostics_analysis(orchestrator)
+                    
+                    # Step 10: Clear Unneeded Database Tables
+                    print("\nStep 10: Cleaning up large intermediate tables...")
+                    self.handle_database_cleanup(orchestrator)
                     
                     # Summary
-                    completed_capabilities = sum([similarity_success, movement_success, ml_success])
-                    if completed_capabilities > 0:
-                        print(f"\n✅ Completed {completed_capabilities} capabilities! Your database now contains enhanced analytics.")
-                        print("   Career intelligence data is available for queries and applications.")
-                    else:
-                        print("\n❌ No capabilities completed successfully. Check logs for details.")
+                    print(f"\n✅ All analytics capabilities completed! Your database now contains enhanced analytics.")
+                    print("   Career intelligence data is available for queries and applications.")
+                    print("   Database has been optimized by removing large intermediate tables.")
                         
                 elif choice == '0':
                     break
@@ -670,11 +737,11 @@ class WorkforceIntelligenceOrchestrator:
                 job_params = job_config.get('optimal_parameters', {})
                 if job_params:
                     if algorithm == 'DBSCAN':
-                        print(f"   → Job Families: {algorithm}(eps={job_params.get('eps', 'default')}, min_samples={job_params.get('min_samples', 'default')})")
+                        print(f"   -> Job Families: {algorithm}(eps={job_params.get('eps', 'default')}, min_samples={job_params.get('min_samples', 'default')})")
                     elif algorithm in ['HIERARCHICAL', 'KMEANS']:
-                        print(f"   → Job Families: {algorithm}(n_clusters={job_params.get('n_clusters', 'default')}, linkage={job_params.get('linkage', 'ward') if algorithm == 'HIERARCHICAL' else 'N/A'})")
+                        print(f"   -> Job Families: {algorithm}(n_clusters={job_params.get('n_clusters', 'default')}, linkage={job_params.get('linkage', 'ward') if algorithm == 'HIERARCHICAL' else 'N/A'})")
                     else:
-                        print(f"   → Job Families: {algorithm}(parameters from config)")
+                        print(f"   -> Job Families: {algorithm}(parameters from config)")
             
             if not skills_config:
                 print("⚠️  No skills clustering configuration found.")
@@ -687,11 +754,11 @@ class WorkforceIntelligenceOrchestrator:
                 skills_params = skills_cluster_config.get('optimal_parameters', {})
                 if skills_params:
                     if skills_algorithm == 'DBSCAN':
-                        print(f"   → Skill Bundles: {skills_algorithm}(eps={skills_params.get('eps', 'default')}, min_samples={skills_params.get('min_samples', 'default')})")
+                        print(f"   -> Skill Bundles: {skills_algorithm}(eps={skills_params.get('eps', 'default')}, min_samples={skills_params.get('min_samples', 'default')})")
                     elif skills_algorithm in ['HIERARCHICAL', 'KMEANS']:
-                        print(f"   → Skill Bundles: {skills_algorithm}(n_clusters={skills_params.get('n_clusters', 'default')}, linkage={skills_params.get('linkage', 'ward') if skills_algorithm == 'HIERARCHICAL' else 'N/A'})")
+                        print(f"   -> Skill Bundles: {skills_algorithm}(n_clusters={skills_params.get('n_clusters', 'default')}, linkage={skills_params.get('linkage', 'ward') if skills_algorithm == 'HIERARCHICAL' else 'N/A'})")
                     else:
-                        print(f"   → Skill Bundles: {skills_algorithm}(parameters from config)")
+                        print(f"   -> Skill Bundles: {skills_algorithm}(parameters from config)")
             
             print()
             
@@ -812,23 +879,127 @@ class WorkforceIntelligenceOrchestrator:
             print(f"❌ Diagnostics analysis failed: {e}")
             print("   Check your database and ensure job architecture data exists.")
     
+    def handle_database_cleanup(self, orchestrator) -> None:
+        """Handle database cleanup execution."""
+        print("\n🧹 Database Cleanup Operations...")
+        print("   This will clean up large intermediate tables after analytics completion:")
+        print("   • core_colleague_positions_history (historical position data)")
+        print("   • core_position_timeline (timeline data)")
+        print("   • Database size optimization with VACUUM")
+        print()
+        
+        try:
+            from skill_similarity_engine.cli.commands.precompute_commands import DatabaseCleanupCommand
+            
+            # Get database path from orchestrator
+            db_path = str(orchestrator.db_path)
+            print(f"📂 Database: {db_path}")
+            print()
+            
+            # Run database cleanup command
+            command = DatabaseCleanupCommand()
+            result = command.execute()
+            
+            if result.success:
+                print("✅ Database cleanup completed successfully!")
+                
+                # Display summary if available
+                if result.data and result.data.get('cleanup_stats'):
+                    cleanup_stats = result.data['cleanup_stats']
+                    print("\n📊 Cleanup Summary:")
+                    print(f"   • Tables cleaned: {cleanup_stats.get('tables_cleaned', 0)}")
+                    print(f"   • Rows removed: {cleanup_stats.get('total_rows_removed', 0):,}")
+                    print(f"   • Storage freed: {cleanup_stats.get('total_size_freed_mb', 0):.1f} MB")
+                    
+                    # Show database size info if available
+                    if result.data.get('size_info'):
+                        size_info = result.data['size_info']
+                        if 'error' not in size_info:
+                            print(f"   • Current database size: {size_info.get('file_size_mb', 0):.1f} MB")
+                        
+                elif result.data and not result.data.get('cleanup_needed', True):
+                    print("   Database is already optimized - no cleanup needed")
+                    
+            else:
+                print("❌ Database cleanup failed.")
+                print("   Check your database permissions and ensure tables exist.")
+                
+        except ImportError:
+            print("❌ Database cleanup module not available.")
+            print("   Required dependencies may be missing.")
+        except Exception as e:
+            print(f"❌ Database cleanup failed: {e}")
+            print("   Check your database connection and permissions.")
+    
+    def handle_schema_documentation(self) -> None:
+        """Handle database schema documentation generation."""
+        try:
+            print("\n" + "="*60)
+            print("📚 DATABASE SCHEMA DOCUMENTATION")
+            print("="*60)
+            print()
+            print("🔄 This will generate comprehensive database schema documentation")
+            print("   with enhanced navigation, business context, and developer guides.")
+            print()
+            print("📋 Features include:")
+            print("   • Interactive table of contents with anchor links")
+            print("   • Color-coded Mermaid ERD diagrams")
+            print("   • Business context and usage guides")
+            print("   • Developer-friendly query examples")
+            print("   • Cross-references and navigation aids")
+            print()
+            
+            # Ask for confirmation
+            confirm = input("   Generate enhanced schema documentation? (y/N): ").strip().lower()
+            if confirm != 'y':
+                print("   Documentation generation cancelled.")
+                print()
+                return
+            
+            # Execute the schema documentation command
+            result = self.schema_doc_cmd.execute()
+            
+            if result.success:
+                print()
+                print("✅ Schema documentation generated successfully!")
+                if result.data:
+                    print(f"   📄 Documentation: {result.data.get('output_path', 'docs/sqlite_schema_design.md')}")
+                    print(f"   📊 File size: {result.data.get('file_size_kb', 0):.1f} KB")
+                print("   💡 Open the markdown file to explore the enhanced navigation!")
+            else:
+                print()
+                print("❌ Schema documentation generation failed.")
+                if result.errors:
+                    for error in result.errors:
+                        print(f"   Error: {error}")
+                print("   Please check your database and try again.")
+            
+            input("\nPress Enter to continue...")
+            
+        except Exception as e:
+            print(f"❌ Error during schema documentation generation: {e}")
+            print("   Please check your database and file permissions.")
+            input("\nPress Enter to continue...")
+    
     def handle_system_tools(self) -> None:
         """Handle system tools menu."""
         while True:
             choice = self.show_system_tools_menu()
             
             if choice == '1':
+                self.handle_schema_documentation()
+            elif choice == '2':
                 print("🔍 Checking database health...")
                 print("   This feature is coming soon.")
-            elif choice == '2':
+            elif choice == '3':
                 print("📊 Generating database summary...")
                 print("   This feature is coming soon.")
-            elif choice == '3':
+            elif choice == '4':
                 print("💾 Exporting database backup...")
                 print("   This feature is coming soon.")
-            elif choice == '4':
-                self.run_legacy_precompute_menu()
             elif choice == '5':
+                self.run_legacy_precompute_menu()
+            elif choice == '6':
                 print("🔧 Running system diagnostics...")
                 print("   This feature is coming soon.")
             elif choice == '0':
@@ -860,11 +1031,11 @@ class WorkforceIntelligenceOrchestrator:
             choice = self.show_main_menu()
             
             if choice == '1':
-                self.handle_workforce_intelligence()
+                self.handle_data_pipeline_setup()
             elif choice == '2':
-                self.handle_career_intelligence_generation()
+                self.handle_workforce_intelligence()
             elif choice == '3':
-                self.handle_query_similarities()
+                self.handle_career_intelligence_generation()
             elif choice == '4':
                 self.handle_system_tools()
             elif choice == '0':
