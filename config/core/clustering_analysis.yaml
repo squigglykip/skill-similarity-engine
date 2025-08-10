@@ -1,0 +1,37 @@
+job_profile_clustering:
+  algorithm: dbscan
+  optimal_parameters:
+    eps: 0.7300000000000001
+    min_samples: 2
+    similarity_measure: enhanced_defining_skills
+  optimization_metadata:
+    best_silhouette_score: 0.21711856343968797
+    optimization_timestamp: '2025-08-10T17:38:33.531337'
+    rationale: 'Optimal parameters: eps=0.7300000000000001, min_samples=2 achieve
+      silhouette score of 0.217. Moderate clustering quality - data may have natural
+      overlap.'
+  quality_thresholds:
+    min_cluster_size: 5
+    min_silhouette_score: 0.5
+skills_clustering:
+  algorithm: dbscan
+  bundling_strategy:
+    max_bundle_size: 15
+    min_specialization_threshold: 5.0
+  optimal_parameters:
+    eps: 0.15
+    min_samples: 3
+    similarity_measure: jaccard_combined
+  optimization_metadata:
+    method: heuristic
+    optimization_timestamp: '2025-08-10T17:40:15.118751'
+    rationale: ''
+velocity_analysis:
+  categorization:
+    accelerating_threshold: 0.2
+    declining_threshold: -0.05
+    growing_threshold: 0.05
+  timeframes:
+    long_term: 3
+    medium_term: 2
+    short_term: 1

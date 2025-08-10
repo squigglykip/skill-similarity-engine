@@ -141,11 +141,11 @@ class MovementTracker:
         self.movement_date_format = date_formats.get('movement_date_format', '%Y-%m-%d')
         self.iso_format = date_formats.get('iso_format', '%Y-%m-%d')
         
-        logger.info("🏗️ MovementTracker initialized with configuration-driven parameters")
-        logger.info(f"   • Min movement frequency: {self.min_movement_frequency}")
-        logger.info(f"   • Detection window: {self.detection_window_weeks} weeks")
-        logger.info(f"   • Min position tenure: {self.min_position_tenure_weeks} weeks")
-        logger.info(f"   • Progress reporting interval: {self.progress_reporting_interval}")
+        print("🏗️ MovementTracker initialized with configuration-driven parameters")
+        print(f"   • Min movement frequency: {self.min_movement_frequency}")
+        print(f"   • Detection window: {self.detection_window_weeks} weeks")
+        print(f"   • Min position tenure: {self.min_position_tenure_weeks} weeks")
+        print(f"   • Progress reporting interval: {self.progress_reporting_interval}")
     
     def load_from_directory(self, directory_path: str, pattern: str = None) -> None:
         """
@@ -169,7 +169,7 @@ class MovementTracker:
         # Sort files for consistent processing order
         csv_files = sorted(csv_files)
         
-        logger.info(f"📁 Found {len(csv_files)} files matching pattern '{pattern}'")
+        print(f"📁 Found {len(csv_files)} files matching pattern '{pattern}'")
         
         # Use SSE's progress tracking for file loading
         with ProgressTracker(
@@ -185,9 +185,9 @@ class MovementTracker:
         
         self._build_employee_histories()
         
-        logger.info(f"✅ Successfully loaded data from {len(csv_files)} files")
-        logger.info(f"👥 Tracking {len(self.colleague_positions):,} total positions")
-        logger.info(f"👤 Following {len(self.employee_histories):,} unique colleagues")
+        print(f"✅ Successfully loaded data from {len(csv_files)} files")
+        print(f"👥 Tracking {len(self.colleague_positions):,} total positions")
+        print(f"👤 Following {len(self.employee_histories):,} unique colleagues")
         
     def load_from_csv(self, csv_file: str) -> None:
         """
@@ -235,7 +235,7 @@ class MovementTracker:
         try:
             # DEBUG: Let's see what we're working with
             if len(self.colleague_positions) < 3:  # Only debug first few rows
-                logger.info(f"🔧 DEBUG: Raw CSV row: {dict(list(row.items())[:3])}...")
+                print(f"🔧 DEBUG: Raw CSV row: {dict(list(row.items())[:3])}...")
             
             # Since ColleaguePosition.from_dict() does its own field mapping,
             # we should pass the raw CSV data directly without pre-mapping
@@ -262,7 +262,7 @@ class MovementTracker:
     
     def _build_employee_histories(self) -> None:
         """Build employee histories from loaded positions."""
-        logger.info("🔗 Building employee histories...")
+        print("🔗 Building employee histories...")
         
         for position in self.colleague_positions:
             self.employee_histories[position.employee_number].append(position)
@@ -273,7 +273,7 @@ class MovementTracker:
                 key=lambda pos: pos.week_ending
             )
         
-        logger.info(f"✅ Built histories for {len(self.employee_histories):,} employees")
+        print(f"✅ Built histories for {len(self.employee_histories):,} employees")
     
     def detect_movements(self, use_parallel: bool = False) -> None:
         """
@@ -285,13 +285,13 @@ class MovementTracker:
         if not self.employee_histories:
             self._build_employee_histories()
         
-        logger.info(f"🔍 Starting movement detection for {len(self.employee_histories):,} employees...")
+        print(f"🔍 Starting movement detection for {len(self.employee_histories):,} employees...")
         
         # For now, use sequential processing to avoid complexity
         self._detect_movements_sequential()
         
-        logger.info(f"✅ Movement detection complete")
-        logger.info(f"📊 Detected {len(self.movement_events):,} movement events")
+        print(f"✅ Movement detection complete")
+        print(f"📊 Detected {len(self.movement_events):,} movement events")
     
     def _detect_movements_sequential(self) -> None:
         """Detect movements sequentially with progress tracking."""
@@ -310,12 +310,15 @@ class MovementTracker:
         """Detect movements for a single employee using configured date format."""
         movements = []
         
-        if len(positions) < 2:
-            return movements  # No movements possible with less than 2 positions
+        # Filter out positions with None position_key (orphan records)
+        valid_positions = [pos for pos in positions if pos.position_key is not None]
         
-        for i in range(len(positions) - 1):
-            current_pos = positions[i]
-            next_pos = positions[i + 1]
+        if len(valid_positions) < 2:
+            return movements  # No movements possible with less than 2 valid positions
+        
+        for i in range(len(valid_positions) - 1):
+            current_pos = valid_positions[i]
+            next_pos = valid_positions[i + 1]
             
             # Check if this is a genuine movement (different positions)
             if current_pos.position_key != next_pos.position_key:
@@ -324,8 +327,38 @@ class MovementTracker:
                 
                 try:
                     # Handle both string and date formats for week_ending using configured format
-                    from_date = current_pos.week_ending if isinstance(current_pos.week_ending, str) else current_pos.week_ending.strftime(self.movement_date_format)
-                    to_date = next_pos.week_ending if isinstance(next_pos.week_ending, str) else next_pos.week_ending.strftime(self.movement_date_format)
+                    # Only skip if week_ending specifically is NaT (not position_start_date)
+                    from_date = None
+                    to_date = None
+                    
+                    # Handle from_date safely - check for NaT specifically on week_ending
+                    if isinstance(current_pos.week_ending, str):
+                        from_date = current_pos.week_ending
+                    elif current_pos.week_ending is not None and pd.notna(current_pos.week_ending):
+                        try:
+                            from_date = current_pos.week_ending.strftime(self.movement_date_format)
+                        except (AttributeError, ValueError) as e:
+                            print(f"   ⚠️  Skipping movement for employee {employee_number}: from_date strftime error: {e}")
+                            continue
+                    
+                    # Handle to_date safely - check for NaT specifically on week_ending
+                    if isinstance(next_pos.week_ending, str):
+                        to_date = next_pos.week_ending
+                    elif next_pos.week_ending is not None and pd.notna(next_pos.week_ending):
+                        try:
+                            to_date = next_pos.week_ending.strftime(self.movement_date_format)
+                        except (AttributeError, ValueError) as e:
+                            print(f"   ⚠️  Skipping movement for employee {employee_number}: to_date strftime error: {e}")
+                            continue
+                    
+                    # Skip this movement only if week_ending dates are invalid (not position_start_date)
+                    if from_date is None or to_date is None:
+                        print(f"   ⚠️  Skipping movement for employee {employee_number}: Invalid week_ending data")
+                        continue
+                    
+                    # Assert that position_key is not None (already filtered above)
+                    assert current_pos.position_key is not None, "position_key should not be None after filtering"
+                    assert next_pos.position_key is not None, "position_key should not be None after filtering"
                     
                     movement = MovementEvent(
                         employee_number=employee_number,
@@ -437,7 +470,7 @@ class MovementTracker:
         
         # Export to Parquet with configured settings
         df.to_parquet(output_path, **export_kwargs)
-        logger.info(f"📄 Exported {len(self.movement_events):,} movements to {output_path}")
+        print(f"📄 Exported {len(self.movement_events):,} movements to {output_path}")
     
     def export_movements_to_csv(self, output_path: str) -> None:
         """Export movements to CSV format using configured export settings."""
@@ -457,7 +490,7 @@ class MovementTracker:
         
         # Export to CSV with configured settings
         df.to_csv(output_path, **export_kwargs)
-        logger.info(f"📄 Exported {len(self.movement_events):,} movements to {output_path}")
+        print(f"📄 Exported {len(self.movement_events):,} movements to {output_path}")
     
     def __len__(self) -> int:
         """Return the number of movement events detected."""
@@ -473,7 +506,7 @@ class MovementTracker:
         Returns:
             Number of position mappings loaded
         """
-        logger.info(f"📋 Loading position mappings from {positions_directory}")
+        print(f"📋 Loading position mappings from {positions_directory}")
         
         positions_path = Path(positions_directory)
         
@@ -492,7 +525,7 @@ class MovementTracker:
             csv_files = list(positions_path.glob(pattern))
             if csv_files:
                 pattern_used = pattern
-                logger.info(f"✅ Found {len(csv_files)} files matching pattern: {pattern}")
+                print(f"✅ Found {len(csv_files)} files matching pattern: {pattern}")
                 break
         
         if not csv_files:
@@ -564,8 +597,8 @@ class MovementTracker:
                     progress.update(1)
                     continue
         
-        logger.info(f"✅ Total position mappings loaded: {total_loaded:,}")
-        logger.info(f"📋 Unique position mappings: {len(self.position_mappings):,}")
+        print(f"✅ Total position mappings loaded: {total_loaded:,}")
+        print(f"📋 Unique position mappings: {len(self.position_mappings):,}")
         
         # Debug: Show sample mappings
         if self.position_mappings:
@@ -579,10 +612,10 @@ class MovementTracker:
     def enrich_colleague_positions_with_position_numbers(self) -> None:
         """Enrich colleague positions with actual Position Numbers from mappings using configured calculation."""
         if not self.position_mappings:
-            logger.info("⚠️ No position mappings available - movements will be tracked by PosIDLookupKey")
+            print("⚠️ No position mappings available - movements will be tracked by PosIDLookupKey")
             return
         
-        logger.info("🔗 Enriching colleague positions with actual Position Numbers...")
+        print("🔗 Enriching colleague positions with actual Position Numbers...")
         
         enriched_count = 0
         missing_count = 0
@@ -607,8 +640,8 @@ class MovementTracker:
         else:
             enrichment_rate = 0
         
-        logger.info(f"✅ Enriched {enriched_count:,} positions, {missing_count:,} missing mappings")
-        logger.info(f"📊 Enrichment rate: {enrichment_rate:.1f}%")
+        print(f"✅ Enriched {enriched_count:,} positions, {missing_count:,} missing mappings")
+        print(f"📊 Enrichment rate: {enrichment_rate:.1f}%")
         
         if missing_count > 0:
             logger.warning(f"⚠️ {missing_count:,} positions could not be mapped to Position Numbers")
@@ -623,22 +656,22 @@ class MovementTracker:
             positions_dir: Directory containing position mapping CSV files  
             pattern: Pattern for colleague position files
         """
-        logger.info("🚀 Loading data with position enrichment...")
+        print("🚀 Loading data with position enrichment...")
         
         # Step 1: Load position mappings
-        logger.info("📋 Step 1: Loading position mappings...")
+        print("📋 Step 1: Loading position mappings...")
         mappings_loaded = self.load_position_mappings(positions_dir)
-        logger.info(f"✅ Loaded {mappings_loaded:,} position mappings")
+        print(f"✅ Loaded {mappings_loaded:,} position mappings")
         
         # Step 2: Load colleague positions
-        logger.info("👥 Step 2: Loading colleague positions...")
+        print("👥 Step 2: Loading colleague positions...")
         self.load_from_directory(colleague_positions_dir, pattern)
         
         # Step 3: Enrich colleague positions with Position Numbers
-        logger.info("🔗 Step 3: Enriching positions with Position Numbers...")
+        print("🔗 Step 3: Enriching positions with Position Numbers...")
         self.enrich_colleague_positions_with_position_numbers()
         
-        logger.info("✅ Data loading with position enrichment completed successfully")
+        print("✅ Data loading with position enrichment completed successfully")
 
     def __str__(self) -> str:
         """String representation of the tracker."""

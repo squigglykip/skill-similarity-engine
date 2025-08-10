@@ -7,7 +7,104 @@
 # Database configuration
 database:
   default_filename: "workforce_intelligence.sqlite"
-  schema_version: "1.0"
+  schema_version: "2.0"  # Updated to enhanced schema version
+  
+  # Enhanced schema structure (16 tables)
+  tables:
+    total_count: 16
+    core_data_count: 6
+    analytics_count: 10
+    system_count: 1
+    
+  # Phase implementation tracking
+  phases:
+    phase_0:
+      populated_tables: 7  # 6 core + 1 analytics
+      description: "Foundation data with core tables and movement analytics"
+    phase_1:
+      additional_tables: 2
+      description: "Enhanced similarity algorithms"
+    phase_3:
+      additional_tables: 5
+      description: "Clustering and velocity analytics"
+      
+  # Naming conventions
+  naming_convention:
+    core_prefix: "core_"
+    analytics_prefix: "analytics_"
+    system_prefix: "sys_"
+    
+  # Core data tables (Phase 0 - populated from CSV)
+  core_tables:
+    core_job_architecture:
+      description: "Job framework and organisational taxonomy"
+      source: "job_architecture/job_architecture.csv"
+    core_skills_taxonomy:
+      description: "Skills classification and taxonomy system"
+      source: "skills_library/skills_comprehensive_all_versions.csv"
+    core_job_skill_requirements:
+      description: "Job-skill relationship matrix"
+      source: "input_data/job_skill_mapping.csv"
+    core_workforce_current:
+      description: "Current workforce snapshot"
+      source: "workforce_context/workforce_context.csv"
+    core_position_timeline:
+      description: "Historical position data"
+      source: "positions_history/d_positions_fy*.csv"
+      
+  # Analytics tables by phase
+  analytics_tables:
+    phase_0:
+      analytics_movement_patterns:
+        description: "Aggregated movement patterns"
+        populated_by: "MovementTracker → FactTableBuilder modules"
+    phase_1:
+      analytics_job_similarities:
+        description: "Enhanced job similarities"
+        populated_by: "Phase 1 enhanced similarity algorithms"
+      analytics_skill_rarity:
+        description: "Complete skill rarity analysis"
+        populated_by: "Phase 1 enhanced similarity algorithms"
+      analytics_job_defining_skills:
+        description: "Job-specific defining skills"
+        populated_by: "Phase 1 enhanced similarity algorithms"
+    phase_3:
+      analytics_job_families:
+        description: "Job cluster assignments"
+        populated_by: "Phase 3 clustering algorithms"
+      analytics_skill_bundles:
+        description: "Skills clustering"
+        populated_by: "Phase 3 clustering algorithms"
+      analytics_skill_demand_trends:
+        description: "Multi-timeframe skill velocity"
+        populated_by: "Phase 3 velocity analysis algorithms"
+      analytics_specialized_skills:
+        description: "Individual specialized skills"
+        populated_by: "Phase 3 clustering algorithms"
+      analytics_bundle_characteristics:
+        description: "Skill bundle characteristics"
+        populated_by: "Phase 3 clustering algorithms"
+        
+  # System tables
+  system_tables:
+    sys_schema_metadata:
+      description: "System metadata and versioning"
+      
+  # Initial metadata records
+  metadata:
+    initial_records:
+      - key: "schema_version"
+        value: "2.0"
+        category: "schema"
+        description: "Enhanced database schema version"
+      - key: "table_count"
+        value: "15"
+        category: "stats"
+        description: "Total number of tables in enhanced schema"
+      - key: "purpose"
+        value: "NAB Skills Intelligence Platform - Enhanced Analytics"
+        category: "schema"
+        description: "Database purpose"
 
 # File discovery configuration
 file_discovery:

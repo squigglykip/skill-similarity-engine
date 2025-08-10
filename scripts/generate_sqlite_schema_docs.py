@@ -423,15 +423,15 @@ class SQLiteSchemaAnalyzer:
             'data_patterns': {}
         }
         
-        # Analyze key business tables
+        # Analyze key business tables (using production table names)
         business_tables = {
-            'jobs': ['JobProfile', 'JobFamily', 'JobFamilyGroup'],
-            'skills': ['Skill_Name', 'Category', 'SkillType'],
-            'positions': ['Division', 'Business_Unit', 'Location'],
-            'career_pathways': ['career_move_type', 'similarity_score'],
-            'job_similarities': ['similarity_score'],
-            'colleague_movements': ['movement_type'],
-            'movement_fact': ['movement_pattern', 'movement_count']
+            'core_job_architecture': ['JobProfile', 'JobFamily', 'JobFamilyGroup'],
+            'core_skills_taxonomy': ['Skill_Name', 'Category', 'SkillType'],
+            'core_workforce_current': ['Division', 'Business_Unit', 'Location'],
+            'analytics_career_pathways': ['career_move_type', 'similarity_score'],
+            'analytics_job_similarities': ['similarity_score'],
+            'core_colleague_positions_history': ['Employee Number', 'Position Number'],
+            'analytics_movement_patterns': ['movement_pattern', 'movement_count']
         }
         
         for table_name, key_columns in business_tables.items():
@@ -467,26 +467,35 @@ class SQLiteSchemaAnalyzer:
             if table_analysis:
                 analysis['data_distribution'][table_name] = table_analysis
         
-        # Calculate key business metrics
+        # Calculate key business metrics (using production table names)
         try:
             # Job metrics
-            cursor = self.conn.execute("SELECT COUNT(DISTINCT JobProfileID) FROM jobs")
+            cursor = self.conn.execute("SELECT COUNT(DISTINCT JobProfileID) FROM core_job_architecture")
             result = cursor.fetchone()
             total_jobs = result[0] if result else 0
             
-            cursor = self.conn.execute("SELECT COUNT(DISTINCT JobFamily) FROM jobs")
+            cursor = self.conn.execute("SELECT COUNT(DISTINCT JobFamily) FROM core_job_architecture")
             result = cursor.fetchone()
             total_job_families = result[0] if result else 0
             
             # Skills metrics
-            cursor = self.conn.execute("SELECT COUNT(DISTINCT Skill_ID) FROM skills")
+            cursor = self.conn.execute("SELECT COUNT(DISTINCT Skill_ID) FROM core_skills_taxonomy")
             result = cursor.fetchone()
             total_skills = result[0] if result else 0
             
-            # Position metrics
-            cursor = self.conn.execute("SELECT COUNT(DISTINCT \"Position Number\") FROM positions")
-            result = cursor.fetchone()
-            total_positions = result[0] if result else 0
+            # Position metrics (try both possible tables)
+            total_positions = 0
+            try:
+                cursor = self.conn.execute("SELECT COUNT(DISTINCT \"Position Number\") FROM core_workforce_current")
+                result = cursor.fetchone()
+                total_positions = result[0] if result else 0
+            except sqlite3.Error:
+                try:
+                    cursor = self.conn.execute("SELECT COUNT(DISTINCT \"Position Number\") FROM core_colleague_positions_history")
+                    result = cursor.fetchone()
+                    total_positions = result[0] if result else 0
+                except sqlite3.Error:
+                    total_positions = 0
             
             analysis['key_metrics'] = {
                 'total_jobs': total_jobs,
@@ -500,10 +509,19 @@ class SQLiteSchemaAnalyzer:
         
         # Look for interesting data patterns
         try:
-            # Check for movement analysis data
-            cursor = self.conn.execute("SELECT COUNT(*) FROM colleague_movements")
-            result = cursor.fetchone()
-            movement_count = result[0] if result else 0
+            # Check for movement analysis data (try production table names)
+            movement_count = 0
+            try:
+                cursor = self.conn.execute("SELECT COUNT(*) FROM core_colleague_positions_history")
+                result = cursor.fetchone()
+                movement_count = result[0] if result else 0
+            except sqlite3.Error:
+                try:
+                    cursor = self.conn.execute("SELECT COUNT(*) FROM colleague_movements")
+                    result = cursor.fetchone()
+                    movement_count = result[0] if result else 0
+                except sqlite3.Error:
+                    movement_count = 0
             
             if movement_count > 0:
                 # Analyze movement patterns
@@ -520,10 +538,19 @@ class SQLiteSchemaAnalyzer:
                     'movement_types': [(row[0], row[1]) for row in movement_patterns]
                 }
             
-            # Check career pathways effectiveness
-            cursor = self.conn.execute("SELECT COUNT(*) FROM career_pathways")
-            result = cursor.fetchone()
-            pathway_count = result[0] if result else 0
+            # Check career pathways effectiveness (try production table names)
+            pathway_count = 0
+            try:
+                cursor = self.conn.execute("SELECT COUNT(*) FROM analytics_career_pathways")
+                result = cursor.fetchone()
+                pathway_count = result[0] if result else 0
+            except sqlite3.Error:
+                try:
+                    cursor = self.conn.execute("SELECT COUNT(*) FROM career_pathways")
+                    result = cursor.fetchone()
+                    pathway_count = result[0] if result else 0
+                except sqlite3.Error:
+                    pathway_count = 0
             
             if pathway_count > 0:
                 cursor = self.conn.execute("""
@@ -683,12 +710,12 @@ class SQLiteSchemaAnalyzer:
     def get_top_values_for_key_columns(self) -> Dict[str, List[Tuple[str, int]]]:
         """Get top values for key categorical columns."""
         key_columns = {
-            'jobs': ['JobFamily', 'JobFamilyGroup'],
-            'positions': ['Division', 'Business_Unit', 'Location'],
-            'skills': ['Category', 'SkillType'],
-            'career_pathways': ['career_move_type'],
-            'colleague_movements': ['movement_type'],
-            'movement_fact': ['movement_pattern']
+            'core_job_architecture': ['JobFamily', 'JobFamilyGroup'],
+            'core_workforce_current': ['Division', 'Business_Unit', 'Location'],
+            'core_skills_taxonomy': ['Category', 'SkillType'],
+            'analytics_career_pathways': ['career_move_type'],
+            'core_colleague_positions_history': ['Employee Number', 'Position Number'],
+            'analytics_movement_patterns': ['movement_pattern']
         }
         
         top_values = {}
@@ -861,16 +888,16 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
             ""
         ])
         
-        # Generate quick reference dynamically
+        # Generate quick reference dynamically (using production table names)
         core_tables = {
-            'jobs': 'JobProfileID, JobProfile, JobFamily, JobFamilyGroup',
-            'career_pathways': 'source_job_id, target_job_id, similarity_rank, similarity_score, career_move_type',
-            'job_similarities': 'job_from, job_to, similarity_score',
-            'positions': 'JobProfileID, Division, Business_Unit, Location, Team',
-            'job_skills': 'JobProfileID, Skill_ID, Skill_Weight',
-            'skills': 'Skill_ID, Skill_Name, Category, SkillType',
-            'colleague_movements': 'employee_number, jobprofile_id, movement_type, movement_date',
-            'movement_fact': 'movement_pattern, movement_count, month, avg_days_in_position'
+            'core_job_architecture': 'JobProfileID, JobProfile, JobFamily, JobFamilyGroup',
+            'analytics_career_pathways': 'source_job_id, target_job_id, similarity_rank, similarity_score, career_move_type',
+            'analytics_job_similarities': 'job_from, job_to, similarity_score',
+            'core_workforce_current': 'JobProfileID, Division, Business_Unit, Location, Team',
+            'core_job_skill_requirements': 'JobProfileID, Skill_ID, Skill_Weight',
+            'core_skills_taxonomy': 'Skill_ID, Skill_Name, Category, SkillType',
+            'core_colleague_positions_history': 'Employee Number, Position Number, Week Ending, PosIDLookupKey',
+            'analytics_movement_patterns': 'movement_pattern, movement_count, month, avg_days_in_position'
         }
         
         for table in tables:
@@ -1364,7 +1391,7 @@ def generate_schema_documentation(db_path: str, output_path: str) -> None:
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(doc_lines))
         
-        print(f"âœ… Schema documentation generated: {output_file}")
+        print(f"✅ Schema documentation generated: {output_file}")
         print(f"ðŸ“Š Analyzed {len(tables)} tables with {sum(table['row_count'] for table in tables):,} total records")
         print(f"ðŸ“„ Generated {len(doc_lines)} lines of documentation")
 
@@ -1373,7 +1400,7 @@ def main():
     """Main execution function."""
     # Find database file
     project_root = Path(__file__).parent.parent
-    db_path = project_root / "models" / "2025-Q3" / "workforce_intelligence.sqlite"
+    db_path = project_root / "models" / "2025-Q3" / "business_context.sqlite"
     
     if not db_path.exists():
         print(f"âŒ Database not found at: {db_path}")

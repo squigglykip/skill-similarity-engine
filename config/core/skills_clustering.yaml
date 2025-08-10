@@ -1,0 +1,35 @@
+bundling_strategy:
+  cluster_cohesion_weight: 0.7
+  max_bundle_size: 15
+  min_specialization_threshold: 5.0
+  taxonomy_alignment_weight: 0.3
+skills_clustering:
+  algorithm: dbscan
+  clustering_metrics:
+    n_clusters_found: 0
+    noise_ratio: 0.5759225650332729
+    silhouette_score: 0.9926613690456891
+    taxonomy_alignment_score: 0.0
+  optimal_parameters:
+    eps: 0.1
+    linkage: null
+    min_samples: 2
+    n_clusters: 145
+    similarity_measure: jaccard
+  optimization_metadata:
+    algorithms_tested:
+    - dbscan
+    - hierarchical
+    - kmeans
+    optimization_timestamp: '2025-08-10T17:43:24.910969'
+    rationale: Optimized using comprehensive parameter search
+    similarity_methods_tested:
+    - jaccard
+    - cosine
+    - combined
+    total_skills_analyzed: 0
+  similarity_analysis:
+    best_similarity_method: jaccard
+    combined_score: 0.847212410255984
+    cosine_score: 0.0
+    jaccard_score: 0.0

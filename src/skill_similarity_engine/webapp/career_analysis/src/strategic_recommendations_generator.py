@@ -312,7 +312,7 @@ class StrategicRecommendationsGenerator:
                 development_weeks = int(base_weeks / similarity_factor)
                 db_values['development_investment_weeks'] = min(development_weeks, 56)  # Cap at 56 weeks
             
-            logger.info(f"Retrieved database values for strategic recommendations: {len(db_values)} metrics")
+            print(f"Retrieved database values for strategic recommendations: {len(db_values)} metrics")
             
         except Exception as e:
             logger.error(f"Error getting database values: {e}")
@@ -373,7 +373,7 @@ class StrategicRecommendationsGenerator:
             # Conditional organisational deployment
             variables['include_organisational_deployment'] = include_organisational_deployment
             
-            logger.info(f"Populated {len(variables)} template variables for strategic recommendations")
+            print(f"Populated {len(variables)} template variables for strategic recommendations")
             
         except Exception as e:
             logger.error(f"Error populating template variables: {e}")
@@ -546,7 +546,7 @@ class StrategicRecommendationsGenerator:
                         'content': f"Error generating content for {section_key}"
                     }
             
-            logger.info(f"Generated {len(content_sections)} content sections for strategic recommendations")
+            print(f"Generated {len(content_sections)} content sections for strategic recommendations")
             
         except Exception as e:
             logger.error(f"Error in content generation: {e}")
@@ -565,7 +565,7 @@ class StrategicRecommendationsGenerator:
         Returns:
             Dictionary containing section title, content, and metadata
         """
-        logger.info(f"Generating strategic recommendations for job: {job_from}")
+        print(f"Generating strategic recommendations for job: {job_from}")
         
         try:
             # Load appropriate template for mode
@@ -657,7 +657,7 @@ class StrategicRecommendationsGenerator:
                 'references_start': 57  # Continue from where previous sections left off
             }
             
-            logger.info("Strategic recommendations generation completed successfully")
+            print("Strategic recommendations generation completed successfully")
             return result
             
         except Exception as e:

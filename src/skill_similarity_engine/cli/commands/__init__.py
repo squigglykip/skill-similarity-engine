@@ -7,7 +7,7 @@ Each command encapsulates a specific workflow or operation.
 
 from .base_command import BaseCommand, CommandResult
 from .data_commands import DataLoadCommand, DataValidationCommand
-from .precompute_commands import SimilarityMatrixCommand, MovementAnalysisCommand
+from .precompute_commands import SimilarityMatrixCommand, MovementAnalysisCommand, MovementPatternPopulationCommand
 from .query_commands import QuerySimilarityCommand
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     # Precompute commands
     'SimilarityMatrixCommand',
     'MovementAnalysisCommand',
+    'MovementPatternPopulationCommand',
     
     # Query commands
     'QuerySimilarityCommand',

@@ -125,19 +125,21 @@ def load_diagnostic_data(conn) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
     SELECT 
         j.JobProfileID,
         j.JobProfile,
-        j.JobFunction,
-        j.JobSubFunction,
-        j.JobCategory,
-        j.ManagementLevel,
-        j.Customer_Facing,
-        j.is_Banker,
+        j.JobFamily,
+        j.JobFamilyGroup,
+        j.JobFamily as JobFunction,
+        j.JobFamilyGroup as JobSubFunction,
+        j.JobFamily as JobCategory,
+        'Unknown' as ManagementLevel,
+        'Unknown' as Customer_Facing,
+        'Unknown' as is_Banker,
         js.Skill_ID,
         s.Skill_Name,
         s.Category as Skill_Category,
         s.SkillType
-    FROM jobs j
-    JOIN job_skills js ON j.JobProfileID = js.JobProfileID
-    JOIN skills s ON js.Skill_ID = s.Skill_ID
+    FROM core_job_architecture j
+    JOIN core_job_skill_requirements js ON j.JobProfileID = js.JobProfileID
+    JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID
     ORDER BY j.JobProfileID, s.Skill_Name
     """
     
@@ -147,10 +149,10 @@ def load_diagnostic_data(conn) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
     try:
         bu_query = """
         SELECT DISTINCT
-            JobFunction,
+            JobFamily as JobFunction,
             COUNT(DISTINCT JobProfileID) as job_count
-        FROM jobs
-        GROUP BY JobFunction
+        FROM core_job_architecture
+        GROUP BY JobFamily
         ORDER BY job_count DESC
         """
         bu_df = pd.read_sql_query(bu_query, conn)

@@ -119,8 +119,11 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
         # Load other core files normally
         core_files = {
             'processing.yaml': ('processing',),
-            'datetime.yaml': ('datetime',),
+            'datetime.yaml': ('core',),  # SURGICAL FIX: Load datetime under core for core.datetime.* access
             'configuration_management.yaml': ('configuration_management',),
+            'similarity_parameters.yaml': ('core',),
+            'clustering_analysis.yaml': ('core',),
+            'skills_clustering.yaml': ('core',),
             'file_patterns.yaml': ('workforce_data_patterns', 'skills_data_patterns', 'position_mapping_patterns', 'output_patterns', 'database_patterns')
         }
         
@@ -128,9 +131,37 @@ class ModularConfigurationStrategy(ConfigurationStrategy):
             file_path = core_path / filename
             if file_path.exists():
                 file_config = self._load_yaml_safe(file_path)
-                for section in sections:
-                    if section in file_config:
-                        config[section] = file_config[section]
+                
+                # Special handling for similarity_parameters.yaml and clustering_analysis.yaml
+                if filename == 'similarity_parameters.yaml':
+                    # Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.similarity_parameters
+                    config['core']['similarity_parameters'] = file_config
+                elif filename == 'clustering_analysis.yaml':
+                    # Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.clustering_analysis
+                    config['core']['clustering_analysis'] = file_config
+                elif filename == 'skills_clustering.yaml':
+                    # Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.skills_clustering
+                    config['core']['skills_clustering'] = file_config
+                elif filename == 'datetime.yaml':
+                    # SURGICAL FIX: Create core section if it doesn't exist
+                    if 'core' not in config:
+                        config['core'] = {}
+                    # Load the entire file content under core.datetime for core.datetime.* access
+                    config['core']['datetime'] = file_config
+                else:
+                    # Normal section-based loading for other files
+                    for section in sections:
+                        if section in file_config:
+                            config[section] = file_config[section]
         
         return config
     
@@ -813,6 +844,91 @@ class ArchitecturalConfigManager:
         if module_config:
             self._module_configs[module_name] = module_config
     
+    # =========================================================================
+    # ENHANCED CORE CONFIGURATION ACCESS (Phase 1 Implementation)
+    # =========================================================================
+    
+    def get_core_datetime_config(self) -> Optional[Dict[str, Any]]:
+        """
+        Get core datetime configuration with enhanced structure.
+        
+        This method supports the new enhanced datetime configuration format
+        with absolute authority and flexible parsing.
+        
+        Returns:
+            Core datetime configuration dict or None if not available
+        """
+        try:
+            # Try to get enhanced core configuration first from _config['core'] (surgical fix)
+            if 'core' in self._config and 'datetime' in self._config['core']:
+                datetime_config = self._config['core']['datetime']
+                
+                # Check if it's the enhanced format with primary_formats
+                if isinstance(datetime_config, dict) and 'primary_formats' in datetime_config:
+                    logger.debug("Using enhanced core datetime configuration")
+                    return datetime_config
+            
+            # Fallback: Try to get enhanced core configuration from _module_configs (original)
+            if self._is_modular and 'core' in self._module_configs:
+                core_config = self._module_configs['core']
+                if 'datetime' in core_config:
+                    datetime_config = core_config['datetime']
+                    
+                    # Check if it's the enhanced format with primary_formats
+                    if isinstance(datetime_config, dict) and 'primary_formats' in datetime_config:
+                        logger.debug("Using enhanced core datetime configuration from module configs")
+                        return datetime_config
+            
+            # Fallback to architectural config datetime section
+            if 'datetime' in self._config:
+                datetime_config = self._config['datetime']
+                if isinstance(datetime_config, dict):
+                    # Convert legacy format to enhanced format for compatibility
+                    enhanced_config = {
+                        'primary_formats': {
+                            'input_date': datetime_config.get('input_date_format', '%d/%m/%Y'),
+                            'output_date': datetime_config.get('output_date_format', '%Y-%m-%d'),
+                            'timestamp': datetime_config.get('timestamp_format', '%Y%m%d_%H%M%S'),
+                            'logging': '%Y-%m-%d %H:%M:%S'
+                        },
+                        'parsing_tolerance': datetime_config.get('alternative_date_formats', [
+                            '%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y', '%Y/%m/%d'
+                        ])
+                    }
+                    logger.debug("Using legacy datetime configuration with enhanced compatibility wrapper")
+                    return enhanced_config
+                    
+        except Exception as e:
+            logger.warning(f"Failed to load core datetime configuration: {e}")
+        
+        return None
+    
+    def get_core_datetime_formats(self) -> Dict[str, Any]:
+        """
+        Get core datetime formats for backward compatibility.
+        
+        Returns primary date formats in the expected legacy format.
+        """
+        core_datetime = self.get_core_datetime_config()
+        if core_datetime and 'primary_formats' in core_datetime:
+            primary_formats = core_datetime['primary_formats']
+            return {
+                'input_date_format': primary_formats.get('input_date', '%d/%m/%Y'),
+                'output_date_format': primary_formats.get('output_date', '%Y-%m-%d'),
+                'movement_date_format': primary_formats.get('input_date', '%d/%m/%Y'),  # Movement uses input format
+                'timestamp_format': primary_formats.get('timestamp', '%Y%m%d_%H%M%S'),
+                'parsing_tolerance': core_datetime.get('parsing_tolerance', ['%d/%m/%Y', '%Y-%m-%d'])
+            }
+        
+        # Legacy fallback
+        return {
+            'input_date_format': '%d/%m/%Y',
+            'output_date_format': '%Y-%m-%d', 
+            'movement_date_format': '%d/%m/%Y',
+            'timestamp_format': '%Y%m%d_%H%M%S',
+            'parsing_tolerance': ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y']
+        }
+
     # =========================================================================
     # EXISTING API: Backward Compatible Configuration Access
     # =========================================================================

@@ -81,7 +81,7 @@ class DynamicSimilarityThresholds:
             print(f"   â€¢ 75th percentile: {percentile_values[-3]:.3f}")
             
         except Exception as e:
-            print(f"âš ï¸ Error calculating similarity distribution: {e}")
+            print(f"⚠️ ï¸ Error calculating similarity distribution: {e}")
             self._similarity_distribution = self._get_default_distribution()
     
     def _calculate_dynamic_thresholds(self):
@@ -297,7 +297,7 @@ class AdaptiveContentSelector:
             return business_context
             
         except Exception as e:
-            print(f"âš ï¸ Error getting business context: {e}")
+            print(f"⚠️ ï¸ Error getting business context: {e}")
             return {'source_job_context': {}, 'target_job_context': {}}
     
     def _determine_analysis_approach(self, similarity_context: Dict, business_context: Dict) -> str:

@@ -38,6 +38,8 @@ from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
 
+from ..utils.progress import MultiProgressTracker, progress_context
+
 from datetime import datetime
 
 from ..config.architectural_config_manager import get_config_manager
@@ -90,9 +92,9 @@ class DataLoader:
 
             config_search_paths = self.config_manager.get_nested_value(
 
-                'business_context', 'file_discovery', 'config_search_paths',
+                'business_context', 'database', 'file_discovery', 'config_search_paths',
 
-                default=[]  # No hardcoded fallback - force proper config discovery
+                default=["config/data/sources.yaml"]  # Fallback to known path
 
             )
 
@@ -153,13 +155,15 @@ class DataLoader:
                 # Process variable substitution on the entire configuration
                 processed_config = adapter._substitute_dict_variables(config)
                 
-                logger.info(f"Loaded data sources configuration from {self.config_path}")
+                # Data sources configuration loaded
                 return processed_config
             else:
-                logger.warning(f"Configuration file not found: {self.config_path}")
+                print(f"⚠️ Configuration file not found: {self.config_path}")
+                print("   Using default configuration settings.")
                 return self._get_default_config()
         except Exception as e:
-            logger.error(f"Failed to load configuration: {e}")
+            print(f"❌ Failed to load configuration: {e}")
+            print("   Please check your configuration file format and permissions.")
             return self._get_default_config()
     
 
@@ -209,67 +213,80 @@ class DataLoader:
 
         
 
-        logger.info("Starting comprehensive data loading from configuration...")
-
-        
+        # Starting data loading process
 
         # Get data sources from configuration
-
         data_sources = self.config.get('data_sources', {})
 
-        
-
         # Define loading sequence (order matters for foreign keys)
+        loading_sequence = self.config.get('loading_sequence', [
+            'core_job_architecture', 
+            'core_skills_taxonomy', 
+            'job_skills',  # Note: config calls this job_skills, table is core_job_skill_requirements
+            'core_workforce_current', 
+            'position_history'  # Note: config calls this position_history, table is core_position_timeline
+        ])
 
-        loading_sequence = ['jobs', 'skills', 'job_skills', 'positions', 'position_history', 'workforce_context']
-
-        
-
-        for dataset_name in loading_sequence:
-
-            if dataset_name not in data_sources:
-
-                logger.warning(f"Dataset {dataset_name} not found in configuration")
-
-                continue
-
-                
-
-            dataset_config = data_sources[dataset_name]
-
+        # Use MultiProgressTracker for clean progress display
+        with MultiProgressTracker() as progress_tracker:
             
+            for dataset_name in loading_sequence:
 
-            # Load from CSV file(s)
-            if 'file_pattern' in dataset_config:
-                # Handle multiple files with pattern
-                import glob
-                pattern = str(data_root_path / dataset_config['file_pattern'])
-                matching_files = glob.glob(pattern)
-                
-                if matching_files:
-                    logger.info(f"Loading {dataset_name} from {len(matching_files)} files matching pattern: {dataset_config['file_pattern']}")
-                    if not self._load_multiple_files_from_config(dataset_name, matching_files, dataset_config):
-                        logger.error(f"Failed to load {dataset_name}")
-                        success = False
+                if dataset_name not in data_sources:
+                    print(f"⚠️  Dataset {dataset_name} not found in configuration")
+                    continue
+
+                dataset_config = data_sources[dataset_name]
+
+                # Determine how many files we'll be loading for progress tracking
+                if 'file_pattern' in dataset_config:
+                    # Handle multiple files with pattern
+                    import glob
+                    pattern = str(data_root_path / dataset_config['file_pattern'])
+                    matching_files = glob.glob(pattern)
+                    
+                    if matching_files:
+                        # Create progress tracker for this dataset with file count
+                        tracker = progress_tracker.add_tracker(
+                            dataset_name, 
+                            total=len(matching_files),
+                            desc=f"Loading {dataset_name}",
+                            memory_tracking=False,
+                            show_tqdm=True
+                        )
+                        
+                        if not self._load_multiple_files_with_progress(dataset_name, matching_files, dataset_config, tracker):
+                            print(f"❌ Failed to load {dataset_name}")
+                            success = False
+                        
+                        progress_tracker.stop_tracker(dataset_name)
                     else:
-                        logger.info(f"✅ Successfully loaded {dataset_name}")
-                else:
-                    logger.warning(f"No files found matching pattern: {pattern}")
-                    success = False
-            else:
-                # Handle single file
-                file_path = data_root_path / dataset_config['file_path']
-                
-                if file_path.exists():
-                    logger.info(f"Loading {dataset_name} from {file_path}")
-                    if not self._load_dataset_from_config(dataset_name, file_path, dataset_config):
-                        logger.error(f"Failed to load {dataset_name}")
+                        print(f"⚠️  No files found matching pattern: {pattern}")
                         success = False
-                    else:
-                        logger.info(f"✅ Successfully loaded {dataset_name}")
                 else:
-                    logger.warning(f"Data file not found: {file_path}")
-                    success = False
+                    # Handle single file
+                    file_path = data_root_path / dataset_config['file_path']
+                    
+                    if file_path.exists():
+                        # Create progress tracker for single file (indeterminate)
+                        tracker = progress_tracker.add_tracker(
+                            dataset_name,
+                            total=1,
+                            desc=f"Loading {dataset_name}",
+                            memory_tracking=False,
+                            show_tqdm=True
+                        )
+                        
+                        if not self._load_dataset_from_config(dataset_name, file_path, dataset_config):
+                            print(f"❌ Failed to load {dataset_name}")
+                            success = False
+                        else:
+                            tracker.update(1)  # Mark as complete
+                        
+                        progress_tracker.stop_tracker(dataset_name)
+                    else:
+                        print(f"❌ Data file not found: {file_path}")
+                        success = False
 
         
 
@@ -283,17 +300,14 @@ class DataLoader:
 
             except Exception as e:
 
-                logger.warning(f"Failed to load pre-computed career pathways: {e}")
-
-                logger.info("Career pathways can be generated using the precompute pipeline (main.py option 1)")
+                # Career pathways not available - can be generated later
+                print("ℹ️  Career pathways will be generated during similarity analysis")
 
                 # Don't fail the entire process if career pathways loading fails
 
         
 
         if success:
-
-            logger.info("All data loaded successfully")
 
             self._print_load_summary()
 
@@ -329,7 +343,7 @@ class DataLoader:
 
         try:
 
-            logger.info(f"Loading {dataset_name} from {file_path}")
+            # Loading dataset from file
 
             
 
@@ -341,57 +355,11 @@ class DataLoader:
 
             
 
-            # Handle position enrichment if configured
+            # Handle enrichment if configured (new flexible format)
 
-            if dataset_name == 'positions' and dataset_config.get('enrichment', {}).get('enabled', False):
+            if 'enrichment' in dataset_config:
 
-                enrichment_config = dataset_config['enrichment']
-
-                mapping_file_path = file_path.parent.parent / enrichment_config['mapping_file']
-
-                
-
-                if mapping_file_path.exists():
-
-                    logger.info(f"Loading position-job mapping from {mapping_file_path}")
-
-                    df_mapping = pd.read_csv(mapping_file_path)
-
-                    
-
-                    # Merge positions with JobProfileID mapping
-
-                    merge_key = enrichment_config.get('merge_key', 'Position Number')
-
-                    df = df.merge(
-
-                        df_mapping, 
-
-                        left_on=merge_key, 
-
-                        right_on='Position_Number',
-
-                        how='left'
-
-                    )
-
-                    
-
-                    # Log enrichment statistics
-
-                    positions_with_jobs = df['JobProfileID'].notna().sum()
-
-                    total_positions = len(df)
-
-                    enrichment_rate = (positions_with_jobs / total_positions * 100) if total_positions > 0 else 0
-
-                    logger.info(f"Position enrichment: {positions_with_jobs:,} of {total_positions:,} positions have JobProfileID ({enrichment_rate:.1f}%)")
-
-                else:
-
-                    logger.warning(f"Position-job mapping file not found: {mapping_file_path}")
-
-                    df['JobProfileID'] = ''
+                df = self._apply_enrichment(df, dataset_config['enrichment'], dataset_name, file_path)
 
             
 
@@ -405,15 +373,33 @@ class DataLoader:
 
             available_columns = [col for col in column_mapping.keys() if col in df.columns]
 
+            # Add enriched columns that aren't in column_mapping but exist in DataFrame
+            if 'enrichment' in dataset_config:
+                enriched_column_names = list(dataset_config['enrichment'].keys())
+                for enrich_col in enriched_column_names:
+                    if enrich_col in df.columns and enrich_col not in available_columns:
+                        available_columns.append(enrich_col)
+                        # Add identity mapping for enriched columns (they keep their name)
+                        column_mapping[enrich_col] = enrich_col
+
             if not available_columns:
 
-                logger.error(f"No expected columns found in {file_path}")
+                print(f"❌ No expected columns found in {file_path}")
+                print("   Please verify the file format and column names.")
 
                 return False
 
                 
 
             df_mapped = df[available_columns].rename(columns=column_mapping)
+
+            
+
+            # Handle primary key generation if configured (after column mapping)
+
+            if 'primary_key_generation' in dataset_config:
+
+                df_mapped = self._apply_primary_key_generation(df_mapped, dataset_config['primary_key_generation'])
 
             
 
@@ -427,7 +413,7 @@ class DataLoader:
 
                     df_mapped[col] = default_val
 
-                    logger.info(f"Added default column {col} with value {default_val}")
+                    print(f"➕ Added default column {col} with value {default_val}")
 
             
 
@@ -458,6 +444,12 @@ class DataLoader:
                     if dtype == 'numeric':
 
                         df_mapped[col] = pd.to_numeric(df_mapped[col], errors='coerce')
+                    
+                    elif dtype == 'text':
+                        
+                        # Convert to string and ensure no NaN values for TEXT database columns
+                        
+                        df_mapped[col] = df_mapped[col].astype(str).replace('nan', '')
 
             
 
@@ -491,7 +483,7 @@ class DataLoader:
 
                 if initial_count > final_count:
 
-                    logger.info(f"Removed {initial_count - final_count} duplicate Employee Numbers")
+                    print(f"🧹 Removed {initial_count - final_count:,} duplicate Employee Numbers")
 
             elif dataset_name == 'job_skills':
 
@@ -505,11 +497,48 @@ class DataLoader:
 
                 df_mapped = df_mapped.drop_duplicates(subset=['Skill_ID'])
 
+            elif dataset_name == 'position_history' and 'position_timeline_id' in df_mapped.columns:
+
+                # Remove duplicates based on the generated primary key to avoid UNIQUE constraint failures
+
+                initial_count = len(df_mapped)
+
+                df_mapped = df_mapped.drop_duplicates(subset=['position_timeline_id'])
+
+                final_count = len(df_mapped)
+
+                if initial_count > final_count:
+
+                    print(f"🧹 Removed {initial_count - final_count:,} duplicate position timeline records")
+
+            elif dataset_name == 'colleague_positions_history':
+                
+                # For colleague positions history: Allow duplicate PosIDLookupKey values (shared positions)
+                # Only remove true duplicates based on composite primary key (PosIDLookupKey + Week Ending)
+                
+                if 'PosIDLookupKey' in df_mapped.columns and 'Week Ending' in df_mapped.columns:
+                    initial_count = len(df_mapped)
+                    
+                    # Remove only true duplicates (same position + same week)
+                    df_mapped = df_mapped.drop_duplicates(subset=['PosIDLookupKey', 'Week Ending'])
+                    
+                    final_count = len(df_mapped)
+                    
+                    if initial_count > final_count:
+                        # Removed duplicate records during processing
+                        pass
+
             
 
             # Load into database
 
             with sqlite3.connect(self.db_path) as conn:
+                
+                # Clear table if configured to do so (prevents UNIQUE constraint conflicts)
+                if dataset_config.get('clear_table_before_load', False):
+                    # Clearing existing data for clean reload
+                    conn.execute(f"DELETE FROM {table_name}")
+                    conn.commit()
 
                 if chunk_size and len(df_mapped) > chunk_size:
 
@@ -553,7 +582,7 @@ class DataLoader:
 
             
 
-            logger.info(f"Loaded {len(df_mapped)} {dataset_name} records")
+            # Dataset loaded successfully
 
             return True
 
@@ -561,7 +590,8 @@ class DataLoader:
 
         except Exception as e:
 
-            logger.error(f"Failed to load {dataset_name}: {e}")
+            print(f"❌ Failed to load {dataset_name}: {e}")
+            print(f"   Please check the {dataset_name} data file and format.")
 
             return False
 
@@ -573,7 +603,7 @@ class DataLoader:
 
         try:
 
-            logger.info(f"Loading job architecture from {file_path}")
+            # Loading job architecture data
 
             
 
@@ -679,7 +709,7 @@ class DataLoader:
 
             
 
-            logger.info(f"Processing {len(df_mapped)} job records with {len(available_columns)} columns")
+            print(f"⚙️ Processing {len(df_mapped):,} job records with {len(available_columns)} columns")
 
             logger.debug(f"Available columns: {available_columns}")
 
@@ -717,7 +747,7 @@ class DataLoader:
 
             
 
-            logger.info(f"âœ… Loaded {len(df_mapped)} job records with {self.load_stats['jobs']['schema_version']} schema")
+            # Job records loaded successfully
 
             return True
 
@@ -725,7 +755,8 @@ class DataLoader:
 
         except Exception as e:
 
-            logger.error(f"Failed to load job architecture: {e}")
+            print(f"❌ Failed to load job architecture: {e}")
+            print("   Check job architecture data file and format.")
 
             return False
 
@@ -737,7 +768,7 @@ class DataLoader:
 
         try:
 
-            logger.info(f"Loading skills library from {file_path}")
+            # Loading skills library data
 
             
 
@@ -871,11 +902,11 @@ class DataLoader:
 
             if duplicates_removed > 0:
 
-                logger.info(f"Removed {duplicates_removed} duplicate skills")
+                print(f"🧹 Removed {duplicates_removed:,} duplicate skills")
 
             
 
-            logger.info(f"Processing {len(df_mapped)} skills with {len(available_columns)} columns")
+            print(f"⚙️ Processing {len(df_mapped):,} skills with {len(available_columns)} columns")
 
             logger.debug(f"Available columns: {available_columns}")
 
@@ -917,7 +948,7 @@ class DataLoader:
 
             
 
-            logger.info(f"âœ… Loaded {len(df_mapped)} skill records with {self.load_stats['skills']['schema_version']} schema")
+            # Skill records loaded successfully
 
             return True
 
@@ -925,7 +956,8 @@ class DataLoader:
 
         except Exception as e:
 
-            logger.error(f"Failed to load skills library: {e}")
+            print(f"❌ Failed to load skills library: {e}")
+            print("   Check skills library data file and format.")
 
             return False
 
@@ -937,7 +969,7 @@ class DataLoader:
 
         try:
 
-            logger.info(f"Loading job-skill mapping from {file_path}")
+            # Loading job-skill mapping data
 
             
 
@@ -1011,7 +1043,7 @@ class DataLoader:
 
             
 
-            logger.info(f"Loaded {len(df_mapped)} job-skill mappings")
+            print(f"🔗 Loaded {len(df_mapped):,} job-skill mappings")
 
             return True
 
@@ -1019,7 +1051,8 @@ class DataLoader:
 
         except Exception as e:
 
-            logger.error(f"Failed to load job-skill mapping: {e}")
+            print(f"❌ Failed to load job-skill mapping: {e}")
+            print("   Check job-skill mapping data file and format.")
 
             return False
 
@@ -1031,7 +1064,7 @@ class DataLoader:
 
         try:
 
-            logger.info(f"Loading workforce context from {file_path}")
+            # Loading workforce context data
 
             
 
@@ -1047,7 +1080,7 @@ class DataLoader:
 
             if mapping_file.exists():
 
-                logger.info(f"Loading position-job mapping from {mapping_file}")
+                # Loading position-job mapping
 
                 df_mapping = pd.read_csv(mapping_file)
 
@@ -1077,7 +1110,7 @@ class DataLoader:
 
                 enrichment_rate = (positions_with_jobs / total_positions * 100) if total_positions > 0 else 0
 
-                logger.info(f"Position enrichment: {positions_with_jobs:,} of {total_positions:,} positions have JobProfileID ({enrichment_rate:.1f}%)")
+                print(f"✨ Position enrichment: {positions_with_jobs:,} of {total_positions:,} positions have JobProfileID ({enrichment_rate:.1f}%)")
 
                 
 
@@ -1087,7 +1120,8 @@ class DataLoader:
 
             else:
 
-                logger.warning(f"Position-job mapping file not found: {mapping_file}")
+                print(f"⚠️ Position-job mapping file not found: {mapping_file}")
+                print("   Positions will not be enriched with job profile information.")
 
                 df = df_positions
 
@@ -1209,7 +1243,7 @@ class DataLoader:
 
             if initial_count > final_count:
 
-                logger.info(f"Removed {initial_count - final_count} duplicate Employee Numbers")
+                print(f"🧹 Removed {initial_count - final_count:,} duplicate Employee Numbers")
 
             
 
@@ -1243,7 +1277,7 @@ class DataLoader:
 
             
 
-            logger.info(f"Loaded {len(df_mapped)} position records")
+            # Position records loaded successfully
 
             return True
 
@@ -1325,40 +1359,133 @@ class DataLoader:
                 else:
                     logger.warning(f"Failed to load {file_path_obj.name}")
             
-            logger.info(f"Loaded total of {total_rows_loaded} rows from {len(file_paths)} files")
+            print(f"📊 Loaded total of {total_rows_loaded:,} rows from {len(file_paths)} files")
             return True
             
         except Exception as e:
             logger.error(f"Failed to load multiple files for {dataset_name}: {e}")
             return False
     
+    def _load_multiple_files_with_progress(self, dataset_name: str, file_paths: List[str], dataset_config: Dict[str, Any], progress_tracker) -> bool:
+        """Load and combine multiple CSV files for a single dataset with progress tracking."""
+        try:
+            total_rows_loaded = 0
+            
+            # Clear table once before loading all files (for datasets that need it)
+            if dataset_config.get('clear_table_before_load', False):
+                table_name = dataset_config.get('table_name', dataset_name)
+                with sqlite3.connect(self.db_path) as conn:
+                    # Clearing existing data before loading multiple files
+                    conn.execute(f"DELETE FROM {table_name}")
+                    conn.commit()
+                
+                # Temporarily disable clearing for individual file loads
+                dataset_config_copy = dataset_config.copy()
+                dataset_config_copy['clear_table_before_load'] = False
+            else:
+                dataset_config_copy = dataset_config
+            
+            for file_path in sorted(file_paths):  # Sort to ensure consistent order
+                file_path_obj = Path(file_path)
+                
+                # Use existing single-file loading method with modified config
+                if self._load_dataset_from_config(dataset_name, file_path_obj, dataset_config_copy):
+                    # Get the row count from load_stats if available
+                    if dataset_name in self.load_stats:
+                        total_rows_loaded += self.load_stats[dataset_name].get('rows_loaded', 0)
+                    progress_tracker.update(1)  # Update progress for this file
+                else:
+                    print(f"  ⚠️  Failed to load {file_path_obj.name}")
+                    progress_tracker.update(1)  # Still update progress even on failure
+            
+            return True
+            
+        except Exception as e:
+            print(f"  ❌ Failed to load multiple files for {dataset_name}: {e}")
+            return False
+    
 # Note: Dataset generation methods removed - all datasets now loaded from CSV files
 
     def _print_load_summary(self) -> None:
-
-        """Print summary of all data loading operations."""
-
-        print("\n=== Data Loading Summary ===")
-
+        """Print a clean, user-friendly summary with actual database row counts."""
         
-
+        print("\n" + "=" * 50)
+        print("📊 DATA LOADING COMPLETE")
+        print("=" * 50)
+        
+        # Get actual row counts from the database
+        actual_counts = self._get_actual_table_row_counts()
         total_rows = 0
-
-        for table_name, stats in self.load_stats.items():
-
-            rows = stats['rows_loaded']
-
-            total_rows += rows
-
-            print(f"✅ {table_name}: {rows:,} rows loaded")
-
-            print(f"  Source: {Path(stats['source_file']).name}")
-
         
-
-        print(f"\nTotal records loaded: {total_rows:,}")
-
-        print("=" * 31)
+        # Define table display order and names
+        table_display_info = {
+            'core_job_architecture': 'Job Architecture',
+            'core_skills_taxonomy': 'Skills Taxonomy', 
+            'job_skills': 'Job Skills',
+            'core_workforce_current': 'Workforce Current',
+            'position_history': 'Position History',
+            'colleague_positions_history': 'Colleague Positions History'
+        }
+        
+        for table_name, display_name in table_display_info.items():
+            if table_name in actual_counts:
+                rows = actual_counts[table_name]
+                total_rows += rows
+                
+                # Show file count for multi-file datasets if available from load stats
+                if table_name in self.load_stats and 'file_count' in self.load_stats[table_name]:
+                    file_count = self.load_stats[table_name]['file_count']
+                    if file_count > 1:
+                        print(f"✅ {display_name:<25} {rows:>10,} rows ({file_count} files)")
+                    else:
+                        print(f"✅ {display_name:<25} {rows:>10,} rows")
+                else:
+                    print(f"✅ {display_name:<25} {rows:>10,} rows")
+        
+        # Show any other tables that exist but weren't in our main list
+        for table_name, row_count in actual_counts.items():
+            if table_name not in table_display_info and row_count > 0:
+                display_name = table_name.replace('_', ' ').title()
+                print(f"✅ {display_name:<25} {row_count:>10,} rows")
+                total_rows += row_count
+        
+        print("-" * 50)
+        print(f"📈 Total Records Loaded:     {total_rows:>10,}")
+        print("=" * 50)
+    
+    def _get_actual_table_row_counts(self) -> Dict[str, int]:
+        """Get actual row counts from the database."""
+        row_counts = {}
+        
+        try:
+            import sqlite3
+            
+            # Connect to the database
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Get list of all tables
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+                tables = cursor.fetchall()
+                
+                # Get row count for each table
+                for (table_name,) in tables:
+                    try:
+                        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                        count = cursor.fetchone()[0]
+                        row_counts[table_name] = count
+                    except Exception as e:
+                        # If we can't query a table, skip it
+                        print(f"⚠️ Could not get row count for table {table_name}: {e}")
+                        continue
+                        
+        except Exception as e:
+            print(f"❌ Error getting database row counts: {e}")
+            # Fallback to load stats if database query fails
+            for table_name, stats in self.load_stats.items():
+                row_counts[table_name] = stats['rows_loaded']
+        
+        return row_counts
 
     
 
@@ -1482,9 +1609,9 @@ class DataLoader:
 
                 
 
-                logger.info(f"Position statistics: {total_employees:,} employees in {unique_positions:,} unique positions")
+                print(f"📊 Position statistics: {total_employees:,} employees in {unique_positions:,} unique positions")
 
-                logger.info(f"Job mapping: {positions_with_jobs:,} employees have JobProfileID assignments")
+                print(f"🔄 Job mapping: {positions_with_jobs:,} employees have JobProfileID assignments")
 
                 
 
@@ -1520,7 +1647,7 @@ class DataLoader:
 
         """Load pre-computed career pathways from parquet file."""
 
-        logger.info("ðŸ“¦ Loading pre-computed career pathways from parquet...")
+        # Loading pre-computed career pathways from parquet
 
         
 
@@ -1608,7 +1735,7 @@ class DataLoader:
 
         latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
 
-        logger.info(f"ðŸ“ Loading career pathways from: {latest_file}")
+        print(f"🗺️ Loading career pathways from: {latest_file}")
 
         
 
@@ -1618,7 +1745,7 @@ class DataLoader:
 
             pathways_df = pd.read_parquet(latest_file)
 
-            logger.info(f"ðŸ“Š Loaded {len(pathways_df):,} career pathway relationships from parquet")
+            print(f"🗺️Š Loaded {len(pathways_df):,} career pathway relationships from parquet")
 
             
 
@@ -1702,7 +1829,7 @@ class DataLoader:
 
                 
 
-                logger.info(f"âœ… Successfully loaded {len(pathway_records):,} career pathway relationships into database")
+                print(f"🗺️ ✅ Successfully loaded {len(pathway_records):,} career pathway relationships into database")
 
                 
 
@@ -1712,13 +1839,13 @@ class DataLoader:
 
                     move_type_counts = pathways_df['career_move_type'].value_counts().to_dict()
 
-                    logger.info("ðŸ“Š Career move type distribution:")
+                    print("📊 Career move type distribution:")
 
                     for move_type, count in sorted(move_type_counts.items()):
 
                         percentage = (count / len(pathways_df)) * 100
 
-                        logger.info(f"   - {move_type}: {count:,} ({percentage:.1f}%)")
+                        print(f"🗺️    - {move_type}: {count:,} ({percentage:.1f}%)")
 
                 
 
@@ -1733,4 +1860,113 @@ class DataLoader:
             logger.error(f"Failed to load career pathways from parquet: {e}")
 
             raise 
+
+    def _apply_enrichment(self, df: pd.DataFrame, enrichment_config: Dict[str, Any], dataset_name: str, file_path: Path) -> pd.DataFrame:
+        """
+        Apply enrichment to a DataFrame using the new flexible enrichment configuration format.
+        
+        Args:
+            df: Source DataFrame to enrich
+            enrichment_config: Enrichment configuration from sources.yaml
+            dataset_name: Name of the dataset being processed
+            file_path: Path to the source CSV file
+            
+        Returns:
+            Enriched DataFrame with additional columns
+        """
+        try:
+            # Applying data enrichment
+            
+            # Handle each enrichment column separately
+            for enrich_col_name, enrich_config in enrichment_config.items():
+                if isinstance(enrich_config, dict) and 'source_file' in enrich_config:
+                    # Get enrichment mapping file path
+                    mapping_file_path = file_path.parent.parent / enrich_config['source_file']
+                    
+                    if mapping_file_path.exists():
+                        # Loading enrichment mapping
+                        df_mapping = pd.read_csv(mapping_file_path)
+                        
+                        # Get mapping configuration
+                        mapping_key = enrich_config.get('mapping_key', 'Position Number')
+                        target_key = enrich_config.get('target_key', 'Position_Number')
+                        value_column = enrich_config.get('value_column', 'JobProfileID')
+                        
+                        # Perform the merge
+                        df = df.merge(
+                            df_mapping[[target_key, value_column]], 
+                            left_on=mapping_key, 
+                            right_on=target_key,
+                            how='left'
+                        )
+                        
+                        # Rename the enriched column to match the desired name
+                        if value_column in df.columns and value_column != enrich_col_name:
+                            df = df.rename(columns={value_column: enrich_col_name})
+                        
+                        # Remove the duplicate mapping key column if it exists
+                        if target_key in df.columns and target_key != mapping_key:
+                            df = df.drop(columns=[target_key])
+                        
+                        # Log enrichment statistics
+                        enriched_count = df[enrich_col_name].notna().sum()
+                        total_count = len(df)
+                        enrichment_rate = (enriched_count / total_count * 100) if total_count > 0 else 0
+                        
+                        # Data enrichment completed successfully
+                        
+                    else:
+                        logger.warning(f"Enrichment mapping file not found: {mapping_file_path}")
+                        # Add empty column if mapping not available
+                        df[enrich_col_name] = ''
+            
+            return df
+            
+        except Exception as e:
+            logger.error(f"Failed to apply enrichment to {dataset_name}: {e}")
+            # Return original DataFrame if enrichment fails
+            return df
+    
+    def _apply_primary_key_generation(self, df: pd.DataFrame, pk_config: Dict[str, str]) -> pd.DataFrame:
+        """
+        Apply primary key generation based on configuration.
+        
+        Args:
+            df: DataFrame to add primary keys to
+            pk_config: Primary key generation configuration
+            
+        Returns:
+            DataFrame with generated primary key columns
+        """
+        try:
+            for pk_column, generation_rule in pk_config.items():
+                if '+' in generation_rule:
+                    # Handle concatenation rules like "Position_Number + '_' + Week_Ending"
+                    parts = [part.strip().strip("'\"") for part in generation_rule.split('+')]
+                    
+                    # Build the concatenated value
+                    df[pk_column] = ''
+                    for i, part in enumerate(parts):
+                        if part.startswith("'") and part.endswith("'"):
+                            # Literal string
+                            literal_value = part[1:-1]  # Remove quotes
+                            if i == 0:
+                                df[pk_column] = literal_value
+                            else:
+                                df[pk_column] = df[pk_column] + literal_value
+                        else:
+                            # Column reference
+                            if part in df.columns:
+                                if i == 0:
+                                    df[pk_column] = df[part].astype(str)
+                                else:
+                                    df[pk_column] = df[pk_column] + df[part].astype(str)
+                    
+                    # Primary key column generated
+                
+            return df
+            
+        except Exception as e:
+            logger.error(f"Failed to generate primary keys: {e}")
+            return df 
 

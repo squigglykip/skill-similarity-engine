@@ -67,7 +67,7 @@ class MovementPrecomputer:
         directories = self.config_manager.get_models_directories_config()
         self.movement_analysis_subdir = directories.get('movement_analysis_subdir', 'movement_analysis')
         
-        logger.info("🏗️ MovementPrecomputer initialized with configuration-driven parameters")
+        print("🏗️ MovementPrecomputer initialized with configuration-driven parameters")
     
     def generate_movement_analysis(self, 
                                  colleague_positions_dir: str,
@@ -84,18 +84,18 @@ class MovementPrecomputer:
         Returns:
             Dictionary containing analysis results and metadata
         """
-        logger.info("🚀 Starting movement analysis precompute...")
+        print("🚀 Starting movement analysis precompute...")
         
         # Initialize memory tracking if configured
         initial_memory = None
         if self.enable_memory_monitoring:
             initial_memory = get_memory_usage()
-            logger.info(f"📊 Memory monitoring enabled (warning threshold: {self.memory_warning_threshold_mb}MB)")
-            logger.info(f"📊 Initial memory usage: {initial_memory.current_process_usage_mb:.1f}MB")
+            print(f"📊 Memory monitoring enabled (warning threshold: {self.memory_warning_threshold_mb}MB)")
+            print(f"📊 Initial memory usage: {initial_memory.current_process_usage_mb:.1f}MB")
         
         try:
             # Step 1: Load data with position enrichment
-            logger.info("📊 Step 1: Loading and enriching data...")
+            print("📊 Step 1: Loading and enriching data...")
             self.movement_tracker.load_with_position_enrichment(
                 colleague_positions_dir, 
                 positions_dir
@@ -107,14 +107,14 @@ class MovementPrecomputer:
                     logger.warning(f"⚠️ High memory usage after data loading: {current_memory.current_process_usage_mb:.1f}MB")
             
             # Step 2: Detect movements
-            logger.info("🔍 Step 2: Detecting movements...")
+            print("🔍 Step 2: Detecting movements...")
             self.movement_tracker.detect_movements()
             
             movement_summary = self.movement_tracker.get_movement_summary()
-            logger.info(f"✅ Detected {movement_summary['total_movements']:,} movements")
+            print(f"✅ Detected {movement_summary['total_movements']:,} movements")
             
             # Step 2.5: Build fact table for rich movement aggregation
-            logger.info("📊 Step 2.5: Building movement fact table...")
+            print("📊 Step 2.5: Building movement fact table...")
             
             # Create movement fact builder with config manager
             fact_table_builder = MovementFactBuilder(self.config_manager)
@@ -129,7 +129,7 @@ class MovementPrecomputer:
                 fact_table_df = fact_table_builder.build_fact_table_from_movements(movements_df)
                 
                 fact_table_stats = fact_table_builder.get_fact_table_summary()
-                logger.info(f"✅ Built fact table with {fact_table_stats['unique_patterns']:,} patterns")
+                print(f"✅ Built fact table with {fact_table_stats['unique_patterns']:,} patterns")
             else:
                 logger.warning("No movement data available for fact table generation")
                 fact_table_df = pd.DataFrame()
@@ -137,16 +137,16 @@ class MovementPrecomputer:
             
             if self.enable_memory_monitoring:
                 current_memory = get_memory_usage()
-                logger.info(f"📊 Memory usage after movement detection: {current_memory.current_process_usage_mb:.1f}MB")
+                print(f"📊 Memory usage after movement detection: {current_memory.current_process_usage_mb:.1f}MB")
             
             # Step 3: Generate outputs using versioning
-            logger.info("📁 Step 3: Generating versioned outputs...")
+            print("📁 Step 3: Generating versioned outputs...")
             output_type_str = output_type or "movement_analysis"
             output_dir = self.version_manager.setup_output_directory(
                 interactive=False,
                 output_type=output_type_str
             )
-            logger.info(f"📁 Using daily folder strategy for movement analysis: {output_dir}")
+            print(f"📁 Using daily folder strategy for movement analysis: {output_dir}")
             
             # Export results based on configuration
             exported_files = {}
@@ -155,13 +155,13 @@ class MovementPrecomputer:
                 movements_file = output_dir / "employee_movements.parquet"
                 self.movement_tracker.export_movements_to_parquet(str(movements_file))
                 exported_files['movements'] = str(movements_file)
-                logger.info(f"✅ Exported individual movements: {movements_file.name}")
+                print(f"✅ Exported individual movements: {movements_file.name}")
             
             if self.export_movement_summary:
                 summary_file = output_dir / "movement_summary.parquet"
                 self._export_movement_summary(str(summary_file), movement_summary)
                 exported_files['summary'] = str(summary_file)
-                logger.info(f"✅ Exported movement summary: {summary_file.name}")
+                print(f"✅ Exported movement summary: {summary_file.name}")
             
             # Export fact table (rich movement aggregation)
             if self.export_movement_summary and not fact_table_df.empty:  # Use same config flag for now
@@ -171,7 +171,7 @@ class MovementPrecomputer:
                                         engine=self.parquet_engine,
                                         index=False)
                 exported_files['fact_table'] = str(fact_table_file)
-                logger.info(f"✅ Exported movement fact table: {fact_table_file.name}")
+                print(f"✅ Exported movement fact table: {fact_table_file.name}")
             elif self.export_movement_summary:
                 logger.warning("No fact table data to export")
             
@@ -180,13 +180,13 @@ class MovementPrecomputer:
                 metadata = self._generate_metadata(movement_summary, initial_memory)
                 self._export_metadata(str(metadata_file), metadata)
                 exported_files['metadata'] = str(metadata_file)
-                logger.info(f"✅ Exported metadata: {metadata_file.name}")
+                print(f"✅ Exported metadata: {metadata_file.name}")
             
             # Note: Current symlink is handled automatically by setup_output_directory
-            logger.info(f"📁 Model version setup complete")
+            print(f"📁 Model version setup complete")
             
-            logger.info("🎉 Movement analysis precompute completed successfully")
-            logger.info(f"📁 Output directory: {output_dir}")
+            print("🎉 Movement analysis precompute completed successfully")
+            print(f"📁 Output directory: {output_dir}")
             
             return {
                 'success': True,

@@ -1,0 +1,89 @@
+# =============================================================================
+# Core - Similarity Parameters Configuration
+# =============================================================================
+# 
+# CRITICAL PARAMETERS - These values are the result of Optuna Bayesian optimization
+# and are fundamental to the career pathway intelligence algorithms.
+# 
+# AUTO-GENERATED on 2025-08-10 - DO NOT MODIFY manually
+# =============================================================================
+
+# Optuna-Optimized Parameters (2025-08-10)
+# Based on full dataset optimization with asymmetric Jaccard + corpus normalization
+# NOTE: This file is loaded as core.similarity_parameters by the config manager
+optuna_optimal:
+  # Defining skills threshold - Top % rarest skills per job profile
+  defining_skills_percentile: 49.3
+  
+  # Similarity boost multiplier for shared defining skills
+  defining_skills_multiplier: 1.196
+  
+  # Optimization metadata for transparency
+  optimization_metadata:
+    optimization_date: "2025-08-10"
+    optimization_method: "Optuna TPE Sampler + Median Pruner"
+    dataset_size: "Full dataset analysis"
+    objective_function: "Smoothness optimization with improvement penalty"
+    trial_count: 8
+    selected_trial: 7
+    smoothness_score: 0.7421
+    average_improvement: 0.1152
+    normalization_factor: 10.2281
+    scores_above_1_percent: 3.93
+
+# Rarity Analysis Parameters
+rarity_thresholds:
+  rare_threshold: 5.0          # Skills in <5% of jobs = rare
+  uncommon_threshold: 20.0     # Skills in 5-20% of jobs = uncommon
+  common_threshold: 50.0       # Skills in 20-50% of jobs = common
+
+# Similarity Calculation Method
+similarity_method:
+  algorithm: "asymmetric_jaccard"
+  description: "Asymmetric Jaccard measures transition readiness (|A ∩ B| / |A|)"
+  
+  corpus_normalization:
+    enabled: true
+    method: "max_normalization"
+    preserve_differentiation: true
+    allow_intermediate_scores_above_1: true
+
+# Algorithm Configuration
+algorithm_config:
+  calculation_steps:
+    1: "Calculate asymmetric Jaccard baseline (|shared| / |job_a_skills|)"
+    2: "Identify defining skills for both jobs (top 49.3% rarest per job)"
+    3: "Find shared defining skills between jobs"
+    4: "Apply 1.196x multiplier boost for shared defining skills"
+    5: "Allow scores >1.0 for corpus normalization"
+    6: "Normalize entire corpus to 0-1 range preserving differentiation"
+  
+  store_both_raw_and_normalized: true
+  primary_score_field: "similarity_score"
+  raw_score_field: "raw_similarity_score"
+
+# Validation and Quality Assurance
+validation:
+  expected_performance:
+    smoothness_score_min: 0.70
+    average_improvement_min: 0.005
+    normalization_factor_range: [1.0, 5.0]
+    scores_above_1_percent_max: 60.0
+  
+  quality_checks:
+    validate_asymmetric_calculation: true
+    verify_defining_skills_logic: true
+    check_corpus_normalization: true
+    ensure_0_1_final_range: true
+
+# Configuration Metadata
+metadata:
+  version: "3.0"
+  last_updated: "2025-08-10"
+  optimization_source: "Optuna Bayesian Optimization"
+  critical_for_modules:
+    - "similarity/defining_skills.py"
+    - "similarity/rarity_weighted.py" 
+    - "similarity/asymmetric.py"
+    - "business_context/analytics_orchestrator.py"
+  description: "Auto-generated optimal similarity parameters"

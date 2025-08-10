@@ -1,0 +1,139 @@
+orchestrator_ui:
+  menus:
+    workforce_intelligence:
+      title: "Build Workforce Database"
+      subtitle: "Create and populate your workforce intelligence database"
+      options:
+        foundation_data:
+          number: "1"
+          title: "Load employee and job data"
+          description: "Import workforce information from CSV files"
+          details: "This will load employee records, job profiles, and skills data to create your database foundation."
+        similarity_analysis:
+          number: "2"
+          title: "Analyse job similarities"
+          description: "Identify which jobs are similar to each other"
+          details: "Uses skills requirements to calculate how similar different job roles are."
+          requires: "Employee and job data must be loaded first"
+        movement_analysis:
+          number: "3"
+          title: "Understand career movements"
+          description: "Analyse how people move between roles"
+          details: "Examines historical data to identify common career progression patterns."
+          requires: "Employee and job data must be loaded first"
+        clustering_analysis:
+          number: "4"
+          title: "Create job families"
+          description: "Group similar jobs into families"
+          details: "Uses advanced algorithms to cluster jobs into meaningful career families."
+          requires: "Job similarity analysis must be completed first"
+        database_tools:
+          number: "5"
+          title: "Database tools"
+          description: "Check status and manage your database"
+        production_database:
+          number: "6"
+          title: "Create production database"
+          description: "Build a complete database with real data"
+          details: "Creates a versioned database with all foundation data loaded and ready for analysis."
+        back:
+          number: "0"
+          title: "Back to main menu"
+
+  status_indicators:
+    database_states:
+      not_created:
+        icon: "❌"
+        text: "Not Created"
+        description: "No workforce database exists yet"
+        next_action: "Start by loading employee and job data"
+      foundation_ready:
+        icon: "📊"
+        text: "Foundation Ready"
+        description: "Core workforce data is loaded"
+        next_action: "Ready to generate job similarity analysis"
+      analytics_available:
+        icon: "🧠"
+        text: "Analytics Available"
+        description: "Job similarities and insights are ready"
+        next_action: "You can now query job similarities and career paths"
+      complete:
+        icon: "✅"
+        text: "Complete"
+        description: "Full workforce intelligence platform is ready"
+        next_action: "All features are available for use"
+
+  messages:
+    success:
+      foundation_loaded: "✅ Employee and job data loaded successfully"
+      foundation_details: "Your database now contains workforce information and is ready for analysis."
+      similarity_completed: "✅ Job similarity analysis completed"
+      similarity_details: "The system can now identify similar career opportunities."
+      movement_completed: "✅ Career movement analysis completed"
+      movement_details: "The system now understands common career progression paths."
+      database_created: "✅ Production database created successfully"
+      database_details: "Your workforce intelligence database is ready for use."
+    
+    progress:
+      loading_foundation: "📊 Loading workforce data..."
+      loading_details: "Importing employee records and job information from CSV files."
+      generating_similarity: "🧠 Generating job similarity analysis..."
+      similarity_details: "Identifying which jobs are similar based on required skills."
+      analysing_movement: "📈 Analysing career movement patterns..."
+      movement_details: "Examining how people typically move between different roles."
+      creating_database: "🏗️ Creating production database..."
+      database_details: "Building a complete workforce intelligence database with real data."
+    
+    errors:
+      data_not_loaded: "❌ Workforce data not available"
+      data_help: "Please load employee and job data first using option 1."
+      similarity_required: "❌ Job similarity analysis required"
+      similarity_help: "Please complete job similarity analysis first using option 2."
+      config_not_found: "❌ Configuration files not found"
+      config_help: "The system needs configuration files to locate your workforce data."
+      general_error: "❌ An error occurred"
+      contact_admin: "Please contact your system administrator if this problem persists."
+    
+    warnings:
+      feature_coming_soon: "This feature is coming soon"
+      beta_feature: "This is a beta feature - results may vary"
+      large_dataset: "This operation may take several minutes with large datasets"
+    
+    info:
+      workflow_guidance: "💡 Recommended next step"
+      dependency_info: "ℹ️  This option requires"
+      status_info: "📊 Current status"
+
+  formatting:
+    separator: "="
+    separator_length: 50
+    indent: "   "
+    bullet: "•"
+    progress_bar:
+      width: 40
+      complete_char: "█"
+      incomplete_char: "░"
+    
+  help_text:
+    workflow_overview: |
+      The workforce intelligence platform follows a natural workflow:
+      
+      1. Load Data: Import your employee and job information
+      2. Analyse: Generate insights about job similarities and career paths
+      3. Use: Query the system to find similar jobs and career opportunities
+      
+      Each step builds on the previous one to create a comprehensive
+      workforce intelligence platform.
+    
+    data_requirements: |
+      The system needs the following data files:
+      • Employee records (current workforce)
+      • Job profiles and requirements
+      • Skills taxonomy and classifications
+      • Historical position data (optional, for career movement analysis)
+    
+    troubleshooting: |
+      Common issues and solutions:
+      • "Data not loaded": Use option 1 to load your workforce data
+      • "Config not found": Ensure CSV files are in the expected locations
+      • "Analysis failed": Check that previous steps completed successfully 

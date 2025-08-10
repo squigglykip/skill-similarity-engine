@@ -972,9 +972,9 @@ class DatabaseValidator:
 
                 'PASS': '✅',
 
-                'WARNING': 'âš ',
+                'WARNING': '⚠️ ',
 
-                'FAIL': 'âœ—',
+                'FAIL': 'ℹ️—',
 
                 'ERROR': '📊¥'
 

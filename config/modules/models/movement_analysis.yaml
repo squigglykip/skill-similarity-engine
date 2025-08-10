@@ -20,22 +20,21 @@ output_files:
   movement_summary_parquet: "movement_summary.parquet"
   metadata_json: "metadata.json"
 
-# Date format configurations
+# Date format configurations - INHERIT FROM CORE (NO OVERRIDES ALLOWED)
+# All date formats are now managed by config/core/datetime.yaml with absolute authority
+# This prevents the date format conflicts that caused ML training failures
 date_formats:
-  # Internal processing formats
-  iso_format: "%Y-%m-%d"
-  timestamp_format: "%Y-%m-%d %H:%M:%S"
+  # REFERENCE ONLY - All actual formats come from core/datetime.yaml
+  core_authority: "config/core/datetime.yaml"
+  override_protection: true
   
-  # Input parsing formats (order matters - try these in sequence)
-  parsing_formats:
-    - "%Y-%m-%d"      # ISO format (preferred)
-    - "%d/%m/%Y"      # UK/AU format
-    - "%m/%d/%Y"      # US format  
-    - "%d-%m-%Y"      # European format
-    - "%Y/%m/%d"      # Alternative ISO
+  # Core configuration references (use these for documentation only)
+  movement_date_format: "${core.datetime.domain_formats.movement_analysis}"
+  iso_format: "${core.datetime.primary_formats.output_date}"
+  parsing_tolerance: "${core.datetime.parsing_tolerance}"
   
-  # Movement tracker specific formats
-  movement_date_format: "%Y-%m-%d"
+  # Migration note
+  migration_note: "Module-specific date formats removed to prevent ML training failures. All date handling now uses core configuration authority."
 
 # Boolean value mappings
 boolean_mappings:

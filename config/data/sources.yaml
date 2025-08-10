@@ -1,46 +1,21 @@
-# Data Sources Configuration for Business Context Database
-# Defines file paths and column mappings for all CSV data sources
-
-# Similarity Calculation Data Sources (Phase 1 - Simplified Architecture)
-similarity_calculation:
-  # Skills Library for Similarity Calculations
-  skills_library:
-    file_path: "${files.skills_comprehensive}"
-    description: "Comprehensive skills library with all versions for similarity calculations"
-    
-  # Job-Skill Mapping for Similarity Calculations  
-  job_skill_mapping:
-    file_path: "${files.job_skill_mapping}"
-    description: "Job-skill mapping file for auto-generating job objects in similarity calculations"
+# Data Sources Configuration - PRESERVE ALL CSV DATA APPROACH
+# Direct CSV-to-Database mapping with minimal transformation
+# 
+# Philosophy: Raw data is sacred - preserve all information from source systems
+# Strategy: Direct column mapping with only essential standardization
 
 data_sources:
-  # Job Architecture Data
-  jobs:
+  # 1. CORE JOB ARCHITECTURE (16 columns)
+  core_job_architecture:
     file_path: "job_architecture/job_architecture.csv"
-    table_name: "jobs"
-    description: "Enhanced job architecture master data with 16-column schema"
-    expected_columns:
-      - JobProfileID
-      - JobProfile
-      - JobID
-      - Job
-      - ProfileTitleSuffix
-      - ManagementLevel
-      - JobSubFunctionID
-      - JobSubFunction
-      - JobFunctionID
-      - JobFunction
-      - JobCategoryID
-      - JobCategory
-      - "Customer Facing"
-      - "is Banker"
-      - "Executive Leadership Group"
-      - "Accountability Scope"
+    table_name: "core_job_architecture"
+    description: "Complete job architecture with all 16 CSV columns preserved"
     column_mapping:
-      JobProfileID: JobProfileID
-      JobProfile: JobProfile
+      # Direct mapping - preserve everything
       JobID: JobID
       Job: Job
+      JobProfileID: JobProfileID                    # PRIMARY KEY
+      JobProfile: JobProfile
       ProfileTitleSuffix: ProfileTitleSuffix
       ManagementLevel: ManagementLevel
       JobSubFunctionID: JobSubFunctionID
@@ -49,244 +24,215 @@ data_sources:
       JobFunction: JobFunction
       JobCategoryID: JobCategoryID
       JobCategory: JobCategory
-      "Customer Facing": Customer_Facing
-      "is Banker": is_Banker
-      "Executive Leadership Group": Executive_Leadership_Group
-      "Accountability Scope": Accountability_Scope
+      "Customer Facing": Customer_Facing           # Handle space in column name
+      "is Banker": is_Banker                       # Handle space in column name
+      "Executive Leadership Group": Executive_Leadership_Group  # Handle spaces
+      "Accountability Scope": Accountability_Scope  # Handle space in column name
 
-  # Skills Library Data
-  skills:
-    description: "Lightcast skills taxonomy with comprehensive coverage"
+  # 2. CORE SKILLS TAXONOMY (18 columns)
+  core_skills_taxonomy:
     file_path: "skills_library/skills_comprehensive_all_versions.csv"
-    table_name: "skills"
-    expected_columns:
-      - id
-      - name
-      - category_name
-      - subcategory_name
-      - type_name
-      - source_version
-      - description
-      - infoUrl
+    table_name: "core_skills_taxonomy"
+    description: "Complete skills taxonomy with all 18 CSV columns preserved"
     column_mapping:
-      id: Skill_ID
+      # Direct mapping - preserve everything
+      id: Skill_ID                                 # PRIMARY KEY
       name: Skill_Name
+      category_id: category_id
       category_name: Category
+      description: description
+      descriptionSource: descriptionSource
+      infoUrl: infoUrl
+      isLanguage: isLanguage
+      isSoftware: isSoftware
+      source_version: source_version
+      subcategory_id: subcategory_id
       subcategory_name: Subcategory
+      tag_wikipediaExtract: tag_wikipediaExtract
+      tag_wikipediaUrl: tag_wikipediaUrl
+      tags: tags
+      type: type
+      type_id: type_id
       type_name: SkillType
-      source_version: Latest_Version
-      description: Description
-      infoUrl: Info_URL
-      isLanguage: Is_Language
-      category_id: Category_ID
-      subcategory_id: Subcategory_ID
-      type_id: Type_ID
-    default_values:
-      Market_Demand: ""
-      Rarity_Score: null
     chunk_size: 10000  # Large dataset - process in chunks
 
-  # Job-Skill Mapping Data
+  # 3. CORE JOB SKILL REQUIREMENTS (2 columns)
   job_skills:
-    file_path: "${files.job_skill_mapping}"
-    table_name: "job_skills"
-    description: "Mapping between jobs and their required skills"
-    expected_columns:
-      - JobProfileID
-      - Skill_ID
+    file_path: "job_skill_mapping/job_skill_mapping.csv"
+    table_name: "core_job_skill_requirements"
+    description: "Simple job-skill mapping with both available columns"
     column_mapping:
-      JobProfileID: JobProfileID
-      Skill_ID: Skill_ID
-    default_values:
-      Skill_Weight: 1.0
+      # Direct mapping - this is perfect as-is
+      JobProfileID: JobProfileID                   # FOREIGN KEY
+      Skill_ID: Skill_ID                          # FOREIGN KEY
 
-  # Workforce Context Data
-  positions:
+  # 4. CORE WORKFORCE CURRENT (19 columns + enrichment)
+  core_workforce_current:
     file_path: "workforce_context/workforce_context.csv"
-    table_name: "positions"
-    description: "Current workforce context and position information with enriched JobProfileID"
-    expected_columns:
-      - "Position Number"
-      - "Position Name"
-    optional_columns:
-      - "Employee Number"
-      - "Business Unit"
-      - "ORG_UNIT_NAME_1"  # Enterprise level - single value, can ignore
-      - "ORG_UNIT_NAME_2"  # Division
-      - "ORG_UNIT_NAME_3"  # Business Unit
-      - "ORG_UNIT_NAME_4"  # Team
-      - "ORG_UNIT_NAME_5"  # SubTeam
-      - "ORG_UNIT_NAME_6"  # Function
-      - "ORG_UNIT_NAME_7"  # SubFunction
-      - "ORG_UNIT_NAME_8"  # Org Level 8
-      - "ORG_UNIT_NAME_9"  # Org Level 9
-      - "ORG_UNIT_NAME_10" # Org Level 10
-      - "Location"
-      - "State/Territory"
-      - "Country"
-      - "Employment Type"
-      - "Salary Group"
-      - "Work Pattern"
-    column_mapping:
-      # Keep original field names
-      "Position Number": "Position Number"
-      "Position Name": "Position Name"
-      "JobProfileID": "JobProfileID"  # Include enriched JobProfileID
-      "Employee Number": "Employee Number"
-      "Location": "Location"
-      "Rg": "Rg"
-      "Cty": "Cty"
-      "Employee Group": "Employee Group"
-      "Salary Group": "Salary Group"
-      "Employee Subgroup": "Employee Subgroup"
-      # Only rename organisational hierarchy for clarity
-      "ORG_UNIT_NAME_2": "Division"
-      "ORG_UNIT_NAME_3": "Business_Unit"
-      "ORG_UNIT_NAME_4": "Team"
-      "ORG_UNIT_NAME_5": "SubTeam"
-      "ORG_UNIT_NAME_6": "Function"
-      "ORG_UNIT_NAME_7": "SubFunction"
-      "ORG_UNIT_NAME_8": "Org_Level_8"
-      "ORG_UNIT_NAME_9": "Org_Level_9"
-      "ORG_UNIT_NAME_10": "Org_Level_10"
-    # Enable position enrichment with job mapping
+    table_name: "core_workforce_current"
+    description: "Workforce data with 19 available CSV columns + JobProfileID enrichment"
     enrichment:
-      enabled: true
-      mapping_file: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
-      merge_key: "Position Number"
-    # Skip derived columns since we're mapping directly from org hierarchy
+      # Add JobProfileID using position mapping
+      JobProfileID:
+        source_file: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
+        mapping_key: "Position Number"
+        target_key: "Position_Number"
+        value_column: "JobProfileID"
     data_types:
-      "Salary Group": text
+      # Ensure proper data type conversion for database insertion
+      employee_number: "text"
+      position_number: "text"
+    clear_table_before_load: true  # Clear existing data to prevent UNIQUE constraint conflicts
+    column_mapping:
+      # Direct mapping - only available columns (19 columns, JobProfileID added via enrichment)
+      "Employee Number": employee_number           # PRIMARY KEY
+      "Position Number": position_number           # Used for enrichment
+      "Position Name": position_name
+      "Employee Group": Employee_Group
+      "Employee Subgroup": Employee_Subgroup
+      "Salary Group": Salary_Group
+      Location: Location
+      Rg: Rg
+      Cty: Cty
+      # Organizational hierarchy (names only - no numbers available)
+      ORG_UNIT_NAME_1: ORG_UNIT_NAME_1
+      ORG_UNIT_NAME_2: ORG_UNIT_NAME_2
+      ORG_UNIT_NAME_3: ORG_UNIT_NAME_3
+      ORG_UNIT_NAME_4: ORG_UNIT_NAME_4
+      ORG_UNIT_NAME_5: ORG_UNIT_NAME_5
+      ORG_UNIT_NAME_6: ORG_UNIT_NAME_6
+      ORG_UNIT_NAME_7: ORG_UNIT_NAME_7
+      ORG_UNIT_NAME_8: ORG_UNIT_NAME_8
+      ORG_UNIT_NAME_9: ORG_UNIT_NAME_9
+      ORG_UNIT_NAME_10: ORG_UNIT_NAME_10
 
-  # Position History Data (CSV-based from positions_history directory)
+  # 5. CORE POSITION TIMELINE (9 columns + enrichment, 5 files)
   position_history:
-    file_pattern: "positions_history/d_positions_fy*.csv"  # Load all FY files
-    table_name: "position_history"
-    description: "Historical position data loaded from CSV files (all fiscal years)"
-    expected_columns:
-      - "Week Ending"
-      - "Position Number"
-      - "PosIDLookupKey"
-      - "Organisational Unit"
-      - "Cost Centre Number"
-      - "Position Title"
-      - "People Leader"
-      - "Operational"
-      - "OrgUnitIDLookupKey"
+    file_pattern: "positions_history/d_positions_fy*.csv"
+    table_name: "core_position_timeline"
+    description: "Complete position timeline with all 9 CSV columns + JobProfileID enrichment"
+    enrichment:
+      # Add JobProfileID using position mapping
+      JobProfileID:
+        source_file: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
+        mapping_key: "Position Number"
+        target_key: "Position_Number"
+        value_column: "JobProfileID"
+    primary_key_generation:
+      # Generate composite primary key
+      position_timeline_id: "Position_Number + '_' + Week_Ending"
     column_mapping:
-      "Week Ending": "week_ending"
-      "Position Number": "position_number"
-      "PosIDLookupKey": "position_id_lookup_key"
-      "Organisational Unit": "organisational_unit"
-      "Cost Centre Number": "cost_centre_number"
-      "Position Title": "position_title"
-      "People Leader": "people_leader"
-      "Operational": "operational"
-      "OrgUnitIDLookupKey": "org_unit_id_lookup_key"
+      # Direct mapping - preserve everything (9 columns + enriched JobProfileID)
+      "Week Ending": Week_Ending
+      "Position Number": Position_Number
+      JobProfileID: JobProfileID                   # ENRICHED COLUMN
+      PosIDLookupKey: PosIDLookupKey
+      "Organisational Unit": Organisational_Unit
+      "Cost Centre Number": Cost_Centre_Number
+      "Position Title": Position_Title             # 100% NULL but preserved
+      "People Leader": People_Leader
+      Operational: Operational
+      OrgUnitIDLookupKey: OrgUnitIDLookupKey
 
-  # Workforce Context Data (CSV-based from workforce_context directory)
-  workforce_context:
-    file_path: "workforce_context/workforce_context.csv"
-    table_name: "workforce_context"
-    description: "Workforce context and organisational hierarchy data"
-    expected_columns:
-      - "Week Ending"
-      - "Position Number"
-      - "Position Name"
-      - "Employee Number"
-      - "Employee Name"
-      - "Location"
-      - "Rg"
-      - "Cty"
-      - "Employee Group"
-      - "Salary Group"
-    optional_columns:
-      - "Bucket"
-      - "Operational"
-      - "FTE (raw value in SAP)"
-      - "Position Start Date"
-      - "People Leader Flag"
-      - "Street"
-      - "Suburb"
-      - "Global Region"
-      - "Cost ctr"
-      - "Cost Center"
-      - "Org Unit Number"
-      - "Org Unit Name"
-      - "ORG_UNIT_NO_1"
-      - "ORG_UNIT_NAME_1"
-      - "ORG_UNIT_NO_2"
-      - "ORG_UNIT_NAME_2"
-      - "ORG_UNIT_NO_3"
-      - "ORG_UNIT_NAME_3"
-      - "ORG_UNIT_NO_4"
-      - "ORG_UNIT_NAME_4"
-      - "ORG_UNIT_NO_5"
-      - "ORG_UNIT_NAME_5"
-      - "ORG_UNIT_NO_6"
-      - "ORG_UNIT_NAME_6"
-      - "ORG_UNIT_NO_7"
-      - "ORG_UNIT_NAME_7"
-      - "ORG_UNIT_NO_8"
-      - "ORG_UNIT_NAME_8"
-      - "ORG_UNIT_NO_9"
-      - "ORG_UNIT_NAME_9"
-      - "ORG_UNIT_NO_10"
-      - "ORG_UNIT_NAME_10"
-      - "Email Address"
-      - "Gender Key"
-      - "Entry"
-      - "Employee Subgroup"
-      - "People Leader Number"
-      - "People Leader Name"
+  # 6. CORE COLLEAGUE POSITIONS HISTORY (6 columns, 6 files)
+  colleague_positions_history:
+    file_pattern: "colleague_positions_history/d_colleague_position_fy*.csv"
+    table_name: "core_colleague_positions_history"
+    description: "Monthly snapshots of colleague position assignments over time (Phase 2 movement analysis)"
+    # No primary key generation needed - uses composite primary key (PosIDLookupKey, Week Ending) in schema
+    clear_table_before_load: true  # Clear table once before loading all files to prevent primary key conflicts
+
     column_mapping:
-      "Week Ending": "week_ending"
-      "Position Number": "position_number"
-      "Position Name": "position_name"
-      "Employee Number": "employee_number"
-      "Employee Name": "employee_name"
-      "Location": "location"
-      "Rg": "region"
-      "Cty": "country"
-      "Employee Group": "employee_group"
-      "Salary Group": "salary_group"
-      "ORG_UNIT_NAME_2": "division"
-      "ORG_UNIT_NAME_3": "business_unit"
-      "ORG_UNIT_NAME_4": "team"
-      "ORG_UNIT_NAME_5": "sub_team"
-      "ORG_UNIT_NAME_6": "function"
-      "ORG_UNIT_NAME_7": "sub_function"
-      "ORG_UNIT_NAME_8": "org_level_8"
-      "ORG_UNIT_NAME_9": "org_level_9"
-      "ORG_UNIT_NAME_10": "org_level_10"
+      # Direct mapping - preserve raw CSV field names exactly
+      "Week Ending": "Week Ending"
+      "Employee Number": "Employee Number"
+      "Operational": "Operational"
+      "Position Start Date": "Position Start Date"
+      "PosIDLookupKey": "PosIDLookupKey"
+      "Position Number": "Position Number"
 
-# Data Quality Settings
-data_quality:
-  # Validation rules
-  validation:
-    allow_empty_strings: true
-    max_null_percentage: 10  # Maximum acceptable null percentage per column
-    remove_duplicate_keys: true
-    
-  # Cleaning rules
-  cleaning:
-    remove_empty_primary_keys: true
-    remove_self_references: true  # For similarity data
-    validate_similarity_range: [0, 1]  # Similarity scores must be 0-1
+# ================================================================================
+# ENRICHMENT DATA SOURCES
+# ================================================================================
 
-# Loading Configuration
-loading:
-  default_chunk_size: 1000
-  large_file_threshold: 10000  # Rows - use chunking above this
-  progress_reporting: true
+enrichment_sources:
+  # Position to JobProfileID mapping
+  position_mapping:
+    file_path: "job_arch_to_positions_mapping/job_arch_to_positions_mapping.csv"
+    description: "Mapping file for enriching workforce and position data with JobProfileID"
+    key_columns:
+      - Position_Number
+      - JobProfileID
+
+# ================================================================================
+# DATA PROCESSING CONFIGURATION
+# ================================================================================
+
+processing:
+  # Column name standardization
+  column_standardization:
+    remove_quotes: true                            # Remove quotes from column names
+    spaces_to_underscores: true                    # Convert spaces to underscores
+    preserve_case: true                            # Keep original casing
   
-  # Foreign key validation
-  foreign_key_validation:
-    enabled: true
-    strict_mode: false  # If true, fail on any FK violations
-    
-# Error Handling
-error_handling:
-  continue_on_warnings: true
-  max_errors_per_file: 100
-  log_skipped_rows: true 
+  # Data type handling  
+  data_types:
+    auto_detect: true                              # Let pandas infer types
+    boolean_columns:                               # Explicitly handle boolean
+      - Operational
+      - isLanguage
+      - isSoftware
+  
+  # Missing data handling
+  null_handling:
+    preserve_nulls: true                           # Keep NULL values as-is
+    document_quality_issues: true                  # Log data quality issues
+
+# ================================================================================
+# PHASE 0 LOADING SEQUENCE
+# ================================================================================
+
+loading_sequence:
+  # Order matters for foreign key relationships
+  - core_job_architecture                         # Must load first (referenced by others)
+  - core_skills_taxonomy                          # Must load second (referenced by job_skills)
+  - job_skills                                    # References both job_architecture and skills
+  - core_workforce_current                        # References job_architecture (via enrichment)
+  - position_history                              # References job_architecture (via enrichment)
+  - colleague_positions_history                   # Phase 2 movement analysis data
+
+# ================================================================================
+# QUALITY VALIDATION
+# ================================================================================
+
+quality_checks:
+  # Expected row counts (for validation)
+  expected_rows:
+    core_job_architecture: 715
+    core_skills_taxonomy: 38430
+    job_skills: 40170
+    core_workforce_current: 35000
+    position_history: 600000                     # Total across 5 files
+    colleague_positions_history: 500000          # Total across 4 files (FY22-FY25)
+  
+  # Data quality documentation
+  known_issues:
+    position_history:
+      Position_Title: "100% NULL across all files - data quality issue from source"
+    core_workforce_current:
+      People_Leader_Number: "29.8% NULL - normal for non-leadership roles"
+
+# ================================================================================
+# SUMMARY: 70 COLUMNS PRESERVED ACROSS 6 TABLES
+# ================================================================================
+# 
+# core_job_architecture:          16 columns ✅
+# core_skills_taxonomy:           18 columns ✅ 
+# core_job_skill_requirements:     2 columns ✅
+# core_workforce_current:          19 columns ✅ (adapted to available CSV columns)
+# core_position_timeline:           9 columns ✅
+# core_colleague_positions_history: 6 columns ✅ (Phase 2 movement analysis)
+# ──────────────────────────────────────────────
+# TOTAL:                           70 columns ✅
+#
+# RESULT: 100% preservation of available data with zero information loss 

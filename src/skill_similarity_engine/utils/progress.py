@@ -137,7 +137,7 @@ class ProgressTracker:
                 **TQDM_STYLE  # Use global style
             )
         
-        logger.info(f"Starting {self.desc}: {self.stats.total_items} items")
+        # Starting progress tracking
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -153,12 +153,8 @@ class ProgressTracker:
             self.pbar.close()
         
         if exc_type is None:
-            # Successful completion
-            logger.info(f"Completed {self.desc}: {self.stats.completed_items}/{self.stats.total_items} items "
-                       f"in {self.stats.elapsed_time:.1f}s")
-            
-            if self.memory_tracking and self.stats.memory_usage:
-                logger.info(f"Final memory usage: {self.stats.memory_usage.current_process_usage_mb:.1f} MB")
+            # Successful completion - progress tracking completed
+            pass
     
     def update(self, n: int = 1) -> None:
         """

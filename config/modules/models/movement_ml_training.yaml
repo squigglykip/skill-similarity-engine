@@ -1,0 +1,169 @@
+# =============================================================================
+# Models Module - Movement ML Training Configuration
+# =============================================================================
+# Configuration for Phase 2.2: ML Model Training for Career Pathway Prediction
+# Controls ML pipeline parameters, model hyperparameters, and training settings
+
+# ML Pipeline Configuration
+ml_pipeline:
+  enabled: true                         # Feature flag for ML pipeline
+  model_types: 
+    - 'random_forest'                   # Random Forest Regressor
+    - 'gradient_boosting'               # Gradient Boosting Regressor
+    - 'xgboost'                        # XGBoost Regressor (if available)
+  validation_strategy: 'temporal_split' # Prevent data leakage (vs random_split)
+  test_size: 0.2                       # Test set size (20%)
+  random_state: 42                     # Random seed for reproducibility
+  cv_folds: 5                          # Cross-validation folds
+  temporal_split: true                 # Use temporal split to prevent data leakage
+
+# Feature Engineering Configuration
+feature_engineering:
+  # Recency weighting for movement volume targets
+  recency_decay_rate: 0.4              # Exponential decay factor (0.4^years_ago)
+  
+  # Feature exclusion (prevent data leakage)
+  exclude_columns: 
+    - 'from_job_id'
+    - 'to_job_id' 
+    - 'movement_target'
+    - 'recency_weighted_activity'       # This IS the target variable
+  
+  # Feature categories to include
+  include_job_characteristics: true     # Job metadata features
+  include_mobility_scores: true         # Source/target mobility scores
+  include_temporal_features: true       # Time-based features
+  include_skills_features: false        # Avoid temporal mismatch (skills change over time)
+
+# Model Hyperparameters
+hyperparameters:
+  random_forest:
+    n_estimators: 200                   # More trees for stability
+    max_depth: 6                        # Reduced depth to prevent overfitting
+    min_samples_split: 20               # Higher split requirement
+    min_samples_leaf: 10                # Higher leaf requirement
+    max_features: 0.7                   # Use 70% of features to reduce overfitting
+    bootstrap: true                     # Enable bootstrapping
+    oob_score: true                     # Out-of-bag scoring for validation
+    n_jobs: -1                          # Use all CPU cores
+    
+  gradient_boosting:
+    n_estimators: 150                   # More estimators
+    max_depth: 3                        # Shallow trees to prevent overfitting
+    learning_rate: 0.02                 # Very conservative learning rate
+    min_samples_split: 25               # Higher split requirement
+    min_samples_leaf: 15                # Higher leaf requirement
+    subsample: 0.8                      # Use 80% of samples per tree
+    max_features: 0.8                   # Use 80% of features
+    validation_fraction: 0.1            # Hold out 10% for early stopping
+    n_iter_no_change: 10                # Early stopping patience
+    
+  xgboost:
+    n_estimators: 200                   # Number of boosting rounds
+    max_depth: 4                        # Controlled depth
+    learning_rate: 0.03                 # Conservative learning rate
+    subsample: 0.8                      # Sample 80% of data
+    colsample_bytree: 0.8               # Sample 80% of features
+    colsample_bylevel: 0.8              # Additional feature sampling
+    reg_alpha: 0.1                      # L1 regularization
+    reg_lambda: 1.0                     # L2 regularization
+    min_child_weight: 5                 # Minimum samples in leaf
+    gamma: 0.1                          # Minimum split loss
+    n_jobs: -1                          # Use all CPU cores
+
+# Prediction Configuration
+prediction:
+  confidence_level: 0.8                 # 80% confidence intervals
+  z_score: 1.28                        # Z-score for 80% confidence
+  agreement_threshold: 0.2              # Models agree if within 20% of ensemble mean
+  
+  # Pathway volume categories (percentile-based)
+  pathway_categories:
+    premier: 99                         # Top 1% = "Premier pathway"
+    major: 95                          # Top 5% = "Major pathway"
+    significant: 90                     # Top 10% = "Significant pathway"
+    common: 75                         # Top 25% = "Common pathway"
+    standard: 50                       # Top 50% = "Standard pathway"
+    # Below 50% = "Emerging pathway"
+
+# Model Persistence Configuration
+model_persistence:
+  output_directory_pattern: "models/{version}/movement_models"
+  file_formats: 
+    - 'joblib'                         # Primary format for scikit-learn models
+  metadata_tracking: true              # Save comprehensive metadata
+  save_feature_columns: true           # CRITICAL: Save feature column names
+  save_predictions: false              # Don't save to file (use database instead)
+  save_feature_importance: true        # For model interpretability
+  
+  # Model file naming patterns
+  file_naming:
+    random_forest: "random_forest_model.joblib"
+    gradient_boosting: "gradient_boosting_model.joblib"
+    xgboost: "xgboost_model.joblib"
+    feature_columns: "feature_columns.json"
+    metadata: "model_metadata.json"
+    feature_importance: "feature_importance.csv"
+
+# Database Integration Configuration
+database_integration:
+  # Table for storing ML predictions
+  predictions_table: "analytics_pathway_predictions"
+  
+  # Batch size for database insertions
+  batch_size: 10000
+  
+  # Clear existing predictions before inserting new ones
+  clear_existing: true
+  
+  # Validation settings
+  validate_prediction_ids: true        # Check for duplicate prediction IDs
+  require_job_profile_ids: true        # Ensure job profile IDs are not null
+
+# Performance Configuration
+performance:
+  # Memory management
+  max_memory_usage_mb: 4096            # Maximum memory usage (4GB)
+  chunk_size: 50000                    # Chunk size for large dataset processing
+  
+  # Progress reporting
+  progress_reporting: true             # Enable progress tracking
+  progress_interval: 1000              # Report progress every N records
+  
+  # Parallel processing
+  parallel_processing: true            # Enable parallel processing where possible
+  max_workers: null                    # null = use all available cores
+
+# Production Readiness Thresholds
+production_thresholds:
+  min_r2_score: 0.1                    # Minimum acceptable R² score
+  max_overfitting_gap: 0.1             # Max difference between train/test R²
+  max_cv_stability: 0.1                # Max CV standard deviation
+  min_sample_size: 100                 # Minimum samples for training
+
+# Logging Configuration
+logging:
+  log_feature_importance: true         # Log top feature importance scores
+  log_model_performance: true          # Log detailed model performance metrics
+  log_prediction_stats: true           # Log prediction statistics
+  log_memory_usage: true               # Log memory usage during training
+  
+  # Performance benchmarks
+  benchmark_training_time: true        # Log training time per model
+  benchmark_prediction_time: true      # Log prediction generation time
+  benchmark_database_time: true        # Log database insertion time
+
+# Business Validation Configuration
+business_validation:
+  # Sanity checks for ML predictions
+  check_prediction_range: true         # Ensure predictions are in reasonable range
+  max_predicted_movements: 1000        # Maximum reasonable predicted movements
+  min_predicted_movements: 0           # Minimum predicted movements (should be >= 0)
+  
+  # Feature validation
+  validate_feature_consistency: true   # Check training vs prediction feature consistency
+  require_minimum_features: 10         # Minimum number of features required
+  
+  # Model agreement validation
+  require_model_agreement: false       # Don't require all models to agree
+  min_agreement_rate: 0.5             # Minimum acceptable agreement rate (50%)

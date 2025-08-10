@@ -1,0 +1,18 @@
+[
+  "total_movement_count",
+  "total_unique_employees",
+  "avg_days_between",
+  "avg_pct_total_movements",
+  "transition_frequency",
+  "years_active",
+  "avg_movements_per_year",
+  "recency_boost",
+  "source_mobility_score",
+  "target_mobility_score",
+  "same_job_function",
+  "same_job_sub_function",
+  "same_management_level",
+  "same_job_category",
+  "job_function_distance",
+  "management_level_progression"
+]

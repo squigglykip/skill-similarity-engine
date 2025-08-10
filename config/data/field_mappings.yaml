@@ -13,32 +13,32 @@
 # Historical Workforce Data (PTH Integration)
 # =============================================================================
 
-colleague_positions:
-  # Colleague Position History Dataset Mapping (FY2021-FY2025)
-  source_file_pattern: "colleague_positions/${workforce_data_patterns.colleague_positions}"
-  description: "Employee-position associations over time (50K records per FY)"
+colleague_positions_history:
+  # Colleague Position History Dataset Mapping (FY2022-FY2025) - Phase 2 Movement Analysis
+  source_file_pattern: "colleague_positions_history/d_colleague_position_fy*.csv"
+  description: "Monthly snapshots of colleague position assignments over time (Phase 2 movement analysis data)"
   
-  # Field Mappings: external_field_name -> internal_standardised_name
+  # Field Mappings: Keep raw CSV field names exactly as-is (no standardization)
   field_mappings:
-    "Week Ending": "week_ending"           # Temporal dimension (DD/MM/YYYY)
-    "Employee Number": "employee_number"    # Unique colleague identifier  
-    "Operational": "operational"           # Boolean operational role flag
-    "Position Start Date": "position_start_date"  # Position tenure start (nullable)
-    "PosIDLookupKey": "pos_id_lookup_key"  # Critical linking key (scientific notation)
-    "Position Number": "position_number"   # Actual position identifier
+    "Week Ending": "Week Ending"                    # Temporal dimension (DD/MM/YYYY)
+    "Employee Number": "Employee Number"            # Unique colleague identifier  
+    "Operational": "Operational"                    # Boolean operational role flag
+    "Position Start Date": "Position Start Date"   # Position tenure start (nullable)
+    "PosIDLookupKey": "PosIDLookupKey"             # Critical linking key (scientific notation)
+    "Position Number": "Position Number"            # Actual position identifier
   
   # Data Type Configurations
   data_types:
-    week_ending: "date_string"             # DD/MM/YYYY format
-    employee_number: "integer" 
-    operational: "boolean_from_string"     # "True"/"False" -> bool
-    position_start_date: "nullable_date_string"
-    pos_id_lookup_key: "float"            # Scientific notation handling
-    position_number: "integer"
+    "Week Ending": "date_string"                    # DD/MM/YYYY format
+    "Employee Number": "integer" 
+    "Operational": "boolean_from_string"            # "True"/"False" -> bool
+    "Position Start Date": "nullable_date_string"
+    "PosIDLookupKey": "float"                      # Scientific notation handling
+    "Position Number": "integer"
   
   # Validation Rules
   validation:
-    required_fields: ["week_ending", "employee_number", "pos_id_lookup_key", "operational"]
+    required_fields: ["Week Ending", "Employee Number", "PosIDLookupKey", "Operational"]
     unique_constraints: []  # No uniqueness at row level (temporal data)
     date_format: "%d/%m/%Y"
 

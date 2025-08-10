@@ -1,30 +1,106 @@
-﻿from typing import Dict, List, Optional, Any
+﻿from typing import Dict, List, Optional, Any, Set
 import pandas as pd
+import sqlite3
+from pathlib import Path
 from ..models.jobs import JobArchitecture
 from ..models.skills import SkillTaxonomy
 from ..config.architectural_config_manager import get_config_manager
+from ..error_handling.recovery import retry, circuit_breaker, fallback_on_failure
+from .rarity_weighted import RarityWeightedCalculator
+from .skill_rarity import SkillRarityAnalyzer
+from .defining_skills import DefiningSkillsAnalyzer
 
 class AsymmetricCoverageCalculator:
     """
-    Calculates asymmetric skill coverage between jobs.
+    Calculates asymmetric skill coverage between jobs with unified similarity capabilities.
     
-    This class focuses purely on skill overlap calculation without any weighting
-    or context modifiers. It provides the foundation for precomputation of base
-    similarity matrices.
+    This class provides both basic skill overlap calculation and sophisticated unified
+    algorithms with defining skills boost. All parameters are configuration-driven
+    following our modular architecture philosophy.
+    
+    The unified algorithm is based on empirically-tuned parameters from research notebooks
+    that show 0.76% improvement over basic Jaccard, with all values externalized to configuration.
     
     For weighted similarity calculations and context-aware querying, use the
     dedicated query modules (to be implemented separately).
     """
     
-    def __init__(self, job_architecture: JobArchitecture):
+    def __init__(self, job_architecture: JobArchitecture, skill_universe_df: Optional[pd.DataFrame] = None):
         """
         Initialize the calculator.
         
         Args:
             job_architecture: Job architecture containing all jobs and their skills
+            skill_universe_df: Optional DataFrame with skill rarity data for enhanced algorithms
         """
         self.job_architecture = job_architecture
         self.config_manager = get_config_manager()
+        self.skill_universe_df = skill_universe_df
+        self._job_defining_skills = None  # Lazy-loaded cache
+        
+        # Load rarity-weighted similarity configuration
+        self.rarity_weighted_config = self._load_rarity_weighted_config()
+
+    def _load_rarity_weighted_config(self) -> Dict[str, Any]:
+        """Load rarity-weighted similarity parameters from core configuration."""
+        # Load Optuna-optimized parameters from core configuration
+        optuna_config = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal'
+        )
+        
+        if not optuna_config:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.optuna_optimal. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
+        
+        # Load rarity thresholds from core configuration
+        rarity_thresholds = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'rarity_thresholds'
+        )
+        
+        if not rarity_thresholds:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.rarity_thresholds. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
+        
+        # Build unified config structure
+        config = {
+            'defining_skills_percentile': optuna_config['defining_skills_percentile'],
+            'gentle_multiplier': optuna_config['defining_skills_multiplier'],
+            'rarity_thresholds': {
+                'rare': rarity_thresholds['rare_threshold'],
+                'uncommon': rarity_thresholds['uncommon_threshold'],
+                'common': rarity_thresholds['common_threshold']
+            }
+        }
+        
+        if not config:
+            raise ValueError(
+                "Missing required configuration section: core.similarity_parameters.optuna_optimal. "
+                "Please ensure the configuration file includes all required parameters."
+            )
+        
+        # Validate parameter ranges
+        if not (1 <= config['defining_skills_percentile'] <= 100):
+            raise ValueError(
+                f"defining_skills_percentile must be between 1 and 100, got: {config['defining_skills_percentile']}"
+            )
+        
+        if config['gentle_multiplier'] <= 1.0:
+            raise ValueError(
+                f"gentle_multiplier must be greater than 1.0, got: {config['gentle_multiplier']}"
+            )
+        
+        if not isinstance(config['rarity_thresholds'], dict):
+            raise ValueError("rarity_thresholds must be a dictionary")
+        
+        return config
+
+    # ============================================================================
+    # EXISTING METHODS - PRESERVED FOR BACKWARD COMPATIBILITY
+    # ============================================================================
 
     def calculate_job_coverage(self, job1_id: str, job2_id: str) -> float:
         """
@@ -79,6 +155,172 @@ class AsymmetricCoverageCalculator:
         total_skills = skills1 | skills2
         
         return len(shared_skills) / len(total_skills) if total_skills else 0.0
+
+    # ============================================================================
+    # ENHANCED SIMILARITY METHODS - NEW SOPHISTICATED ALGORITHMS
+    # ============================================================================
+
+    @retry(max_attempts=3)
+    @circuit_breaker(failure_threshold=3)
+    def calculate_rarity_weighted_similarity(self, job_a_skills: Set[str], job_b_skills: Set[str], 
+                                           defining_skills_map: Optional[Dict[str, Set[str]]] = None) -> Dict[str, Any]:
+        """
+        Calculate unified similarity with defining skills boost.
+        
+        Based on empirically-tuned parameters from research notebooks with 0.76% average 
+        improvement over basic Jaccard and 12.5% positive improvement rate.
+        
+        All parameters (percentile threshold, multiplier) are loaded from configuration
+        to ensure flexibility and avoid hardcoded values.
+        
+        This is the SINGLE unified algorithm that replaces basic asymmetric comparison.
+        
+        Args:
+            job_a_skills: Set of skill names for job A
+            job_b_skills: Set of skill names for job B
+            defining_skills_map: Optional pre-computed defining skills map (auto-generated if not provided)
+            
+        Returns:
+            Dict with similarity metrics including the unified enhanced score
+        """
+        if not job_a_skills or not job_b_skills:
+            return self._empty_similarity_result()
+        
+        # Step 1: Calculate basic Jaccard similarity (baseline)
+        shared_skills = job_a_skills & job_b_skills
+        total_skills = job_a_skills | job_b_skills
+        basic_similarity = len(shared_skills) / len(total_skills) if total_skills else 0.0
+        
+        # Step 2: Get defining skills for both jobs (top percentile rarest skills per job)
+        if defining_skills_map is not None:
+            # Use provided defining skills map
+            job_a_defining = set()
+            job_b_defining = set()
+            for job_id, defining_skills in defining_skills_map.items():
+                # Find which job this defining skills set belongs to by checking skill overlap
+                if len(defining_skills & job_a_skills) > len(defining_skills & job_b_skills):
+                    job_a_defining.update(defining_skills)
+                else:
+                    job_b_defining.update(defining_skills)
+        else:
+            # Auto-generate defining skills using skill universe data
+            job_a_defining = self._get_defining_skills_for_skillset(job_a_skills)
+            job_b_defining = self._get_defining_skills_for_skillset(job_b_skills)
+        
+        # Step 3: Find shared defining skills (skills that are defining for EITHER job A OR job B)
+        all_defining = job_a_defining | job_b_defining
+        shared_defining_skills = [skill for skill in shared_skills if skill in all_defining]
+        
+        # Step 4: Apply gentle multiplier boost from configuration
+        gentle_multiplier = self.rarity_weighted_config['gentle_multiplier']
+        defining_skill_boost = len(shared_defining_skills) * (gentle_multiplier - 1.0)
+        enhanced_similarity = basic_similarity * (1.0 + defining_skill_boost)
+        
+        # Step 5: Allow >1.0 for corpus normalization (no capping)
+        # Note: Corpus normalizer will handle final scaling to preserve differentiation
+        
+        return {
+            'basic_similarity': round(basic_similarity, 4),
+            'enhanced_similarity': round(enhanced_similarity, 4),
+            'rarity_weighted_score': round(enhanced_similarity, 4),  # Same as enhanced for backward compatibility
+            'shared_defining_skills_count': len(shared_defining_skills),
+            'defining_skill_boost': round(defining_skill_boost, 4),
+            'shared_skills': list(shared_skills),
+            'shared_defining_skills': shared_defining_skills
+        }
+
+    def _get_defining_skills_for_skillset(self, skills: Set[str]) -> Set[str]:
+        """
+        Get defining skills for a given skillset (top percentile rarest skills).
+        
+        The percentile threshold is loaded from configuration to ensure flexibility.
+        
+        Args:
+            skills: Set of skill names
+            
+        Returns:
+            Set of defining skill names (top percentile rarest based on configuration)
+        """
+        if self.skill_universe_df is None or not skills:
+            return set()
+        
+        # Get rarity info for these skills
+        skills_with_rarity = self.skill_universe_df[
+            self.skill_universe_df['Skill_Name'].isin(skills)
+        ].copy()
+        
+        if skills_with_rarity.empty:
+            return set()
+        
+        # Sort by prevalence (ascending = rarest first)
+        skills_with_rarity = skills_with_rarity.sort_values('prevalence_percentage')
+        
+        # Take top percentile rarest skills from configuration
+        percentile_threshold = self.rarity_weighted_config['defining_skills_percentile']
+        num_defining = max(1, len(skills_with_rarity) * percentile_threshold // 100)
+        defining_skills = skills_with_rarity.head(num_defining)['Skill_Name'].tolist()
+        
+        return set(defining_skills)
+
+    # Backward compatibility method
+    def calculate_enhanced_similarity(self, job_a_skills: Set[str], job_b_skills: Set[str], 
+                                    defining_skills_map: Optional[Dict[str, Set[str]]] = None) -> Dict[str, Any]:
+        """
+        Backward compatibility wrapper for calculate_rarity_weighted_similarity.
+        
+        DEPRECATED: Use calculate_rarity_weighted_similarity instead.
+        """
+        return self.calculate_rarity_weighted_similarity(job_a_skills, job_b_skills, defining_skills_map)
+
+    def create_job_defining_skills_map(self, job_ids: Optional[List[str]] = None) -> Dict[str, Set[str]]:
+        """
+        Create a map of job IDs to their defining skills using cached computation.
+        
+        Args:
+            job_ids: Optional list of job IDs to create map for. If None, uses all jobs.
+        
+        Returns:
+            Dict mapping job_profile_id to Set of defining skill names
+        """
+        if self._job_defining_skills is not None and job_ids is None:
+            return self._job_defining_skills
+        
+        if self.skill_universe_df is None:
+            job_list = job_ids or list(self.job_architecture.jobs.keys())
+            return {job_id: set() for job_id in job_list}
+        
+        job_list = job_ids or list(self.job_architecture.jobs.keys())
+        defining_skills_map = {}
+        
+        for job_id in job_list:
+            if job_id in self.job_architecture.jobs:
+                job = self.job_architecture.jobs[job_id]
+                job_skills = set(job.skills.keys())
+                defining_skills_map[job_id] = self._get_defining_skills_for_skillset(job_skills)
+            else:
+                defining_skills_map[job_id] = set()
+        
+        # Cache if we computed for all jobs
+        if job_ids is None:
+            self._job_defining_skills = defining_skills_map
+        
+        return defining_skills_map
+
+    def _empty_similarity_result(self) -> Dict[str, Any]:
+        """Return empty similarity result for edge cases."""
+        return {
+            'basic_similarity': 0.0,
+            'enhanced_similarity': 0.0,
+            'rarity_weighted_score': 0.0,
+            'shared_defining_skills_count': 0,
+            'defining_skill_boost': 0.0,
+            'shared_skills': [],
+            'shared_defining_skills': []
+        }
+
+    # ============================================================================
+    # EXISTING METHODS CONTINUED - PRESERVED FOR BACKWARD COMPATIBILITY
+    # ============================================================================
 
     def get_skill_overlap_details(self, job1_id: str, job2_id: str) -> Dict[str, Any]:
         """
@@ -203,4 +445,173 @@ class AsymmetricCoverageCalculator:
             'min_skills_per_job': min(skill_counts) if skill_counts else 0,
             'max_skills_per_job': max(skill_counts) if skill_counts else 0,
             'total_job_skill_assignments': sum(skill_counts),
-        } 
+        }
+
+
+class SkillIntelligenceEngine:
+    """
+    Enhanced Skill Intelligence Engine using modular architecture.
+    
+    This class provides the interface that the CLI expects while using the
+    new modular components for rarity-weighted similarity calculations.
+    """
+    
+    def __init__(self):
+        """Initialize the skill intelligence engine."""
+        self.config_manager = get_config_manager()
+        self._skill_universe_df = None
+        self._job_to_skills = None
+        self._job_defining_skills = None
+        
+        # Initialize modular components
+        self._rarity_analyzer = SkillRarityAnalyzer()
+        self._defining_analyzer = DefiningSkillsAnalyzer()
+        self._rarity_calculator = RarityWeightedCalculator()
+        
+        # Load enhanced similarity configuration
+        self._enhanced_config = self._load_enhanced_config()
+        
+    def _load_enhanced_config(self) -> Dict[str, Any]:
+        """Load enhanced similarity configuration from core parameters."""
+        # Load Optuna-optimized parameters from core configuration
+        optuna_config = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal'
+        )
+        
+        if not optuna_config:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.optuna_optimal. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
+        
+        # Load rarity thresholds from core configuration
+        rarity_thresholds = self.config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'rarity_thresholds'
+        )
+        
+        if not rarity_thresholds:
+            raise ValueError(
+                "Missing required configuration: core.similarity_parameters.rarity_thresholds. "
+                "Please ensure config/core/similarity_parameters.yaml contains the required parameters."
+            )
+        
+        # Build unified config structure
+        return {
+            'defining_skills_percentile': optuna_config['defining_skills_percentile'],
+            'gentle_multiplier': optuna_config['defining_skills_multiplier'],
+            'rarity_thresholds': {
+                'rare': rarity_thresholds['rare_threshold'],
+                'uncommon': rarity_thresholds['uncommon_threshold'],
+                'common': rarity_thresholds['common_threshold']
+            }
+        }
+    
+    @property
+    def enhanced_config(self) -> Dict[str, Any]:
+        """Get enhanced similarity configuration."""
+        return self._enhanced_config
+    
+    @property
+    def skill_universe_df(self) -> pd.DataFrame:
+        """Get skill universe DataFrame with rarity data."""
+        if self._skill_universe_df is None:
+            self._load_skill_universe()
+        return self._skill_universe_df if self._skill_universe_df is not None else pd.DataFrame()
+    
+    @property 
+    def job_to_skills(self) -> Dict[str, Set[str]]:
+        """Get job to skills mapping."""
+        if self._job_to_skills is None:
+            self._load_job_to_skills()
+        return self._job_to_skills or {}
+    
+    @property
+    def defining_skills_analyzer(self) -> DefiningSkillsAnalyzer:
+        """Get defining skills analyzer."""
+        return self._defining_analyzer
+    
+    @property
+    def rarity_weighted_calculator(self) -> RarityWeightedCalculator:
+        """Get rarity-weighted calculator."""
+        return self._rarity_calculator
+    
+    @property
+    def job_defining_skills(self) -> Dict[str, Set[str]]:
+        """Get job-specific defining skills mapping."""
+        if self._job_defining_skills is None:
+            self._load_job_defining_skills()
+        return self._job_defining_skills or {}
+    
+    def _load_skill_universe(self):
+        """Load skill universe data with rarity information using modular components."""
+        try:
+            # Get database path from model versioning
+            from ..models.versioning import ModelVersionManager
+            version_manager = ModelVersionManager()
+            output_dir = version_manager.setup_output_directory(
+                interactive=False, 
+                output_type='business_context'
+            )
+            db_path = str(output_dir / 'business_context.sqlite')
+            
+            # Use the modular rarity analyzer to load skill universe
+            self._skill_universe_df = self._rarity_analyzer.load_skill_universe_from_database(db_path)
+                    
+        except Exception as e:
+            # Fallback: create empty DataFrame with required columns
+            self._skill_universe_df = pd.DataFrame(columns=[
+                'Skill_ID', 'Skill_Name', 'Category', 'Subcategory', 'SkillType',
+                'job_profiles_with_skill', 'prevalence_percentage', 'rarity_category'
+            ])
+    
+    def _load_job_to_skills(self):
+        """Load job to skills mapping from database using modular components."""
+        try:
+            # Get database path from model versioning
+            from ..models.versioning import ModelVersionManager
+            version_manager = ModelVersionManager()
+            output_dir = version_manager.setup_output_directory(
+                interactive=False, 
+                output_type='business_context'
+            )
+            db_path = str(output_dir / 'business_context.sqlite')
+            
+            # Load job-skill relationships using defining skills analyzer
+            job_skills_df = self._defining_analyzer.load_job_skills_from_database(db_path)
+            
+            # Convert to job_id -> set of skill names mapping
+            self._job_to_skills = {}
+            for job_id, group in job_skills_df.groupby('JobProfileID'):
+                self._job_to_skills[job_id] = set(group['Skill_Name'].tolist())
+                
+        except Exception as e:
+            self._job_to_skills = {}
+    
+    def _load_job_defining_skills(self):
+        """Load job-specific defining skills using modular components."""
+        try:
+            # Ensure we have skill universe and job skills loaded
+            skill_universe = self.skill_universe_df
+            if skill_universe.empty:
+                self._job_defining_skills = {}
+                return
+                
+            # Get database path for loading job skills
+            from ..models.versioning import ModelVersionManager
+            version_manager = ModelVersionManager()
+            output_dir = version_manager.setup_output_directory(
+                interactive=False, 
+                output_type='business_context'
+            )
+            db_path = str(output_dir / 'business_context.sqlite')
+            
+            # Load job-skill relationships
+            job_skills_df = self._defining_analyzer.load_job_skills_from_database(db_path)
+            
+            # Create job-specific defining skills
+            self._job_defining_skills = self._defining_analyzer.create_job_specific_defining_skills(
+                skill_universe, job_skills_df
+            )
+            
+        except Exception as e:
+            self._job_defining_skills = {} 

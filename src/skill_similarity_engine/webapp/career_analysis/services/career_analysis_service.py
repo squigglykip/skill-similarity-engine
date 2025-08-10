@@ -67,7 +67,7 @@ class CareerAnalysisService:
         self.recommendations_generator = StrategicRecommendationsGenerator(db_connection)
         self.conclusion_generator = ConclusionGenerator(db_connection)
         
-        logger.info("CareerAnalysisService initialized with database connection")
+        print("CareerAnalysisService initialized with database connection")
     
     def generate_analysis(self, job_from: str, analysis_mode: str = 'top_matches', 
                          output_mode: str = 'web', **kwargs) -> Dict[str, Any]:
@@ -84,7 +84,7 @@ class CareerAnalysisService:
             Dict with sections, metadata, and success status
         """
         try:
-            logger.info(f"Generating {output_mode} analysis for {job_from} in {analysis_mode} mode")
+            print(f"Generating {output_mode} analysis for {job_from} in {analysis_mode} mode")
             
             # Extract parameters
             job_to = kwargs.get('job_to')
@@ -116,13 +116,13 @@ class CareerAnalysisService:
             )
             
             # 2. Current Role Context
-            logger.info("Generating Current Role Context")
+            print("Generating Current Role Context")
             try:
                 context_result = self.context_generator.generate(
                     job_from=job_from,
                     include_organisational_deployment=include_deployment
                 )
-                logger.info("Current Role Context generation completed successfully")
+                print("Current Role Context generation completed successfully")
             except Exception as e:
                 logger.error(f"Current Role Context generation failed: {str(e)}")
                 context_result = {'content': {}}
@@ -135,7 +135,7 @@ class CareerAnalysisService:
                 sections['current_role_context'] = self._format_section_for_mode(
                     context_result, output_mode, context_title
                 )
-                logger.info("Current Role Context formatting completed successfully")
+                print("Current Role Context formatting completed successfully")
             except Exception as e:
                 logger.error(f"Current Role Context formatting failed: {str(e)}")
                 # Provide a safe fallback
@@ -166,23 +166,23 @@ class CareerAnalysisService:
             )
             
             # 🚨 EARLY DETECTION: Check if pathway analysis found no opportunities
-            logger.info(f"🔍 DEBUG: Checking pathway result for opportunities...")
-            logger.info(f"🔍 DEBUG: Pathway result type: {type(pathway_result)}")
+            print(f"🔍 DEBUG: Checking pathway result for opportunities...")
+            print(f"🔍 DEBUG: Pathway result type: {type(pathway_result)}")
             if isinstance(pathway_result, dict):
-                logger.info(f"🔍 DEBUG: Pathway result keys: {list(pathway_result.keys())}")
+                print(f"🔍 DEBUG: Pathway result keys: {list(pathway_result.keys())}")
                 content = pathway_result.get('content', {})
                 if isinstance(content, dict):
-                    logger.info(f"🔍 DEBUG: Pathway result content keys: {list(content.keys())}")
+                    print(f"🔍 DEBUG: Pathway result content keys: {list(content.keys())}")
                 else:
-                    logger.info(f"🔍 DEBUG: Pathway content is not a dict: {type(content)}")
+                    print(f"🔍 DEBUG: Pathway content is not a dict: {type(content)}")
             else:
-                logger.info(f"🔍 DEBUG: Pathway result is not a dict: {pathway_result}")
+                print(f"🔍 DEBUG: Pathway result is not a dict: {pathway_result}")
             
             if self._has_no_opportunities(pathway_result):
-                logger.info("🚫 No career pathways found within similarity range - returning simplified no-results response")
+                print("🚫 No career pathways found within similarity range - returning simplified no-results response")
                 return self._create_no_results_response(job_from, similarity_min, similarity_max, output_mode)
             else:
-                logger.info("✅ Opportunities found - continuing with full analysis")
+                print("✅ Opportunities found - continuing with full analysis")
             
             # Use the section title from the generator, with intelligent fallback
             pathway_title = pathway_result.get('section_title')
@@ -233,7 +233,7 @@ class CareerAnalysisService:
             # Generate metadata
             metadata = self._generate_metadata(job_from, analysis_mode, **kwargs)
             
-            logger.info(f"Successfully generated {output_mode} analysis with {len(sections)} sections")
+            print(f"Successfully generated {output_mode} analysis with {len(sections)} sections")
             
             return {
                 'success': True,
@@ -293,9 +293,9 @@ class CareerAnalysisService:
             
             # Special handling for when subsection_data is directly a list (opportunities case)
             if isinstance(subsection_data, list) and subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower()):
-                logger.info(f"🎯 TRIGGERED special handling for direct opportunities list")
-                logger.info(f"🎯 Opportunities list length: {len(subsection_data)}")
-                logger.info(f"🎯 First opportunity type: {type(subsection_data[0]) if subsection_data else 'EMPTY'}")
+                print(f"🎯 TRIGGERED special handling for direct opportunities list")
+                print(f"🎯 Opportunities list length: {len(subsection_data)}")
+                print(f"🎯 First opportunity type: {type(subsection_data[0]) if subsection_data else 'EMPTY'}")
                 
                 # Convert opportunities list to JSON-serializable format
                 formatted_opportunities = self._format_opportunities_for_web(subsection_data)
@@ -307,7 +307,7 @@ class CareerAnalysisService:
                     'formatting': {},
                     'type': 'opportunities_list'  # Special type for frontend handling
                 }
-                logger.info(f"🎯 Stored direct opportunities as list with {len(formatted_opportunities)} items")
+                print(f"🎯 Stored direct opportunities as list with {len(formatted_opportunities)} items")
                 continue  # Skip the normal processing below
             
             if isinstance(subsection_data, dict):
@@ -321,25 +321,25 @@ class CareerAnalysisService:
                 
                 if isinstance(content_data, list):
                     # Debug the section matching
-                    logger.info(f"🔍 CHECKING special handling - subsection_key: '{subsection_key}', section_title: '{section_title}'")
-                    logger.info(f"🔍 Content data length: {len(content_data)}")
-                    logger.info(f"🔍 Is opportunities? {subsection_key == 'opportunities'}")
-                    logger.info(f"🔍 Contains pathway? {'pathway' in section_title.lower()}")
-                    logger.info(f"🔍 Contains transition? {'transition' in section_title.lower()}")
+                    print(f"🔍 CHECKING special handling - subsection_key: '{subsection_key}', section_title: '{section_title}'")
+                    print(f"🔍 Content data length: {len(content_data)}")
+                    print(f"🔍 Is opportunities? {subsection_key == 'opportunities'}")
+                    print(f"🔍 Contains pathway? {'pathway' in section_title.lower()}")
+                    print(f"🔍 Contains transition? {'transition' in section_title.lower()}")
                     
                     # Special handling for pathway analysis opportunities
-                    logger.info(f"🔍 Special handling condition evaluation:")
-                    logger.info(f"   - subsection_key == 'opportunities': {subsection_key == 'opportunities'}")
-                    logger.info(f"   - section_title.lower(): '{section_title.lower()}'")
-                    logger.info(f"   - 'pathway' in section_title.lower(): {'pathway' in section_title.lower()}")
-                    logger.info(f"   - 'transition' in section_title.lower(): {'transition' in section_title.lower()}")
-                    logger.info(f"   - Combined condition: {subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower())}")
+                    print(f"🔍 Special handling condition evaluation:")
+                    print(f"   - subsection_key == 'opportunities': {subsection_key == 'opportunities'}")
+                    print(f"   - section_title.lower(): '{section_title.lower()}'")
+                    print(f"   - 'pathway' in section_title.lower(): {'pathway' in section_title.lower()}")
+                    print(f"   - 'transition' in section_title.lower(): {'transition' in section_title.lower()}")
+                    print(f"   - Combined condition: {subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower())}")
                     
                     if subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower()):
-                        logger.info(f"🎯 TRIGGERED special handling for pathway analysis opportunities")
-                        logger.info(f"🎯 Content list length: {len(content_data)}")
-                        logger.info(f"🎯 Content data type: {type(content_data)}")
-                        logger.info(f"🎯 First item type: {type(content_data[0]) if content_data else 'EMPTY'}")
+                        print(f"🎯 TRIGGERED special handling for pathway analysis opportunities")
+                        print(f"🎯 Content list length: {len(content_data)}")
+                        print(f"🎯 Content data type: {type(content_data)}")
+                        print(f"🎯 First item type: {type(content_data[0]) if content_data else 'EMPTY'}")
                         
                         # Convert opportunities list to JSON-serializable format
                         formatted_opportunities = self._format_opportunities_for_web(content_data)
@@ -351,34 +351,34 @@ class CareerAnalysisService:
                             'formatting': {},
                             'type': 'opportunities_list'  # Special type for frontend handling
                         }
-                        logger.info(f"🎯 Stored opportunities as list with {len(formatted_opportunities)} items")
-                        logger.info(f"🎯 First opportunity keys: {list(formatted_opportunities[0].keys()) if formatted_opportunities else 'EMPTY'}")
-                        logger.info(f"🎯 About to continue - skipping normal processing")
+                        print(f"🎯 Stored opportunities as list with {len(formatted_opportunities)} items")
+                        print(f"🎯 First opportunity keys: {list(formatted_opportunities[0].keys()) if formatted_opportunities else 'EMPTY'}")
+                        print(f"🎯 About to continue - skipping normal processing")
                         continue  # Skip the normal processing below
                     
                     # 🔧 FIX: Special handling for Core Competency Foundation with mixed content (intro + table)
                     elif subsection_key == 'core_competency_foundation':
-                        logger.info(f"🔧 CHECKING Core Competency Foundation condition")
-                        logger.info(f"🔧 subsection_key: '{subsection_key}'")
-                        logger.info(f"🔧 section_title: '{section_title}'")
-                        logger.info(f"🔧 section_title.lower(): '{section_title.lower()}'")
-                        logger.info(f"🔧 'current role context' in section_title.lower(): {'current role context' in section_title.lower()}")
+                        print(f"🔧 CHECKING Core Competency Foundation condition")
+                        print(f"🔧 subsection_key: '{subsection_key}'")
+                        print(f"🔧 section_title: '{section_title}'")
+                        print(f"🔧 section_title.lower(): '{section_title.lower()}'")
+                        print(f"🔧 'current role context' in section_title.lower(): {'current role context' in section_title.lower()}")
                         
                         if 'current role context' in section_title.lower():
-                            logger.info(f"🔧 TRIGGERED special handling for Core Competency Foundation with structured content")
-                            logger.info(f"🔧 Content list length: {len(content_data)}")
-                            logger.info(f"🔧 Content data items: {[type(item) for item in content_data]}")
+                            print(f"🔧 TRIGGERED special handling for Core Competency Foundation with structured content")
+                            print(f"🔧 Content list length: {len(content_data)}")
+                            print(f"🔧 Content data items: {[type(item) for item in content_data]}")
                             
                             # Keep the content as a structured array instead of converting to text
                             # This preserves the separation between intro paragraph and table
                             structured_content = []
                             for i, item in enumerate(content_data):
-                                logger.info(f"🔧 Processing item {i}: type={type(item)}, keys={list(item.keys()) if isinstance(item, dict) else 'Not dict'}")
+                                print(f"🔧 Processing item {i}: type={type(item)}, keys={list(item.keys()) if isinstance(item, dict) else 'Not dict'}")
                                 if isinstance(item, dict):
                                     if item.get('type') == 'structured_table':
                                         # Preserve structured table for frontend
                                         structured_content.append(item)
-                                        logger.info(f"🔧 Preserved structured table with {len(item.get('headers', []))} headers")
+                                        print(f"🔧 Preserved structured table with {len(item.get('headers', []))} headers")
                                     elif 'text' in item:
                                         # Convert ContentFormatter paragraph to simple text item
                                         structured_content.append({
@@ -386,13 +386,13 @@ class CareerAnalysisService:
                                             'content_type': item.get('content_type', 'paragraph'),
                                             'text': item['text']
                                         })
-                                        logger.info(f"🔧 Preserved paragraph content: {item['text'][:50]}...")
+                                        print(f"🔧 Preserved paragraph content: {item['text'][:50]}...")
                                     else:
                                         structured_content.append(item)
-                                        logger.info(f"🔧 Preserved other dict item with keys: {list(item.keys())}")
+                                        print(f"🔧 Preserved other dict item with keys: {list(item.keys())}")
                                 else:
                                     structured_content.append({'type': 'text', 'text': str(item)})
-                                    logger.info(f"🔧 Converted non-dict item to text: {str(item)[:50]}...")
+                                    print(f"🔧 Converted non-dict item to text: {str(item)[:50]}...")
                             
                             subsections[subsection_key] = {
                                 'title': title,
@@ -400,11 +400,11 @@ class CareerAnalysisService:
                                 'formatting': {'content_type': 'structured_mixed'},
                                 'type': 'structured_mixed_content'  # Special type for frontend
                             }
-                            logger.info(f"🔧 Stored Core Competency Foundation as structured content with {len(structured_content)} items")
-                            logger.info(f"🔧 Final subsection type: {subsections[subsection_key]['type']}")
+                            print(f"🔧 Stored Core Competency Foundation as structured content with {len(structured_content)} items")
+                            print(f"🔧 Final subsection type: {subsections[subsection_key]['type']}")
                             continue  # Skip normal processing
                         else:
-                            logger.info(f"🔧 Section title doesn't match - falling through to normal processing")
+                            print(f"🔧 Section title doesn't match - falling through to normal processing")
                     
                     # List of ContentFormatter objects - extract and combine
                     logger.debug(f"DEBUG: Processing ContentFormatter list for {subsection_key}, length: {len(content_data)}")
@@ -794,25 +794,25 @@ class CareerAnalysisService:
             
             # Check for error subsection (indicates no results)
             if 'error' in content:
-                logger.info("🔍 Found 'error' subsection - no opportunities detected")
+                print("🔍 Found 'error' subsection - no opportunities detected")
                 return True
             
             # Check for empty opportunities list
             opportunities = content.get('opportunities', [])
             if isinstance(opportunities, list):
                 has_opportunities = len(opportunities) > 0
-                logger.info(f"🔍 Found {len(opportunities)} opportunities in list")
+                print(f"🔍 Found {len(opportunities)} opportunities in list")
                 return not has_opportunities
             elif isinstance(opportunities, dict):
                 # Handle case where opportunities is a dict with content
                 opp_content = opportunities.get('content', [])
                 if isinstance(opp_content, list):
                     has_opportunities = len(opp_content) > 0
-                    logger.info(f"🔍 Found {len(opp_content)} opportunities in dict content")
+                    print(f"🔍 Found {len(opp_content)} opportunities in dict content")
                     return not has_opportunities
             
             # Default: assume opportunities exist if we can't clearly determine otherwise
-            logger.info("🔍 Could not clearly determine opportunity count - assuming opportunities exist")
+            print("🔍 Could not clearly determine opportunity count - assuming opportunities exist")
             return False
             
         except Exception as e:
@@ -865,7 +865,7 @@ class CareerAnalysisService:
             'status': 'no_opportunities_found'
         }
         
-        logger.info(f"✅ Created no-results response for job {job_from} with range {similarity_min}%-{similarity_max}%")
+        print(f"✅ Created no-results response for job {job_from} with range {similarity_min}%-{similarity_max}%")
         
         return {
             'success': True,

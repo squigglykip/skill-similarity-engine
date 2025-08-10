@@ -257,7 +257,7 @@ class DocumentFormatter:
         # Initialize NAB styling system
         if STYLING_AVAILABLE and DocumentStyles:
             self.nab_styles = DocumentStyles()
-            logger.info("✅ NAB styling system initialized")
+            print("✅ NAB styling system initialized")
         else:
             self.nab_styles = None
             logger.warning("⚠️ NAB styling not available, using basic styles")
@@ -277,7 +277,7 @@ class DocumentFormatter:
     def _format_word_document(self, content: Dict, analysis_data: Dict) -> Dict:
         """Create Word document with professional NAB styling."""
         try:
-            logger.info("Creating document from scratch with NAB styling")
+            print("Creating document from scratch with NAB styling")
             
             # Create new document
             doc = Document()
@@ -286,35 +286,35 @@ class DocumentFormatter:
             job_name = analysis_data.get('source_job_logical_display_name', 'Professional Role')
             
             # Log styling system status
-            logger.info(f"🔍 STYLING_AVAILABLE: {STYLING_AVAILABLE}")
-            logger.info(f"🔍 DocumentStyles available: {DocumentStyles is not None}")
-            logger.info(f"🔍 self.nab_styles: {self.nab_styles is not None}")
+            print(f"🔍 STYLING_AVAILABLE: {STYLING_AVAILABLE}")
+            print(f"🔍 DocumentStyles available: {DocumentStyles is not None}")
+            print(f"🔍 self.nab_styles: {self.nab_styles is not None}")
             
             # Use professional NAB styling if available
             if self.nab_styles:
-                logger.info("🎨 Applying professional NAB styling")
+                print("🎨 Applying professional NAB styling")
                 
                 # Setup document styles
                 self.nab_styles.setup_document_styles(doc)
-                logger.info("✅ Professional document styles setup completed")
+                print("✅ Professional document styles setup completed")
                 
                 # Create professional title page
                 self.nab_styles.create_title_page(doc, analysis_data)
-                logger.info("✅ Professional title page created")
+                print("✅ Professional title page created")
                 
                 # Add page break after title page
                 doc.add_page_break()
                 
                 # Add professional table of contents
                 self.nab_styles.add_table_of_contents(doc)
-                logger.info("✅ Professional table of contents added")
+                print("✅ Professional table of contents added")
                 
                 # Add page break after TOC
                 doc.add_page_break()
                 
                 # Process content sections with professional styling
                 self._create_professional_content(doc, content, analysis_data, job_name)
-                logger.info("✅ Professional content sections created")
+                print("✅ Professional content sections created")
                 
             else:
                 logger.warning("🎨 Using basic styling (NAB styles not available)")
@@ -369,13 +369,13 @@ class DocumentFormatter:
     
     def _setup_nab_styles(self, doc):
         """Set up comprehensive NAB styling system for professional documents."""
-        logger.info("🎨 Applying professional NAB styling")
+        print("🎨 Applying professional NAB styling")
         
         # Import NAB styling configuration
         if STYLING_AVAILABLE and DocumentStyles:
             try:
                 self.nab_styles = DocumentStyles()
-                logger.info("✅ NAB styling system initialized")
+                print("✅ NAB styling system initialized")
                 
                 # FIX 3: Apply complete NAB styling to document
                 self._apply_comprehensive_nab_styling(doc)
@@ -1187,7 +1187,7 @@ class DocumentFormatter:
             self._add_structured_table(doc, formatting)
             
         except Exception as e:
-            print(f"âš ï¸ Error creating pathway table: {e}")
+            print(f"⚠️ Error creating pathway table: {e}")
             # Fallback to text content
             para = doc.add_paragraph()
             para.style = 'NAB Body'
@@ -1415,13 +1415,13 @@ class DocumentFormatter:
                 try:
                     table.style = style_name
                     style_applied = True
-                    print(f"âœ Applied table style: {style_name}")
+                    print(f"ℹ️ Applied table style: {style_name}")
                     break
                 except:
                     continue
             
             if not style_applied:
-                print("âš ï¸ Could not apply any table style, using default")
+                print("⚠️ Could not apply any table style, using default")
             
             # Use consistent 9pt font size for all tables (headers and body)
             header_font_size = Pt(9)  # 9pt font for all table headers
@@ -1472,7 +1472,7 @@ class DocumentFormatter:
             
         except Exception as e:
             # Fallback to text-based table if docx table creation fails
-            print(f"âš ï¸ Table creation failed, using text format: {e}")
+            print(f"⚠️ Table creation failed, using text format: {e}")
             para = doc.add_paragraph()
             para.style = 'NAB Body'
             para.add_run(f"Table data (formatted as text due to processing limitations)")

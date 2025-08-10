@@ -105,14 +105,15 @@ class ColleaguePosition:
         return (self.employee_number, self.week_ending)
     
     @property
-    def position_key(self) -> int:
+    def position_key(self) -> Optional[int]:
         """
         Get the position identifier for movement detection.
         
         Returns:
-            Position Number (actual position) if available, otherwise PosIDLookupKey
+            Position Number (actual position) if available, otherwise None
+            Records with None position_key should be excluded from movement analysis
         """
-        return self.position_number if self.position_number is not None else int(float(self.pos_id_lookup_key))
+        return self.position_number
     
     @property
     def temporal_id(self) -> str:
