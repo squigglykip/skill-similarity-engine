@@ -4,7 +4,7 @@
 
 ## Database Overview
 
-- **Database Size**: 361.68 MB
+- **Database Size**: 363.35 MB
 - **SQLite Version**: 3.45.3
 - **Last Modified**: 2025-08-10
 - **Total Tables**: 16
@@ -141,7 +141,7 @@
   "algorithm_parameters": null,
   "quality_validation_date": null,
   "business_review_date": null,
-  "created_timestamp": "2025-08-10T17:43:26.376744"
+  "created_timestamp": "2025-08-10T19:19:10.988391"
 }
 ```
 
@@ -183,20 +183,20 @@
 ```json
 {
   "job_profile_id": "R0001.5",
-  "skill_id": "ESED90D9CF0E0C9F8D28",
-  "skill_name": "Business Advisory",
+  "skill_id": "KS122CJ6ZVCCTTDGYB6B",
+  "skill_name": "Contract Negotiation",
   "job_profile": "Payment Systems Analyst - 5",
   "category": "Business",
-  "subcategory": "Business Strategy",
+  "subcategory": "Contract Management",
   "skill_type": "Specialized Skill",
-  "prevalence_percentage": 2.24,
-  "total_profiles_with_skill": 16,
+  "prevalence_percentage": 1.4,
+  "total_profiles_with_skill": 10,
   "rarity_category": "Rare",
-  "defining_skill_rank": 20,
-  "defining_skill_score": 97.76223776223776,
+  "defining_skill_rank": 6,
+  "defining_skill_score": 98.6013986013986,
   "analysis_date": "2025-08-10",
   "percentile_threshold": 8.8,
-  "created_timestamp": "2025-08-10 07:37:31"
+  "created_timestamp": "2025-08-10 09:15:08"
 }
 ```
 
@@ -262,7 +262,7 @@
   "clustering_algorithm": "DBSCAN",
   "algorithm_parameters": "eps=0.7300000000000001, min_samples=2",
   "analysis_date": "2025-08-10",
-  "created_timestamp": "2025-08-10T17:43:26.220712"
+  "created_timestamp": "2025-08-10T19:19:10.813348"
 }
 ```
 
@@ -342,9 +342,9 @@
   "lateral_movement_potential": "high",
   "clustering_algorithm": "DBSCAN",
   "algorithm_parameters": "eps=0.7300000000000001, min_samples=2",
-  "quality_validation_date": "2025-08-10T17:43:26.225707",
-  "business_review_date": "2025-08-10T17:43:26.225707",
-  "created_timestamp": "2025-08-10T17:43:26.225707"
+  "quality_validation_date": "2025-08-10T19:19:10.829128",
+  "business_review_date": "2025-08-10T19:19:10.829128",
+  "created_timestamp": "2025-08-10T19:19:10.829128"
 }
 ```
 
@@ -399,11 +399,11 @@
   "total_skills_from": 68,
   "total_skills_to": 68,
   "skill_overlap_percentage": 100.0,
-  "shared_skills": "Business Acumen, Microsoft Exchange Server API, Business Advisory, Diversity Management, Contract Ne...",
-  "shared_defining_skills": "Business Advisory, Contract Negotiation, Change Management Strategy, Predictive Statistics, Negotiat...",
+  "shared_skills": "Business Partnering, Microsoft Exchange Server API, Contract Negotiation, Change Management Planning...",
+  "shared_defining_skills": "Contract Negotiation, Change Management Planning, Predictive Analytics, Business Administration, Man...",
   "skill_gap_analysis": "Skills needed: 0, Defining gaps: 0",
   "calculation_algorithm": "rarity_weighted_v1.0",
-  "created_timestamp": "2025-08-10 07:37:21"
+  "created_timestamp": "2025-08-10 09:14:50"
 }
 ```
 
@@ -458,7 +458,7 @@
   "skill_similarity_score": null,
   "difficulty_score": null,
   "success_rate": null,
-  "created_timestamp": "2025-08-10T17:37:46.417248"
+  "created_timestamp": "2025-08-10T19:15:20.891404"
 }
 ```
 
@@ -570,7 +570,7 @@
   "similarity_method": null,
   "algorithm_parameters": null,
   "analysis_date": null,
-  "created_timestamp": "2025-08-10T17:43:26.376744"
+  "created_timestamp": "2025-08-10T19:19:10.988391"
 }
 ```
 
@@ -665,7 +665,7 @@
   "defining_for_jobs": "",
   "analysis_date": "2025-08-10",
   "algorithm_version": "rarity_analyzer_v1.0",
-  "created_timestamp": "2025-08-10 07:37:31"
+  "created_timestamp": "2025-08-10 09:15:08"
 }
 ```
 
@@ -760,8 +760,8 @@
   "is_Banker": "Non-Banker",
   "Executive_Leadership_Group": "",
   "Accountability_Scope": "",
-  "created_timestamp": "2025-08-10 07:31:36",
-  "updated_timestamp": "2025-08-10 07:31:36"
+  "created_timestamp": "2025-08-10 09:00:42",
+  "updated_timestamp": "2025-08-10 09:00:42"
 }
 ```
 
@@ -792,7 +792,7 @@
 {
   "JobProfileID": "R0001.5",
   "Skill_ID": "BGSD16A8EEF4F5775E15",
-  "created_timestamp": "2025-08-10 07:31:40"
+  "created_timestamp": "2025-08-10 09:00:43"
 }
 ```
 
@@ -851,8 +851,8 @@
   "tags": "[]",
   "type": "{"id": "ST1", "name": "Specialized Skill"}",
   "type_id": "ST1",
-  "created_timestamp": "2025-08-10 07:31:37",
-  "updated_timestamp": "2025-08-10 07:31:37"
+  "created_timestamp": "2025-08-10 09:00:42",
+  "updated_timestamp": "2025-08-10 09:00:42"
 }
 ```
 
@@ -918,7 +918,7 @@
   "ORG_UNIT_NAME_8": "Unit 038",
   "ORG_UNIT_NAME_9": "Cell 11",
   "ORG_UNIT_NAME_10": "Node 024",
-  "created_timestamp": "2025-08-10 07:31:40"
+  "created_timestamp": "2025-08-10 09:00:44"
 }
 ```
 
@@ -951,8 +951,8 @@
   "metadata_value": "2.0",
   "metadata_category": "schema",
   "description": "Enhanced database schema version",
-  "created_timestamp": "2025-08-10 07:31:36",
-  "updated_timestamp": "2025-08-10 07:31:36"
+  "created_timestamp": "2025-08-10 09:00:42",
+  "updated_timestamp": "2025-08-10 09:00:42"
 }
 ```
 

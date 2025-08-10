@@ -6,7 +6,7 @@ job_profile_clustering:
     similarity_measure: enhanced_defining_skills
   optimization_metadata:
     best_silhouette_score: 0.21711856343968797
-    optimization_timestamp: '2025-08-10T17:38:33.531337'
+    optimization_timestamp: '2025-08-10T19:15:54.525534'
     rationale: 'Optimal parameters: eps=0.7300000000000001, min_samples=2 achieve
       silhouette score of 0.217. Moderate clustering quality - data may have natural
       overlap.'
@@ -24,7 +24,7 @@ skills_clustering:
     similarity_measure: jaccard_combined
   optimization_metadata:
     method: heuristic
-    optimization_timestamp: '2025-08-10T17:40:15.118751'
+    optimization_timestamp: '2025-08-10T19:17:28.843911'
     rationale: ''
 velocity_analysis:
   categorization:
