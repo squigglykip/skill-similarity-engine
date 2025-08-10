@@ -391,6 +391,39 @@ class DatabaseIntegrator:
             self.logger.error(f"Failed to populate bundle characteristics: {e}", exc_info=True)
             return False
     
+    @retry(max_attempts=3)
+    @circuit_breaker(failure_threshold=3)
+    def populate_job_family_characteristics(self, characteristics_df: pd.DataFrame) -> bool:
+        """
+        Populate analytics_job_family_characteristics table.
+        
+        Args:
+            characteristics_df: DataFrame with job family characteristics data
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.logger.info(f"Populating job family characteristics table with {len(characteristics_df):,} records")
+            
+            with sqlite3.connect(self.db_path) as conn:
+                # Clear existing data
+                conn.execute("DELETE FROM analytics_job_family_characteristics")
+                # Cleared existing data for fresh analytics
+                
+                # Insert new data
+                characteristics_df.to_sql('analytics_job_family_characteristics', conn, if_exists='append', index=False)
+                
+                # Update metadata
+                self._update_table_metadata(conn, 'analytics_job_family_characteristics', len(characteristics_df))
+                
+                self.logger.info(f"Successfully populated analytics_job_family_characteristics with {len(characteristics_df):,} records")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"Failed to populate job family characteristics: {e}", exc_info=True)
+            return False
+    
     def verify_table_populated(self, table_name: str) -> bool:
         """
         Verify that a table has been populated with data.

@@ -1,0 +1,188 @@
+# =============================================================================
+# Core System Configuration - NAB Skills Intelligence Platform
+# =============================================================================
+# 
+# HIGHEST PRIORITY CONFIGURATION - Defines system authority and precedence
+# This file establishes the governance rules for all other configurations
+# 
+# Version: 3.0 - Enhanced Configuration Architecture
+# =============================================================================
+
+system:
+  platform_name: "NAB Skills Intelligence Platform"
+  version: "2.1.0"
+  configuration_version: "3.0"
+  build_timestamp: "2025-08-09"
+  
+  # System identification
+  system_id: "nab_skills_intelligence"
+  environment: "production"  # development, testing, production
+  deployment_mode: "enterprise"  # standalone, enterprise, cloud
+
+# =============================================================================
+# CORE CONFIGURATION PRECEDENCE (CRITICAL FOR ML TRAINING SUCCESS)
+# =============================================================================
+core_precedence:
+  # Enable strict enforcement of core configuration authority
+  enforce_authority: true
+  
+  # Prevent modules from overriding critical system settings
+  allow_module_overrides: false
+  
+  # Protected configurations that CANNOT be overridden by modules
+  protected_configurations:
+    - datetime              # Date/time formats (ML training critical)
+    - similarity_parameters # Optuna-optimised parameters
+    - directories          # Path management
+    - file_patterns        # File discovery patterns
+    - processing           # Memory and performance settings
+    - security             # Data protection settings
+    - validation           # Schema validation rules
+  
+  # Conflict resolution strategy
+  conflict_resolution: "core_wins"  # core_wins, module_wins, fail_on_conflict
+  
+  # Logging configuration conflicts
+  log_conflicts: true
+  log_level: "WARNING"
+
+# =============================================================================
+# CONFIGURATION GOVERNANCE
+# =============================================================================
+governance:
+  # Configuration change auditing
+  audit_config_changes: true
+  audit_log_path: "logs/config_audit.log"
+  
+  # Validation on configuration load
+  validate_on_load: true
+  validate_schema_compliance: true
+  
+  # Strict conflict handling
+  fail_on_conflicts: true
+  fail_on_missing_core: true
+  
+  # Configuration integrity
+  checksum_validation: false  # Future enhancement
+  signature_validation: false # Future enhancement
+
+# =============================================================================
+# MODULE INTEGRATION RULES
+# =============================================================================
+module_integration:
+  # How modules should access core configuration
+  access_pattern: "inheritance"  # inheritance, reference, copy
+  
+  # Variable substitution for modules
+  enable_variable_substitution: true
+  variable_prefix: "${core."
+  variable_suffix: "}"
+  
+  # Module configuration discovery
+  auto_discover_modules: true
+  module_search_paths:
+    - "config/modules"
+    - "config/data"
+    - "config/integration"
+  
+  # Module loading order (dependencies)
+  load_order:
+    1: "core"           # Core configurations first
+    2: "data"           # Data source configurations
+    3: "modules"        # Module-specific configurations
+    4: "integration"    # External integrations
+    5: "environments"   # Environment overrides
+
+# =============================================================================
+# CONFIGURATION LOADING STRATEGY
+# =============================================================================
+loading_strategy:
+  # Loading priority (highest to lowest)
+  priority_order:
+    1: "environment_variables"    # Runtime overrides
+    2: "core_configuration"       # Absolute authority
+    3: "environment_files"        # Environment-specific settings
+    4: "module_configuration"     # Domain-specific settings
+    5: "default_fallbacks"        # Last resort values
+  
+  # Caching strategy
+  enable_caching: true
+  cache_ttl_seconds: 3600
+  cache_size_limit: 100
+  
+  # Performance settings
+  lazy_loading: true
+  parallel_loading: false
+  
+  # Error handling
+  fail_fast: true
+  continue_on_warnings: true
+  retry_on_failure: false
+
+# =============================================================================
+# CRITICAL ML TRAINING PROTECTION
+# =============================================================================
+ml_training_protection:
+  # Protect date format consistency (ROOT CAUSE OF FAILURES)
+  enforce_date_format_consistency: true
+  
+  # Critical datetime settings that must be consistent
+  protected_datetime_settings:
+    - input_date_format
+    - output_date_format
+    - movement_date_format
+    - parsing_tolerance
+  
+  # Movement analysis specific protections
+  movement_analysis_protection:
+    enforce_uk_date_format: true
+    prevent_date_format_overrides: true
+    validate_database_compatibility: true
+  
+  # Similarity parameters protection (Optuna-optimised)
+  similarity_protection:
+    prevent_parameter_overrides: true
+    validate_optuna_consistency: true
+    protect_defining_skills_settings: true
+
+# =============================================================================
+# METADATA AND TRACKING
+# =============================================================================
+metadata:
+  created_by: "Configuration Consolidation Strategy"
+  purpose: "System authority and ML training failure prevention"
+  
+  # Dependencies
+  requires:
+    - "config/core/datetime.yaml"
+    - "config/core/similarity_parameters.yaml"
+    - "config/core/directories.yaml"
+  
+  # Configuration change history
+  change_history:
+    - version: "3.0"
+      date: "2025-08-09"
+      change: "Initial system authority configuration"
+      reason: "ML training failure prevention and configuration governance"
+  
+  # Validation metadata
+  last_validated: null
+  validation_status: "pending"
+  schema_version: "1.0"
+
+# =============================================================================
+# DEVELOPMENT AND DEBUGGING
+# =============================================================================
+development:
+  # Debug configuration loading
+  debug_config_loading: false
+  debug_precedence_enforcement: true
+  debug_conflict_resolution: true
+  
+  # Development mode overrides
+  allow_dev_overrides: false
+  dev_override_warning: true
+  
+  # Testing support
+  enable_test_mode: false
+  test_config_isolation: true

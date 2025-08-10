@@ -271,11 +271,11 @@ class SchemaDocumentationCommand(BaseCommand):
     """
     Command for generating enhanced database schema documentation.
     
-    Creates comprehensive markdown documentation with:
-    - Interactive table of contents with anchor links
-    - Enhanced Mermaid ERD with color coding
+    Creates comprehensive interactive HTML documentation with:
+    - Collapsible sections and modern UI
+    - Interactive Mermaid ERD with zoom/pan controls
     - Business context and developer guides
-    - Cross-references and navigation aids
+    - Responsive design and smooth navigation
     """
     
     def __init__(self):
@@ -301,12 +301,12 @@ class SchemaDocumentationCommand(BaseCommand):
         try:
             print("\n📚 Database Schema Documentation Generator")
             print("="*60)
-            print("📋 Generating comprehensive database schema documentation with:")
-            print("   • Interactive table of contents with anchor links")
-            print("   • Enhanced Mermaid ERD with color-coded tables")
+            print("🌐 Generating interactive HTML documentation with:")
+            print("   • Modern responsive UI with collapsible sections")
+            print("   • Interactive Mermaid ERD with zoom/pan controls")
             print("   • Business context and usage guides")
             print("   • Developer-friendly query examples")
-            print("   • Cross-references and navigation aids")
+            print("   • Smooth navigation and professional styling")
             print()
             
             # Get database path from config
@@ -335,8 +335,8 @@ class SchemaDocumentationCommand(BaseCommand):
             print(f"   Size: {db_file.stat().st_size / 1024 / 1024:.1f} MB")
             print()
             
-            # Set output path
-            output_path = "docs/sqlite_schema_design.md"
+            # Set output path (now generates HTML instead of markdown)
+            output_path = "docs/sqlite_schema_design.html"
             output_file = Path(output_path)
             
             print(f"📄 Output: {output_path}")
@@ -355,13 +355,13 @@ class SchemaDocumentationCommand(BaseCommand):
                 print(f"   📊 File size: {output_file.stat().st_size / 1024:.1f} KB")
                 print()
                 print("🎯 Features included:")
-                print("   • Interactive table of contents")
-                print("   • Color-coded Mermaid ERD")
+                print("   • Interactive collapsible sections")
+                print("   • Zoomable/pannable Mermaid ERD")
                 print("   • Business context guide")
                 print("   • Developer query examples")
-                print("   • Cross-references and navigation")
+                print("   • Responsive modern design")
                 print()
-                print("💡 Open the file in your markdown viewer to see the enhanced navigation!")
+                print("💡 Open the HTML file in your web browser to explore the interactive documentation!")
                 
                 return CommandResult(
                     success=True,

@@ -4,7 +4,7 @@ bundling_strategy:
   min_specialization_threshold: 5.0
   taxonomy_alignment_weight: 0.3
 skills_clustering:
-  algorithm: kmeans
+  algorithm: dbscan
   clustering_metrics:
     n_clusters_found: 0
     noise_ratio: 0.5759225650332729
@@ -14,14 +14,14 @@ skills_clustering:
     eps: 0.1
     linkage: null
     min_samples: 2
-    n_clusters: 25
+    n_clusters: 145
     similarity_measure: jaccard
   optimization_metadata:
     algorithms_tested:
     - dbscan
     - hierarchical
     - kmeans
-    optimization_timestamp: '2025-08-08T10:41:30.651848'
+    optimization_timestamp: '2025-08-10T17:43:24.910969'
     rationale: Optimized using comprehensive parameter search
     similarity_methods_tested:
     - jaccard

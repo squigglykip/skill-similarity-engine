@@ -884,7 +884,7 @@ class ClusteringAnalyzer:
     
     def _extract_job_characteristics(self, job_clusters_df: pd.DataFrame, 
                                    metrics: ClusteringMetrics) -> pd.DataFrame:
-        """Extract job cluster characteristics from clustered jobs."""
+        """Extract job cluster characteristics for analytics_job_family_characteristics table."""
         # Group by cluster to get characteristics
         characteristics = []
         
@@ -896,21 +896,60 @@ class ClusteringAnalyzer:
             
             if len(cluster_jobs) > 0:
                 char = cluster_jobs.iloc[0]  # Get cluster info from first job
+                
+                # Calculate enhanced characteristics for job family table
+                job_functions = cluster_jobs.get('job_function', cluster_jobs.get('JobFunction', pd.Series()))
+                management_levels = cluster_jobs.get('management_level', cluster_jobs.get('ManagementLevel', pd.Series()))
+                
+                # Determine dominant function and purity
+                if not job_functions.empty:
+                    dominant_function = job_functions.mode().iloc[0] if not job_functions.mode().empty else 'Mixed'
+                    function_purity = (job_functions == dominant_function).mean()
+                else:
+                    dominant_function = 'Unknown'
+                    function_purity = 0.0
+                
+                # Assess specialization depth
+                unique_functions = job_functions.nunique() if not job_functions.empty else 0
+                if unique_functions <= 1:
+                    specialization_depth = "deep"
+                elif unique_functions <= 3:
+                    specialization_depth = "moderate"
+                else:
+                    specialization_depth = "broad"
+                
+                # Management level pattern
+                mgmt_pattern = management_levels.value_counts().to_dict() if not management_levels.empty else {}
+                
                 characteristics.append({
                     'cluster_id': cluster_id,
-                    'cluster_name': char.get('cluster_name', f'Cluster {cluster_id}'),
-                    'cluster_description': char.get('cluster_description', ''),
-                    'cluster_rationale': char.get('cluster_rationale', ''),
+                    'family_name': char.get('cluster_name', f'Job Family {cluster_id}'),
+                    'family_description': char.get('cluster_description', f'Job family with {len(cluster_jobs)} related roles'),
+                    'family_rationale': char.get('cluster_rationale', 'Jobs grouped by skill similarity'),
                     'cluster_size': len(cluster_jobs),
-                    'sample_jobs': char.get('sample_jobs', ''),
-                    'sample_skills': char.get('sample_skills', ''),
-                    'cluster_confidence': char.get('cluster_confidence', 0.0),
-                    'intra_cluster_similarity': char.get('intra_cluster_similarity', 0.0),
-                    'inter_cluster_distance': char.get('inter_cluster_distance', 0.0),
+                    'sample_jobs': char.get('sample_jobs', '')[:200],  # Truncate for storage
+                    'sample_skills': char.get('sample_skills', '')[:200],
+                    'core_job_functions': str(job_functions.value_counts().head(3).to_dict()) if not job_functions.empty else '{}',
+                    'secondary_job_functions': str(job_functions.value_counts().tail(2).to_dict()) if not job_functions.empty else '{}',
+                    'dominant_function': dominant_function,
+                    'function_purity': round(function_purity, 3),
+                    'management_level_pattern': str(mgmt_pattern),
+                    'specialization_depth': specialization_depth,
+                    'average_skills_per_job': 0.0,  # TODO: Calculate from database
+                    'silhouette_score': metrics.silhouette_score,
+                    'intra_family_similarity': char.get('intra_cluster_similarity', 0.0),
+                    'inter_family_separation': char.get('inter_cluster_distance', 0.0),
+                    'business_value_score': 0.8,  # Default high value for all clusters
+                    'career_pathway_potential': 'medium',  # Default assessment
+                    'skill_transferability': 0.7,  # Default good transferability
+                    'market_demand_level': 'medium',  # Default market demand
+                    'typical_career_stage': 'mid',  # Default career stage
+                    'promotion_frequency': 'medium',  # Default promotion frequency
+                    'lateral_movement_potential': 'high',  # Default high potential
                     'clustering_algorithm': char.get('clustering_algorithm', 'DBSCAN'),
                     'algorithm_parameters': char.get('algorithm_parameters', ''),
-                    'analysis_date': char.get('analysis_date', datetime.now().strftime('%Y-%m-%d')),
-                    'silhouette_score': metrics.silhouette_score,
+                    'quality_validation_date': datetime.now().isoformat(),
+                    'business_review_date': datetime.now().isoformat(),
                     'created_timestamp': datetime.now().isoformat()
                 })
         

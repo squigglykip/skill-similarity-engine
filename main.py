@@ -938,15 +938,15 @@ class WorkforceIntelligenceOrchestrator:
             print("📚 DATABASE SCHEMA DOCUMENTATION")
             print("="*60)
             print()
-            print("🔄 This will generate comprehensive database schema documentation")
-            print("   with enhanced navigation, business context, and developer guides.")
+            print("🌐 This will generate comprehensive interactive HTML documentation")
+            print("   with modern UI, collapsible sections, and enhanced navigation.")
             print()
             print("📋 Features include:")
-            print("   • Interactive table of contents with anchor links")
-            print("   • Color-coded Mermaid ERD diagrams")
+            print("   • Interactive collapsible sections with modern design")
+            print("   • Zoomable/pannable Mermaid ERD diagrams")
             print("   • Business context and usage guides")
             print("   • Developer-friendly query examples")
-            print("   • Cross-references and navigation aids")
+            print("   • Responsive design and smooth navigation")
             print()
             
             # Ask for confirmation
@@ -963,9 +963,9 @@ class WorkforceIntelligenceOrchestrator:
                 print()
                 print("✅ Schema documentation generated successfully!")
                 if result.data:
-                    print(f"   📄 Documentation: {result.data.get('output_path', 'docs/sqlite_schema_design.md')}")
+                    print(f"   📄 Documentation: {result.data.get('output_path', 'docs/sqlite_schema_design.html')}")
                     print(f"   📊 File size: {result.data.get('file_size_kb', 0):.1f} KB")
-                print("   💡 Open the markdown file to explore the enhanced navigation!")
+                print("   💡 Open the HTML file in your web browser to explore the interactive documentation!")
             else:
                 print()
                 print("❌ Schema documentation generation failed.")

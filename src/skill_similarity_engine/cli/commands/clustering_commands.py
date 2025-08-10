@@ -444,6 +444,16 @@ class ClusteringAnalysisCommand(BaseCommand):
                 print("     ❌ Failed to populate job families")
                 return False
             
+            # Populate job family characteristics table
+            print("     • Job family characteristics (cluster naming conventions)...")
+            if hasattr(clustering_result, 'job_characteristics_df') and clustering_result.job_characteristics_df is not None:
+                job_chars_success = db_integrator.populate_job_family_characteristics(clustering_result.job_characteristics_df)
+                if not job_chars_success:
+                    print("     ❌ Failed to populate job family characteristics")
+                    return False
+            else:
+                print("     ⚠️ No job family characteristics data available")
+            
             # Populate skill bundles table
             print("     • Skill bundles (cluster assignments)...")
             bundles_success = db_integrator.populate_skill_bundles(clustering_result.skill_bundles_df)

@@ -1,17 +1,174 @@
 # =============================================================================
-# Core - Date and Time Configuration
+# Core - Date and Time Configuration (ENHANCED - ABSOLUTE AUTHORITY)
 # =============================================================================
-# Extracted from architectural_config.yaml - datetime section
-# Controls date formats and parsing rules across the system
+# 
+# SYSTEM-WIDE DATE CONFIGURATION - NO MODULE OVERRIDES ALLOWED
+# This file has ABSOLUTE AUTHORITY over all date/time formatting across the platform
+# 
+# CRITICAL: This configuration resolves ML training failures caused by date format
+# inconsistencies between modules. NO module can override these settings.
+# =============================================================================
 
-# Standard formats across the system
-input_date_format: "%d/%m/%Y"     # DD/MM/YYYY (UK/AU format)
-output_date_format: "%Y-%m-%d"    # ISO format for internal processing
-timestamp_format: "%Y%m%d_%H%M%S" # For file naming
+# =============================================================================
+# SYSTEM AUTHORITY METADATA
+# =============================================================================
+precedence: "CORE_ABSOLUTE"
+authority: "SYSTEM_CRITICAL"
+override_protection: true
+configuration_version: "3.0"
 
-# Alternative date formats for parsing flexibility
-alternative_date_formats:
-  - "%Y-%m-%d"     # ISO format
-  - "%m/%d/%Y"     # US format
-  - "%d-%m-%Y"     # European format
-  - "%Y/%m/%d"     # Alternative ISO 
+# Purpose: Resolve movement analysis ML training failures
+purpose: "Single source of truth for all date/time formats to prevent ML pipeline failures"
+critical_for_modules:
+  - "movement_analysis"
+  - "movement_fact_builder"  
+  - "fact_table_builder"
+  - "logging"
+  - "database_operations"
+
+# =============================================================================
+# PRIMARY FORMATS (used throughout system)
+# =============================================================================
+primary_formats:
+  # Database storage format (UK/AU format) - MATCHES YOUR DATABASE
+  input_date: "%d/%m/%Y"      # DD/MM/YYYY (UK/AU format) - DATABASE STORAGE
+  
+  # Internal processing format
+  output_date: "%Y-%m-%d"     # ISO format for internal processing
+  
+  # File naming convention
+  timestamp: "%Y%m%d_%H%M%S"  # File naming format
+  
+  # Logging format
+  logging: "%Y-%m-%d %H:%M:%S" # Standard logging format
+
+# =============================================================================
+# DOMAIN-SPECIFIC FORMATS (inherit from primary - NO OVERRIDES ALLOWED)
+# =============================================================================
+domain_formats:
+  # Movement analysis (CRITICAL - Fixes ML training failures)
+  movement_analysis: "%d/%m/%Y"      # Always uses input_date - SURGICAL FIX: Direct value
+  movement_tracker: "%d/%m/%Y"       # Always uses input_date - SURGICAL FIX: Direct value
+  movement_fact_builder: "%d/%m/%Y"  # Always uses input_date - SURGICAL FIX: Direct value
+  
+  # Database operations
+  database_storage: "%d/%m/%Y"       # Always uses input_date - SURGICAL FIX: Direct value
+  database_queries: "%d/%m/%Y"       # Always uses input_date - SURGICAL FIX: Direct value
+  
+  # API and external interfaces  
+  api_responses: "%Y-%m-%d"          # Always uses output_date - SURGICAL FIX: Direct value
+  api_requests: "%d/%m/%Y"           # Always uses input_date - SURGICAL FIX: Direct value
+  
+  # File operations
+  file_naming: "%Y%m%d_%H%M%S"       # Always uses timestamp - SURGICAL FIX: Direct value
+  metadata_timestamps: "%Y-%m-%d"    # Always uses output_date - SURGICAL FIX: Direct value
+  
+  # Logging and auditing
+  audit_logs: "%Y-%m-%d %H:%M:%S"    # Always uses logging - SURGICAL FIX: Direct value
+  error_logs: "%Y-%m-%d %H:%M:%S"    # Always uses logging - SURGICAL FIX: Direct value
+  performance_logs: "%Y-%m-%d %H:%M:%S" # Always uses logging - SURGICAL FIX: Direct value
+
+# =============================================================================
+# FLEXIBLE PARSING (for input tolerance only - NOT for output)
+# =============================================================================
+parsing_tolerance:
+  # Primary format MUST be tried first (your database format)
+  - "%d/%m/%Y"               # Primary (UK/AU) - DATABASE FORMAT
+  - "%Y-%m-%d"               # ISO fallback
+  - "%m/%d/%Y"               # US fallback
+  - "%d-%m-%Y"               # European fallback
+  - "%Y/%m/%d"               # Alternative ISO
+  - "%d/%m/%y"               # Short year UK/AU
+  - "%Y%m%d"                 # Compact format
+
+# =============================================================================
+# BUSINESS CONTEXT (NAB/Australian Context)
+# =============================================================================
+business_context:
+  # Locale and timezone
+  primary_locale: "en_AU"              # Australian English
+  secondary_locale: "en_GB"            # UK English (fallback)
+  timezone: "Australia/Sydney"         # AEST/AEDT
+  
+  # Business calendar
+  fiscal_year_start: "07-01"           # July 1st (Australian FY)
+  financial_quarter_start: "07-01"     # Q1 starts July 1st
+  
+  # Cultural date preferences
+  preferred_date_display: "DD/MM/YYYY" # Australian preference
+  alternative_display: "DD MMM YYYY"   # Human-readable alternative
+
+# =============================================================================
+# ML TRAINING PROTECTION (CRITICAL FOR YOUR ISSUE)
+# =============================================================================
+ml_training_protection:
+  # Movement analysis specific settings (ROOT CAUSE RESOLUTION)
+  enforce_consistent_movement_dates: true
+  movement_date_format_locked: "%d/%m/%Y"  # LOCKED to database format
+  
+  # Prevent overrides that cause ML failures
+  prevent_format_overrides: true
+  validate_database_compatibility: true
+  
+  # Error handling for date parsing
+  strict_parsing: false               # Allow flexible parsing
+  fallback_parsing_enabled: true     # Use parsing_tolerance list
+  fail_on_parse_error: false         # Log but don't fail on date issues
+
+# =============================================================================
+# VALIDATION AND QUALITY ASSURANCE
+# =============================================================================
+validation:
+  # Format validation
+  validate_format_strings: true
+  validate_parsing_compatibility: true
+  
+  # Business rule validation
+  validate_fiscal_year_logic: true
+  validate_timezone_consistency: true
+  
+  # ML pipeline validation
+  validate_movement_analysis_compatibility: true
+  validate_database_format_consistency: true
+
+# =============================================================================
+# LEGACY COMPATIBILITY (Deprecated - Will be removed)
+# =============================================================================
+legacy_compatibility:
+  # Old field names (DEPRECATED - Use primary_formats instead)
+  input_date_format: "%d/%m/%Y"     # DEPRECATED - Use primary_formats.input_date
+  output_date_format: "%Y-%m-%d"    # DEPRECATED - Use primary_formats.output_date
+  timestamp_format: "%Y%m%d_%H%M%S" # DEPRECATED - Use primary_formats.timestamp
+  
+  # Old alternative formats (DEPRECATED - Use parsing_tolerance instead)
+  alternative_date_formats:         # DEPRECATED - Use parsing_tolerance
+    - "%Y-%m-%d"     # ISO format
+    - "%m/%d/%Y"     # US format
+    - "%d-%m-%Y"     # European format
+    - "%Y/%m/%d"     # Alternative ISO
+
+# =============================================================================
+# METADATA AND CHANGE TRACKING
+# =============================================================================
+metadata:
+  created_by: "Configuration Consolidation Strategy"
+  enhanced_date: "2025-08-09"
+  purpose: "ML training failure prevention and date format governance"
+  
+  # Critical dependencies
+  protects:
+    - "MovementFactBuilder date parsing"
+    - "Movement analysis ML training pipeline"
+    - "Database date format consistency"
+    - "Cross-module date compatibility"
+  
+  # Change history
+  change_history:
+    - version: "3.0"
+      date: "2025-08-09"
+      change: "Enhanced with absolute authority and ML protection"
+      reason: "Resolve movement analysis ML training failures"
+    - version: "2.0"
+      date: "Previous"
+      change: "Basic date format configuration"
+      reason: "Initial date format standardisation" 

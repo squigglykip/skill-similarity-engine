@@ -115,9 +115,9 @@ class SchemaBuilder:
         tables = [
             # Analytics tables (dependent on core tables)
             'analytics_bundle_characteristics', 'analytics_specialized_skills', 
-            'analytics_skill_demand_trends', 'analytics_skill_bundles', 'analytics_job_families',
-            'analytics_job_defining_skills', 'analytics_skill_rarity', 'analytics_job_similarities',
-            'analytics_pathway_predictions', 'analytics_movement_patterns',
+            'analytics_skill_demand_trends', 'analytics_skill_bundles', 'analytics_job_family_characteristics',
+            'analytics_job_families', 'analytics_job_defining_skills', 'analytics_skill_rarity', 
+            'analytics_job_similarities', 'analytics_pathway_predictions', 'analytics_movement_patterns',
             
             # Core relationship tables
             'core_job_skill_requirements',
@@ -173,6 +173,7 @@ class SchemaBuilder:
         phase_3_tables = self.schema_config.get('analytics_tables', {}).get('phase_3', {})
         # Creating Phase 3 analytics tables
         self._create_analytics_job_families_table(conn)
+        self._create_analytics_job_family_characteristics_table(conn)
         self._create_analytics_skill_bundles_table(conn)
         self._create_analytics_skill_demand_trends_table(conn)
         self._create_analytics_specialized_skills_table(conn)
@@ -605,6 +606,59 @@ class SchemaBuilder:
         conn.execute(sql)
         logger.debug("Created analytics_job_families table")
     
+    def _create_analytics_job_family_characteristics_table(self, conn: sqlite3.Connection) -> None:
+        """Create analytics_job_family_characteristics table - Business-readable job family naming conventions."""
+        sql = """
+        CREATE TABLE analytics_job_family_characteristics (
+            cluster_id INTEGER PRIMARY KEY,        -- Unique job family identifier
+            family_name TEXT,                      -- Business-readable family name
+            family_description TEXT,               -- Human-interpretable description
+            family_rationale TEXT,                -- Explanation of family grouping logic
+            cluster_size INTEGER,                  -- Number of jobs in family
+            
+            -- Family composition
+            sample_jobs TEXT,                      -- JSON array of representative job profiles
+            sample_skills TEXT,                    -- JSON array of representative skills
+            core_job_functions TEXT,               -- JSON array of core job functions
+            secondary_job_functions TEXT,          -- JSON array of secondary functions
+            
+            -- Quality metrics
+            dominant_function TEXT,                -- Most common job function in family
+            function_purity REAL,                 -- Percentage of jobs in dominant function
+            management_level_pattern TEXT,         -- Management level distribution
+            specialization_depth TEXT,            -- "deep", "broad", "mixed"
+            average_skills_per_job REAL,          -- Average skills per job in family
+            
+            -- Validation metrics
+            silhouette_score REAL,               -- Overall family quality metric
+            intra_family_similarity REAL,        -- How similar jobs are within family
+            inter_family_separation REAL,        -- How distinct this family is from others
+            
+            -- Business context
+            business_value_score REAL,           -- Strategic business value (0-1)
+            career_pathway_potential TEXT,       -- "high", "medium", "low"
+            skill_transferability REAL,          -- How transferable skills are within family
+            market_demand_level TEXT,            -- "high", "medium", "low"
+            
+            -- Usage patterns
+            typical_career_stage TEXT,           -- "entry", "mid", "senior", "executive"
+            promotion_frequency TEXT,            -- "high", "medium", "low"
+            lateral_movement_potential TEXT,     -- "high", "medium", "low"
+            
+            -- Analysis metadata
+            clustering_algorithm TEXT,           -- Algorithm used for clustering
+            algorithm_parameters TEXT,           -- JSON object with parameters
+            quality_validation_date TEXT,        -- When quality was last validated
+            business_review_date TEXT,           -- When business context was last reviewed
+            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            
+            -- Foreign key constraint to ensure data integrity
+            FOREIGN KEY (cluster_id) REFERENCES analytics_job_families(cluster_id)
+        );
+        """
+        conn.execute(sql)
+        logger.debug("Created analytics_job_family_characteristics table with foreign key constraint")
+    
     def _create_analytics_skill_bundles_table(self, conn: sqlite3.Connection) -> None:
         """Create analytics_skill_bundles table - Skills clustering with business-readable bundle names."""
         sql = """
@@ -790,11 +844,14 @@ class SchemaBuilder:
             algorithm_parameters TEXT,           -- JSON object with parameters
             quality_validation_date TEXT,        -- When quality was last validated
             business_review_date TEXT,           -- When business context was last reviewed
-            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            
+            -- Foreign key constraint to ensure data integrity
+            FOREIGN KEY (cluster_id) REFERENCES analytics_skill_bundles(cluster_id)
         );
         """
         conn.execute(sql)
-        logger.debug("Created analytics_bundle_characteristics table")
+        logger.debug("Created analytics_bundle_characteristics table with foreign key constraint")
     
     # System Tables (1 table)
     
@@ -967,10 +1024,11 @@ class SchemaBuilder:
                     # Core data tables (5)
                     'core_job_architecture', 'core_skills_taxonomy', 'core_job_skill_requirements',
                     'core_workforce_current', 'core_position_timeline',
-                    # Analytics tables (10)
+                    # Analytics tables (11)
                     'analytics_movement_patterns', 'analytics_job_similarities', 'analytics_skill_rarity',
-                    'analytics_job_defining_skills', 'analytics_job_families', 'analytics_skill_bundles',
-                    'analytics_skill_demand_trends', 'analytics_specialized_skills', 'analytics_bundle_characteristics',
+                    'analytics_job_defining_skills', 'analytics_job_families', 'analytics_job_family_characteristics',
+                    'analytics_skill_bundles', 'analytics_skill_demand_trends', 'analytics_specialized_skills', 
+                    'analytics_bundle_characteristics',
                     # System tables (1)
                     'sys_schema_metadata'
                 ]
