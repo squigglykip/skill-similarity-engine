@@ -77,7 +77,7 @@ class CareerAnalysisService:
         Args:
             job_from: Source job profile ID
             analysis_mode: 'top_matches' or 'specific'
-            output_mode: 'web' for preview or 'document' for Word generation
+            output_mode: 'web' for preview (document generation removed during V2 migration)
             **kwargs: Additional parameters (job_to, similarity_min, similarity_max, top_n, etc.)
             
         Returns:
@@ -162,7 +162,7 @@ class CareerAnalysisService:
                 include_organisational_deployment=include_deployment,
                 top_n=top_n,
                 tie_breaking_options=tie_breaking_options,
-                output_format=output_mode  # Pass web/document format to generator
+                output_format=output_mode  # Pass web format to generator (document removed during V2 migration)
             )
             
             # 🚨 EARLY DETECTION: Check if pathway analysis found no opportunities
@@ -253,22 +253,21 @@ class CareerAnalysisService:
     
     def _format_section_for_mode(self, section_data: Dict, output_mode: str, section_title: str) -> Dict[str, Any]:
         """
-        Format section data appropriately for web preview vs document generation.
+        Format section data for web preview (document mode removed during V2 migration).
         
         Args:
             section_data: Raw section data from generators
-            output_mode: 'web' or 'document'
+            output_mode: 'web' (document mode removed during V2 migration)
             section_title: Title for the section
             
         Returns:
-            Formatted section data
+            Formatted section data for web preview
         """
         if output_mode == 'web':
             return self._format_for_web_preview(section_data, section_title)
-        elif output_mode == 'document':
-            return self._format_for_document_generation(section_data, section_title)
         else:
-            return section_data
+            # Default to web format (document generation removed during V2 migration)
+            return self._format_for_web_preview(section_data, section_title)
     
     def _format_for_web_preview(self, section_data: Dict, section_title: str) -> Dict[str, Any]:
         """
@@ -461,9 +460,13 @@ class CareerAnalysisService:
             'subsections': subsections
         }
     
-    def _format_for_document_generation(self, section_data: Dict, section_title: str) -> Dict[str, Any]:
+    def _format_for_document_generation_DEPRECATED(self, section_data: Dict, section_title: str) -> Dict[str, Any]:
         """
-        Format section data for document generation (Word/PDF).
+        DEPRECATED: Format section data for document generation (Word/PDF).
+        
+        TODO: Remove this entire method in Phase 1 modularization - it's ~400 lines 
+        of complex Word formatting logic that's no longer needed after removing
+        document generation during V2 migration.
         
         Returns the data in the format expected by the DocumentFormatter.
         The DocumentFormatter expects sections with 'title' and 'content' structure.

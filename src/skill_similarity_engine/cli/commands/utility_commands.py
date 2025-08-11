@@ -5,12 +5,15 @@ Contains CLI commands for utility operations, extracted from precompute_commands
 and focused on database cleanup, Excel conversion, and documentation generation.
 """
 
+import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, List
 
 from .base_command import BaseCommand, CommandResult
 from ...config.architectural_config_manager import get_config_manager
 from ...data_pipeline.excel_converter import ExcelConverter
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseCleanupCommand(BaseCommand):
@@ -393,5 +396,342 @@ class SchemaDocumentationCommand(BaseCommand):
             return CommandResult(
                 success=False,
                 message=f"Schema documentation failed: {str(e)}",
+                errors=[str(e)]
+            )
+
+
+class AnalyticsExportCommand(BaseCommand):
+    """
+    Command for exporting analytics tables to CSV files.
+    
+    Provides memory-efficient export of all analytics_* tables with:
+    - Chunked processing for large tables (e.g., analytics_job_similarities)
+    - Individual CSV files for each table with timestamps
+    - Progress tracking and comprehensive error handling
+    - Selective export options
+    """
+    
+    def __init__(self):
+        super().__init__(
+            name="analytics_export",
+            description="Export analytics tables to CSV files"
+        )
+    
+    def validate_args(self, **kwargs) -> CommandResult:
+        """Validate arguments for analytics export."""
+        return CommandResult(
+            success=True,
+            message="Analytics export arguments validated"
+        )
+    
+    def _find_database_path(self) -> Optional[str]:
+        """
+        Find the database path using existing infrastructure and quarterly folder structure.
+        
+        Returns:
+            Database path if found, None otherwise
+        """
+        try:
+            # Try to get database path from configuration
+            config_manager = get_config_manager()
+            
+            # Look for database configuration patterns used elsewhere in the system
+            db_config_paths = [
+                'business_context.database.connection.database_path',
+                'database.connection.database_path',
+                'core.database.path'
+            ]
+            
+            for config_path in db_config_paths:
+                try:
+                    path_parts = config_path.split('.')
+                    db_path = config_manager.get_nested_value(*path_parts)
+                    if db_path and Path(db_path).exists():
+                        return str(Path(db_path).resolve())
+                except:
+                    continue
+            
+            # Search for databases in quarterly folder structure under models/
+            models_dir = Path("models")
+            if models_dir.exists():
+                # Look for quarterly directories (e.g., 2025-Q1, 2025-Q2, etc.)
+                quarterly_dirs = []
+                for item in models_dir.iterdir():
+                    if item.is_dir() and ("-Q" in item.name or "Q" in item.name):
+                        quarterly_dirs.append(item)
+                
+                # Sort quarterly directories to get the most recent
+                quarterly_dirs.sort(key=lambda x: x.name, reverse=True)
+                
+                # Search for database files in quarterly directories
+                db_names = [
+                    "business_context.sqlite",
+                    "workforce_intelligence.db",
+                    "skill_similarity_database.db"
+                ]
+                
+                for quarterly_dir in quarterly_dirs:
+                    for db_name in db_names:
+                        db_path = quarterly_dir / db_name
+                        if db_path.exists():
+                            print(f"📂 Found database: {db_path}")
+                            return str(db_path.resolve())
+            
+            # Fall back to common database locations (legacy)
+            common_paths = [
+                "data/skill_similarity_database.db",
+                "skill_similarity_database.db",
+                "data/workforce_intelligence.db",
+                "workforce_intelligence.db",
+                "data/business_context.sqlite",
+                "business_context.sqlite"
+            ]
+            
+            for common_path in common_paths:
+                db_path = Path(common_path)
+                if db_path.exists():
+                    print(f"📂 Found database: {db_path}")
+                    return str(db_path.resolve())
+            
+            # Also search all subdirectories of models/ for any .sqlite or .db files
+            if models_dir.exists():
+                for db_file in models_dir.rglob("*.sqlite"):
+                    if db_file.is_file():
+                        print(f"📂 Found database: {db_file}")
+                        return str(db_file.resolve())
+                for db_file in models_dir.rglob("*.db"):
+                    if db_file.is_file():
+                        print(f"📂 Found database: {db_file}")
+                        return str(db_file.resolve())
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error finding database path: {e}")
+            return None
+    
+    def _show_export_menu(self) -> str:
+        """Display the export options menu."""
+        print("\n=== Analytics Export Options ===")
+        print("Choose what to export:\n")
+        print("1. Export all analytics tables (recommended)")
+        print("2. Export specific tables (interactive selection)")
+        print("3. Show table information only")
+        print("0. Cancel export")
+        
+        return input("Enter your choice: ").strip()
+    
+    def _show_table_selection_menu(self, table_info: Dict[str, Dict[str, Any]]) -> List[str]:
+        """
+        Show table selection menu and return selected tables.
+        
+        Args:
+            table_info: Dictionary of table information
+            
+        Returns:
+            List of selected table names
+        """
+        from ...data.exporter import AnalyticsExporter
+        
+        print("\n=== Available Analytics Tables ===")
+        print("Select tables to export (enter numbers separated by commas, or 'all'):\n")
+        
+        table_list = list(AnalyticsExporter.ANALYTICS_TABLES.keys())
+        
+        for i, table_name in enumerate(table_list, 1):
+            info = table_info.get(table_name, {})
+            row_count = info.get('row_count', 0)
+            size_category = info.get('size_category', 'unknown')
+            exists = info.get('exists', False)
+            
+            status = "✅" if exists and row_count > 0 else "📊" if exists else "❌"
+            print(f"{i:2}. {status} {table_name}")
+            print(f"      {row_count:,} rows, {size_category} table")
+        
+        print(f"\n{len(table_list) + 1}. Select all tables")
+        print("0. Cancel selection")
+        
+        while True:
+            selection = input("\nEnter your selection: ").strip().lower()
+            
+            if selection == '0':
+                return []
+            elif selection == 'all' or selection == str(len(table_list) + 1):
+                return table_list
+            else:
+                try:
+                    # Parse comma-separated numbers
+                    selected_indices = [int(x.strip()) for x in selection.split(',')]
+                    selected_tables = []
+                    
+                    for idx in selected_indices:
+                        if 1 <= idx <= len(table_list):
+                            selected_tables.append(table_list[idx - 1])
+                        else:
+                            print(f"❌ Invalid selection: {idx}. Please try again.")
+                            break
+                    else:
+                        return selected_tables
+                        
+                except ValueError:
+                    print("❌ Invalid input. Please enter numbers separated by commas.")
+    
+    def _display_table_info(self, table_info: Dict[str, Dict[str, Any]]) -> None:
+        """Display information about available analytics tables."""
+        from ...data.exporter import AnalyticsExporter
+        
+        print("\n" + "="*80)
+        print("📊 ANALYTICS TABLES INFORMATION")
+        print("="*80)
+        
+        total_tables = len(AnalyticsExporter.ANALYTICS_TABLES)
+        tables_with_data = sum(1 for info in table_info.values() if info.get('row_count', 0) > 0)
+        total_rows = sum(info.get('row_count', 0) for info in table_info.values())
+        
+        print(f"📋 Summary: {tables_with_data}/{total_tables} tables contain data")
+        print(f"📊 Total rows across all tables: {total_rows:,}")
+        print()
+        
+        for table_name, info in table_info.items():
+            row_count = info.get('row_count', 0)
+            column_count = info.get('column_count', 0)
+            size_category = info.get('size_category', 'unknown')
+            exists = info.get('exists', False)
+            
+            status_icon = "✅" if exists and row_count > 0 else "📊" if exists else "❌"
+            status_text = "Has data" if row_count > 0 else "Empty" if exists else "Missing"
+            
+            print(f"{status_icon} {table_name}")
+            print(f"   📈 {row_count:,} rows, {column_count} columns")
+            print(f"   🏷️  {size_category.title()} table, {status_text}")
+            
+            if 'error' in info:
+                print(f"   ⚠️  Error: {info['error']}")
+            print()
+    
+    def execute(self, **kwargs) -> CommandResult:
+        """
+        Execute analytics export.
+        
+        Returns:
+            CommandResult with export status
+        """
+        try:
+            print("\n🚀 Analytics Export Tool")
+            print("="*60)
+            print("📤 Export analytics tables to CSV files for external analysis")
+            print("   Each table will be exported to a separate timestamped CSV file")
+            print()
+            
+            # Find database path
+            db_path = self._find_database_path()
+            if not db_path:
+                print("❌ No database found!")
+                print("   Please ensure your workforce database has been built first.")
+                print("   Use the 'Build Workforce Database' option from the main menu.")
+                
+                return CommandResult(
+                    success=False,
+                    message="Database not found",
+                    errors=["No accessible database file found"]
+                )
+            
+            print(f"📂 Database: {db_path}")
+            
+            # Import and initialize exporter
+            from ...data.exporter import AnalyticsExporter
+            
+            try:
+                exporter = AnalyticsExporter(db_path)
+                print(f"📁 Export directory: {exporter.output_dir}")
+            except FileNotFoundError as e:
+                print(f"❌ Database error: {e}")
+                return CommandResult(
+                    success=False,
+                    message="Database access error",
+                    errors=[str(e)]
+                )
+            
+            # Get table information
+            print("\n🔍 Analysing available tables...")
+            table_info = exporter.get_table_info()
+            
+            # Show export menu
+            choice = self._show_export_menu()
+            
+            if choice == '1':
+                # Export all tables
+                print("\n📤 Exporting all analytics tables...")
+                selected_tables = None
+                
+            elif choice == '2':
+                # Interactive table selection
+                selected_tables = self._show_table_selection_menu(table_info)
+                if not selected_tables:
+                    print("❌ Export cancelled - no tables selected.")
+                    return CommandResult(
+                        success=False,
+                        message="Export cancelled by user"
+                    )
+                
+            elif choice == '3':
+                # Show table information only
+                self._display_table_info(table_info)
+                print("💡 Use the export options above to export specific tables.")
+                return CommandResult(
+                    success=True,
+                    message="Table information displayed",
+                    data={'table_info': table_info}
+                )
+                
+            elif choice == '0':
+                print("❌ Export cancelled.")
+                return CommandResult(
+                    success=False,
+                    message="Export cancelled by user"
+                )
+            else:
+                print("❌ Invalid choice. Export cancelled.")
+                return CommandResult(
+                    success=False,
+                    message="Invalid choice",
+                    errors=["Invalid menu selection"]
+                )
+            
+            # Perform the export
+            summary = exporter.export_all_tables(selected_tables)
+            
+            # Display results
+            print(f"\n✅ Analytics export completed!")
+            print(f"📁 Output directory: {summary['output_directory']}")
+            print(f"📊 Export summary:")
+            print(f"   • Tables exported: {summary['successful_exports']}/{summary['tables_requested']}")
+            print(f"   • Total rows: {summary['total_rows_exported']:,}")
+            print(f"   • Total file size: {summary['total_file_size_mb']:.2f} MB")
+            
+            if summary['failed_exports'] > 0:
+                print(f"   ⚠️  Failed exports: {summary['failed_exports']}")
+                
+            print(f"\n📅 Export timestamp: {summary['export_timestamp']}")
+            print("💡 CSV files are ready for analysis in Excel, R, Python, or other tools!")
+            
+            return CommandResult(
+                success=True,
+                message="Analytics export completed successfully",
+                data=summary,
+                metadata={
+                    'export_directory': summary['output_directory'],
+                    'tables_exported': summary['successful_exports'],
+                    'total_rows': summary['total_rows_exported']
+                }
+            )
+            
+        except Exception as e:
+            print(f"❌ Analytics export failed: {e}")
+            print("   Check your database and permissions.")
+            logger.error(f"Analytics export error: {e}", exc_info=True)
+            return CommandResult(
+                success=False,
+                message=f"Analytics export failed: {str(e)}",
                 errors=[str(e)]
             )

@@ -78,6 +78,7 @@ class WorkforceIntelligenceOrchestrator:
         # Initialize commands
         self.excel_converter_cmd = ExcelConverterCommand()
         self.schema_doc_cmd = SchemaDocumentationCommand()
+        self.analytics_export_cmd = None  # Lazy initialization for analytics export
         self.data_load_cmd = DataLoadCommand()
         self.similarity_cmd = SimilarityMatrixCommand()
         self.movement_cmd = MovementAnalysisCommand()
@@ -165,9 +166,10 @@ class WorkforceIntelligenceOrchestrator:
         print("1. Generate Database Schema Documentation")
         print("2. Check database health")
         print("3. View database summary") 
-        print("4. Export database backup")
-        print("5. Advanced analytics tools")
-        print("6. System diagnostics")
+        print("4. Export Analytics to CSV")
+        print("5. Export database backup")
+        print("6. Advanced analytics tools")
+        print("7. System diagnostics")
         print("0. Back to main menu")
         
         return input("Enter your choice: ").strip()
@@ -931,6 +933,43 @@ class WorkforceIntelligenceOrchestrator:
             print(f"❌ Database cleanup failed: {e}")
             print("   Check your database connection and permissions.")
     
+    def handle_analytics_export(self) -> None:
+        """Handle analytics export to CSV files."""
+        try:
+            # Lazy initialization of analytics export command
+            if self.analytics_export_cmd is None:
+                from skill_similarity_engine.cli.commands.utility_commands import AnalyticsExportCommand
+                self.analytics_export_cmd = AnalyticsExportCommand()
+            
+            # Execute the analytics export command
+            result = self.analytics_export_cmd.execute()
+            
+            if result.success:
+                print()
+                print("🎉 Analytics export operation completed!")
+                if result.metadata:
+                    export_dir = result.metadata.get('export_directory', 'exports/analytics')
+                    tables_exported = result.metadata.get('tables_exported', 0)
+                    total_rows = result.metadata.get('total_rows', 0)
+                    print(f"   📁 Files saved to: {export_dir}")
+                    print(f"   📊 Tables exported: {tables_exported}")
+                    print(f"   📈 Total rows: {total_rows:,}")
+                print("   💡 CSV files are ready for analysis in Excel, Python, R, or other tools!")
+            else:
+                print()
+                print("❌ Analytics export failed.")
+                if result.errors:
+                    for error in result.errors:
+                        print(f"   Error: {error}")
+                print("   Please check your database and try again.")
+            
+            input("\nPress Enter to continue...")
+            
+        except Exception as e:
+            print(f"❌ Error during analytics export: {e}")
+            print("   Please check your database and file permissions.")
+            input("\nPress Enter to continue...")
+    
     def handle_schema_documentation(self) -> None:
         """Handle database schema documentation generation."""
         try:
@@ -995,11 +1034,13 @@ class WorkforceIntelligenceOrchestrator:
                 print("📊 Generating database summary...")
                 print("   This feature is coming soon.")
             elif choice == '4':
+                self.handle_analytics_export()
+            elif choice == '5':
                 print("💾 Exporting database backup...")
                 print("   This feature is coming soon.")
-            elif choice == '5':
-                self.run_legacy_precompute_menu()
             elif choice == '6':
+                self.run_legacy_precompute_menu()
+            elif choice == '7':
                 print("🔧 Running system diagnostics...")
                 print("   This feature is coming soon.")
             elif choice == '0':

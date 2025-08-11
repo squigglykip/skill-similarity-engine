@@ -79,66 +79,28 @@ def api_career_analysis_preview():
 
 @career_analysis_bp.route('/career-analysis-document', methods=['POST'])
 def api_career_analysis_document():
-    """Generate a downloadable document using the service layer."""
+    """Generate a downloadable document using simplified HTML-to-Word pipeline."""
     try:
-        print("Starting document generation using service layer...")
+        print("Document generation temporarily disabled during V2 migration...")
         
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
         output_format = data.get('output_format', 'word')
-        print(f"Processing {output_format} document request for job: {data.get('job_from', 'Unknown')}")
+        job_from = data.get('job_from', 'Unknown')
         
-        # Import services
-        from ..career_analysis.services.document_service import DocumentService
-        from ..career_analysis.services.validation_service import ValidationService
+        print(f"Document generation request received for {job_from} (format: {output_format})")
         
-        db = get_db()
-        
-        # Validate form data first
-        validation_service = ValidationService(db)
-        is_valid, cleaned_data, errors = validation_service.validate_form_data(data)
-        
-        if not is_valid:
-            logger.warning(f"Validation failed: {errors}")
-            return jsonify({
-                'success': False,
-                'error': 'Validation failed',
-                'validation_errors': errors
-            }), 400
-        
-        # Generate document using service layer
-        document_service = DocumentService(db)
-        result = document_service.generate_document(cleaned_data, output_format)
-        
-        if result['success']:
-            print(f"Successfully generated {output_format} document")
-            
-            # Handle document content for JSON response
-            import base64
-            import io
-            
-            def clean_for_json(obj):
-                """Recursively clean an object to make it JSON-serializable."""
-                if isinstance(obj, bytes):
-                    return base64.b64encode(obj).decode('utf-8')
-                elif isinstance(obj, io.BytesIO):
-                    return "<BytesIO object (removed for JSON serialization)>"
-                elif isinstance(obj, dict):
-                    return {k: clean_for_json(v) for k, v in obj.items()}
-                elif isinstance(obj, (list, tuple)):
-                    return [clean_for_json(item) for item in obj]
-                else:
-                    return obj
-            
-            # Clean the entire result for JSON serialization
-            clean_result = clean_for_json(result)
-            
-            return jsonify(clean_result)
-        else:
-            logger.error(f"Document generation failed: {result.get('error', 'Unknown error')}")
-            return jsonify(result), 500
+        # TODO: Implement simplified HTML-to-Word pipeline in Phase 3
+        # This will use html2docx to convert the HTML preview directly to Word
+        return jsonify({
+            'success': False,
+            'error': 'Document generation temporarily disabled during V2 migration. Will be restored with simplified HTML-to-Word pipeline.',
+            'status': 'coming_soon',
+            'planned_implementation': 'Phase 3: Simplified Document Generation',
+            'alternative': 'Use HTML preview for now - document export will return soon!'
+        }), 501  # Not Implemented
             
     except Exception as e:
         logger.error(f"Unexpected error in document endpoint: {str(e)}", exc_info=True)

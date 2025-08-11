@@ -29,6 +29,12 @@ Usage:
     
     # Run with production validation
     python test_pathway_predictions.py --job R0453.0 --top 5 --validate
+    
+    # Corpus-wide confidence analysis (production readiness check)
+    python test_pathway_predictions.py --corpus-analysis --corpus-sample-size 100 --corpus-targets-per-job 50
+    
+    # Export corpus analysis results to CSV
+    python test_pathway_predictions.py --corpus-analysis --corpus-export corpus_analysis_results.csv
 """
 
 import sys
@@ -260,9 +266,10 @@ class PathwayPredictor:
             print(f"❌ Error getting similar jobs: {e}")
             return []
     
-    def _generate_features(self, from_job_id: str, to_job_ids: List[str]) -> pd.DataFrame:
+    def _generate_features(self, from_job_id: str, to_job_ids: List[str], quiet: bool = False) -> pd.DataFrame:
         """Generate ML features for pathway predictions."""
-        print(f"🔧 Generating features for {from_job_id} → {to_job_ids}")
+        if not quiet:
+            print(f"🔧 Generating features for {from_job_id} → {to_job_ids}")
         
         # Get movement patterns for feature engineering
         query = """
@@ -287,7 +294,8 @@ class PathwayPredictor:
             movement_df = pd.read_sql_query(query, conn, params=params)
         
         if movement_df.empty:
-            print(f"⚠️  No historical movement patterns found for these pathways")
+            if not quiet:
+                print(f"⚠️  No historical movement patterns found for these pathways")
             # Create synthetic features for prediction
             movement_df = self._create_synthetic_features(from_job_id, to_job_ids)
         
@@ -353,13 +361,13 @@ class PathwayPredictor:
         
         return arch_df
     
-    def predict_pathways(self, from_job_id: str, to_job_ids: List[str]) -> Dict[str, Any]:
+    def predict_pathways(self, from_job_id: str, to_job_ids: List[str], quiet: bool = False) -> Dict[str, Any]:
         """Predict pathway feasibility for given job transitions."""
         if not self.models:
             raise RuntimeError("Models not loaded. Please run _load_models() first.")
         
         # Generate features
-        features_df = self._generate_features(from_job_id, to_job_ids)
+        features_df = self._generate_features(from_job_id, to_job_ids, quiet=quiet)
         
         if features_df.empty:
             return {
@@ -375,7 +383,8 @@ class PathwayPredictor:
                 pred = model.predict(features_df)
                 predictions[model_name] = pred.tolist()
             except Exception as e:
-                print(f"⚠️  {model_name} prediction failed: {e}")
+                if not quiet:
+                    print(f"⚠️  {model_name} prediction failed: {e}")
                 predictions[model_name] = [0.0] * len(to_job_ids)
         
         # Calculate ensemble predictions and confidence
@@ -580,6 +589,480 @@ class PathwayPredictor:
         }
 
 
+class CorpusConfidenceAnalyzer:
+    """Comprehensive corpus-wide confidence and business logic analysis."""
+    
+    def __init__(self, predictor: PathwayPredictor):
+        """Initialize the corpus analyzer."""
+        self.predictor = predictor
+        self.db_path = predictor.db_path
+        self.all_job_profiles = predictor.get_job_profiles()
+        self.business_violations = []
+        self.confidence_distribution = []
+        self.management_level_violations = []
+        self.cross_function_violations = []
+        
+    def analyze_corpus_confidence(self, sample_size: int = 100, targets_per_job: int = 50) -> Dict[str, Any]:
+        """
+        Analyze confidence distribution across the entire corpus.
+        
+        Args:
+            sample_size: Number of source jobs to sample
+            targets_per_job: Number of target jobs to analyze per source
+            
+        Returns:
+            Comprehensive analysis results
+        """
+        print(f"🔍 Starting Corpus Confidence Analysis")
+        print(f"📊 Sample: {sample_size} source jobs × {targets_per_job} targets = {sample_size * targets_per_job:,} predictions")
+        print("=" * 80)
+        
+        # Sample jobs for analysis
+        all_jobs = self.all_job_profiles['job_profile_id'].tolist()
+        
+        if sample_size >= len(all_jobs):
+            source_jobs = all_jobs
+        else:
+            # Use systematic sampling for better representation
+            step = len(all_jobs) // sample_size
+            source_jobs = all_jobs[::step][:sample_size]
+        
+        print(f"📂 Analyzing {len(source_jobs)} source jobs from {len(all_jobs)} total jobs")
+        
+        # Performance monitoring
+        monitor = PerformanceMonitor()
+        monitor.start_monitoring()
+        
+        # Analysis storage
+        all_predictions = []
+        confidence_scores = []
+        business_rule_violations = []
+        management_violations = []
+        cross_function_analysis = []
+        
+        # Progress tracking
+        total_predictions = 0
+        successful_predictions = 0
+        
+        start_time = time.time()
+        
+        for i, source_job in enumerate(source_jobs):
+            # Simple progress indicator
+            if i == 0 or (i + 1) % 25 == 0 or i == len(source_jobs) - 1:
+                progress_pct = ((i + 1) / len(source_jobs)) * 100
+                print(f"   Progress: {i+1:,}/{len(source_jobs):,} jobs ({progress_pct:.1f}%) - {total_predictions:,} predictions")
+            
+            try:
+                # Get target jobs (mix of similar and random for comprehensive analysis)
+                similar_targets = self._get_most_similar_jobs_quiet(source_job, min(targets_per_job // 2, 25))
+                
+                # Add random targets for broader coverage
+                remaining_targets = targets_per_job - len(similar_targets)
+                if remaining_targets > 0:
+                    available_targets = [job for job in all_jobs if job != source_job and job not in similar_targets]
+                    if len(available_targets) > remaining_targets:
+                        import random
+                        random_targets = random.sample(available_targets, remaining_targets)
+                    else:
+                        random_targets = available_targets
+                    
+                    target_jobs = similar_targets + random_targets
+                else:
+                    target_jobs = similar_targets
+                
+                # Make predictions (quiet mode to suppress detailed output)
+                if target_jobs:
+                    predictions = self.predictor.predict_pathways(source_job, target_jobs, quiet=True)
+                    
+                    if 'error' not in predictions:
+                        # Process each prediction
+                        for pred in predictions['predictions']:
+                            total_predictions += 1
+                            successful_predictions += 1
+                            
+                            # Store prediction data
+                            prediction_data = {
+                                'source_job': source_job,
+                                'target_job': pred['to_job_id'],
+                                'confidence': pred['agreement_rate'],
+                                'predicted_movements': pred['predicted_movements'],
+                                'model_predictions': pred['model_predictions']
+                            }
+                            all_predictions.append(prediction_data)
+                            confidence_scores.append(pred['agreement_rate'])
+                            
+                            # Business rule analysis
+                            violation = self._analyze_business_rules(source_job, pred['to_job_id'], pred['agreement_rate'])
+                            if violation:
+                                business_rule_violations.append(violation)
+                            
+                            # Management level analysis
+                            mgmt_analysis = self._analyze_management_levels(source_job, pred['to_job_id'], pred['agreement_rate'])
+                            management_violations.append(mgmt_analysis)
+                            
+                            # Cross-function analysis
+                            func_analysis = self._analyze_function_changes(source_job, pred['to_job_id'], pred['agreement_rate'])
+                            cross_function_analysis.append(func_analysis)
+                    
+            except Exception as e:
+                # Silently continue on errors - we'll report summary stats
+                continue
+        
+        # Final performance stats
+        perf_stats = monitor.stop_monitoring()
+        
+        # Statistical analysis
+        stats = self._calculate_confidence_statistics(confidence_scores)
+        business_summary = self._summarize_business_violations(business_rule_violations)
+        management_summary = self._summarize_management_violations(management_violations)
+        function_summary = self._summarize_function_analysis(cross_function_analysis)
+        
+        # Compile results
+        results = {
+            'analysis_metadata': {
+                'sample_size': len(source_jobs),
+                'targets_per_job': targets_per_job,
+                'total_predictions': total_predictions,
+                'successful_predictions': successful_predictions,
+                'analysis_time': perf_stats['total_time'],
+                'predictions_per_second': total_predictions / perf_stats['total_time']
+            },
+            'confidence_distribution': stats,
+            'business_rule_analysis': business_summary,
+            'management_level_analysis': management_summary,
+            'function_change_analysis': function_summary,
+            'raw_predictions': all_predictions,
+            'performance': perf_stats
+        }
+        
+        return results
+    
+    def _get_most_similar_jobs_quiet(self, from_job_id: str, top_n: int = 5) -> List[str]:
+        """Get the most similar jobs without printing detailed output."""
+        try:
+            query = """
+            SELECT job_to, similarity_score, enhanced_similarity_score
+            FROM analytics_job_similarities
+            WHERE job_from = ?
+            AND job_to != job_from
+            ORDER BY enhanced_similarity_score DESC
+            LIMIT ?
+            """
+            
+            with sqlite3.connect(str(self.db_path)) as conn:
+                result = pd.read_sql_query(query, conn, params=(from_job_id, top_n))
+                
+                if result.empty:
+                    return []
+                
+                return result['job_to'].tolist()
+                
+        except Exception as e:
+            return []
+    
+    def _analyze_business_rules(self, source_job: str, target_job: str, confidence: float) -> Optional[Dict[str, Any]]:
+        """Analyze business rule violations for a prediction."""
+        violations = []
+        
+        try:
+            query = """
+            SELECT 
+                from_arch.JobProfileID as from_id,
+                to_arch.JobProfileID as to_id,
+                from_arch.ManagementLevel as from_level,
+                to_arch.ManagementLevel as to_level,
+                from_arch.JobFunction as from_function,
+                to_arch.JobFunction as to_function,
+                from_arch.JobProfile as from_title,
+                to_arch.JobProfile as to_title
+            FROM core_job_architecture from_arch
+            JOIN core_job_architecture to_arch ON 1=1
+            WHERE from_arch.JobProfileID = ? AND to_arch.JobProfileID = ?
+            """
+            
+            with sqlite3.connect(str(self.db_path)) as conn:
+                result = conn.execute(query, (source_job, target_job)).fetchone()
+                
+                if not result:
+                    return None
+                
+                from_id, to_id, from_level, to_level, from_function, to_function, from_title, to_title = result
+                
+                # Same job violation
+                if source_job == target_job and confidence > 0.2:
+                    violations.append("same_job_high_confidence")
+                
+                # Management level violations
+                try:
+                    from_num = int(from_level.split()[-1]) if from_level else 0
+                    to_num = int(to_level.split()[-1]) if to_level else 0
+                    level_diff = from_num - to_num  # Positive = promotion, Negative = demotion
+                    
+                    # Major promotion with high confidence (suspicious)
+                    if level_diff >= 3 and confidence > 0.8:
+                        violations.append("major_promotion_high_confidence")
+                    
+                    # Any demotion with high confidence (rare in business)
+                    if level_diff < -1 and confidence > 0.7:
+                        violations.append("demotion_high_confidence")
+                    
+                    # Extreme demotion (almost never happens)
+                    if level_diff < -2 and confidence > 0.5:
+                        violations.append("extreme_demotion")
+                        
+                except (ValueError, AttributeError):
+                    pass
+                
+                # Cross-function with extremely high confidence (rare)
+                if from_function != to_function and confidence > 0.95:
+                    violations.append("cross_function_extreme_confidence")
+                
+                if violations:
+                    return {
+                        'source_job': source_job,
+                        'target_job': target_job,
+                        'confidence': confidence,
+                        'violations': violations,
+                        'from_level': from_level,
+                        'to_level': to_level,
+                        'level_change': level_diff if 'level_diff' in locals() else None,
+                        'from_function': from_function,
+                        'to_function': to_function
+                    }
+                
+        except Exception as e:
+            print(f"⚠️  Business rule analysis failed for {source_job} → {target_job}: {e}")
+        
+        return None
+    
+    def _analyze_management_levels(self, source_job: str, target_job: str, confidence: float) -> Dict[str, Any]:
+        """Detailed management level analysis."""
+        violations = []
+        analysis = {
+            'source_job': source_job,
+            'target_job': target_job,
+            'confidence': confidence
+        }
+        
+        try:
+            query = """
+            SELECT 
+                from_arch.ManagementLevel as from_level,
+                to_arch.ManagementLevel as to_level
+            FROM core_job_architecture from_arch
+            JOIN core_job_architecture to_arch ON 1=1
+            WHERE from_arch.JobProfileID = ? AND to_arch.JobProfileID = ?
+            """
+            
+            with sqlite3.connect(str(self.db_path)) as conn:
+                result = conn.execute(query, (source_job, target_job)).fetchone()
+                
+                if result:
+                    from_level, to_level = result
+                    analysis.update({
+                        'from_level': from_level,
+                        'to_level': to_level
+                    })
+                    
+                    try:
+                        from_num = int(from_level.split()[-1]) if from_level else 0
+                        to_num = int(to_level.split()[-1]) if to_level else 0
+                        level_diff = from_num - to_num
+                        
+                        analysis['level_change'] = level_diff
+                        analysis['movement_type'] = (
+                            'promotion' if level_diff > 0 else
+                            'demotion' if level_diff < 0 else
+                            'lateral'
+                        )
+                        
+                        # Identify specific violations
+                        if level_diff < -2 and confidence > 0.3:
+                            violations.append('extreme_demotion')
+                        elif level_diff < -1 and confidence > 0.6:
+                            violations.append('significant_demotion')
+                        elif level_diff > 3 and confidence > 0.7:
+                            violations.append('extreme_promotion')
+                        
+                        analysis['violations'] = violations
+                        
+                    except (ValueError, AttributeError):
+                        analysis['level_change'] = None
+                        analysis['movement_type'] = 'unknown'
+        
+        except Exception as e:
+            analysis['error'] = str(e)
+        
+        return analysis
+    
+    def _analyze_function_changes(self, source_job: str, target_job: str, confidence: float) -> Dict[str, Any]:
+        """Analyze job function change patterns."""
+        analysis = {
+            'source_job': source_job,
+            'target_job': target_job,
+            'confidence': confidence
+        }
+        
+        try:
+            query = """
+            SELECT 
+                from_arch.JobFunction as from_function,
+                to_arch.JobFunction as to_function,
+                from_arch.JobSubFunction as from_sub_function,
+                to_arch.JobSubFunction as to_sub_function
+            FROM core_job_architecture from_arch
+            JOIN core_job_architecture to_arch ON 1=1
+            WHERE from_arch.JobProfileID = ? AND to_arch.JobProfileID = ?
+            """
+            
+            with sqlite3.connect(str(self.db_path)) as conn:
+                result = conn.execute(query, (source_job, target_job)).fetchone()
+                
+                if result:
+                    from_function, to_function, from_sub_function, to_sub_function = result
+                    
+                    analysis.update({
+                        'from_function': from_function,
+                        'to_function': to_function,
+                        'same_function': from_function == to_function,
+                        'same_sub_function': from_sub_function == to_sub_function
+                    })
+                    
+                    if from_function == to_function:
+                        analysis['change_type'] = 'within_function'
+                        if from_sub_function != to_sub_function:
+                            analysis['change_type'] = 'sub_function_change'
+                    else:
+                        analysis['change_type'] = 'cross_function'
+                        
+                        # Flag unusual cross-function high confidence
+                        if confidence > 0.9:
+                            analysis['flag'] = 'high_confidence_cross_function'
+        
+        except Exception as e:
+            analysis['error'] = str(e)
+        
+        return analysis
+    
+    def _calculate_confidence_statistics(self, confidence_scores: List[float]) -> Dict[str, Any]:
+        """Calculate comprehensive confidence distribution statistics."""
+        if not confidence_scores:
+            return {'error': 'No confidence scores to analyze'}
+        
+        import numpy as np
+        
+        scores = np.array(confidence_scores)
+        
+        # Basic statistics
+        stats = {
+            'count': len(scores),
+            'mean': float(np.mean(scores)),
+            'median': float(np.median(scores)),
+            'std': float(np.std(scores)),
+            'min': float(np.min(scores)),
+            'max': float(np.max(scores)),
+            'q25': float(np.percentile(scores, 25)),
+            'q75': float(np.percentile(scores, 75))
+        }
+        
+        # Distribution analysis
+        stats['distribution'] = {
+            'very_high_confidence': float(np.sum(scores > 0.95) / len(scores)),
+            'high_confidence': float(np.sum((scores > 0.8) & (scores <= 0.95)) / len(scores)),
+            'medium_confidence': float(np.sum((scores > 0.6) & (scores <= 0.8)) / len(scores)),
+            'low_confidence': float(np.sum((scores > 0.3) & (scores <= 0.6)) / len(scores)),
+            'very_low_confidence': float(np.sum(scores <= 0.3) / len(scores))
+        }
+        
+        # Outlier detection
+        iqr = stats['q75'] - stats['q25']
+        lower_bound = stats['q25'] - 1.5 * iqr
+        upper_bound = stats['q75'] + 1.5 * iqr
+        
+        stats['outliers'] = {
+            'count': int(np.sum((scores < lower_bound) | (scores > upper_bound))),
+            'percentage': float(np.sum((scores < lower_bound) | (scores > upper_bound)) / len(scores)),
+            'high_outliers': int(np.sum(scores > upper_bound)),
+            'low_outliers': int(np.sum(scores < lower_bound))
+        }
+        
+        # Business concern thresholds
+        stats['business_concerns'] = {
+            'excessive_confidence': float(np.sum(scores > 0.98) / len(scores)),  # >98% confidence rare
+            'unrealistic_precision': float(np.sum(scores > 0.99) / len(scores)),  # >99% almost impossible
+            'low_differentiation': float(np.sum(scores > 0.9) / len(scores))      # >90% suggests poor differentiation
+        }
+        
+        return stats
+    
+    def _summarize_business_violations(self, violations: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Summarize business rule violations."""
+        if not violations:
+            return {'total_violations': 0, 'violation_rate': 0.0}
+        
+        violation_types = {}
+        for violation in violations:
+            for vtype in violation['violations']:
+                violation_types[vtype] = violation_types.get(vtype, 0) + 1
+        
+        most_common = None
+        if violation_types:
+            most_common = max(violation_types, key=lambda k: violation_types[k])
+        
+        return {
+            'total_violations': len(violations),
+            'violation_rate': len(violations) / len(self.confidence_distribution) if self.confidence_distribution else 0,
+            'violation_types': violation_types,
+            'most_common_violation': most_common
+        }
+    
+    def _summarize_management_violations(self, violations: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Summarize management level analysis."""
+        if not violations:
+            return {'no_violations': True}
+        
+        movement_types = {}
+        level_changes = []
+        
+        for analysis in violations:
+            if 'movement_type' in analysis:
+                mtype = analysis['movement_type']
+                movement_types[mtype] = movement_types.get(mtype, 0) + 1
+            
+            if 'level_change' in analysis and analysis['level_change'] is not None:
+                level_changes.append(analysis['level_change'])
+        
+        return {
+            'total_analyzed': len(violations),
+            'movement_types': movement_types,
+            'avg_level_change': sum(level_changes) / len(level_changes) if level_changes else 0,
+            'extreme_changes': len([lc for lc in level_changes if abs(lc) > 2])
+        }
+    
+    def _summarize_function_analysis(self, analyses: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Summarize function change analysis."""
+        if not analyses:
+            return {'no_data': True}
+        
+        change_types = {}
+        high_confidence_cross_function = 0
+        
+        for analysis in analyses:
+            if 'change_type' in analysis:
+                ctype = analysis['change_type']
+                change_types[ctype] = change_types.get(ctype, 0) + 1
+            
+            if analysis.get('flag') == 'high_confidence_cross_function':
+                high_confidence_cross_function += 1
+        
+        return {
+            'total_analyzed': len(analyses),
+            'change_types': change_types,
+            'suspicious_cross_function_moves': high_confidence_cross_function,
+            'cross_function_rate': change_types.get('cross_function', 0) / len(analyses)
+        }
+
+
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -655,6 +1138,32 @@ Examples:
         help='Run production validation on predictions'
     )
     
+    parser.add_argument(
+        '--corpus-analysis',
+        action='store_true',
+        help='Run comprehensive corpus-wide confidence analysis'
+    )
+    
+    parser.add_argument(
+        '--corpus-sample-size',
+        type=int,
+        default=100,
+        help='Number of source jobs to sample for corpus analysis (default: 100)'
+    )
+    
+    parser.add_argument(
+        '--corpus-targets-per-job',
+        type=int,
+        default=50,
+        help='Number of target jobs to analyze per source job (default: 50)'
+    )
+    
+    parser.add_argument(
+        '--corpus-export',
+        type=str,
+        help='Export corpus analysis results to CSV file (provide filename)'
+    )
+    
     return parser.parse_args()
 
 
@@ -681,6 +1190,25 @@ def main():
                 job_id = row['job_profile_id']
                 formatted_name = predictor.get_formatted_job_name(job_id)
                 print(f"  {job_id}: {formatted_name}")
+            return
+        
+        # Handle corpus analysis
+        if args.corpus_analysis:
+            print("🔍 Running Comprehensive Corpus Confidence Analysis")
+            print("=" * 70)
+            
+            analyzer = CorpusConfidenceAnalyzer(predictor)
+            results = analyzer.analyze_corpus_confidence(
+                sample_size=args.corpus_sample_size,
+                targets_per_job=args.corpus_targets_per_job
+            )
+            
+            display_corpus_analysis_results(results)
+            
+            # Export results if requested
+            if args.corpus_export:
+                export_corpus_results(results, args.corpus_export)
+            
             return
         
         # Handle batch performance test
@@ -995,6 +1523,254 @@ def display_batch_performance_results(results: Dict[str, Any]):
     print(f"   Memory Increase: {perf['memory_increase_mb']:.1f} MB")
     print(f"   CPU Average: {perf['avg_cpu_percent']:.1f}%")
     print(f"   CPU Peak: {perf['peak_cpu_percent']:.1f}%")
+
+
+def display_corpus_analysis_results(results: Dict[str, Any]):
+    """Display comprehensive corpus analysis results."""
+    metadata = results['analysis_metadata']
+    confidence_dist = results['confidence_distribution']
+    business_analysis = results['business_rule_analysis']
+    management_analysis = results['management_level_analysis']
+    function_analysis = results['function_change_analysis']
+    
+    print("\n🎯 CORPUS CONFIDENCE ANALYSIS RESULTS")
+    print("=" * 80)
+    
+    # Analysis Overview
+    print("📊 ANALYSIS OVERVIEW:")
+    print(f"   Total Predictions Analyzed: {metadata['total_predictions']:,}")
+    print(f"   Sample Size: {metadata['sample_size']} source jobs")
+    print(f"   Targets per Job: {metadata.get('targets_per_job', 'Variable')}")
+    print(f"   Analysis Time: {metadata['analysis_time']:.1f}s")
+    print(f"   Processing Rate: {metadata['predictions_per_second']:.1f} predictions/sec")
+    print()
+    
+    # Confidence Distribution Analysis
+    print("📈 CONFIDENCE DISTRIBUTION ANALYSIS:")
+    print("=" * 50)
+    
+    dist = confidence_dist['distribution']
+    print(f"   Mean Confidence: {confidence_dist['mean']:.3f} ({confidence_dist['mean']*100:.1f}%)")
+    print(f"   Median Confidence: {confidence_dist['median']:.3f} ({confidence_dist['median']*100:.1f}%)")
+    print(f"   Standard Deviation: {confidence_dist['std']:.3f}")
+    print(f"   Range: {confidence_dist['min']:.3f} - {confidence_dist['max']:.3f}")
+    print()
+    
+    print("   📊 Distribution Breakdown:")
+    print(f"   🔴 Very High (>95%): {dist['very_high_confidence']*100:.1f}% of predictions")
+    print(f"   🟠 High (80-95%): {dist['high_confidence']*100:.1f}% of predictions")
+    print(f"   🟡 Medium (60-80%): {dist['medium_confidence']*100:.1f}% of predictions")
+    print(f"   🟢 Low (30-60%): {dist['low_confidence']*100:.1f}% of predictions")
+    print(f"   🔵 Very Low (≤30%): {dist['very_low_confidence']*100:.1f}% of predictions")
+    print()
+    
+    # Business Concerns Section
+    concerns = confidence_dist['business_concerns']
+    print("🚨 BUSINESS CONCERN INDICATORS:")
+    print("=" * 40)
+    
+    # Assess overall health
+    total_concerns = (concerns['excessive_confidence'] + 
+                     concerns['unrealistic_precision'] + 
+                     concerns['low_differentiation'])
+    
+    if concerns['unrealistic_precision'] > 0.05:  # >5% at 99%+
+        concern_level = "🔴 CRITICAL"
+        recommendation = "IMMEDIATE MODEL REVIEW REQUIRED"
+    elif concerns['excessive_confidence'] > 0.15:  # >15% at 98%+
+        concern_level = "🟠 HIGH"
+        recommendation = "Model calibration recommended"
+    elif concerns['low_differentiation'] > 0.4:   # >40% at 90%+
+        concern_level = "🟡 MODERATE"
+        recommendation = "Monitor model discrimination"
+    else:
+        concern_level = "🟢 LOW"
+        recommendation = "Model confidence appears reasonable"
+    
+    print(f"   Overall Assessment: {concern_level}")
+    print(f"   Recommendation: {recommendation}")
+    print()
+    print(f"   Excessive Confidence (>98%): {concerns['excessive_confidence']*100:.1f}%")
+    print(f"   Unrealistic Precision (>99%): {concerns['unrealistic_precision']*100:.1f}%")
+    print(f"   Low Differentiation (>90%): {concerns['low_differentiation']*100:.1f}%")
+    print()
+    
+    # Business Rule Violations
+    print("⚖️  BUSINESS RULE VIOLATIONS:")
+    print("=" * 35)
+    
+    if business_analysis['total_violations'] == 0:
+        print("   ✅ No business rule violations detected")
+    else:
+        violation_rate = business_analysis['violation_rate'] * 100
+        print(f"   Total Violations: {business_analysis['total_violations']:,}")
+        print(f"   Violation Rate: {violation_rate:.2f}%")
+        
+        if violation_rate > 10:
+            print("   🔴 HIGH VIOLATION RATE - Model needs review")
+        elif violation_rate > 5:
+            print("   🟡 MODERATE VIOLATION RATE - Monitor closely")
+        else:
+            print("   🟢 LOW VIOLATION RATE - Acceptable performance")
+        
+        if 'violation_types' in business_analysis:
+            print("\n   Violation Breakdown:")
+            for vtype, count in business_analysis['violation_types'].items():
+                percentage = (count / metadata['total_predictions']) * 100
+                print(f"   • {vtype.replace('_', ' ').title()}: {count:,} ({percentage:.2f}%)")
+    print()
+    
+    # Management Level Analysis
+    print("👔 MANAGEMENT LEVEL ANALYSIS:")
+    print("=" * 35)
+    
+    if management_analysis.get('no_violations', False):
+        print("   ✅ No management level issues detected")
+    else:
+        print(f"   Total Pathways Analyzed: {management_analysis.get('total_analyzed', 0):,}")
+        
+        if 'movement_types' in management_analysis:
+            print("\n   Movement Type Distribution:")
+            for mtype, count in management_analysis['movement_types'].items():
+                print(f"   • {mtype.title()}: {count:,}")
+        
+        if management_analysis.get('extreme_changes', 0) > 0:
+            print(f"\n   🚨 Extreme Level Changes: {management_analysis['extreme_changes']:,}")
+            extreme_rate = management_analysis['extreme_changes'] / management_analysis.get('total_analyzed', 1)
+            if extreme_rate > 0.05:
+                print("   🔴 HIGH RATE of extreme level changes detected")
+            else:
+                print("   🟡 Some extreme level changes detected")
+        
+        avg_change = management_analysis.get('avg_level_change', 0)
+        print(f"   Average Level Change: {avg_change:.2f}")
+    print()
+    
+    # Function Change Analysis
+    print("🔄 FUNCTION CHANGE ANALYSIS:")
+    print("=" * 35)
+    
+    if function_analysis.get('no_data', False):
+        print("   ⚠️  No function change data available")
+    else:
+        total = function_analysis.get('total_analyzed', 0)
+        print(f"   Total Pathways Analyzed: {total:,}")
+        
+        if 'change_types' in function_analysis:
+            print("\n   Change Type Distribution:")
+            for ctype, count in function_analysis['change_types'].items():
+                percentage = (count / total) * 100 if total > 0 else 0
+                print(f"   • {ctype.replace('_', ' ').title()}: {count:,} ({percentage:.1f}%)")
+        
+        cross_func_rate = function_analysis.get('cross_function_rate', 0)
+        print(f"\n   Cross-Function Rate: {cross_func_rate*100:.1f}%")
+        
+        suspicious = function_analysis.get('suspicious_cross_function_moves', 0)
+        if suspicious > 0:
+            suspicious_rate = suspicious / total if total > 0 else 0
+            print(f"   🚨 Suspicious High-Confidence Cross-Function: {suspicious:,} ({suspicious_rate*100:.2f}%)")
+            if suspicious_rate > 0.02:  # >2%
+                print("   🔴 HIGH RATE of unrealistic cross-function moves")
+    print()
+    
+    # Overall Model Health Assessment
+    print("🏥 OVERALL MODEL HEALTH ASSESSMENT:")
+    print("=" * 45)
+    
+    # Calculate overall health score
+    health_factors = []
+    
+    # Factor 1: Confidence distribution (should be well-distributed)
+    if dist['very_high_confidence'] < 0.1:  # <10% very high is good
+        health_factors.append(("Confidence Distribution", "GOOD", "Well-distributed confidence scores"))
+    elif dist['very_high_confidence'] < 0.2:
+        health_factors.append(("Confidence Distribution", "MODERATE", "Moderately high confidence concentration"))
+    else:
+        health_factors.append(("Confidence Distribution", "POOR", "Too many high-confidence predictions"))
+    
+    # Factor 2: Business rule violations
+    violation_rate = business_analysis.get('violation_rate', 0)
+    if violation_rate < 0.05:
+        health_factors.append(("Business Logic", "GOOD", "Low violation rate"))
+    elif violation_rate < 0.1:
+        health_factors.append(("Business Logic", "MODERATE", "Moderate violation rate"))
+    else:
+        health_factors.append(("Business Logic", "POOR", "High violation rate"))
+    
+    # Factor 3: Extreme confidence scores
+    if concerns['unrealistic_precision'] < 0.01:
+        health_factors.append(("Confidence Realism", "GOOD", "Realistic confidence levels"))
+    elif concerns['unrealistic_precision'] < 0.05:
+        health_factors.append(("Confidence Realism", "MODERATE", "Some unrealistic confidence"))
+    else:
+        health_factors.append(("Confidence Realism", "POOR", "Many unrealistic confidence scores"))
+    
+    print("   Health Factor Analysis:")
+    good_count = sum(1 for _, rating, _ in health_factors if rating == "GOOD")
+    
+    for factor, rating, description in health_factors:
+        emoji = "✅" if rating == "GOOD" else "🟡" if rating == "MODERATE" else "❌"
+        print(f"   {emoji} {factor}: {rating} - {description}")
+    
+    print()
+    
+    # Overall recommendation
+    if good_count == len(health_factors):
+        overall = "🟢 EXCELLENT - Model ready for production"
+    elif good_count >= len(health_factors) // 2:
+        overall = "🟡 MODERATE - Monitor and consider improvements"
+    else:
+        overall = "🔴 POOR - Model needs significant improvement"
+    
+    print(f"   🎯 OVERALL ASSESSMENT: {overall}")
+    
+    # Specific recommendations
+    print("\n   📋 SPECIFIC RECOMMENDATIONS:")
+    if concerns['unrealistic_precision'] > 0.05:
+        print("   • Investigate model calibration - too many >99% confidence scores")
+    if business_analysis.get('violation_rate', 0) > 0.1:
+        print("   • Review training data for business logic consistency")
+    if dist['very_high_confidence'] > 0.2:
+        print("   • Consider ensemble methods to improve confidence calibration")
+    if management_analysis.get('extreme_changes', 0) / metadata.get('total_predictions', 1) > 0.05:
+        print("   • Add management level constraints to model training")
+    
+    print()
+
+
+def export_corpus_results(results: Dict[str, Any], filename: str):
+    """Export corpus analysis results to CSV."""
+    try:
+        import pandas as pd
+        
+        # Export raw predictions
+        predictions_df = pd.DataFrame(results['raw_predictions'])
+        
+        # Add analysis flags
+        business_violations = {v['source_job'] + '_' + v['target_job']: v['violations'] 
+                             for v in results['business_rule_analysis'].get('violations', [])}
+        
+        predictions_df['business_violations'] = predictions_df.apply(
+            lambda row: business_violations.get(row['source_job'] + '_' + row['target_job'], []), 
+            axis=1
+        )
+        
+        # Export to CSV
+        output_path = filename if filename.endswith('.csv') else f"{filename}.csv"
+        predictions_df.to_csv(output_path, index=False)
+        
+        print(f"📄 Corpus analysis results exported to: {output_path}")
+        print(f"   Records: {len(predictions_df):,}")
+        
+        # Get file size
+        try:
+            file_size = os.path.getsize(output_path) / 1024 / 1024  # MB
+            print(f"   File size: {file_size:.2f} MB")
+        except:
+            print(f"   File created successfully")
+        
+    except Exception as e:
+        print(f"❌ Failed to export results: {e}")
 
 
 def run_interactive_mode(predictor, job_profiles):

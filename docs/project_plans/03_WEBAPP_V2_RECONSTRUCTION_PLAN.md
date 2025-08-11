@@ -3,7 +3,41 @@
 **Date Created**: 2025-01-08  
 **Project Phase**: Post-Analytics V2 Database  
 **Priority**: Critical Infrastructure Upgrade  
-**Estimated Timeline**: 9-12 weeks (preserving current design system)  
+**Estimated Timeline**: 9-12 weeks (preserving current design system)
+
+---
+
+## 🤖 **LLM IMPLEMENTATION GUIDANCE**
+
+> **Critical Context for AI-Assisted Development**: This document serves as both a comprehensive plan and step-by-step implementation guide for transforming the Skills Intelligence webapp from V1 to V2. You will work through this systematically, one phase at a time, with each section providing the context and technical specifications needed for that phase.
+
+### **How to Use This Plan**
+
+1. **Read the Full Context First**: Understand the current state analysis, design system, and technical principles before starting any code changes.
+
+2. **Follow the Phase Sequence**: Each phase has dependencies on previous phases. Complete Phase 0 entirely before moving to Phase 1, etc.
+
+3. **Preserve Existing Functionality**: This is an upgrade, not a rebuild. Every existing feature must continue working exactly as before.
+
+4. **Maintain Design System**: The user explicitly wants to preserve the current blue primary + red accent design. Do not change colors, fonts, or layout patterns.
+
+5. **Database-First Approach**: All metrics must come from the V2 database. No placeholder data, no fallbacks to dummy values.
+
+6. **Strict Modularization**: Keep files under 1000 lines. Break down functionality into focused modules with single responsibilities.
+
+### **Key Success Principles**
+
+- **✅ PRESERVE**: Current design system, user experience, existing functionality
+- **✅ ENHANCE**: Add new V2 analytics capabilities using established patterns  
+- **✅ INTEGRATE**: Connect V2 database tables with sophisticated analytics
+- **✅ MODULARIZE**: Keep code organized, focused, and maintainable
+- **❌ NEVER**: Break existing functionality, change visual design, use placeholder data
+
+### **Phase-by-Phase Approach**
+
+Each major section below contains LLM context boxes that provide specific guidance for that phase. Read these carefully - they contain critical implementation details and warn about common pitfalls.
+
+---  
 
 ## 🗺️ **WEBSITE SITEMAP**
 
@@ -12,8 +46,8 @@
 ```
 🏠 Dashboard (/)
 ├── Platform Overview Metrics
-├── Job Architecture Health Status
 ├── Strategic Intelligence Summary
+├── Recent Analytics Updates
 └── Quick Access to All Modules
 
 🔍 Job Explorer (/job-search)
@@ -43,18 +77,49 @@
 └── Analysis Preview Interface
 
 💡 Skills Intelligence Hub (V2 New Section)
-├── Skills Taxonomy Browser (38K+ skills)
-├── Skill Bundles Explorer (27 bundles)
+├── Skills Taxonomy Browser (comprehensive skills)
+├── Skill Bundles Explorer (clustered skill groups)
 ├── Skill Rarity Analysis & Matrix
 ├── Skill Velocity Trends (CAGR analysis)
 └── Emerging Skills Tracker
 
 🏗️ Job Families Clustering (V2 New Section)
-├── Interactive Job Families Map (20 clusters)
+├── Interactive Job Families Map (DBSCAN clusters)
 ├── Family Characteristics Analysis
 ├── Cluster Quality Metrics
 ├── Job Family Deep Dive
 └── Cross-Family Movement Analysis
+
+🔧 Job Architecture Health (/architecture-health)
+├── Architecture Diagnostics Dashboard
+├── Near-Duplicate Job Detection
+├── Entropy Analysis & Quality Metrics
+├── Silhouette Scores & Clustering Health
+├── Data Quality Assessment
+├── Governance Recommendations
+└── Health Trend Analysis
+
+📚 Documentation (/documentation)
+├── Database Schema Documentation
+│   ├── Interactive Schema Browser
+│   ├── Table Relationships (ERD)
+│   ├── Business Context Guide
+│   └── Developer Reference
+├── How This Website Works
+│   ├── Multi-Modal Scoring Explained
+│   ├── Analytics Pipeline Overview
+│   ├── Data Sources & Updates
+│   └── Feature Guides
+├── API Documentation
+│   ├── V2 Endpoint Reference
+│   ├── Authentication & Usage
+│   ├── Response Examples
+│   └── Integration Guides
+└── User Guides
+    ├── Getting Started
+    ├── Advanced Features
+    ├── Troubleshooting
+    └── FAQ
 ```
 
 ### **Supporting Pages & APIs**
@@ -68,7 +133,9 @@
 ├── /skills/ - Skills intelligence and bundles
 ├── /pathways/ - Multi-modal career scoring
 ├── /families/ - Job clustering analysis
+├── /architecture/ - Health diagnostics and governance
 ├── /intelligence/ - Strategic recommendations
+├── /documentation/ - Schema and API metadata
 └── /user-preferences/ - Scoring customization
 ```
 
@@ -94,11 +161,17 @@
 6. **Job Architecture Flow**
    - Job Families → Clustering Map → Family Analysis → Movement Patterns → Strategic Insights
 
+7. **Architecture Health Flow**
+   - Architecture Health → Diagnostics → Near-Duplicates → Quality Assessment → Governance Actions
+
+8. **Documentation Flow**
+   - Documentation → Schema Browser → How It Works → API Reference → User Guides
+
 ---
 
 ## 🎯 **EXECUTIVE SUMMARY**
 
-Transform the Skills Intelligence webapp from a basic V1 job browser to a comprehensive V2 workforce intelligence platform that fully leverages the sophisticated analytics database with 16 tables and 670K+ records.
+Transform the Skills Intelligence webapp from a basic V1 job browser to a comprehensive V2 workforce intelligence platform that fully leverages the sophisticated analytics database with 16 tables and comprehensive workforce records.
 
 **Business Value**: Enable strategic workforce planning, comprehensive career intelligence, and data-driven talent decisions through an intuitive, enterprise-grade interface.
 
@@ -109,7 +182,7 @@ Transform the Skills Intelligence webapp from a basic V1 job browser to a compre
 ### **1. Database-First Architecture (No Placeholders)**
 - ✅ **ALL metrics sourced from V2 database tables**
 - ❌ **NO hardcoded values, mock data, or placeholder metrics**
-- ✅ **Real-time queries against 670K+ production records**
+- ✅ **Real-time queries against V2 database records**
 - ❌ **NO fallback to dummy data if queries fail**
 
 ### **2. Fail-Fast Philosophy**
@@ -131,6 +204,8 @@ Transform the Skills Intelligence webapp from a basic V1 job browser to a compre
 
 ## 📋 **CURRENT STATE ANALYSIS**
 
+> **🤖 LLM Context**: Before beginning any reconstruction work, you must understand the existing webapp architecture and identify what needs to be preserved versus what needs upgrading. This analysis forms the foundation for all subsequent development phases. The webapp is currently functional but limited to V1 database capabilities - your task is to systematically upgrade it to leverage the sophisticated V2 analytics without breaking existing functionality.
+
 ### **Existing Webapp Structure**
 
 **✅ Strengths to Preserve:**
@@ -145,14 +220,14 @@ Transform the Skills Intelligence webapp from a basic V1 job browser to a compre
 - **Missing Analytics Integration**: No utilization of 11 analytics tables with sophisticated intelligence
 - **Limited Career Intelligence**: Basic similarity without ML prediction confidence weighting
 - **No Strategic Intelligence**: Missing job families, skill bundles, velocity analysis, architecture health
-- **Outdated Metrics**: Homepage shows 8,580 pathways vs actual ML prediction capabilities
+- **Outdated Metrics**: Homepage shows static pathway counts vs actual ML prediction capabilities
 
 ### **Current Pages Inventory**
 
 **🏠 Homepage (`/`):**
 - **Good**: Platform metrics, mobility intelligence dashboard, strategic recommendations
 - **Missing**: V2 analytics integration, job architecture health, skill velocity trends
-- **SQL**: Uses legacy table names, simplified mock recommendations
+- **SQL**: Uses legacy table names, basic recommendations without analytics integration
 
 **🔍 Job Explorer (`/job-search`):**
 - **Good**: Search interface, job details, skills analysis, workforce context
@@ -173,24 +248,31 @@ Transform the Skills Intelligence webapp from a basic V1 job browser to a compre
 
 ## 🔄 **MULTI-MODAL CAREER PATHWAY ENHANCEMENT**
 
+> **🤖 LLM Context**: This is the flagship feature of V2 - combining traditional skill similarity with ML prediction confidence through user-configurable weighting. You're implementing a sophisticated scoring system that allows users to balance "skills-based" vs "feasibility-based" career recommendations. This requires careful integration of two separate analytics tables and a frontend slider interface that dynamically recalculates scores. Pay special attention to the mathematical formula and user experience flow described below.
+
 ### **Core Concept Implementation**
 
 **Multi-Modal Career Scoring Formula (User-Configurable):**
 ```
-Career_Pathway_Score = (Skill_Similarity_Score × User_Similarity_Weight) + (ML_Prediction_Confidence × User_ML_Weight)
+Career_Pathway_Score = (Skill_Similarity_Score × User_Similarity_Weight) + (ML_Confidence_Score × User_ML_Weight)
 
 Where:
-- Skill_Similarity_Score: From analytics_job_similarities.enhanced_similarity_score
-- ML_Prediction_Confidence: From analytics_pathway_predictions.model_agreement_fraction
+- Skill_Similarity_Score: From analytics_job_similarities.enhanced_similarity_score (0.0 to 1.0)
+- ML_Confidence_Score: Real-time inference from joblib models (model_agreement_fraction 0.0 to 1.0)
 - User_Similarity_Weight: User-selected value (0.0 - 1.0, default: 0.6)
 - User_ML_Weight: Complementary value (1.0 - User_Similarity_Weight, default: 0.4)
+
+Supporting Metrics (Display Only):
+- Predicted_Movements: Real-time ML prediction (headcount/year from ensemble models)
+- Confidence_Interval: Model uncertainty bounds from joblib inference
+- Model_Agreement: Consensus across gradient_boosting, random_forest, xgboost models
 ```
 
 **Example Output with User Control:**
 ```
 Job A → Job B
 - 85% skill similarity (analytics_job_similarities)
-- 35% ML prediction confidence (analytics_pathway_predictions)
+- 35% ML prediction confidence (real-time joblib inference)
 
 User Preference: "Prioritise Skills" (Similarity: 80%, ML: 20%)
 - Combined Score: (0.85 × 0.8) + (0.35 × 0.2) = 0.75 (75%)
@@ -200,16 +282,19 @@ User Preference: "Prioritise Feasibility" (Similarity: 30%, ML: 70%)
 ```
 
 **Implementation Strategy:**
-1. **Database Integration**: Join `analytics_job_similarities` with `analytics_pathway_predictions`
-2. **New API Endpoints**: Enhanced pathways API with user-configurable weighting parameters
-3. **UI Enhancement**: Interactive slider controls for weighting preferences + visual indicators
-4. **Real-Time Updates**: Dynamic re-scoring as user adjusts preferences
-5. **User Preferences**: Save weighting preferences in session/local storage
-6. **Fallback Logic**: Use similarity-only scoring when ML predictions unavailable
+1. **Database Integration**: Join `analytics_job_similarities` with real-time ML inference service
+2. **ML Model Service**: Load joblib models (gradient_boosting, random_forest, xgboost) for ensemble predictions
+3. **New API Endpoints**: Enhanced pathways API with user-configurable weighting parameters
+4. **UI Enhancement**: Interactive slider controls for weighting preferences + visual indicators
+5. **Real-Time Updates**: Dynamic re-scoring as user adjusts preferences
+6. **User Preferences**: Save weighting preferences in session/local storage
+7. **Model Caching**: Cache ML model predictions to avoid repeated inference for same job pairs
 
 ---
 
 ## 🎨 **CURRENT DESIGN SYSTEM PRESERVATION**
+
+> **🤖 LLM Context**: CRITICAL - You must preserve the existing design system completely. The user has explicitly decided against implementing a new "NAB style guide" and wants to maintain the current blue primary + red accent color scheme with existing typography and component patterns. Your role is to EXTEND the current system, not replace it. Any new components must follow the established patterns exactly. Do not attempt to redesign or "improve" the visual design - only add new functionality using existing styles.
 
 ### **Existing Design System Analysis**
 
@@ -476,19 +561,204 @@ Current hierarchy:
 
 ---
 
-### **Phase 1: Database Migration & Core Updates (3 weeks)**
+### **Phase 0: SQL Reconciliation & Schema Migration (1 week)**
 
-#### **1.1 SQL Query Modernization (Database-First, Modular)**
-**Target Structure**: `webapp/sql/` - **ONE file per domain, MAX 1000 lines each**
+> **🤖 LLM Context**: This is the BLOCKING phase that must be completed first. You're updating SQL queries from V1 table names (`jobs`, `skills`) to V2 table names (`core_job_architecture`, `core_skills_taxonomy`). Use the V1_TO_V2_SCHEMA_MAPPING.md as your reference. Every query must work with the V2 database - NO placeholders or fallback data allowed. Focus on getting the existing webapp functionality working with the new schema before adding any new features. Test each SQL file thoroughly after migration.
 
-**V1 → V2 Table Mapping (MANDATORY - NO FALLBACKS):**
+**🎯 CRITICAL FIRST TASK: Get V1 webapp working with V2 database**
+
+The existing SQL queries in `@webapp/sql/` are written for the old V1 schema and will not work with the new V2 database structure. We need to reconcile these queries before any other development can proceed.
+
+#### **0.1 V1→V2 Schema Mapping ("Rosetta Stone")**
+**Create comprehensive mapping document for all table and column changes**
+
+**V1 → V2 Table Mapping:**
 ```sql
--- OLD (V1) - DELETE ENTIRELY          NEW (V2) - MANDATORY
-jobs                              → core_job_architecture
-skills                            → core_skills_taxonomy  
-job_skills                        → core_job_skill_requirements
-positions                         → core_workforce_current
-career_pathways                   → analytics_job_similarities + analytics_movement_patterns
+-- V1 SCHEMA (OLD)                     →  V2 SCHEMA (NEW)
+jobs                                   →  core_job_architecture
+├── JobProfileID                       →  JobProfileID (same)
+├── JobProfile                         →  job_title
+├── JobFunction                        →  job_function  
+├── JobFunctionID                      →  job_function_id
+├── ManagementLevel                    →  management_level
+└── JobCategory                        →  job_category
+
+skills                                 →  core_skills_taxonomy
+├── Skill_ID                          →  Skill_ID (same)
+├── Skill_Name                        →  skill_name
+├── Category                          →  primary_category
+├── Subcategory                       →  secondary_category
+└── SkillType                         →  skill_type
+
+job_skills                            →  core_job_skill_requirements
+├── JobProfileID                      →  job_profile_id
+├── Skill_ID                          →  skill_id
+└── Skill_Weight                      →  proficiency_requirement
+
+positions                             →  core_workforce_current
+├── PositionID                        →  position_id
+├── JobProfileID                      →  job_profile_id
+├── CompanyOrganisationID             →  organisation_id
+├── CompanyDivisionID                 →  division_id
+├── CompanyBusinessUnitID             →  business_unit_id
+└── CompanyLocationID                 →  location_id
+
+job_similarities                      →  analytics_job_similarities
+├── job_from                          →  job_from
+├── job_to                            →  job_to
+├── similarity_score                  →  enhanced_similarity_score
+└── (NEW: rarity_weighted_score)      →  rarity_weighted_score
+
+career_pathways (REPLACED)            →  analytics_job_similarities + analytics_movement_patterns
+└── Use dynamic queries instead of pre-computed table
+```
+
+#### **0.2 SQL Query Updates (Database-First, Fail-Fast)**
+**Target: Update ALL existing queries to V2 schema with NO placeholders**
+
+**Files to Update (7 files):**
+```
+webapp/sql/
+├── jobs.sql                 → Update 8 queries (125 lines)
+├── skills.sql              → Update 10 queries (320 lines)  
+├── similarities.sql         → Update 10 queries (245 lines)
+├── career_pathways.sql      → Update 6 queries (358 lines)
+├── positions.sql            → Update 9 queries (162 lines)
+├── d3_visualization.sql     → Update 6 queries (320 lines)
+├── metadata.sql             → Update 16 queries (577 lines)
+└── __init__.py             → No changes needed (177 lines)
+```
+
+**Example: jobs.sql V1→V2 Update**
+```sql
+-- BEFORE (V1 Schema)
+SELECT 
+    JobProfileID as id,
+    JobProfile as job_title,
+    JobFunction as job_function,
+    JobFunctionID as job_function_id,
+    ManagementLevel as management_level
+FROM jobs
+ORDER BY JobProfile
+LIMIT ?;
+
+-- AFTER (V2 Schema - Database-First, Fail-Fast)
+-- query_name: get_sample_jobs
+SELECT 
+    JobProfileID as id,
+    job_title,
+    job_function,
+    job_function_id,
+    management_level
+FROM core_job_architecture
+WHERE job_title IS NOT NULL  -- FAIL-FAST: Must have valid data
+ORDER BY job_title
+LIMIT ?;
+```
+
+**Example: similarities.sql V1→V2 Update**
+```sql
+-- BEFORE (V1 Schema)
+SELECT 
+    j.JobProfileID as id,
+    j.JobProfile as job_title,
+    j.JobFunction as job_function,
+    js.similarity_score
+FROM job_similarities js
+JOIN jobs j ON js.job_to = j.JobProfileID
+WHERE js.job_from = ?
+ORDER BY js.similarity_score DESC;
+
+-- AFTER (V2 Schema - Enhanced with Analytics)
+-- query_name: get_similar_jobs
+SELECT 
+    ja.JobProfileID as id,
+    ja.job_title,
+    ja.job_function,
+    js.enhanced_similarity_score as similarity_score,
+    js.rarity_weighted_score,
+    js.shared_defining_skills_count,
+    js.total_skills_compared
+FROM analytics_job_similarities js
+INNER JOIN core_job_architecture ja ON js.job_to = ja.JobProfileID
+WHERE js.job_from = ?
+  AND js.enhanced_similarity_score IS NOT NULL  -- FAIL-FAST: Must have real similarity
+ORDER BY js.enhanced_similarity_score DESC
+LIMIT ?;
+```
+
+#### **0.3 Rosetta Stone Documentation**
+**Create `docs/V1_TO_V2_SCHEMA_MAPPING.md`**
+
+**Content Structure:**
+```markdown
+# V1 → V2 Schema Migration Guide
+
+## Table Mappings
+[Detailed table-by-table mapping]
+
+## Column Mappings  
+[Field-by-field transformation rules]
+
+## Query Pattern Changes
+[Common query patterns that need updating]
+
+## New Analytics Capabilities
+[V2-only tables and their usage]
+
+## Breaking Changes
+[What's been removed or fundamentally changed]
+
+## Migration Checklist
+[Step-by-step validation process]
+```
+
+#### **0.4 Base Webapp Validation**
+**Ensure V1 webapp works with updated V2 queries**
+
+**Validation Steps:**
+1. **Homepage Dashboard**: Verify platform metrics load
+2. **Job Explorer**: Test job search and similarity results  
+3. **Career Pathways**: Validate pathway tree generation
+4. **Career Analysis**: Check analysis report generation
+5. **API Endpoints**: Verify all existing APIs return valid data
+
+**Success Criteria:**
+- ✅ All existing pages load without errors
+- ✅ All metrics pull from V2 database (NO placeholders)  
+- ✅ Job similarities use enhanced_similarity_score
+- ✅ Career pathways use analytics tables
+- ✅ Performance maintains sub-500ms query times
+
+**Deliverables:**
+- [ ] V1→V2 schema mapping document (`docs/V1_TO_V2_SCHEMA_MAPPING.md`)
+- [ ] Updated SQL queries (7 files, all V2-compatible)
+- [ ] Base webapp working with V2 database
+- [ ] Validation test results for all existing features
+- [ ] Performance benchmarks for updated queries
+
+---
+
+### **Phase 1: Enhanced Analytics Integration (3 weeks)**
+
+> **🤖 LLM Context**: Now you're adding the sophisticated V2 analytics capabilities. You're creating NEW SQL files and API endpoints for features that didn't exist in V1 - job defining skills, skill rarity analysis, movement patterns, ML predictions. Focus on strict modularization (max 1000 lines per file). Each SQL file should handle one domain (e.g., all skill-related queries in `skills_intelligence.sql`). All queries must be database-first with fail-fast error handling - no graceful degradation with placeholder data.
+
+#### **1.1 New Analytics SQL Queries (V2-Exclusive Features)**
+**Target Structure**: `webapp/sql/` - **NEW files for V2 analytics, MAX 200 lines each**
+
+**V2 Analytics Tables (NEW in V2 - No V1 Equivalent):**
+```sql
+-- PHASE 1: Advanced Analytics Tables (No V1 equivalent)
+analytics_job_defining_skills      -- Job-specific defining skills analysis
+analytics_skill_rarity             -- Skill rarity and market demand analysis  
+analytics_movement_patterns        -- Historical workforce movement patterns
+analytics_pathway_predictions      -- DEPRECATED: Use real-time ML inference instead
+analytics_job_families             -- DBSCAN job clustering results
+analytics_skill_bundles            -- Skills clustering (skill bundle groups)
+analytics_skill_demand_trends      -- Skill velocity and CAGR analysis
+analytics_specialized_skills       -- Emerging/specialized skills identification
+analytics_bundle_characteristics   -- Bundle quality metrics
+analytics_job_family_characteristics -- Family silhouette scores and quality
 ```
 
 **New Modular SQL Structure:**
@@ -500,7 +770,10 @@ webapp/sql/
 ├── skills_intelligence.sql        # Skills analysis, bundles (< 1000lines)
 ├── job_families.sql               # Clustering, family analysis (< 1000lines)
 ├── movement_patterns.sql          # Historical movements (< 1000lines)
-├── architecture_health.sql        # Diagnostics, governance (< 1000lines)
+├── architecture_health.sql        # Health diagnostics, quality (< 1000lines)
+├── duplicate_detection.sql        # Near-duplicate analysis (< 1000lines)
+├── quality_metrics.sql            # Entropy, silhouette scores (< 1000lines)
+├── documentation_queries.sql      # Schema metadata queries (< 1000lines)
 └── skill_velocity.sql             # Trends, CAGR analysis (< 1000lines)
 ```
 
@@ -521,9 +794,9 @@ FROM core_skills_taxonomy;
 SELECT COUNT(*) as workforce_size
 FROM core_workforce_current;
 
--- ML predictions available (MUST be from analytics_pathway_predictions)
-SELECT COUNT(*) as ml_predictions_available
-FROM analytics_pathway_predictions;
+-- ML models available (MUST check joblib model files exist)
+-- Note: This will be replaced with Python-based model availability check
+SELECT 'real_time_ml_inference' as ml_prediction_method;
 
 -- Job families count (MUST be from analytics_job_families)
 SELECT COUNT(DISTINCT cluster_id) as job_families_count
@@ -550,7 +823,8 @@ FROM analytics_job_family_characteristics;
 -- Multi-Modal Career Pathways - ALL metrics from analytics tables
 -- File: webapp/sql/career_pathways.sql
 
--- Enhanced job similarities with ML confidence (MANDATORY)
+-- Enhanced job similarities for ML inference (MANDATORY)
+-- Note: ML predictions will be added via real-time Python inference
 SELECT 
     js.job_from,
     js.job_to,
@@ -560,19 +834,12 @@ SELECT
     js.rarity_weighted_score,
     js.shared_defining_skills_count,
     js.total_skills_compared,
-    pp.ml_predicted_movements,
-    pp.model_agreement_fraction,
-    pp.confidence_interval_lower,
-    pp.confidence_interval_upper,
     mp.historical_movements_count,
     mp.avg_transition_days,
     mp.success_rate_percentage
 FROM analytics_job_similarities js
 INNER JOIN core_job_architecture ja_from ON js.job_from = ja_from.job_profile_id
 INNER JOIN core_job_architecture ja_to ON js.job_to = ja_to.job_profile_id
-LEFT JOIN analytics_pathway_predictions pp 
-    ON js.job_from = pp.from_job_profile_id 
-    AND js.job_to = pp.to_job_profile_id
 LEFT JOIN analytics_movement_patterns mp
     ON js.job_from = mp.from_job_profile_id
     AND js.job_to = mp.to_job_profile_id
@@ -611,7 +878,10 @@ webapp/api/
 ├── skills_intelligence_api.py     # Skills analysis (< 1000lines)
 ├── job_families_api.py            # Clustering endpoints (< 1000lines)
 ├── movement_patterns_api.py       # Historical data (< 1000lines)
-├── architecture_health_api.py     # Diagnostics (< 1000lines)
+├── architecture_health_api.py     # Health diagnostics (< 1000lines)
+├── duplicate_detection_api.py     # Near-duplicate endpoints (< 1000lines)
+├── quality_metrics_api.py         # Quality analysis endpoints (< 1000lines)
+├── documentation_api.py           # Schema and API docs (< 1000lines)
 ├── skill_velocity_api.py          # Trends analysis (< 1000lines)
 └── user_preferences_api.py        # User settings (< 1000lines)
 ```
@@ -732,11 +1002,13 @@ from flask import Blueprint, jsonify, request
 from webapp.services.database_service import DatabaseService
 from webapp.services.sql_loader import SQLLoader
 from webapp.services.pathway_scorer import PathwayScorer
+from webapp.services.ml_inference_service import MLInferenceService
 
 career_pathways_bp = Blueprint('career_pathways_api', __name__)
 db_service = DatabaseService()
 sql_loader = SQLLoader()
 pathway_scorer = PathwayScorer()
+ml_service = MLInferenceService()
 
 @career_pathways_bp.route('/api/v2/pathways/<job_id>', methods=['GET'])
 def get_career_pathways(job_id):
@@ -773,9 +1045,21 @@ def get_career_pathways(job_id):
                 'message': f'Job {job_id} not found in analytics_job_similarities'
             }), 404
         
-        # Calculate multi-modal scores using dedicated service
-        enhanced_pathways = pathway_scorer.calculate_multi_modal_scores(
-            pathways_data, skill_weight, ml_weight
+        # Add real-time ML predictions to pathway data
+        enhanced_pathways = []
+        for pathway in pathways_data:
+            # Get ML prediction for this job pair
+            ml_prediction = ml_service.predict_pathway_feasibility(
+                pathway['job_from'], pathway['job_to'],
+                pathway.get('job_from_features', ()),
+                pathway.get('job_to_features', ())
+            )
+            pathway.update(ml_prediction)
+            enhanced_pathways.append(pathway)
+        
+        # Calculate multi-modal scores using enhanced data
+        final_pathways = pathway_scorer.calculate_multi_modal_scores(
+            enhanced_pathways, skill_weight, ml_weight
         )
         
         # Get skills gap analysis
@@ -785,14 +1069,15 @@ def get_career_pathways(job_id):
         )
         
         return jsonify({
-            'pathways': enhanced_pathways,
+            'pathways': final_pathways,
             'skills_gap_analysis': skills_gap,
             'scoring_preferences': {
                 'skill_weight': skill_weight,
                 'ml_weight': ml_weight
             },
-            'data_source': 'analytics_job_similarities + analytics_pathway_predictions',
-            'total_pathways': len(enhanced_pathways)
+            'data_source': 'analytics_job_similarities + real_time_ml_inference',
+            'total_pathways': len(final_pathways),
+            'ml_model_status': ml_service.get_model_status()
         })
         
     except Exception as e:
@@ -810,7 +1095,11 @@ def get_career_pathways(job_id):
 - `/api/v2/pathways/<job_id>?skill_weight=X&ml_weight=Y`: Multi-modal scoring
 - `/api/v2/skills/<skill_id>/intelligence`: Skills analysis (bundles, velocity)
 - `/api/v2/families/<cluster_id>`: Job family characteristics
-- `/api/v2/architecture/health`: Diagnostics and governance
+- `/api/v2/architecture/health`: Architecture diagnostics and governance
+- `/api/v2/architecture/duplicates`: Near-duplicate detection
+- `/api/v2/architecture/quality`: Quality metrics and entropy analysis
+- `/api/v2/documentation/schema`: Database schema metadata
+- `/api/v2/documentation/endpoints`: API reference data
 - `/api/v2/user/preferences`: User weighting preferences
 
 #### **1.3 Modular Services Layer (Single Responsibility)**
@@ -821,13 +1110,17 @@ def get_career_pathways(job_id):
 webapp/services/
 ├── database_service.py            # Core DB connectivity (< 1000lines)
 ├── sql_loader.py                  # SQL query loading (< 1000lines)
+├── ml_inference_service.py        # Real-time joblib model inference (< 1000lines)
 ├── platform_metrics_service.py   # Dashboard metrics (< 1000lines)
 ├── job_intelligence_service.py   # Job analysis (< 1000lines)
 ├── pathway_scorer.py              # Multi-modal scoring (< 1000lines)
 ├── skills_intelligence_service.py # Skills analysis (< 1000lines)
 ├── family_clustering_service.py   # Job families (< 1000lines)
 ├── movement_analyzer.py           # Historical patterns (< 1000lines)
-├── architecture_health_service.py # Diagnostics (< 1000lines)
+├── architecture_health_service.py # Health diagnostics (< 1000lines)
+├── duplicate_detector.py          # Near-duplicate detection (< 1000lines)
+├── quality_analyzer.py            # Architecture quality metrics (< 1000lines)
+├── documentation_service.py       # Schema and API docs (< 1000lines)
 └── user_preferences_service.py    # User settings (< 1000lines)
 ```
 
@@ -991,6 +1284,138 @@ class SQLLoader:
             queries[current_name] = '\n'.join(current_query).strip()
         
         return queries
+
+**Example: ml_inference_service.py (Real-Time ML Predictions)**
+```python
+# File: webapp/services/ml_inference_service.py
+# Single responsibility: Real-time ML model inference for career pathways
+
+import joblib
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional
+from functools import lru_cache
+import logging
+
+class MLInferenceService:
+    """
+    Dedicated service for real-time ML model inference
+    Loads and manages joblib models for career pathway predictions
+    """
+    
+    def __init__(self, models_path: str = "models/2025-Q3"):
+        self.models_path = Path(models_path)
+        self.models = {}
+        self.feature_columns = None
+        self._load_models()
+    
+    def _load_models(self):
+        """Load all joblib models on service initialization"""
+        model_files = {
+            'gradient_boosting': 'gradient_boosting_model.joblib',
+            'random_forest': 'random_forest_model.joblib',
+            'xgboost': 'xgboost_model.joblib'
+        }
+        
+        for model_name, filename in model_files.items():
+            model_path = self.models_path / filename
+            if model_path.exists():
+                try:
+                    self.models[model_name] = joblib.load(model_path)
+                    logging.info(f"Loaded {model_name} model from {model_path}")
+                except Exception as e:
+                    logging.error(f"Failed to load {model_name}: {e}")
+            else:
+                logging.warning(f"Model file not found: {model_path}")
+    
+    @lru_cache(maxsize=1000)
+    def predict_pathway_feasibility(self, job_from_id: str, job_to_id: str,
+                                  job_from_features: tuple, job_to_features: tuple) -> Dict:
+        """
+        Predict career pathway feasibility using ensemble of models
+        Cached to avoid repeated inference for same job pairs
+        """
+        if not self.models:
+            return self._fallback_prediction()
+        
+        try:
+            # Prepare feature vector for ML models
+            feature_vector = self._prepare_features(
+                job_from_id, job_to_id, job_from_features, job_to_features
+            )
+            
+            # Get predictions from all available models
+            predictions = {}
+            for model_name, model in self.models.items():
+                pred = model.predict_proba([feature_vector])[0]
+                predictions[model_name] = {
+                    'probability': float(pred[1]) if len(pred) > 1 else float(pred[0]),
+                    'confidence': float(np.max(pred))
+                }
+            
+            # Calculate ensemble metrics
+            ensemble_results = self._calculate_ensemble_metrics(predictions)
+            
+            return {
+                'model_agreement_fraction': ensemble_results['agreement'],
+                'ml_predicted_movements': ensemble_results['predicted_movements'],
+                'confidence_interval_lower': ensemble_results['confidence_lower'],
+                'confidence_interval_upper': ensemble_results['confidence_upper'],
+                'individual_predictions': predictions,
+                'ensemble_probability': ensemble_results['ensemble_prob'],
+                'prediction_method': 'real_time_joblib_inference'
+            }
+            
+        except Exception as e:
+            logging.error(f"ML inference failed for {job_from_id} -> {job_to_id}: {e}")
+            return self._fallback_prediction()
+    
+    def _calculate_ensemble_metrics(self, predictions: Dict) -> Dict:
+        """Calculate ensemble agreement and confidence metrics"""
+        probabilities = [pred['probability'] for pred in predictions.values()]
+        
+        # Model agreement: How much models agree (higher = more consensus)
+        agreement = 1.0 - np.std(probabilities) if len(probabilities) > 1 else 1.0
+        
+        # Ensemble probability: Average of all model predictions
+        ensemble_prob = np.mean(probabilities)
+        
+        # Confidence intervals based on prediction variance
+        prob_std = np.std(probabilities) if len(probabilities) > 1 else 0.1
+        confidence_lower = max(0.0, ensemble_prob - prob_std)
+        confidence_upper = min(1.0, ensemble_prob + prob_std)
+        
+        # Predicted movements (scaled by probability)
+        predicted_movements = ensemble_prob * 10  # Scale to reasonable numbers
+        
+        return {
+            'agreement': float(agreement),
+            'ensemble_prob': float(ensemble_prob),
+            'predicted_movements': float(predicted_movements),
+            'confidence_lower': float(confidence_lower),
+            'confidence_upper': float(confidence_upper)
+        }
+    
+    def _fallback_prediction(self) -> Dict:
+        """Fallback when ML models unavailable"""
+        return {
+            'model_agreement_fraction': 0.0,
+            'ml_predicted_movements': 0.0,
+            'confidence_interval_lower': 0.0,
+            'confidence_interval_upper': 0.0,
+            'prediction_method': 'fallback_no_models'
+        }
+    
+    def get_model_status(self) -> Dict:
+        """Get status of loaded models for health checks"""
+        return {
+            'models_loaded': list(self.models.keys()),
+            'total_models': len(self.models),
+            'models_path': str(self.models_path),
+            'cache_info': self.predict_pathway_feasibility.cache_info()._asdict()
+        }
+```
 ```
 
 **Database Service Enhancement (Core Connectivity Only):**
@@ -1033,6 +1458,8 @@ class DatabaseService:
 ---
 
 ### **Phase 2: Strategic Intelligence Features (4 weeks)**
+
+> **🤖 LLM Context**: You're now building user-facing interfaces that showcase the V2 analytics to business users. Focus on progressive enhancement - add new sections to existing pages without breaking current functionality. The goal is to surface sophisticated analytics in an intuitive way. Create dashboard widgets, enhanced job details, and the new Skills Intelligence Hub section. Maintain the existing design patterns and ensure all new components integrate seamlessly with the current UI framework.
 
 #### **2.1 Enhanced Homepage Dashboard**
 **Target File**: `templates/index.html`
@@ -1080,7 +1507,7 @@ class DatabaseService:
 <div class="job-deep-dive">
     <!-- Defining Skills Analysis -->
     <section class="defining-skills">
-        <h3>Defining Skills (Top 8.8%)</h3>
+        <h3>Defining Skills (Top-Ranked)</h3>
         <!-- Skills with rarity analysis and defining scores -->
     </section>
     
@@ -1106,14 +1533,14 @@ class DatabaseService:
 ```html
 <!-- Skills Taxonomy Browser -->
 <section class="skills-taxonomy">
-    <h2>Skills Taxonomy (38K+ Skills)</h2>
+    <h2>Skills Taxonomy (comprehensive skills)</h2>
     <!-- Category/subcategory navigation -->
     <!-- Search with skill details -->
 </section>
 
 <!-- Skill Bundles Explorer -->
 <section class="skill-bundles">
-    <h2>Skill Bundles (27 Bundles)</h2>
+    <h2>Skill Bundles (clustered skill groups)</h2>
     <!-- Interactive bundle exploration -->
     <!-- Bundle characteristics and business context -->
 </section>
@@ -1133,15 +1560,99 @@ class DatabaseService:
 </section>
 ```
 
+#### **2.4 Job Architecture Health (New Section)**
+**New File**: `templates/architecture_health.html`
+
+**Complete Architecture Health Dashboard:**
+```html
+<!-- Architecture Diagnostics Overview -->
+<section class="architecture-overview">
+    <h2>Job Architecture Health Dashboard</h2>
+    <!-- Overall health score and status indicators -->
+    <!-- Key metrics summary -->
+    <!-- Health trend analysis over time -->
+</section>
+
+<!-- Near-Duplicate Detection -->
+<section class="duplicate-detection">
+    <h2>Near-Duplicate Job Analysis</h2>
+    <!-- Similarity threshold controls -->
+    <!-- Duplicate job pairs identification -->
+    <!-- Merge recommendations with business impact -->
+</section>
+
+<!-- Entropy & Quality Metrics -->
+<section class="quality-metrics">
+    <h2>Architecture Quality Assessment</h2>
+    <!-- Entropy analysis results -->
+    <!-- Silhouette scores by job family -->
+    <!-- Data quality indicators and alerts -->
+</section>
+
+<!-- Governance Recommendations -->
+<section class="governance-recommendations">
+    <h2>Governance Actions</h2>
+    <!-- Data quality improvement suggestions -->
+    <!-- Architecture optimization recommendations -->
+    <!-- Maintenance alerts and scheduled tasks -->
+</section>
+```
+
+#### **2.5 Documentation Hub (New Section)**
+**New File**: `templates/documentation.html`
+
+**Comprehensive Documentation Interface:**
+```html
+<!-- Database Schema Documentation -->
+<section class="schema-documentation">
+    <h2>Database Schema Documentation</h2>
+    <!-- Integration with schema_generator.py output -->
+    <!-- Interactive table browser from sqlite_schema_design.html -->
+    <!-- ERD visualization with zoom controls -->
+    <!-- Business context guide -->
+</section>
+
+<!-- How This Website Works -->
+<section class="website-guide">
+    <h2>How This Website Works</h2>
+    <!-- Multi-modal scoring explanation -->
+    <!-- Analytics pipeline overview -->
+    <!-- Data flow diagrams -->
+    <!-- Feature guides and walkthroughs -->
+</section>
+
+<!-- API Documentation -->
+<section class="api-documentation">
+    <h2>API Reference</h2>
+    <!-- V2 endpoint documentation -->
+    <!-- Interactive API explorer -->
+    <!-- Response examples and schemas -->
+    <!-- Authentication and usage guides -->
+</section>
+
+<!-- User Guides -->
+<section class="user-guides">
+    <h2>User Guides & Help</h2>
+    <!-- Getting started guide -->
+    <!-- Advanced feature tutorials -->
+    <!-- Troubleshooting and FAQ -->
+    <!-- Best practices -->
+</section>
+```
+
 **Deliverables:**
 - [ ] Enhanced homepage with V2 analytics integration
 - [ ] Job Intelligence Hub with defining skills and family analysis
 - [ ] Complete Skills Intelligence Hub section
+- [ ] Job Architecture Health diagnostic dashboard
+- [ ] Documentation hub with schema integration
 - [ ] Strategic insights throughout all pages
 
 ---
 
 ### **Phase 3: Multi-Modal Career Pathways (3 weeks)**
+
+> **🤖 LLM Context**: This is the flagship V2 feature - implementing the multi-modal career scoring system. You're building a sophisticated user interface that combines skill similarity with ML prediction confidence through a user-configurable slider. The technical challenge is real-time score recalculation as users adjust their preferences, plus integrating two separate analytics tables seamlessly. Also implement the simplified HTML-to-Word document generation pipeline to replace the complex Word styling system that was removed during cleanup.
 
 #### **3.1 Enhanced Career Pathways Visualization**
 **Target File**: `templates/career_pathways.html`
@@ -1588,6 +2099,8 @@ def generate_document_simplified(analysis_data):
 
 ### **Phase 4: Clustering Visualization Integration (2 weeks)**
 
+> **🤖 LLM Context**: The final phase integrates the job families clustering and skill bundles visualization. You're implementing interactive maps and exploration tools based on the clustering analysis. Reference the existing `02_CLUSTERING_VISUALIZATION_MAP_PLAN.md` for visualization requirements. Focus on making the 20 job families and 27 skill bundles explorable through intuitive interfaces. This is where the sophisticated ML clustering work becomes user-facing business intelligence.
+
 #### **4.1 Job Families Explorer**
 **New Template**: `templates/job_families.html`
 
@@ -1636,31 +2149,33 @@ def generate_document_simplified(analysis_data):
 
 ## 🔧 **TECHNICAL SPECIFICATIONS**
 
+> **🤖 LLM Context**: These are the concrete technical requirements you must implement. The database schema shows which tables contain what data - use this as your reference when writing queries. The API architecture defines the endpoint structure you should follow. The UI components section shows the specific CSS patterns to implement. All specifications are mandatory - don't skip or simplify any of these requirements.
+
 ### **Database Schema Updates**
 
 **Required Table Integrations:**
 ```sql
 -- Core Tables (4) - Foundation data
-core_job_architecture (715 records)
-core_skills_taxonomy (38,525 records)  
-core_job_skill_requirements (40,170 records)
-core_workforce_current (35,000 records)
+core_job_architecture                   -- Job profiles and architecture
+core_skills_taxonomy                    -- Skills taxonomy and categorization
+core_job_skill_requirements             -- Job-skill relationship mappings
+core_workforce_current                  -- Current workforce positions
 
 -- Analytics Tables (11) - Intelligence layer
-analytics_job_similarities (510,510 records)     -- Enhanced similarity analysis
-analytics_skill_rarity (2,059 records)           -- Skill rarity analysis  
-analytics_job_defining_skills (19,460 records)   -- Job-specific defining skills
-analytics_movement_patterns (21,307 records)     -- Historical movement data
-analytics_pathway_predictions (0 records*)       -- ML prediction model results
-analytics_job_families (715 records)             -- DBSCAN job clustering
-analytics_skill_bundles (2,057 records)          -- Skills clustering  
-analytics_skill_demand_trends (0 records*)       -- Velocity analysis
-analytics_specialized_skills (0 records*)        -- Emerging/specialized skills
-analytics_bundle_characteristics (27 records)    -- Bundle quality metrics
-analytics_job_family_characteristics (20 records) -- Family quality metrics
+analytics_job_similarities              -- Enhanced similarity analysis
+analytics_skill_rarity                  -- Skill rarity analysis  
+analytics_job_defining_skills           -- Job-specific defining skills
+analytics_movement_patterns             -- Historical movement data
+analytics_pathway_predictions           -- DEPRECATED: Use real-time ML inference
+analytics_job_families                  -- DBSCAN job clustering
+analytics_skill_bundles                 -- Skills clustering  
+analytics_skill_demand_trends           -- Velocity analysis
+analytics_specialized_skills            -- Emerging/specialized skills
+analytics_bundle_characteristics        -- Bundle quality metrics
+analytics_job_family_characteristics    -- Family quality metrics
 
 -- System Table (1)
-sys_schema_metadata (25 records)
+sys_schema_metadata                     -- Schema versioning and metadata
 ```
 
 *Note: Some analytics tables may be populated during Phase 3 implementation.
@@ -1687,13 +2202,22 @@ sys_schema_metadata (25 records)
 ├── families/
 │   ├── clustering-map/                  # Job families visualization
 │   └── characteristics/<cluster_id>     # Family analysis
+├── architecture/
+│   ├── health/                          # Architecture diagnostics
+│   ├── duplicates/                      # Near-duplicate detection
+│   ├── quality/                         # Quality metrics & entropy
+│   └── governance/                      # Governance recommendations
+├── documentation/
+│   ├── schema/                          # Database schema metadata
+│   ├── tables/<table_name>              # Individual table details
+│   ├── endpoints/                       # API reference data
+│   └── guides/                          # User guides and help
 ├── user-preferences/
 │   ├── pathways/                        # Save/retrieve weighting preferences
 │   │   ├── GET: retrieve current preferences
 │   │   └── POST: save new preferences
 │   └── session/                         # Session-based preferences
 └── intelligence/
-    ├── architecture-health/             # Diagnostics
     ├── strategic-recommendations/       # Executive insights
     └── velocity-analysis/               # Skills trends
 ```
@@ -1756,6 +2280,8 @@ sys_schema_metadata (25 records)
 
 ## 📊 **SUCCESS METRICS**
 
+> **🤖 LLM Context**: These are the measurable outcomes that define successful completion of each phase. Use these as checkpoints to validate your work. Technical success metrics are mandatory - the webapp must meet all performance and functionality requirements. Business and user experience metrics help ensure the implementation actually delivers value to end users. Test against these metrics throughout development, not just at the end.
+
 ### **Technical Success**
 - [ ] 100% preservation of current design system and user experience
 - [ ] 100% V2 database table integration (16/16 tables)
@@ -1779,6 +2305,8 @@ sys_schema_metadata (25 records)
 ---
 
 ## ⚠️ **RISK MITIGATION**
+
+> **🤖 LLM Context**: These are the potential issues you should watch for during implementation. Each risk includes specific mitigation strategies you should implement proactively. Don't wait for problems to occur - implement the mitigation strategies from the start. Pay special attention to performance and user adoption risks, as these are the most likely to cause project delays or failures.
 
 ### **Technical Risks**
 **Data Complexity**: V2 database has 670K+ records across 16 tables
@@ -1805,17 +2333,21 @@ sys_schema_metadata (25 records)
 
 ## 📅 **IMPLEMENTATION TIMELINE**
 
+> **🤖 LLM Context**: This timeline is carefully sequenced with dependencies. Phase 0 is blocking - nothing else can start until the SQL migration is complete. Each phase builds on the previous one. Don't attempt to work on multiple phases simultaneously unless explicitly noted as "parallel work opportunities." Stick to the sequence to avoid rework and integration issues.
+
 ```
-Week 1:     Phase 0 - Design System Enhancement (Preserve Current)
-Week 2-4:   Phase 1 - Database Migration & Core Updates
-Week 5-8:   Phase 2 - Strategic Intelligence Features  
-Week 9-11:  Phase 3 - Multi-Modal Career Pathways
-Week 12:    Phase 4 - Clustering Visualization Integration
+Week 1:     Phase 0 - SQL Reconciliation & Schema Migration (CRITICAL)
+Week 2:     Phase 1a - Design System Enhancement (Preserve Current)  
+Week 3-5:   Phase 1b - Enhanced Analytics Integration
+Week 6-9:   Phase 2 - Strategic Intelligence Features  
+Week 10-12: Phase 3 - Multi-Modal Career Pathways
+Week 13:    Phase 4 - Clustering Visualization Integration
 ```
 
-**Critical Path**: Design system enhancement → Database migration → API enhancement → UI reconstruction → Advanced features
+**Critical Path**: SQL reconciliation (BLOCKING) → Design system enhancement → Database migration → API enhancement → UI reconstruction → Advanced features
 
-**Phase 0 Approach**: PRESERVE and EXTEND current design system rather than replace it.
+**Phase 0 Approach**: Get V1 webapp working with V2 database before any other development.
+**Phase 1a Approach**: PRESERVE and EXTEND current design system rather than replace it.
 
 **Parallel Work Opportunities**: 
 - UI design work can start while database migration completes
@@ -1826,9 +2358,14 @@ Week 12:    Phase 4 - Clustering Visualization Integration
 
 ## 🔄 **INTEGRATION WITH EXISTING ROADMAP**
 
+> **🤖 LLM Context**: This section outlines how the V2 webapp fits into the broader project ecosystem. Check these dependencies before starting work - if V2 database tables aren't populated or ML models aren't trained, certain features won't work. The synergies section shows you which existing systems to leverage and enhance rather than rebuild. Future enhancements give you context on the long-term vision to ensure your implementation supports extensibility.
+
 ### **Dependencies**
-- **V2 Database**: All 16 tables must be populated with production data
-- **ML Models**: `analytics_pathway_predictions` table populated with joblib model results
+- **V2 Database**: All 16 tables must be populated with production data (excluding deprecated `analytics_pathway_predictions`)
+- **ML Models**: Joblib model files must be available in `models/2025-Q3/` directory:
+  - `gradient_boosting_model.joblib`
+  - `random_forest_model.joblib` 
+  - `xgboost_model.joblib`
 - **Clustering Results**: Job families and skill bundles from production clustering pipeline
 
 ### **Synergies**

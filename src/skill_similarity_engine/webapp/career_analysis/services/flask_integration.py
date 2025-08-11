@@ -89,34 +89,19 @@ def create_career_analysis_document_endpoint(app, get_db_func):
             output_format = data.get('output_format', 'word')
             logger.info(f"Processing {output_format} document request for job: {data.get('job_from', 'Unknown')}")
             
-            # Import services
-            from .document_service import DocumentService
-            from .validation_service import ValidationService
+            # TODO: Implement simplified HTML-to-Word pipeline in Phase 3
+            logger.info("Document generation temporarily disabled during V2 migration...")
             
-            db = get_db_func()
+            result = {
+                'success': False,
+                'error': 'Document generation temporarily disabled during V2 migration. Will be restored with simplified HTML-to-Word pipeline.',
+                'status': 'coming_soon',
+                'planned_implementation': 'Phase 3: Simplified Document Generation',
+                'alternative': 'Use HTML preview for now - document export will return soon!'
+            }
             
-            # Validate form data first
-            validation_service = ValidationService(db)
-            is_valid, cleaned_data, errors = validation_service.validate_form_data(data)
-            
-            if not is_valid:
-                logger.warning(f"Validation failed: {errors}")
-                return jsonify({
-                    'success': False,
-                    'error': 'Validation failed',
-                    'validation_errors': errors
-                }), 400
-            
-            # Generate document using service layer
-            document_service = DocumentService(db)
-            result = document_service.generate_document(cleaned_data, output_format)
-            
-            if result['success']:
-                logger.info(f"Successfully generated {output_format} document")
-                return jsonify(result)
-            else:
-                logger.error(f"Document generation failed: {result.get('error', 'Unknown error')}")
-                return jsonify(result), 500
+            # Return not implemented status during migration
+            return jsonify(result), 501  # Not Implemented
                 
         except Exception as e:
             logger.error(f"Unexpected error in document endpoint: {str(e)}", exc_info=True)
