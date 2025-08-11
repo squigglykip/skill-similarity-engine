@@ -31,9 +31,13 @@ Usage:
     python test_pathway_predictions.py --job R0453.0 --top 5 --validate
     
     # Corpus-wide confidence analysis (production readiness check)
+    # Full corpus analysis (all jobs to all other jobs):
+    python test_pathway_predictions.py --corpus-analysis
+    
+    # Sampled corpus analysis:
     python test_pathway_predictions.py --corpus-analysis --corpus-sample-size 100 --corpus-targets-per-job 50
     
-    # Export corpus analysis results to CSV
+    # Full corpus with CSV export:
     python test_pathway_predictions.py --corpus-analysis --corpus-export corpus_analysis_results.csv
 """
 
@@ -602,32 +606,50 @@ class CorpusConfidenceAnalyzer:
         self.management_level_violations = []
         self.cross_function_violations = []
         
-    def analyze_corpus_confidence(self, sample_size: int = 100, targets_per_job: int = 50) -> Dict[str, Any]:
+    def analyze_corpus_confidence(self, sample_size: int = -1, targets_per_job: int = -1) -> Dict[str, Any]:
         """
         Analyze confidence distribution across the entire corpus.
         
         Args:
-            sample_size: Number of source jobs to sample
-            targets_per_job: Number of target jobs to analyze per source
+            sample_size: Number of source jobs to sample (-1 for ALL jobs)
+            targets_per_job: Number of target jobs to analyze per source (-1 for ALL other jobs)
             
         Returns:
             Comprehensive analysis results
         """
-        print(f"🔍 Starting Corpus Confidence Analysis")
-        print(f"📊 Sample: {sample_size} source jobs × {targets_per_job} targets = {sample_size * targets_per_job:,} predictions")
-        print("=" * 80)
-        
-        # Sample jobs for analysis
+        # Get all available jobs
         all_jobs = self.all_job_profiles['job_profile_id'].tolist()
         
-        if sample_size >= len(all_jobs):
+        # Determine source jobs
+        if sample_size <= 0:
             source_jobs = all_jobs
+            print(f"🔍 Starting FULL Corpus Confidence Analysis")
+            print(f"📊 ALL {len(source_jobs):,} source jobs")
         else:
-            # Use systematic sampling for better representation
-            step = len(all_jobs) // sample_size
-            source_jobs = all_jobs[::step][:sample_size]
+            if sample_size >= len(all_jobs):
+                source_jobs = all_jobs
+            else:
+                # Use systematic sampling for better representation
+                step = len(all_jobs) // sample_size
+                source_jobs = all_jobs[::step][:sample_size]
+            print(f"🔍 Starting Sampled Corpus Confidence Analysis")
+            print(f"📊 Sample: {len(source_jobs):,} source jobs from {len(all_jobs):,} total")
         
-        print(f"📂 Analyzing {len(source_jobs)} source jobs from {len(all_jobs)} total jobs")
+        # Determine targets per job and calculate total predictions
+        if targets_per_job <= 0:
+            # Full corpus: each job to every other job (n × (n-1))
+            targets_per_source = len(all_jobs) - 1
+            total_expected_predictions = len(source_jobs) * targets_per_source
+            print(f"📊 FULL targets: {targets_per_source:,} targets per source")
+            print(f"📊 Total predictions: {len(source_jobs):,} × {targets_per_source:,} = {total_expected_predictions:,}")
+        else:
+            targets_per_source = targets_per_job
+            total_expected_predictions = len(source_jobs) * targets_per_source
+            print(f"📊 Sample targets: {targets_per_source:,} targets per source")
+            print(f"📊 Total predictions: {len(source_jobs):,} × {targets_per_source:,} = {total_expected_predictions:,}")
+        
+        print("=" * 80)
+        print(f"📂 Analyzing {len(source_jobs):,} source jobs from {len(all_jobs):,} total jobs")
         
         # Performance monitoring
         monitor = PerformanceMonitor()
@@ -647,28 +669,37 @@ class CorpusConfidenceAnalyzer:
         start_time = time.time()
         
         for i, source_job in enumerate(source_jobs):
-            # Simple progress indicator
+            # Simple progress indicator with ETA
             if i == 0 or (i + 1) % 25 == 0 or i == len(source_jobs) - 1:
                 progress_pct = ((i + 1) / len(source_jobs)) * 100
-                print(f"   Progress: {i+1:,}/{len(source_jobs):,} jobs ({progress_pct:.1f}%) - {total_predictions:,} predictions")
+                elapsed = time.time() - start_time
+                rate = total_predictions / elapsed if elapsed > 0 else 0
+                eta_seconds = (total_expected_predictions - total_predictions) / rate if rate > 0 else 0
+                eta_str = f"{eta_seconds/3600:.1f}h" if eta_seconds > 3600 else f"{eta_seconds/60:.1f}m" if eta_seconds > 60 else f"{eta_seconds:.0f}s"
+                print(f"   Progress: {i+1:,}/{len(source_jobs):,} jobs ({progress_pct:.1f}%) - {total_predictions:,}/{total_expected_predictions:,} predictions - ETA: {eta_str}")
             
             try:
-                # Get target jobs (mix of similar and random for comprehensive analysis)
-                similar_targets = self._get_most_similar_jobs_quiet(source_job, min(targets_per_job // 2, 25))
-                
-                # Add random targets for broader coverage
-                remaining_targets = targets_per_job - len(similar_targets)
-                if remaining_targets > 0:
-                    available_targets = [job for job in all_jobs if job != source_job and job not in similar_targets]
-                    if len(available_targets) > remaining_targets:
-                        import random
-                        random_targets = random.sample(available_targets, remaining_targets)
-                    else:
-                        random_targets = available_targets
-                    
-                    target_jobs = similar_targets + random_targets
+                # Determine target jobs based on analysis type
+                if targets_per_job <= 0:
+                    # Full corpus: predict to ALL other jobs
+                    target_jobs = [job for job in all_jobs if job != source_job]
                 else:
-                    target_jobs = similar_targets
+                    # Sampled analysis: mix of similar and random targets
+                    similar_targets = self._get_most_similar_jobs_quiet(source_job, min(targets_per_job // 2, 25))
+                    
+                    # Add random targets for broader coverage
+                    remaining_targets = targets_per_job - len(similar_targets)
+                    if remaining_targets > 0:
+                        available_targets = [job for job in all_jobs if job != source_job and job not in similar_targets]
+                        if len(available_targets) > remaining_targets:
+                            import random
+                            random_targets = random.sample(available_targets, remaining_targets)
+                        else:
+                            random_targets = available_targets
+                        
+                        target_jobs = similar_targets + random_targets
+                    else:
+                        target_jobs = similar_targets
                 
                 # Make predictions (quiet mode to suppress detailed output)
                 if target_jobs:
@@ -1147,15 +1178,15 @@ Examples:
     parser.add_argument(
         '--corpus-sample-size',
         type=int,
-        default=100,
-        help='Number of source jobs to sample for corpus analysis (default: 100)'
+        default=-1,
+        help='Number of source jobs to sample for corpus analysis (-1 for ALL jobs, default: -1)'
     )
     
     parser.add_argument(
         '--corpus-targets-per-job',
         type=int,
-        default=50,
-        help='Number of target jobs to analyze per source job (default: 50)'
+        default=-1,
+        help='Number of target jobs to analyze per source job (-1 for ALL other jobs, default: -1)'
     )
     
     parser.add_argument(
