@@ -263,46 +263,83 @@ class RealtimePathwayPredictor:
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                # Query specific job pair movement patterns
+                # Query all monthly records for this job pair to calculate recency properly
                 query = """
                 SELECT 
-                    SUM(movement_count) as total_movement_count,
-                    SUM(unique_employees) as total_unique_employees,
-                    AVG(avg_days_between) as avg_days_between,
-                    AVG(pct_total_movements) as avg_pct_total_movements,
-                    COUNT(DISTINCT movement_month) as months_active,
-                    AVG(skill_similarity_score) as avg_skill_similarity,
-                    AVG(difficulty_score) as avg_difficulty_score,
-                    AVG(success_rate) as avg_success_rate
+                    movement_month,
+                    movement_count,
+                    unique_employees,
+                    avg_days_between,
+                    pct_total_movements
                 FROM analytics_movement_patterns
                 WHERE from_job_profile_id = ? AND to_job_profile_id = ?
+                ORDER BY movement_month
                 """
                 
-                result = conn.execute(query, (from_job_id, to_job_id)).fetchone()
+                monthly_results = conn.execute(query, (from_job_id, to_job_id)).fetchall()
                 
-                if result and result[0] is not None and result[0] > 0:  # Has movement data
-                    total_movements = result[0] or 0
-                    unique_employees = result[1] or 0
-                    avg_days = result[2] or 365.0
-                    avg_pct = result[3] or 0.0
-                    months_active = max(result[4] or 1, 1)
-                    avg_skill_sim = result[5] or 0.0
-                    avg_difficulty = result[6] or 0.0
-                    avg_success = result[7] or 0.0
+                if monthly_results:  # Has movement data
+                    # Calculate exact recency weighting using the same logic as MovementMLTrainer
+                    recency_decay_rate = 0.4  # Same as config: movement_ml_training.yaml
                     
-                    # Convert months to years for compatibility
-                    years_active = max(months_active / 12, 1)
+                    total_movements = 0
+                    total_unique_employees = 0
+                    avg_days_list = []
+                    avg_pct_list = []
+                    recency_weighted_activity = 0.0
+                    movement_years = []
+                    
+                    # Get current year from data
+                    all_years = [int(row[0][:4]) for row in monthly_results]  # Extract year from YYYY-MM
+                    current_year = max(all_years)
+                    
+                    for row in monthly_results:
+                        movement_month = row[0]
+                        movement_count = row[1]
+                        unique_employees = row[2]
+                        avg_days = row[3]
+                        pct_movements = row[4]
+                        
+                        # Extract year and calculate recency weight
+                        movement_year = int(movement_month[:4])
+                        years_ago = current_year - movement_year
+                        recency_weight = recency_decay_rate ** years_ago
+                        
+                        # Accumulate values
+                        total_movements += movement_count
+                        total_unique_employees += unique_employees
+                        if avg_days:
+                            avg_days_list.append(avg_days)
+                        if pct_movements:
+                            avg_pct_list.append(pct_movements)
+                        
+                        # Calculate recency-weighted activity (key calculation!)
+                        recency_weighted_activity += recency_weight
+                        movement_years.append(movement_year)
+                    
+                    # Calculate temporal features exactly as in MovementMLTrainer
+                    first_observed_year = min(movement_years)
+                    last_observed_year = max(movement_years)
+                    years_active = max(last_observed_year - first_observed_year + 1, 1)
+                    transition_frequency = len(monthly_results)  # Number of distinct months
+                    
+                    # Calculate averages
+                    avg_days = sum(avg_days_list) / len(avg_days_list) if avg_days_list else 365.0
+                    avg_pct = sum(avg_pct_list) / len(avg_pct_list) if avg_pct_list else 0.0
+                    
+                    # Calculate exact recency_boost as in MovementMLTrainer
+                    recency_boost = recency_weighted_activity / total_movements if total_movements > 0 else 1.0
                     
                     return {
                         'total_movement_count': total_movements,
-                        'total_unique_employees': unique_employees,
+                        'total_unique_employees': total_unique_employees,
                         'avg_days_between': avg_days,
                         'avg_pct_total_movements': avg_pct,
-                        'transition_frequency': total_movements,  # Same as count
+                        'transition_frequency': transition_frequency,
                         'years_active': years_active,
                         'avg_movements_per_year': total_movements / years_active,
-                        'recency_weighted_activity': total_movements * 0.8,  # Approximation
-                        'recency_boost': 1.0  # Default
+                        'recency_weighted_activity': recency_weighted_activity,
+                        'recency_boost': recency_boost
                     }
                 else:
                     # No movement data - return zeros (unseen transition)
