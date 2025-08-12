@@ -53,10 +53,10 @@ class PathwayFeasibilityPredictor:
         self.feature_columns = []
         self.ml_trainer = None
         
-        # Feasibility thresholds
-        self.SYNTHETIC_FEATURE_THRESHOLD = 0.6  # >60% synthetic = fail fast
-        self.MIN_VOLUME_THRESHOLD = 0.5  # <0.5 movements/year = low feasibility
-        self.MIN_CONFIDENCE_THRESHOLD = 0.7  # <70% confidence = low feasibility  
+        # Feasibility thresholds (Option A - Balanced approach)
+        self.SYNTHETIC_FEATURE_THRESHOLD = 0.85  # >85% synthetic = fail fast
+        self.MIN_VOLUME_THRESHOLD = 0.3  # <0.3 movements/year = low feasibility
+        self.MIN_CONFIDENCE_THRESHOLD = 0.6  # <60% confidence = low feasibility  
         self.MAX_MODEL_DISAGREEMENT = 0.3  # Std dev threshold for model disagreement
         
         # Load models and initialize trainer
@@ -100,9 +100,9 @@ class PathwayFeasibilityPredictor:
             if model_path.exists():
                 self.models[model_name] = joblib.load(model_path)
             else:
-                print(f"⚠️  Warning: Model file not found: {model_path}")
+                pass  # Silent model loading for scale testing
                 
-        print(f"🤖 Loaded {len(self.models)} ML models with {len(self.feature_columns)} features")
+        # Removed verbose output for scale testing
         
     def _initialize_ml_trainer(self):
         """Initialize MovementMLTrainer for feature engineering consistency."""
@@ -114,41 +114,46 @@ class PathwayFeasibilityPredictor:
         if config_path.exists():
             with open(config_path, 'r') as f:
                 config = yaml.safe_load(f)
-            print("⚙️ Loaded ML configuration from movement_ml_training.yaml")
+            pass  # Silent loading for scale testing
         else:
             config = {}
             
         # Initialize trainer
         self.ml_trainer = MovementMLTrainer(self.db_path, config)
-        print(f"🤖 MovementMLTrainer initialized with database: {Path(self.db_path).name}")
         
         # Reset logging level
         logging.getLogger().setLevel(logging.INFO)
         
-    def load_and_cache_data(self):
+    def load_and_cache_data(self, verbose: bool = False):
         """Load and cache all necessary data for predictions."""
-        print("📊 Loading movement patterns and job data...")
+        if verbose:
+            print("📊 Loading movement patterns and job data...")
         
         # Suppress verbose logging during data loading
         logging.getLogger().setLevel(logging.ERROR)
         
         # Load data using MovementMLTrainer methods
         self.movement_patterns = self.ml_trainer.load_movement_patterns_data()
-        print(f"✅ Loaded {len(self.movement_patterns):,} movement patterns from database")
+        if verbose:
+            print(f"✅ Loaded {len(self.movement_patterns):,} movement patterns from database")
         
         self.job_architecture = self.ml_trainer.load_job_architecture_data()  
-        print(f"✅ Loaded {len(self.job_architecture):,} job profiles from database")
+        if verbose:
+            print(f"✅ Loaded {len(self.job_architecture):,} job profiles from database")
         
         self.job_transitions = self.ml_trainer.aggregate_movement_patterns_to_job_level(self.movement_patterns)
-        print(f"✅ Aggregated to {len(self.job_transitions):,} job profile transition pairs")
+        if verbose:
+            print(f"✅ Aggregated to {len(self.job_transitions):,} job profile transition pairs")
         
         self.source_mobility_scores, self.target_mobility_scores = self.ml_trainer.calculate_mobility_scores(self.job_transitions)
-        print(f"✅ Calculated mobility for {len(self.source_mobility_scores):,} source and {len(self.target_mobility_scores):,} target roles")
+        if verbose:
+            print(f"✅ Calculated mobility for {len(self.source_mobility_scores):,} source and {len(self.target_mobility_scores):,} target roles")
         
         # Reset logging level
         logging.getLogger().setLevel(logging.INFO)
         
-        print(f"✅ Cached {len(self.movement_patterns):,} movement patterns, {len(self.job_architecture):,} jobs, {len(self.job_transitions):,} job transitions")
+        if verbose:
+            print(f"✅ Cached {len(self.movement_patterns):,} movement patterns, {len(self.job_architecture):,} jobs, {len(self.job_transitions):,} job transitions")
         
     def predict_pathway_feasibility(self, from_job_id: str, to_job_id: str) -> Dict[str, Any]:
         """
@@ -194,13 +199,23 @@ class PathwayFeasibilityPredictor:
                 transition_data = pd.DataFrame([synthetic_row])
             
             # Create ML features using the exact same method as training (suppress verbose output)
-            logging.getLogger().setLevel(logging.ERROR)
+            import sys
+            from io import StringIO
+            
+            # Capture stdout to suppress all output
+            old_stdout = sys.stdout
+            old_stderr = sys.stderr
+            sys.stdout = StringIO()
+            sys.stderr = StringIO()
+            
             try:
                 features_df = self.ml_trainer.create_ml_features(
                     transition_data, self.source_mobility_scores, self.target_mobility_scores, self.job_architecture
                 )
             finally:
-                logging.getLogger().setLevel(logging.INFO)
+                # Always restore stdout/stderr
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
             
             if features_df.empty:
                 return self._create_error_result(from_job_id, to_job_id, "Feature generation failed")
@@ -232,7 +247,7 @@ class PathwayFeasibilityPredictor:
                     raw_predictions.append(prediction)
                     model_predictions[model_name] = float(prediction)
                 except Exception as e:
-                    print(f"⚠️  Warning: {model_name} prediction failed: {e}")
+                    # Silent failure for scale testing
                     continue
                     
             if not raw_predictions:
@@ -428,30 +443,32 @@ class PathwayFeasibilityPredictor:
             'assessment_status': 'error'
         }
         
-    def run_single_prediction(self, from_job_id: str, to_job_id: str) -> Dict[str, Any]:
+    def run_single_prediction(self, from_job_id: str, to_job_id: str, verbose: bool = True) -> Dict[str, Any]:
         """Run feasibility assessment for a single job transition."""
-        self.load_and_cache_data()
+        self.load_and_cache_data(verbose=verbose)
         
         result = self.predict_pathway_feasibility(from_job_id, to_job_id)
         
-        # Print formatted result
-        self._print_single_result(result)
+        # Print formatted result only if verbose
+        if verbose:
+            self._print_single_result(result)
         
         return result
         
-    def run_corpus_analysis(self, sample_size: int = 100) -> Dict[str, Any]:
+    def run_corpus_analysis(self, sample_size: int = 100, verbose: bool = True) -> Dict[str, Any]:
         """Run feasibility analysis on a random sample of job transitions."""
-        self.load_and_cache_data()
+        self.load_and_cache_data(verbose=verbose)
         
-        print(f"\n🔬 PATHWAY FEASIBILITY ANALYSIS")
-        print("=" * 80)
-        print(f"📊 Sample Size: {sample_size:,} predictions")
-        print(f"🚨 Feasibility Thresholds:")
-        print(f"   • Synthetic Features: >{self.SYNTHETIC_FEATURE_THRESHOLD:.1%} = Fail Fast")
-        print(f"   • Min Volume: <{self.MIN_VOLUME_THRESHOLD} movements/year")
-        print(f"   • Min Confidence: <{self.MIN_CONFIDENCE_THRESHOLD:.1%}")
-        print(f"   • Model Disagreement: >{self.MAX_MODEL_DISAGREEMENT} std dev")
-        print("=" * 80)
+        if verbose:
+            print(f"\n🔬 PATHWAY FEASIBILITY ANALYSIS (Option A - Balanced)")
+            print("=" * 80)
+            print(f"📊 Sample Size: {sample_size:,} predictions")
+            print(f"🚨 Feasibility Thresholds:")
+            print(f"   • Synthetic Features: >{self.SYNTHETIC_FEATURE_THRESHOLD:.1%} = Fail Fast")
+            print(f"   • Min Volume: <{self.MIN_VOLUME_THRESHOLD} movements/year")
+            print(f"   • Min Confidence: <{self.MIN_CONFIDENCE_THRESHOLD:.1%}")
+            print(f"   • Model Disagreement: >{self.MAX_MODEL_DISAGREEMENT} std dev")
+            print("=" * 80)
         
         # Generate random job pairs
         job_ids = self.job_architecture['JobProfileID'].tolist()
@@ -463,25 +480,26 @@ class PathwayFeasibilityPredictor:
             if from_job != to_job:  # Avoid self-transitions
                 job_pairs.append((from_job, to_job))
                 
-        # Run predictions with progress bar
+        # Run predictions with progress bar (always show for scale testing)
         results = []
         progress_bar = tqdm(job_pairs, desc="🔮 Analyzing feasibility", 
-                          unit="prediction", leave=False)
+                          unit="prediction", leave=True)
         
         for from_job_id, to_job_id in progress_bar:
             result = self.predict_pathway_feasibility(from_job_id, to_job_id)
             results.append(result)
             
-            # Update progress description with current feasibility
-            if result['assessment_status'] == 'success':
+            # Update progress description with current feasibility (only if verbose)
+            if verbose and result['assessment_status'] == 'success':
                 feasibility = result['feasibility_assessment']
                 progress_bar.set_postfix({"Latest": feasibility})
                 
         # Analyze results
         analysis = self._analyze_corpus_results(results)
         
-        # Print comprehensive analysis
-        self._print_corpus_analysis(analysis, len(results))
+        # Print comprehensive analysis (only if verbose)
+        if verbose:
+            self._print_corpus_analysis(analysis, len(results))
         
         return {
             'analysis': analysis,
@@ -658,13 +676,7 @@ Examples:
     parser.add_argument('--output', type=str,
                        help='Output file path (optional, prints to console if not specified)')
     
-    # Feasibility threshold overrides
-    parser.add_argument('--synthetic-threshold', type=float, default=0.6,
-                       help='Synthetic feature threshold for fail-fast (default: 0.6)')
-    parser.add_argument('--min-volume', type=float, default=0.5,
-                       help='Minimum volume threshold (default: 0.5)')
-    parser.add_argument('--min-confidence', type=float, default=0.7,
-                       help='Minimum confidence threshold (default: 0.7)')
+    # Note: Thresholds are now hardcoded to Option C calibration for consistency
                        
     args = parser.parse_args()
     
@@ -682,13 +694,7 @@ Examples:
             models_dir=args.models_dir
         )
         
-        # Override thresholds if specified
-        if args.synthetic_threshold != 0.6:
-            predictor.SYNTHETIC_FEATURE_THRESHOLD = args.synthetic_threshold
-        if args.min_volume != 0.5:
-            predictor.MIN_VOLUME_THRESHOLD = args.min_volume
-        if args.min_confidence != 0.7:
-            predictor.MIN_CONFIDENCE_THRESHOLD = args.min_confidence
+        # Thresholds are now hardcoded to Option C values - removed override capability for consistency
             
         # Execute based on mode
         if args.from_job:
@@ -696,8 +702,20 @@ Examples:
             results = predictor.run_single_prediction(args.from_job, args.to_job)
             
         elif args.corpus_analysis:
-            # Corpus analysis
-            results = predictor.run_corpus_analysis(args.sample_size)
+            # Corpus analysis - silent for scale testing
+            verbose = args.sample_size <= 1000  # Only verbose for small samples
+            results = predictor.run_corpus_analysis(args.sample_size, verbose=verbose)
+            
+            # Print summary for large scale tests
+            if args.sample_size > 1000:
+                analysis = results['analysis']
+                print(f"\n🎯 SCALE TEST SUMMARY ({args.sample_size:,} predictions)")
+                print(f"{'='*60}")
+                print(f"Feasibility Distribution:")
+                for feasibility, count in analysis['feasibility_distribution'].items():
+                    pct = (count / analysis['total_predictions']) * 100
+                    print(f"  • {feasibility}: {count:,} ({pct:.1f}%)")
+                print(f"{'='*60}")
             
         # Handle output formatting
         if args.format != 'console' and args.output:
