@@ -565,22 +565,66 @@ class PathwayFeasibilityPredictor:
         }
         
     def _print_single_result(self, result: Dict[str, Any]):
-        """Print formatted single prediction result."""
+        """Print formatted single prediction result with detailed working."""
         print(f"\n🔮 PATHWAY FEASIBILITY ASSESSMENT")
-        print("=" * 60)
+        print("=" * 80)
         print(f"📋 Transition: Job {result['from_job_id']} → Job {result['to_job_id']}")
-        print(f"🎯 Feasibility: {result['feasibility_category']}")
-        print(f"💭 Reasoning: {result['feasibility_reasoning']}")
         
         if result['assessment_status'] == 'success':
-            print(f"📊 Predicted Volume: {result['predicted_annual_movements']:.3f} movements/year")
-            print(f"🎲 Model Confidence: {result['confidence_score']:.1%}")
-            print(f"📈 Synthetic Features: {result['synthetic_feature_percentage']:.1%}")
+            # Show the working step by step
+            print(f"\n📊 STEP 1: MODEL PREDICTIONS")
+            print(f"   Raw Predictions:")
+            if 'model_predictions' in result:
+                for model, pred in result['model_predictions'].items():
+                    print(f"     • {model}: {pred:.3f} movements/year")
+            print(f"   Ensemble Average: {result.get('ensemble_raw_prediction', 0):.3f} movements/year")
             
-        if result.get('red_flags'):
-            print(f"🚨 Red Flags: {', '.join(result['red_flags'])}")
+            print(f"\n🎲 STEP 2: CONFIDENCE CALCULATION")
+            print(f"   Model Agreement Std Dev: {result.get('model_disagreement_std', 0):.4f}")
+            print(f"   Coefficient of Variation: {result.get('coefficient_of_variation', 0):.4f}")
+            print(f"   Final Confidence Score: {result['confidence_score']:.1%}")
             
-        print("=" * 60)
+            print(f"\n🔬 STEP 3: DATA QUALITY ASSESSMENT")
+            print(f"   Synthetic Features: {result['synthetic_feature_percentage']:.1%}")
+            print(f"   Historical Data Quality: {'✅ Sufficient' if result['synthetic_feature_percentage'] < 85 else '⚠️ Limited'}")
+            
+            print(f"\n⚖️ STEP 4: FEASIBILITY THRESHOLDS")
+            print(f"   Volume Check: {result['predicted_annual_movements']:.3f} ≥ 0.3? {'✅ PASS' if result['predicted_annual_movements'] >= 0.3 else '❌ FAIL'}")
+            print(f"   Confidence Check: {result['confidence_score']:.1%} ≥ 60.0%? {'✅ PASS' if result['confidence_score'] >= 0.6 else '❌ FAIL'}")
+            print(f"   Synthetic Check: {result['synthetic_feature_percentage']:.1%} < 85.0%? {'✅ PASS' if result['synthetic_feature_percentage'] < 85 else '❌ FAIL'}")
+            
+            if result.get('red_flags'):
+                print(f"\n🚨 STEP 5: BUSINESS LOGIC CHECKS")
+                red_flags = result['red_flags']
+                if 'CAREER_REVERSAL' in red_flags:
+                    print(f"   Career Progression: ❌ DEMOTION DETECTED")
+                elif 'HIGH_SYNTHETIC_DATA' in red_flags:
+                    print(f"   Data Quality: ⚠️ LIMITED HISTORICAL DATA")
+                else:
+                    print(f"   Business Logic: ✅ PASSED")
+                print(f"   Red Flags: {', '.join(red_flags)}")
+            else:
+                print(f"\n🚨 STEP 5: BUSINESS LOGIC CHECKS")
+                print(f"   Business Logic: ✅ PASSED")
+                print(f"   Red Flags: None")
+            
+            print(f"\n🎯 FINAL ASSESSMENT")
+            print(f"   Feasibility: {result['feasibility_category']}")
+            print(f"   Reasoning: {result['feasibility_reasoning']}")
+            print(f"   Predicted Volume: {result['predicted_annual_movements']:.3f} movements/year")
+            
+        elif result['assessment_status'] == 'error':
+            print(f"❌ ERROR: {result['feasibility_reasoning']}")
+            
+        elif result['assessment_status'] == 'low_feasibility':
+            print(f"\n🚨 FAIL-FAST TRIGGERED")
+            print(f"   Reason: {result['feasibility_reasoning']}")
+            if 'synthetic_pct' in result:
+                print(f"   Synthetic Features: {result['synthetic_pct']:.1%}")
+                print(f"   Threshold: 85.0%")
+                print(f"   Assessment: INSUFFICIENT HISTORICAL DATA")
+            
+        print("=" * 80)
         
     def _print_corpus_analysis(self, analysis: Dict[str, Any], total_predictions: int):
         """Print comprehensive corpus analysis results."""
