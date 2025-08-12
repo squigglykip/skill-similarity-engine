@@ -570,6 +570,254 @@ class PathwayPredictor:
             print(f"   ✅ High prediction success rate ({results['success_rate']*100:.1f}%)")
             
         print(f"{'='*80}\n")
+    
+    def run_sanity_checks(self, sample_size: Optional[int] = None, threshold: float = 2.0, 
+                         check_categories: List[str] = None) -> Dict[str, Any]:
+        """
+        Run reality sanity checks on pathway predictions to identify unrealistic scenarios.
+        
+        Args:
+            sample_size: Number of predictions to analyze (default: 1000)
+            threshold: Threshold for flagging unrealistic movement volumes
+            check_categories: List of sanity check categories to perform
+            
+        Returns:
+            Dictionary with sanity check results and flagged scenarios
+        """
+        if check_categories is None:
+            check_categories = ['management_demotions', 'cross_function_jumps', 'unrealistic_volume']
+        
+        if sample_size is None:
+            sample_size = 1000
+            
+        print(f"🧠 PATHWAY SANITY CHECK ANALYSIS")
+        print(f"{'='*80}")
+        print(f"📊 Sample Size: {sample_size:,} predictions")
+        print(f"🚨 Volume Threshold: {threshold} movements/year")
+        print(f"🔍 Check Categories: {', '.join(check_categories)}")
+        print(f"{'='*80}\n")
+        
+        try:
+            # Get job pairs for analysis
+            with sqlite3.connect(self.db_path) as conn:
+                query = """
+                SELECT JobProfileID, JobProfile, JobFunction, JobSubFunction, 
+                       ManagementLevel, JobCategory
+                FROM core_job_architecture
+                ORDER BY JobProfile
+                """
+                jobs_df = pd.read_sql_query(query, conn)
+            
+            # Generate sample job pairs
+            job_pairs = []
+            for _, from_job in jobs_df.iterrows():
+                for _, to_job in jobs_df.iterrows():
+                    if from_job['JobProfileID'] != to_job['JobProfileID']:
+                        job_pairs.append((from_job, to_job))
+            
+            # Sample if requested
+            if sample_size < len(job_pairs):
+                import random
+                job_pairs = random.sample(job_pairs, sample_size)
+            
+            print(f"🔮 Running predictions on {len(job_pairs):,} job transitions...")
+            
+            # Run predictions and collect data for analysis
+            flagged_scenarios = {
+                'management_demotions': [],
+                'cross_function_jumps': [],
+                'unrealistic_volume': [],
+                'career_reversals': [],
+                'suspicious_high_confidence': []
+            }
+            
+            predictions_data = []
+            
+            for from_job, to_job in job_pairs:
+                prediction = self.predict_pathway_feasibility(from_job['JobProfileID'], to_job['JobProfileID'])
+                
+                if prediction['prediction_status'] == 'success':
+                    # Extract movement volume (assuming we convert to annual movements)
+                    feasibility_pct = prediction.get('feasibility_percentage', 0)
+                    annual_movements = feasibility_pct / 100 * 10  # Rough conversion for analysis
+                    
+                    scenario = {
+                        'from_job_id': from_job['JobProfileID'],
+                        'to_job_id': to_job['JobProfileID'],
+                        'from_job_title': from_job['JobProfile'],
+                        'to_job_title': to_job['JobProfile'],
+                        'from_function': from_job['JobFunction'],
+                        'to_function': to_job['JobFunction'],
+                        'from_management_level': from_job['ManagementLevel'],
+                        'to_management_level': to_job['ManagementLevel'],
+                        'from_category': from_job['JobCategory'],
+                        'to_category': to_job['JobCategory'],
+                        'predicted_annual_movements': annual_movements,
+                        'confidence_score': prediction.get('confidence_score', 0),
+                        'feasibility_percentage': feasibility_pct
+                    }
+                    
+                    predictions_data.append(scenario)
+                    
+                    # Run sanity checks
+                    self._check_management_progression(scenario, flagged_scenarios, check_categories)
+                    self._check_function_transitions(scenario, flagged_scenarios, check_categories)
+                    self._check_volume_realism(scenario, flagged_scenarios, check_categories, threshold)
+                    self._check_career_logic(scenario, flagged_scenarios, check_categories)
+            
+            # Generate analysis report
+            analysis_results = self._generate_sanity_report(flagged_scenarios, predictions_data, check_categories)
+            
+            return analysis_results
+            
+        except Exception as e:
+            logger.error(f"Sanity check analysis failed: {e}")
+            return {'error': str(e)}
+    
+    def _check_management_progression(self, scenario: Dict, flagged_scenarios: Dict, categories: List[str]):
+        """Check for unrealistic management level progressions."""
+        if 'management_demotions' not in categories:
+            return
+            
+        try:
+            # Extract numeric levels (Group 1 = senior, Group 5 = junior)
+            from_level = int(str(scenario['from_management_level']).replace('Group ', '').replace('Group', ''))
+            to_level = int(str(scenario['to_management_level']).replace('Group ', '').replace('Group', ''))
+            
+            # Flag demotions with high predicted volume
+            if (from_level < to_level and  # Demotion (Group 1 -> Group 3)
+                scenario['predicted_annual_movements'] > 1.0):  # High volume
+                
+                flagged_scenarios['management_demotions'].append({
+                    **scenario,
+                    'flag_reason': f"Demotion from Group {from_level} to Group {to_level} with {scenario['predicted_annual_movements']:.1f} movements/year",
+                    'severity': 'high' if scenario['predicted_annual_movements'] > 2.0 else 'medium'
+                })
+        except:
+            pass  # Skip if management level parsing fails
+    
+    def _check_function_transitions(self, scenario: Dict, flagged_scenarios: Dict, categories: List[str]):
+        """Check for unrealistic cross-functional transitions."""
+        if 'cross_function_jumps' not in categories:
+            return
+            
+        # Flag high-volume cross-function transitions (often unrealistic)
+        if (scenario['from_function'] != scenario['to_function'] and
+            scenario['predicted_annual_movements'] > 1.5):
+            
+            flagged_scenarios['cross_function_jumps'].append({
+                **scenario,
+                'flag_reason': f"Cross-function jump {scenario['from_function']} → {scenario['to_function']} with {scenario['predicted_annual_movements']:.1f} movements/year",
+                'severity': 'high' if scenario['predicted_annual_movements'] > 3.0 else 'medium'
+            })
+    
+    def _check_volume_realism(self, scenario: Dict, flagged_scenarios: Dict, categories: List[str], threshold: float):
+        """Check for unrealistically high movement volumes."""
+        if 'unrealistic_volume' not in categories:
+            return
+            
+        if scenario['predicted_annual_movements'] > threshold:
+            flagged_scenarios['unrealistic_volume'].append({
+                **scenario,
+                'flag_reason': f"High movement volume: {scenario['predicted_annual_movements']:.1f} movements/year (threshold: {threshold})",
+                'severity': 'critical' if scenario['predicted_annual_movements'] > threshold * 2 else 'high'
+            })
+    
+    def _check_career_logic(self, scenario: Dict, flagged_scenarios: Dict, categories: List[str]):
+        """Check for illogical career progressions."""
+        if 'career_reversals' not in categories:
+            return
+            
+        # Flag scenarios that seem backwards (e.g., specialist → generalist with high volume)
+        suspicious_patterns = [
+            ('Manager', 'Graduate'),
+            ('Senior', 'Junior'),
+            ('Lead', 'Trainee'),
+            ('Director', 'Analyst')
+        ]
+        
+        from_title = scenario['from_job_title'].lower()
+        to_title = scenario['to_job_title'].lower()
+        
+        for senior_keyword, junior_keyword in suspicious_patterns:
+            if (senior_keyword.lower() in from_title and 
+                junior_keyword.lower() in to_title and
+                scenario['predicted_annual_movements'] > 0.5):
+                
+                flagged_scenarios['career_reversals'].append({
+                    **scenario,
+                    'flag_reason': f"Potential career reversal: {scenario['from_job_title']} → {scenario['to_job_title']}",
+                    'severity': 'medium'
+                })
+                break
+    
+    def _generate_sanity_report(self, flagged_scenarios: Dict, predictions_data: List[Dict], categories: List[str]) -> Dict:
+        """Generate comprehensive sanity check report."""
+        total_predictions = len(predictions_data)
+        total_flagged = sum(len(flags) for flags in flagged_scenarios.values())
+        
+        print(f"🧠 PATHWAY SANITY CHECK RESULTS")
+        print(f"{'='*80}")
+        print(f"📊 SUMMARY:")
+        print(f"   • Total Predictions Analyzed: {total_predictions:,}")
+        print(f"   • Total Scenarios Flagged: {total_flagged:,} ({total_flagged/total_predictions*100:.1f}%)")
+        
+        for category in categories:
+            if category in flagged_scenarios:
+                count = len(flagged_scenarios[category])
+                print(f"   • {category.replace('_', ' ').title()}: {count:,} flagged")
+        
+        print(f"\n🚨 DETAILED FLAGGED SCENARIOS:")
+        
+        for category in categories:
+            if category in flagged_scenarios and flagged_scenarios[category]:
+                print(f"\n📋 {category.replace('_', ' ').title()}:")
+                
+                # Sort by severity and show top issues
+                flagged = sorted(flagged_scenarios[category], 
+                               key=lambda x: {'critical': 4, 'high': 3, 'medium': 2, 'low': 1}.get(x['severity'], 1), 
+                               reverse=True)
+                
+                for i, scenario in enumerate(flagged[:10]):  # Show top 10 per category
+                    severity_emoji = {'critical': '🔴', 'high': '🟠', 'medium': '🟡', 'low': '🟢'}.get(scenario['severity'], '⚪')
+                    print(f"   {i+1:2d}. {severity_emoji} {scenario['flag_reason']}")
+                    print(f"       {scenario['from_job_title']} → {scenario['to_job_title']}")
+                    print(f"       Confidence: {scenario['confidence_score']:.1%}")
+                
+                if len(flagged) > 10:
+                    print(f"       ... and {len(flagged)-10} more scenarios")
+        
+        print(f"\n💡 BUSINESS RECOMMENDATIONS:")
+        
+        # Generate recommendations based on findings
+        recommendations = []
+        
+        if len(flagged_scenarios.get('management_demotions', [])) > total_predictions * 0.05:
+            recommendations.append("• Review demotion predictions - high volumes may indicate model issues")
+        
+        if len(flagged_scenarios.get('cross_function_jumps', [])) > total_predictions * 0.1:
+            recommendations.append("• Cross-function transitions show high volumes - validate against HR policies")
+        
+        if len(flagged_scenarios.get('unrealistic_volume', [])) > total_predictions * 0.02:
+            recommendations.append("• Multiple high-volume predictions flagged - consider model recalibration")
+        
+        if not recommendations:
+            recommendations.append("• Predictions appear realistic - no major concerns identified")
+        
+        for rec in recommendations:
+            print(f"   {rec}")
+        
+        print(f"{'='*80}\n")
+        
+        return {
+            'analysis_timestamp': datetime.now().isoformat(),
+            'total_predictions': total_predictions,
+            'total_flagged': total_flagged,
+            'flagged_percentage': (total_flagged / total_predictions * 100) if total_predictions > 0 else 0,
+            'flagged_scenarios': flagged_scenarios,
+            'categories_analyzed': categories,
+            'recommendations': recommendations
+        }
 
 
 def main():
@@ -604,6 +852,8 @@ Examples:
                            help='Predict feasibility from one job to many targets')
     mode_group.add_argument('--corpus-analysis', action='store_true',
                            help='Run full corpus analysis (all job pairs)')
+    mode_group.add_argument('--sanity-check', action='store_true',
+                           help='Run reality sanity checks on pathway predictions')
     
     # Job-to-job arguments
     parser.add_argument('--from-job', help='Source job profile ID')
@@ -616,6 +866,14 @@ Examples:
     # Corpus analysis arguments
     parser.add_argument('--sample-size', type=int,
                        help='Sample size for corpus analysis (default: all pairs)')
+    
+    # Sanity check arguments
+    parser.add_argument('--sanity-threshold', type=float, default=2.0,
+                       help='Threshold for flagging unrealistic predictions (movements/year)')
+    parser.add_argument('--check-categories', nargs='+', 
+                       choices=['management_demotions', 'cross_function_jumps', 'unrealistic_volume', 'career_reversals'],
+                       default=['management_demotions', 'cross_function_jumps', 'unrealistic_volume'],
+                       help='Categories of sanity checks to perform')
     
     # Output options
     parser.add_argument('--output', '-o', help='Output file path for results')
@@ -656,6 +914,9 @@ Examples:
         
     elif args.corpus_analysis:
         results = predictor.run_corpus_analysis(args.sample_size)
+        
+    elif args.sanity_check:
+        results = predictor.run_sanity_checks(args.sample_size, args.sanity_threshold, args.check_categories)
     
     # Output results
     if results:
@@ -669,8 +930,8 @@ Examples:
                 pd.DataFrame(results).to_csv(output_path, index=False)
                 print(f"💾 Results saved to {output_path}")
         else:
-            # Print to console (only for non-corpus analysis)
-            if not args.corpus_analysis:
+            # Print to console (only for single predictions)
+            if args.job_to_job:
                 if args.format == 'json':
                     print(json.dumps(results, indent=2))
                 else:
@@ -679,6 +940,9 @@ Examples:
                         print(df.to_string(index=False))
                     else:
                         print(json.dumps(results, indent=2))
+            elif args.job_to_many:
+                df = pd.DataFrame(results)
+                print(df.to_string(index=False))
     
     return 0
 
