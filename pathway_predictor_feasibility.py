@@ -405,8 +405,8 @@ class PathwayFeasibilityPredictor:
             from_level = int(from_level_str)
             to_level = int(to_level_str)
             
-            # Check for demotion (Group 1 = senior, Group 5+ = junior)
-            if from_level < to_level:  # Lower group number = higher level
+            # Check for demotion (Group 1 = junior, Group 5+ = senior)
+            if from_level > to_level:  # Higher group number = higher level, so this is a demotion
                 return f"Management demotion (Group {from_level} → Group {to_level})"
                 
         except (ValueError, IndexError, KeyError):
