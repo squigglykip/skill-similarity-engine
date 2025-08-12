@@ -359,7 +359,7 @@ class WorkforceIntelligenceOrchestrator:
         print("Generate advanced analytics directly into your database.\n")
         
         print("Select analytics capability:")
-        print("1. Optimize Similarity Parameters (Run when data refreshed)")
+        print("1. Optimize Similarity Parameters (25 trials - Run when data refreshed)")
         print("2. Enhanced Similarity Analytics")
         print("3. Generate Movement Analysis")  # NEW: Populate movement patterns
         print("4. Train Predictive Movement Models")  # NEW: ML training step 
@@ -558,8 +558,8 @@ class WorkforceIntelligenceOrchestrator:
         """Handle similarity parameter optimization using Optuna"""
         print("\n🎯 Optimizing Similarity Parameters...")
         print("   This will use Bayesian optimization to find optimal parameters for similarity calculations.")
-        print("   The system will first analyze your data to determine the optimal number of trials needed.")
-        print("   The process may take 10-30 minutes and will completely replace your current configuration.")
+        print("   The system will run exactly 25 trials to find the best parameters.")
+        print("   The process takes 10-20 minutes and will completely replace your current configuration.")
         print()
         
         try:

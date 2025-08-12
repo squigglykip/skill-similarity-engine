@@ -21,7 +21,7 @@ skills_clustering:
     - dbscan
     - hierarchical
     - kmeans
-    optimization_timestamp: '2025-08-10T19:19:09.616061'
+    optimization_timestamp: '2025-08-11T20:55:00.473895'
     rationale: Optimized using comprehensive parameter search
     similarity_methods_tested:
     - jaccard

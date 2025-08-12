@@ -125,12 +125,44 @@ class OptunaSimilarityOptimizer:
     def __init__(self, db_path: str):
         self.db_path = Path(db_path)
         self.config_path = Path("config/core/similarity_parameters.yaml")
+        self.optimization_config_path = Path("config/core/optimization.yaml")
         
         if not self.db_path.exists():
             raise FileNotFoundError(f"Database not found: {self.db_path}")
         
         if not OPTUNA_AVAILABLE:
             raise ImportError("Optuna not available. Install with: pip install optuna")
+        
+        # Load optimization configuration
+        self.optimization_config = self._load_optimization_config()
+    
+    def _load_optimization_config(self) -> dict:
+        """Load optimization configuration from YAML file"""
+        try:
+            import yaml
+            with open(self.optimization_config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+            return config
+        except FileNotFoundError:
+            print(f"⚠️  Optimization config not found at {self.optimization_config_path}")
+            print("   Using default settings: 25 trials")
+            return {
+                'optuna': {'max_trials': 25, 'timeout_minutes': 20},
+                'parameter_space': {
+                    'percentile_threshold': {'min': 5.0, 'max': 50.0},
+                    'multiplier': {'min': 1.01, 'max': 1.50}
+                }
+            }
+        except Exception as e:
+            print(f"⚠️  Error loading optimization config: {e}")
+            print("   Using default settings: 25 trials")
+            return {
+                'optuna': {'max_trials': 25, 'timeout_minutes': 20},
+                'parameter_space': {
+                    'percentile_threshold': {'min': 5.0, 'max': 50.0},
+                    'multiplier': {'min': 1.01, 'max': 1.50}
+                }
+            }
     
     def load_data(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Load jobs and job-skills data"""
@@ -158,8 +190,18 @@ class OptunaSimilarityOptimizer:
     
     def objective_function(self, trial, jobs_df: pd.DataFrame, job_skills_df: pd.DataFrame):
         """Simple objective function for Optuna"""
-        percentile_threshold = trial.suggest_float('percentile_threshold', 5, 50)
-        multiplier = trial.suggest_float('multiplier', 1.01, 1.50)
+        # Get parameter ranges from config
+        param_config = self.optimization_config.get('parameter_space', {})
+        
+        percentile_config = param_config.get('percentile_threshold', {'min': 5.0, 'max': 50.0})
+        multiplier_config = param_config.get('multiplier', {'min': 1.01, 'max': 1.50})
+        
+        percentile_threshold = trial.suggest_float('percentile_threshold', 
+                                                 percentile_config['min'], 
+                                                 percentile_config['max'])
+        multiplier = trial.suggest_float('multiplier', 
+                                       multiplier_config['min'], 
+                                       multiplier_config['max'])
         
         print(f"🔬 Trial {trial.number}: {percentile_threshold:.1f}% percentile, {multiplier:.3f}x multiplier")
         
@@ -218,201 +260,8 @@ class OptunaSimilarityOptimizer:
         
         return combined_objective
     
-    def calculate_stratified_sample_size(self, strata_info: list, confidence_level: float = 0.95, margin_of_error: float = 0.05) -> int:
-        """Calculate optimal sample size using stratified sampling theory"""
-        import math
-        
-        if not strata_info:
-            return 12  # Minimum fallback
-            
-        # Z-score for confidence level
-        z_scores = {0.90: 1.645, 0.95: 1.96, 0.99: 2.576}
-        z = z_scores.get(confidence_level, 1.96)
-        
-        # Calculate total population and weighted variance
-        total_population = sum(stratum['size'] for stratum in strata_info)
-        
-        # Neyman allocation formula components
-        numerator_sum = sum(stratum['size'] * math.sqrt(stratum['variance']) for stratum in strata_info)
-        denominator_sum = sum(stratum['size'] * stratum['variance'] for stratum in strata_info)
-        
-        # Sample size calculation
-        if denominator_sum == 0:
-            return 12
-            
-        sample_size = (z**2 * numerator_sum**2) / (
-            (margin_of_error**2 * total_population**2) + (z**2 * denominator_sum)
-        )
-        
-        # Apply practical bounds
-        return max(8, min(60, int(sample_size)))
-
-    def calculate_stratified_trials(self, jobs_df: pd.DataFrame, job_skills_df: pd.DataFrame) -> int:
-        """Calculate optimal trials based on job-skill diversity stratification"""
-        print("📊 Analyzing corpus diversity for optimal trial calculation...")
-        
-        # Create job skill profiles
-        print("   • Building job skill profiles...")
-        job_skill_sets = {}
-        for _, row in job_skills_df.iterrows():
-            job_id = row['JobProfileID']
-            skill = row['Skill_Name']
-            if job_id not in job_skill_sets:
-                job_skill_sets[job_id] = set()
-            job_skill_sets[job_id].add(skill)
-        
-        # Calculate skill rarity
-        print("   • Calculating skill rarity distribution...")
-        skill_counts = job_skills_df['Skill_Name'].value_counts()
-        total_jobs = len(jobs_df)
-        skill_rarity = {skill: count/total_jobs for skill, count in skill_counts.items()}
-        
-        # Stratify jobs by skill diversity characteristics
-        print("   • Stratifying jobs by skill diversity patterns...")
-        job_characteristics = []
-        
-        for job_id, skills in job_skill_sets.items():
-            if not skills:
-                continue
-                
-            # Calculate job characteristics
-            skill_count = len(skills)
-            avg_rarity = sum(skill_rarity[skill] for skill in skills) / len(skills)
-            rare_skills_pct = sum(1 for skill in skills if skill_rarity[skill] < 0.1) / len(skills)
-            
-            job_characteristics.append({
-                'job_id': job_id,
-                'skill_count': skill_count,
-                'avg_rarity': avg_rarity,
-                'rare_skills_pct': rare_skills_pct
-            })
-        
-        # Create strata based on skill patterns
-        print("   • Creating representative strata...")
-        strata = self._create_job_strata(job_characteristics)
-        
-        # Calculate optimal sample size
-        print("   • Calculating optimal sample size using stratified sampling theory...")
-        optimal_trials = self.calculate_stratified_sample_size(strata)
-        
-        # Display stratification results
-        print(f"📊 Stratified Sampling Analysis:")
-        print(f"   • Total jobs analyzed: {len(job_characteristics):,}")
-        print(f"   • Number of strata: {len(strata)}")
-        for i, stratum in enumerate(strata, 1):
-            print(f"   • Stratum {i}: {stratum['size']} jobs ({stratum['description']})")
-        print(f"   • Optimal trials: {optimal_trials}")
-        print(f"   • Confidence level: 95%, Margin of error: 5%")
-        
-        return optimal_trials
-
-    def _create_job_strata(self, job_characteristics: list) -> list:
-        """Create strata based on job skill diversity patterns"""
-        import numpy as np
-        
-        if not job_characteristics:
-            return []
-        
-        # Extract characteristics for stratification
-        skill_counts = [job['skill_count'] for job in job_characteristics]
-        avg_rarities = [job['avg_rarity'] for job in job_characteristics]
-        rare_pcts = [job['rare_skills_pct'] for job in job_characteristics]
-        
-        # Define strata based on skill patterns
-        strata = []
-        
-        # Stratum 1: Small skill sets with common skills
-        small_common = [job for job in job_characteristics 
-                       if job['skill_count'] <= 30 and job['rare_skills_pct'] < 0.3]
-        if small_common:
-            strata.append({
-                'size': len(small_common),
-                'variance': np.var([job['avg_rarity'] for job in small_common]) if len(small_common) > 1 else 0.1,
-                'description': 'Small jobs, common skills'
-            })
-        
-        # Stratum 2: Medium skill sets with balanced rarity
-        medium_balanced = [job for job in job_characteristics 
-                          if 30 < job['skill_count'] <= 60 and 0.3 <= job['rare_skills_pct'] < 0.7]
-        if medium_balanced:
-            strata.append({
-                'size': len(medium_balanced),
-                'variance': np.var([job['avg_rarity'] for job in medium_balanced]) if len(medium_balanced) > 1 else 0.15,
-                'description': 'Medium jobs, balanced skills'
-            })
-        
-        # Stratum 3: Large skill sets with rare skills
-        large_rare = [job for job in job_characteristics 
-                     if job['skill_count'] > 60 or job['rare_skills_pct'] >= 0.7]
-        if large_rare:
-            strata.append({
-                'size': len(large_rare),
-                'variance': np.var([job['avg_rarity'] for job in large_rare]) if len(large_rare) > 1 else 0.2,
-                'description': 'Large/rare-heavy jobs'
-            })
-        
-        # Stratum 4: Edge cases (very small or very specific patterns)
-        edge_cases = [job for job in job_characteristics 
-                     if job['skill_count'] <= 10 or job['rare_skills_pct'] >= 0.9]
-        if edge_cases and len(edge_cases) > 2:  # Only if significant
-            strata.append({
-                'size': len(edge_cases),
-                'variance': 0.25,  # High variance for edge cases
-                'description': 'Edge cases (very small/specialized)'
-            })
-        
-        # Ensure we have at least one stratum
-        if not strata:
-            strata.append({
-                'size': len(job_characteristics),
-                'variance': np.var(avg_rarities) if len(avg_rarities) > 1 else 0.1,
-                'description': 'All jobs (single stratum)'
-            })
-        
-        return strata
-
-    def create_early_stopping_callback(self, convergence_window: int = 8, improvement_threshold: float = 0.02):
-        """Create callback for early stopping based on convergence and diminishing returns"""
-        def callback(study, trial):
-            trials = study.trials
-            n_trials = len(trials)
-            
-            # Need minimum trials for meaningful analysis
-            if n_trials < convergence_window:
-                return
-                
-            # Get valid trial values
-            valid_trials = [t for t in trials if t.value is not None]
-            if len(valid_trials) < convergence_window:
-                return
-                
-            # Check convergence: no improvement in recent window
-            recent_values = [t.value for t in valid_trials[-convergence_window:]]
-            best_recent = min(recent_values)
-            best_overall = study.best_value
-            
-            if abs(best_recent - best_overall) < improvement_threshold:
-                print(f"\n🎯 Early stopping: No improvement >2% in last {convergence_window} trials")
-                study.stop()
-                return
-                
-            # Check diminishing returns: last 5 trials show minimal improvement
-            if n_trials >= 12:  # Need enough data for trend analysis
-                recent_5_values = [t.value for t in valid_trials[-5:]]
-                previous_best = min([t.value for t in valid_trials[:-5]])
-                current_best = min(recent_5_values)
-                
-                improvement_rate = abs(current_best - previous_best) / abs(previous_best) if previous_best != 0 else 0
-                
-                if improvement_rate < 0.01:  # Less than 1% improvement
-                    print(f"\n🎯 Early stopping: Diminishing returns detected (<1% improvement in last 5 trials)")
-                    study.stop()
-                    return
-                
-        return callback
-
     def run_optimization(self) -> Dict:
-        """Run optimization with adaptive trials and early stopping"""
+        """Run simple optimization with fixed 25 trials"""
         print("🚀 Starting Optuna optimization...")
         
         jobs_df, job_skills_df = self.load_data()
@@ -420,79 +269,55 @@ class OptunaSimilarityOptimizer:
         num_skills = job_skills_df['Skill_Name'].nunique()
         print(f"✅ Loaded {num_jobs} jobs and {len(job_skills_df):,} job-skill relationships")
         
-        # Calculate optimal trials using stratified sampling
-        recommended_trials = self.calculate_stratified_trials(jobs_df, job_skills_df)
+        # Get configuration settings
+        optuna_config = self.optimization_config.get('optuna', {})
+        max_trials = optuna_config.get('max_trials', 25)
+        timeout_minutes = optuna_config.get('timeout_minutes', 20)
         
-        # Ask user for trial count with smart default
-        print(f"\n🎯 Trial Selection:")
-        print(f"   Recommended trials: {recommended_trials} (based on stratified sampling)")
-        print(f"   You can accept this recommendation or specify a different number.")
-        print(f"   Note: Early stopping will still apply regardless of your choice.")
-        
-        trial_input = input(f"   How many trials would you like to run? (default: {recommended_trials}): ").strip()
-        
-        if trial_input == "":
-            max_trials = recommended_trials
-            print(f"   ✅ Using recommended trials: {recommended_trials}")
-        else:
-            try:
-                user_trials = int(trial_input)
-                if user_trials < 1:
-                    print(f"   ❌ Invalid number. Using recommended: {recommended_trials}")
-                    max_trials = recommended_trials
-                elif user_trials > 200:
-                    print(f"   ⚠️  Very high trial count! This could take hours.")
-                    confirm = input(f"   Continue with {user_trials} trials? (y/N): ").strip().lower()
-                    if confirm == 'y':
-                        max_trials = user_trials
-                        print(f"   ✅ Using custom trials: {user_trials}")
-                    else:
-                        max_trials = recommended_trials
-                        print(f"   ✅ Using recommended trials: {recommended_trials}")
-                else:
-                    max_trials = user_trials
-                    print(f"   ✅ Using custom trials: {user_trials}")
-            except ValueError:
-                print(f"   ❌ Invalid input. Using recommended: {recommended_trials}")
-                max_trials = recommended_trials
-        
-        study = optuna.create_study(
-            direction='minimize',
-            sampler=TPESampler(n_startup_trials=5, seed=42),
-            pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=3)
-        )
-        
-        # Create early stopping callback
-        early_stopping = self.create_early_stopping_callback()
-        
-        print(f"\n🎯 Final Optimization Strategy:")
-        print(f"   • Maximum trials: {max_trials}")
-        print(f"   • Convergence stopping: No improvement >2% in 8 trials")
-        print(f"   • Diminishing returns: <1% improvement in last 5 trials")
-        print(f"   • Time safety net: 20 minutes maximum")
-        if max_trials != recommended_trials:
-            print(f"   • Note: Using {max_trials} instead of recommended {recommended_trials}")
+        print(f"\n🎯 Simple Optimization Strategy:")
+        print(f"   • Fixed trials: {max_trials}")
+        print(f"   • Time limit: {timeout_minutes} minutes")
+        print(f"   • No early stopping - all trials will complete")
         print()
         
-        # Run optimization with adaptive parameters
+        # Ask for confirmation
+        confirm = input(f"   Proceed with {max_trials} trials? (y/N): ").strip().lower()
+        if confirm != 'y':
+            print("   Optimization cancelled.")
+            return {}
+        
+        # Create study with configuration
+        sampler_config = optuna_config.get('sampler', {})
+        pruner_config = optuna_config.get('pruner', {})
+        
+        study = optuna.create_study(
+            direction=optuna_config.get('study_direction', 'minimize'),
+            sampler=TPESampler(
+                n_startup_trials=sampler_config.get('n_startup_trials', 5),
+                seed=sampler_config.get('seed', 42)
+            ),
+            pruner=MedianPruner(
+                n_startup_trials=pruner_config.get('n_startup_trials', 5),
+                n_warmup_steps=pruner_config.get('n_warmup_steps', 3)
+            )
+        )
+        
+        # Run optimization
+        print(f"🔍 Running {max_trials} optimization trials...")
         study.optimize(
             lambda trial: self.objective_function(trial, jobs_df, job_skills_df),
             n_trials=max_trials,
-            timeout=1200,  # 20 minutes max
-            callbacks=[early_stopping],
-            show_progress_bar=True
+            timeout=timeout_minutes * 60,  # Convert to seconds
+            show_progress_bar=optuna_config.get('show_progress_bar', True)
         )
         
-        # Get best results and stopping reason
+        # Get best results
         best_trial = study.best_trial
         total_trials_run = len(study.trials)
         
         print(f"\n🏆 Optimization Complete:")
         print(f"   • Trials completed: {total_trials_run}/{max_trials}")
-        if total_trials_run < max_trials:
-            print(f"   • Stopped early: Convergence detected")
-        else:
-            print(f"   • Stopped: Maximum trials reached")
+        print(f"   • All trials completed successfully")
         
         print(f"\n📊 Best trial: {best_trial.number}")
         print(f"📊 Best parameters:")
@@ -501,33 +326,31 @@ class OptunaSimilarityOptimizer:
         print(f"   • Smoothness score: {best_trial.user_attrs['smoothness_score']:.4f}")
         print(f"   • Average improvement: {best_trial.user_attrs['avg_improvement']*100:.2f}%")
         
-        # Ask user which trial to use
-        print(f"\n🎯 Trial Selection:")
-        print(f"   The systematically determined best trial is {best_trial.number}")
-        print(f"   You can accept this, or specify a different trial number (0-{len(study.trials)-1})")
-        
-        trial_choice = input(f"   Which trial would you like to use? (default: {best_trial.number}): ").strip()
-        
-        if trial_choice == "":
-            selected_trial = best_trial
-            print(f"   ✅ Using best trial: {best_trial.number}")
-        else:
-            try:
-                trial_num = int(trial_choice)
-                if 0 <= trial_num < len(study.trials):
-                    selected_trial = study.trials[trial_num]
-                    print(f"   ✅ Using selected trial: {trial_num}")
-                    print(f"   📊 Selected parameters:")
-                    print(f"      • Percentile threshold: {selected_trial.params['percentile_threshold']:.1f}%")
-                    print(f"      • Multiplier: {selected_trial.params['multiplier']:.3f}x")
-                    print(f"      • Smoothness score: {selected_trial.user_attrs['smoothness_score']:.4f}")
-                    print(f"      • Average improvement: {selected_trial.user_attrs['avg_improvement']*100:.2f}%")
-                else:
-                    print(f"   ❌ Invalid trial number. Using best trial: {best_trial.number}")
-                    selected_trial = best_trial
-            except ValueError:
-                print(f"   ❌ Invalid input. Using best trial: {best_trial.number}")
+        # Option to select different trial (simplified)
+        ux_config = self.optimization_config.get('user_experience', {})
+        if ux_config.get('allow_custom_trial_selection', True):
+            print(f"\n🎯 Trial Selection:")
+            print(f"   Best trial: {best_trial.number} (recommended)")
+            
+            trial_choice = input(f"   Use best trial or specify different number (0-{len(study.trials)-1})? (default: best): ").strip()
+            
+            if trial_choice == "" or trial_choice.lower() == 'best':
                 selected_trial = best_trial
+                print(f"   ✅ Using best trial: {best_trial.number}")
+            else:
+                try:
+                    trial_num = int(trial_choice)
+                    if 0 <= trial_num < len(study.trials):
+                        selected_trial = study.trials[trial_num]
+                        print(f"   ✅ Using trial: {trial_num}")
+                    else:
+                        print(f"   ❌ Invalid trial number. Using best trial: {best_trial.number}")
+                        selected_trial = best_trial
+                except ValueError:
+                    print(f"   ❌ Invalid input. Using best trial: {best_trial.number}")
+                    selected_trial = best_trial
+        else:
+            selected_trial = best_trial
         
         return {
             'percentile_threshold': selected_trial.params['percentile_threshold'],
@@ -646,6 +469,19 @@ metadata:
         """Run complete optimization and update config"""
         try:
             results = self.run_optimization()
+            
+            # Check if optimization was cancelled or failed
+            if not results:
+                print("⚠️  Optimization was cancelled or failed.")
+                return False
+            
+            # Validate required keys exist
+            required_keys = ['percentile_threshold', 'multiplier', 'trial_count', 'best_trial']
+            missing_keys = [key for key in required_keys if key not in results]
+            if missing_keys:
+                print(f"❌ Optimization results missing required data: {missing_keys}")
+                return False
+            
             self.write_yaml_config(results)
             print(f"🎉 Optimization complete! Enhanced Similarity Analytics will use new parameters.")
             return True

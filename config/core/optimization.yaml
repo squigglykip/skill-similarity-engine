@@ -1,0 +1,116 @@
+# =============================================================================
+# Core - Optimization Configuration
+# =============================================================================
+# 
+# Optimization parameters for Bayesian parameter tuning using Optuna
+# Simple, predictable configuration for similarity parameter optimization
+# =============================================================================
+
+# Optuna Optimization Settings
+optuna:
+  # Fixed trial count - simple and predictable
+  max_trials: 25
+  
+  # Timeout settings (safety net)
+  timeout_minutes: 20
+  
+  # Optuna algorithm configuration
+  sampler:
+    type: "TPESampler"
+    n_startup_trials: 5
+    seed: 42
+  
+  pruner:
+    type: "MedianPruner"
+    n_startup_trials: 5
+    n_warmup_steps: 3
+  
+  # Progress tracking
+  show_progress_bar: true
+  
+  # Study settings
+  study_direction: "minimize"  # Minimize the combined objective
+
+# Parameter Search Space
+parameter_space:
+  # Defining skills percentile threshold
+  percentile_threshold:
+    min: 5.0
+    max: 50.0
+    type: "float"
+  
+  # Similarity multiplier for shared defining skills
+  multiplier:
+    min: 1.01
+    max: 1.50
+    type: "float"
+
+# Objective Function Configuration
+objective:
+  # Weights for combined objective
+  smoothness_weight: 1.0
+  improvement_weight: 10.0  # Encourage improvement over baseline
+  
+  # Performance thresholds
+  target_smoothness: 0.70
+  target_improvement: 0.005
+
+# Processing Configuration
+processing:
+  # Chunk size for job pair processing
+  chunk_size: 5000
+  
+  # Use sequential processing on Windows for stability
+  use_multiprocessing: false
+  
+  # Memory management
+  garbage_collect_frequency: 5  # Every 5 trials
+
+# User Experience
+user_experience:
+  # Simplified interaction
+  single_confirmation: true
+  
+  # Display settings
+  show_trial_details: true
+  show_optimization_progress: true
+  show_final_summary: true
+  
+  # Trial selection
+  allow_custom_trial_selection: true
+  default_to_best_trial: true
+
+# Validation and Quality
+validation:
+  # Expected performance ranges
+  smoothness_score_range: [0.60, 1.00]
+  improvement_range: [0.001, 0.500]
+  normalization_factor_range: [1.0, 20.0]
+  
+  # Quality checks
+  validate_parameters: true
+  check_score_distribution: true
+  warn_on_poor_performance: true
+
+# Configuration Metadata
+metadata:
+  version: "1.0"
+  created_date: "2025-08-11"
+  purpose: "Simplified Optuna optimization for similarity parameters"
+  
+  # Dependencies
+  requires:
+    - "optuna"
+    - "scipy"
+    - "numpy"
+  
+  # Related configurations
+  updates:
+    - "config/core/similarity_parameters.yaml"
+  
+  # Change history
+  change_history:
+    - version: "1.0"
+      date: "2025-08-11"
+      change: "Initial simplified optimization configuration"
+      reason: "Replace complex adaptive trial calculation with fixed 25 trials"

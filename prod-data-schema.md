@@ -4,11 +4,11 @@
 
 ## Database Overview
 
-- **Database Size**: 362.72 MB
-- **SQLite Version**: 3.45.3
+- **Database Size**: 1300.36 MB
+- **SQLite Version**: 3.49.1
 - **Last Modified**: 2025-08-11
 - **Total Tables**: 16
-- **Total Records**: 670,604
+- **Total Records**: 3,320,538
 
 ## Table of Contents
 
@@ -67,7 +67,7 @@
 
 ### analytics_bundle_characteristics
 
-**Records**: 27
+**Records**: 28
 
 #### Schema
 
@@ -113,10 +113,10 @@
 ```json
 {
   "cluster_id": 0,
-  "bundle_name": "Analysis Skills Bundle (91 skills)",
-  "bundle_description": "Collection of Analysis skills with 3.1% average prevalence",
+  "bundle_name": "Analysis Skills Bundle (100 skills)",
+  "bundle_description": "Collection of Analysis skills with 2.3% average prevalence",
   "bundle_rationale": "Grouped by Analysis category",
-  "bundle_size": 91,
+  "bundle_size": 100,
   "sample_skills": "Customer Centricity; Data Analysis; Data Literacy",
   "sample_job_functions": "Analysis pending",
   "core_skills": null,
@@ -125,7 +125,7 @@
   "category_purity": 1.0,
   "application_level": "Advanced",
   "specialization_area": "Analysis",
-  "average_jobs_per_skill": 22.428571428571427,
+  "average_jobs_per_skill": 39.82,
   "taxonomy_alignment_score": 0.8,
   "silhouette_score": 0.0,
   "intra_bundle_cohesion": null,
@@ -141,7 +141,7 @@
   "algorithm_parameters": null,
   "quality_validation_date": null,
   "business_review_date": null,
-  "created_timestamp": "2025-08-11T20:55:02.035818"
+  "created_timestamp": "2025-08-11T14:27:40.314431"
 }
 ```
 
@@ -151,7 +151,7 @@
 
 ### analytics_job_defining_skills
 
-**Records**: 19,474
+**Records**: 37,015
 
 #### Schema
 
@@ -182,21 +182,21 @@
 
 ```json
 {
-  "job_profile_id": "R0001.5",
-  "skill_id": "KS1215K6H2C5BNN63SHB",
-  "skill_name": "Infor LX",
-  "job_profile": "Payment Systems Analyst - 5",
+  "job_profile_id": "R0001.15",
+  "skill_id": "KS121996C1P31W0YZVNF",
+  "skill_name": "Strategic Management",
+  "job_profile": "Executive Manager - 15",
   "category": "Business",
-  "subcategory": "Business Operations",
+  "subcategory": "Business Strategy",
   "skill_type": "Specialized Skill",
-  "prevalence_percentage": 1.96,
-  "total_profiles_with_skill": 14,
+  "prevalence_percentage": 1.88,
+  "total_profiles_with_skill": 33,
   "rarity_category": "Rare",
-  "defining_skill_rank": 18,
-  "defining_skill_score": 98.04195804195804,
+  "defining_skill_rank": 16,
+  "defining_skill_score": 98.12179852020489,
   "analysis_date": "2025-08-11",
   "percentile_threshold": 8.8,
-  "created_timestamp": "2025-08-11 10:50:22"
+  "created_timestamp": "2025-08-11 03:42:41"
 }
 ```
 
@@ -206,7 +206,7 @@
 
 ### analytics_job_families
 
-**Records**: 715
+**Records**: 1,735
 
 #### Schema
 
@@ -242,27 +242,27 @@
 
 ```json
 {
-  "job_profile_id": "R0001.5",
-  "job_profile": "Payment Systems Analyst - 5",
-  "job_function": "Data & Analytics",
-  "job_sub_function": "Data Governance",
+  "job_profile_id": "R0001.15",
+  "job_profile": "Executive Manager - 15",
+  "job_function": "Administrative & Business Services",
+  "job_sub_function": "Business Services",
   "job_category": "Support",
-  "management_level": "Group 2",
+  "management_level": "Group 3",
   "cluster_id": 0,
-  "cluster_name": "Operations & Processing - Group 2 Cluster",
-  "cluster_description": "Diverse cluster of 644 roles spanning 22 job functions with shared competencies",
+  "cluster_name": "Technology Enablement & Operations - Group 4 Cluster",
+  "cluster_description": "Diverse cluster of 1707 roles spanning 27 job functions with shared competencies",
   "cluster_rationale": "Clustered based on cross-functional skill similarities despite different job functions",
-  "cluster_size": 644,
-  "sample_jobs": "Payment Systems Analyst - 5; Settlement Officer - 6; Sales Manager - II",
+  "cluster_size": 1707,
+  "sample_jobs": "Executive Manager - 15; Executive Manager - 18; Executive Manager - 19",
   "sample_skills": "Skills analysis pending",
-  "cluster_confidence": 0.261,
-  "silhouette_score": 0.21711856343968797,
+  "cluster_confidence": 0.063,
+  "silhouette_score": 0.05283422243680769,
   "intra_cluster_similarity": 0.0,
   "inter_cluster_distance": 0.0,
   "clustering_algorithm": "DBSCAN",
-  "algorithm_parameters": "eps=0.7300000000000001, min_samples=2",
+  "algorithm_parameters": "eps=0.8300000000000002, min_samples=7",
   "analysis_date": "2025-08-11",
-  "created_timestamp": "2025-08-11T20:55:01.869235"
+  "created_timestamp": "2025-08-11T14:27:40.101386"
 }
 ```
 
@@ -272,7 +272,7 @@
 
 ### analytics_job_family_characteristics
 
-**Records**: 20
+**Records**: 2
 
 #### Schema
 
@@ -317,20 +317,20 @@
 ```json
 {
   "cluster_id": 0,
-  "family_name": "Operations & Processing - Group 2 Cluster",
-  "family_description": "Diverse cluster of 644 roles spanning 22 job functions with shared competencies",
+  "family_name": "Technology Enablement & Operations - Group 4 Cluster",
+  "family_description": "Diverse cluster of 1707 roles spanning 27 job functions with shared competencies",
   "family_rationale": "Clustered based on cross-functional skill similarities despite different job functions",
-  "cluster_size": 644,
-  "sample_jobs": "Payment Systems Analyst - 5; Settlement Officer - 6; Sales Manager - II",
+  "cluster_size": 1707,
+  "sample_jobs": "Executive Manager - 15; Executive Manager - 18; Executive Manager - 19",
   "sample_skills": "Skills analysis pending",
-  "core_job_functions": "{'Operations & Processing': 71, 'Finance & Treasury': 49, 'Risk Management': 47}",
-  "secondary_job_functions": "{'Strategy & Planning': 7, 'Business Development': 7}",
-  "dominant_function": "Operations & Processing",
-  "function_purity": 0.11,
-  "management_level_pattern": "{'Group 2': 156, 'Group 3': 128, 'Group 4': 119, 'Group 1': 105, 'Group 5': 66, 'Group 6': 39, 'Grou...",
+  "core_job_functions": "{'Technology Enablement & Operations': 185, 'Markets & Institutional Bank': 178, 'Risk': 161}",
+  "secondary_job_functions": "{'Business Development Management': 14, 'Group Executive & Directors': 9}",
+  "dominant_function": "Technology Enablement & Operations",
+  "function_purity": 0.108,
+  "management_level_pattern": "{'Group 4': 370, 'Group 2': 333, 'Group 5': 316, 'Group 3': 311, 'Group 6': 127, 'Group NA': 126, 'G...",
   "specialization_depth": "broad",
   "average_skills_per_job": 0.0,
-  "silhouette_score": 0.21711856343968797,
+  "silhouette_score": 0.05283422243680769,
   "intra_family_similarity": 0.0,
   "inter_family_separation": 0.0,
   "business_value_score": 0.8,
@@ -341,20 +341,20 @@
   "promotion_frequency": "medium",
   "lateral_movement_potential": "high",
   "clustering_algorithm": "DBSCAN",
-  "algorithm_parameters": "eps=0.7300000000000001, min_samples=2",
-  "quality_validation_date": "2025-08-11T20:55:01.885272",
-  "business_review_date": "2025-08-11T20:55:01.885272",
-  "created_timestamp": "2025-08-11T20:55:01.885272"
+  "algorithm_parameters": "eps=0.8300000000000002, min_samples=7",
+  "quality_validation_date": "2025-08-11T14:27:40.101386",
+  "business_review_date": "2025-08-11T14:27:40.101386",
+  "created_timestamp": "2025-08-11T14:27:40.101386"
 }
 ```
 
-*(5 sample records available)*
+*(2 sample records available)*
 
 ---
 
 ### analytics_job_similarities
 
-**Records**: 510,510
+**Records**: 3,008,490
 
 #### Schema
 
@@ -387,23 +387,23 @@
 
 ```json
 {
-  "similarity_id": "R0001.5_R0001.6",
-  "job_from": "R0001.5",
-  "job_to": "R0001.6",
-  "similarity_score": 0.003457619034586206,
-  "enhanced_similarity_score": 633073.135,
-  "rarity_weighted_score": 633073.135,
-  "shared_defining_skills_count": 33,
-  "defining_skill_boost": 633072.1346,
-  "shared_skills_count": 68,
-  "total_skills_from": 68,
-  "total_skills_to": 68,
-  "skill_overlap_percentage": 100.0,
-  "shared_skills": "Emotional Intelligence, Stakeholder Engagement, Internal Influencing and Advising, Continuous Improv...",
-  "shared_defining_skills": "Infor LX, Contract Negotiation, Data Science, Analytics, Data Integrity, Predictive Analytics, Predi...",
-  "skill_gap_analysis": "Skills needed: 0, Defining gaps: 0",
+  "similarity_id": "R0001.15_R0001.18",
+  "job_from": "R0001.15",
+  "job_to": "R0001.18",
+  "similarity_score": 0.021192979806001665,
+  "enhanced_similarity_score": 95.402,
+  "rarity_weighted_score": 95.402,
+  "shared_defining_skills_count": 27,
+  "defining_skill_boost": 94.6416,
+  "shared_skills_count": 38,
+  "total_skills_from": 50,
+  "total_skills_to": 56,
+  "skill_overlap_percentage": 67.9,
+  "shared_skills": "Change Leadership, Risk Management Planning, Strategic Management, Data Normalization, Analytical Th...",
+  "shared_defining_skills": "Change Leadership, Risk Management Planning, Strategic Management, Data Normalization, Analytical Th...",
+  "skill_gap_analysis": "Skills needed: 18, Defining gaps: 0",
   "calculation_algorithm": "rarity_weighted_v1.0",
-  "created_timestamp": "2025-08-11 10:50:12"
+  "created_timestamp": "2025-08-11 03:41:17"
 }
 ```
 
@@ -413,7 +413,7 @@
 
 ### analytics_movement_patterns
 
-**Records**: 21,307
+**Records**: 108,148
 
 #### Schema
 
@@ -444,21 +444,21 @@
 
 ```json
 {
-  "movement_pattern_id": "pattern_000938",
-  "movement_month": "2021-07",
-  "from_position": "50002954",
-  "to_position": "50002822",
-  "from_job_profile_id": "R0264.6",
-  "to_job_profile_id": "R0238.0",
-  "movement_count": 3,
+  "movement_pattern_id": "pattern_107458",
+  "movement_month": "2020-02",
+  "from_position": "65240488",
+  "to_position": "65269923",
+  "from_job_profile_id": "",
+  "to_job_profile_id": "R0033.20",
+  "movement_count": 1,
   "unique_employees": 1,
-  "avg_days_between": 0.0,
-  "pct_total_movements": 0.31,
+  "avg_days_between": 29.0,
+  "pct_total_movements": 0.21,
   "movement_type": "lateral",
   "skill_similarity_score": null,
   "difficulty_score": null,
   "success_rate": null,
-  "created_timestamp": "2025-08-11T20:50:36.001561"
+  "created_timestamp": "2025-08-11T13:44:11.650179"
 }
 ```
 
@@ -506,7 +506,7 @@
 
 ### analytics_skill_bundles
 
-**Records**: 2,057
+**Records**: 2,439
 
 #### Schema
 
@@ -551,14 +551,14 @@
   "category": "Analysis",
   "subcategory": "Business Intelligence",
   "skill_type": "Specialized Skill",
-  "total_occurrences": 666,
-  "jobs_count": 666,
-  "prevalence_percent": 93.15,
+  "total_occurrences": 930,
+  "jobs_count": 930,
+  "prevalence_percent": 53.6,
   "cluster_id": 0,
-  "bundle_name": "Analysis Skills Bundle (91 skills)",
-  "bundle_description": "Collection of Analysis skills with 3.1% average prevalence",
+  "bundle_name": "Analysis Skills Bundle (100 skills)",
+  "bundle_description": "Collection of Analysis skills with 2.3% average prevalence",
   "bundle_rationale": "Grouped by Analysis category similarity",
-  "bundle_size": 91,
+  "bundle_size": 100,
   "is_specialized": 0,
   "sample_skills": "Customer Centricity; Data Analysis; Data Literacy",
   "sample_job_functions": "Analysis pending",
@@ -570,7 +570,7 @@
   "similarity_method": null,
   "algorithm_parameters": null,
   "analysis_date": null,
-  "created_timestamp": "2025-08-11T20:55:02.035818"
+  "created_timestamp": "2025-08-11T14:27:40.298676"
 }
 ```
 
@@ -619,7 +619,7 @@
 
 ### analytics_skill_rarity
 
-**Records**: 2,059
+**Records**: 2,442
 
 #### Schema
 
@@ -650,22 +650,22 @@
 
 ```json
 {
-  "skill_id": "BGS11665AC6BD06C5EBD",
-  "skill_name": "Payroll Reporting",
-  "category": "Human Resources",
-  "subcategory": "Payroll",
+  "skill_id": "BGS166A638195D1E2BAE",
+  "skill_name": "Account Strategy",
+  "category": "Sales",
+  "subcategory": "Account Management",
   "skill_type": "Specialized Skill",
   "total_profiles_with_skill": 1,
   "total_jobs": 715,
-  "prevalence_percentage": 0.14,
+  "prevalence_percentage": 0.06,
   "rarity_category": "Rare",
-  "rarity_score": 99.86,
+  "rarity_score": 99.94,
   "is_defining_skill": 1,
   "defining_for_jobs_count": 0,
   "defining_for_jobs": "",
   "analysis_date": "2025-08-11",
   "algorithm_version": "rarity_analyzer_v1.0",
-  "created_timestamp": "2025-08-11 10:50:22"
+  "created_timestamp": "2025-08-11 03:42:40"
 }
 ```
 
@@ -675,7 +675,7 @@
 
 ### analytics_specialized_skills
 
-**Records**: 0
+**Records**: 2
 
 #### Schema
 
@@ -709,13 +709,47 @@
 #### Foreign Key Relationships
 
 - `skill_id` references `core_skills_taxonomy.Skill_ID`
+
+#### Sample Data
+
+```json
+{
+  "skill_id": "ES70711512BEABCE4DC0",
+  "skill_name": "Sustainable Agriculture",
+  "category": "Agriculture, Horticulture, and Landscaping",
+  "subcategory": "Agriculture and Crop Farming",
+  "skill_type": "Specialized Skill",
+  "jobs_count": 3,
+  "prevalence_percent": 0.17,
+  "specialization_score": null,
+  "rarity_rank": null,
+  "specialization_reason": "Low prevalence - highly specialized",
+  "specialization_category": null,
+  "market_context": null,
+  "strategic_importance": null,
+  "skill_lifecycle_stage": null,
+  "investment_recommendation": null,
+  "related_skills": null,
+  "typical_job_functions": null,
+  "training_availability": null,
+  "external_market_demand": null,
+  "analysis_methodology": null,
+  "confidence_level": null,
+  "last_review_date": null,
+  "next_review_date": null,
+  "created_timestamp": "2025-08-11T14:27:40.408982"
+}
+```
+
+*(2 sample records available)*
+
 ---
 
 ## core Tables
 
 ### core_job_architecture
 
-**Records**: 715
+**Records**: 1,757
 
 #### Schema
 
@@ -744,24 +778,24 @@
 
 ```json
 {
-  "JobProfileID": "R0001.5",
-  "JobProfile": "Payment Systems Analyst - 5",
-  "JobFunction": "Data & Analytics",
+  "JobProfileID": "R0429.00",
+  "JobProfile": "Business Manager - 00",
+  "JobFunction": "Administrative & Business Services",
   "JobCategory": "Support",
-  "ManagementLevel": "Group 2",
-  "JobID": "R0001",
-  "Job": "Payment Systems Analyst",
-  "ProfileTitleSuffix": "Senior Manager",
-  "JobSubFunctionID": "JF0655",
-  "JobSubFunction": "Data Governance",
-  "JobFunctionID": "JF016",
+  "ManagementLevel": "Group NA",
+  "JobID": "R0429",
+  "Job": "Business Manager",
+  "ProfileTitleSuffix": "UNGRADED",
+  "JobSubFunctionID": "JF0001",
+  "JobSubFunction": "Business Services",
+  "JobFunctionID": "JFG001",
   "JobCategoryID": "JC2",
-  "Customer_Facing": "Customer Facing",
+  "Customer_Facing": "Non-Customer Facing",
   "is_Banker": "Non-Banker",
   "Executive_Leadership_Group": "",
   "Accountability_Scope": "",
-  "created_timestamp": "2025-08-11 10:44:08",
-  "updated_timestamp": "2025-08-11 10:44:08"
+  "created_timestamp": "2025-08-11 03:23:19",
+  "updated_timestamp": "2025-08-11 03:23:19"
 }
 ```
 
@@ -769,193 +803,3 @@
 
 ---
 
-### core_job_skill_requirements
-
-**Records**: 40,170
-
-#### Schema
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `JobProfileID` | TEXT | PK, FK | Jobprofileid |
-| `Skill_ID` | TEXT | PK, FK | Skill Id |
-| `created_timestamp` | TEXT | - | Created Timestamp |
-
-#### Foreign Key Relationships
-
-- `Skill_ID` references `core_skills_taxonomy.Skill_ID`
-- `JobProfileID` references `core_job_architecture.JobProfileID`
-
-#### Sample Data
-
-```json
-{
-  "JobProfileID": "R0001.5",
-  "Skill_ID": "BGSD16A8EEF4F5775E15",
-  "created_timestamp": "2025-08-11 10:44:12"
-}
-```
-
-*(5 sample records available)*
-
----
-
-### core_skills_taxonomy
-
-**Records**: 38,525
-
-#### Schema
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `Skill_ID` | TEXT | PK | Skill Id |
-| `Skill_Name` | TEXT | - | Skill Name |
-| `Category` | TEXT | - | Category |
-| `Subcategory` | TEXT | - | Subcategory |
-| `SkillType` | TEXT | - | Skilltype |
-| `category_id` | REAL | - | Category Id |
-| `description` | TEXT | - | Description |
-| `descriptionSource` | TEXT | - | Descriptionsource |
-| `infoUrl` | TEXT | - | Infourl |
-| `isLanguage` | BOOLEAN | - | Islanguage |
-| `isSoftware` | BOOLEAN | - | Issoftware |
-| `source_version` | REAL | - | Source Version |
-| `subcategory_id` | REAL | - | Subcategory Id |
-| `tag_wikipediaExtract` | TEXT | - | Tag Wikipediaextract |
-| `tag_wikipediaUrl` | TEXT | - | Tag Wikipediaurl |
-| `tags` | TEXT | - | Tags |
-| `type` | TEXT | - | Type |
-| `type_id` | TEXT | - | Type Id |
-| `created_timestamp` | TEXT | - | Created Timestamp |
-| `updated_timestamp` | TEXT | - | Updated Timestamp |
-
-#### Sample Data
-
-```json
-{
-  "Skill_ID": "BGS1024316C916ACCFA3",
-  "Skill_Name": "DX Spectrum",
-  "Category": "Information Technology",
-  "Subcategory": "Enterprise Information Management",
-  "SkillType": "Specialized Skill",
-  "category_id": 17.0,
-  "description": "",
-  "descriptionSource": "",
-  "infoUrl": "https://lightcast.io/open-skills/skills/BGS1024316C916ACCFA3",
-  "isLanguage": 0,
-  "isSoftware": 1,
-  "source_version": 8.5,
-  "subcategory_id": 411.0,
-  "tag_wikipediaExtract": "",
-  "tag_wikipediaUrl": "",
-  "tags": "[]",
-  "type": "{"id": "ST1", "name": "Specialized Skill"}",
-  "type_id": "ST1",
-  "created_timestamp": "2025-08-11 10:44:09",
-  "updated_timestamp": "2025-08-11 10:44:09"
-}
-```
-
-*(5 sample records available)*
-
----
-
-### core_workforce_current
-
-**Records**: 35,000
-
-#### Schema
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `employee_number` | TEXT | PK | Employee Number |
-| `position_number` | TEXT | - | Position Number |
-| `position_name` | TEXT | - | Position Name |
-| `JobProfileID` | TEXT | FK | Jobprofileid |
-| `Employee_Group` | TEXT | - | Employee Group |
-| `Employee_Subgroup` | TEXT | - | Employee Subgroup |
-| `Salary_Group` | TEXT | - | Salary Group |
-| `Location` | TEXT | - | Location |
-| `Rg` | TEXT | - | Rg |
-| `Cty` | TEXT | - | Cty |
-| `ORG_UNIT_NAME_1` | TEXT | - | Org Unit Name 1 |
-| `ORG_UNIT_NAME_2` | TEXT | - | Org Unit Name 2 |
-| `ORG_UNIT_NAME_3` | TEXT | - | Org Unit Name 3 |
-| `ORG_UNIT_NAME_4` | TEXT | - | Org Unit Name 4 |
-| `ORG_UNIT_NAME_5` | TEXT | - | Org Unit Name 5 |
-| `ORG_UNIT_NAME_6` | TEXT | - | Org Unit Name 6 |
-| `ORG_UNIT_NAME_7` | TEXT | - | Org Unit Name 7 |
-| `ORG_UNIT_NAME_8` | TEXT | - | Org Unit Name 8 |
-| `ORG_UNIT_NAME_9` | TEXT | - | Org Unit Name 9 |
-| `ORG_UNIT_NAME_10` | TEXT | - | Org Unit Name 10 |
-| `created_timestamp` | TEXT | - | Created Timestamp |
-
-#### Foreign Key Relationships
-
-- `JobProfileID` references `core_job_architecture.JobProfileID`
-
-#### Sample Data
-
-```json
-{
-  "employee_number": "100000",
-  "position_number": "50003311",
-  "position_name": "Investment Principal Specialist",
-  "JobProfileID": "R0242.3",
-  "Employee_Group": "Fixed Term",
-  "Employee_Subgroup": "Full Time",
-  "Salary_Group": "Group 7",
-  "Location": "Brisbane City",
-  "Rg": "QLD",
-  "Cty": "AU",
-  "ORG_UNIT_NAME_1": "National Australia Bank Limited",
-  "ORG_UNIT_NAME_2": "Corporate & Institutional Banking",
-  "ORG_UNIT_NAME_3": "Technology",
-  "ORG_UNIT_NAME_4": "Business Banking Operations",
-  "ORG_UNIT_NAME_5": "Team 15",
-  "ORG_UNIT_NAME_6": "Squad H",
-  "ORG_UNIT_NAME_7": "Pod 15",
-  "ORG_UNIT_NAME_8": "Unit 038",
-  "ORG_UNIT_NAME_9": "Cell 11",
-  "ORG_UNIT_NAME_10": "Node 024",
-  "created_timestamp": "2025-08-11 10:44:13"
-}
-```
-
-*(5 sample records available)*
-
----
-
-## system Tables
-
-### sys_schema_metadata
-
-**Records**: 25
-
-#### Schema
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `metadata_key` | TEXT | PK | Metadata Key |
-| `metadata_value` | TEXT | - | Metadata Value |
-| `metadata_category` | TEXT | - | Metadata Category |
-| `description` | TEXT | - | Description |
-| `created_timestamp` | TEXT | - | Created Timestamp |
-| `updated_timestamp` | TEXT | - | Updated Timestamp |
-
-#### Sample Data
-
-```json
-{
-  "metadata_key": "schema_version",
-  "metadata_value": "2.0",
-  "metadata_category": "schema",
-  "description": "Enhanced database schema version",
-  "created_timestamp": "2025-08-11 10:44:08",
-  "updated_timestamp": "2025-08-11 10:44:08"
-}
-```
-
-*(5 sample records available)*
-
----

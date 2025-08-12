@@ -5,31 +5,31 @@
 # CRITICAL PARAMETERS - These values are the result of Optuna Bayesian optimization
 # and are fundamental to the career pathway intelligence algorithms.
 # 
-# AUTO-GENERATED on 2025-08-10 - DO NOT MODIFY manually
+# AUTO-GENERATED on 2025-08-11 - DO NOT MODIFY manually
 # =============================================================================
 
-# Optuna-Optimized Parameters (2025-08-10)
+# Optuna-Optimized Parameters (2025-08-11)
 # Based on full dataset optimization with asymmetric Jaccard + corpus normalization
 # NOTE: This file is loaded as core.similarity_parameters by the config manager
 optuna_optimal:
   # Defining skills threshold - Top % rarest skills per job profile
-  defining_skills_percentile: 49.3
+  defining_skills_percentile: 49.9
   
   # Similarity boost multiplier for shared defining skills
-  defining_skills_multiplier: 1.196
+  defining_skills_multiplier: 1.499
   
   # Optimization metadata for transparency
   optimization_metadata:
-    optimization_date: "2025-08-10"
+    optimization_date: "2025-08-11"
     optimization_method: "Optuna TPE Sampler + Median Pruner"
     dataset_size: "Full dataset analysis"
     objective_function: "Smoothness optimization with improvement penalty"
-    trial_count: 8
-    selected_trial: 7
-    smoothness_score: 0.7421
-    average_improvement: 0.1152
-    normalization_factor: 10.2281
-    scores_above_1_percent: 3.93
+    trial_count: 25
+    selected_trial: 22
+    smoothness_score: 0.7900
+    average_improvement: 0.2936
+    normalization_factor: 24.4657
+    scores_above_1_percent: 12.20
 
 # Rarity Analysis Parameters
 rarity_thresholds:
@@ -52,9 +52,9 @@ similarity_method:
 algorithm_config:
   calculation_steps:
     1: "Calculate asymmetric Jaccard baseline (|shared| / |job_a_skills|)"
-    2: "Identify defining skills for both jobs (top 49.3% rarest per job)"
+    2: "Identify defining skills for both jobs (top 49.9% rarest per job)"
     3: "Find shared defining skills between jobs"
-    4: "Apply 1.196x multiplier boost for shared defining skills"
+    4: "Apply 1.499x multiplier boost for shared defining skills"
     5: "Allow scores >1.0 for corpus normalization"
     6: "Normalize entire corpus to 0-1 range preserving differentiation"
   
@@ -79,7 +79,7 @@ validation:
 # Configuration Metadata
 metadata:
   version: "3.0"
-  last_updated: "2025-08-10"
+  last_updated: "2025-08-11"
   optimization_source: "Optuna Bayesian Optimization"
   critical_for_modules:
     - "similarity/defining_skills.py"
