@@ -641,6 +641,14 @@ class PathwayPredictor:
                     feasibility_pct = prediction.get('feasibility_percentage', 0)
                     annual_movements = feasibility_pct / 100 * 10  # Rough conversion for analysis
                     
+                    # Debug: Print some sample values to understand the data
+                    if len(predictions_data) < 5:  # First 5 predictions for debugging
+                        print(f"DEBUG: {from_job['JobProfile'][:30]} → {to_job['JobProfile'][:30]}")
+                        print(f"       Feasibility: {feasibility_pct:.2f}%, Annual Movements: {annual_movements:.2f}")
+                        print(f"       Management: {from_job['ManagementLevel']} → {to_job['ManagementLevel']}")
+                        print(f"       Function: {from_job['JobFunction']} → {to_job['JobFunction']}")
+                        print()
+                    
                     scenario = {
                         'from_job_id': from_job['JobProfileID'],
                         'to_job_id': to_job['JobProfileID'],
@@ -668,6 +676,16 @@ class PathwayPredictor:
             # Generate analysis report
             analysis_results = self._generate_sanity_report(flagged_scenarios, predictions_data, check_categories)
             
+            # Add all predictions data for CSV export
+            analysis_results['all_predictions'] = predictions_data
+            analysis_results['sample_stats'] = {
+                'min_annual_movements': min([p['predicted_annual_movements'] for p in predictions_data]) if predictions_data else 0,
+                'max_annual_movements': max([p['predicted_annual_movements'] for p in predictions_data]) if predictions_data else 0,
+                'avg_annual_movements': sum([p['predicted_annual_movements'] for p in predictions_data]) / len(predictions_data) if predictions_data else 0,
+                'min_feasibility': min([p['feasibility_percentage'] for p in predictions_data]) if predictions_data else 0,
+                'max_feasibility': max([p['feasibility_percentage'] for p in predictions_data]) if predictions_data else 0
+            }
+            
             return analysis_results
             
         except Exception as e:
@@ -685,13 +703,15 @@ class PathwayPredictor:
             to_level = int(str(scenario['to_management_level']).replace('Group ', '').replace('Group', ''))
             
             # Flag demotions with high predicted volume
-            if (from_level < to_level and  # Demotion (Group 1 -> Group 3)
-                scenario['predicted_annual_movements'] > 1.0):  # High volume
+            # Group 1 = Senior, Group 5 = Junior, so from_level < to_level = PROMOTION
+            # We want to flag DEMOTIONS: from_level > to_level (e.g. Group 2 -> Group 4)
+            if (from_level > to_level and  # Demotion (Group 2 -> Group 4)
+                scenario['predicted_annual_movements'] > 0.05):  # Lower threshold for realistic detection
                 
                 flagged_scenarios['management_demotions'].append({
                     **scenario,
                     'flag_reason': f"Demotion from Group {from_level} to Group {to_level} with {scenario['predicted_annual_movements']:.1f} movements/year",
-                    'severity': 'high' if scenario['predicted_annual_movements'] > 2.0 else 'medium'
+                    'severity': 'high' if scenario['predicted_annual_movements'] > 0.08 else 'medium'
                 })
         except:
             pass  # Skip if management level parsing fails
@@ -703,12 +723,12 @@ class PathwayPredictor:
             
         # Flag high-volume cross-function transitions (often unrealistic)
         if (scenario['from_function'] != scenario['to_function'] and
-            scenario['predicted_annual_movements'] > 1.5):
+            scenario['predicted_annual_movements'] > 0.08):  # Adjusted for realistic data range
             
             flagged_scenarios['cross_function_jumps'].append({
                 **scenario,
                 'flag_reason': f"Cross-function jump {scenario['from_function']} → {scenario['to_function']} with {scenario['predicted_annual_movements']:.1f} movements/year",
-                'severity': 'high' if scenario['predicted_annual_movements'] > 3.0 else 'medium'
+                'severity': 'high' if scenario['predicted_annual_movements'] > 0.09 else 'medium'
             })
     
     def _check_volume_realism(self, scenario: Dict, flagged_scenarios: Dict, categories: List[str], threshold: float):
@@ -742,7 +762,7 @@ class PathwayPredictor:
         for senior_keyword, junior_keyword in suspicious_patterns:
             if (senior_keyword.lower() in from_title and 
                 junior_keyword.lower() in to_title and
-                scenario['predicted_annual_movements'] > 0.5):
+                scenario['predicted_annual_movements'] > 0.05):  # Adjusted threshold
                 
                 flagged_scenarios['career_reversals'].append({
                     **scenario,
@@ -758,9 +778,23 @@ class PathwayPredictor:
         
         print(f"🧠 PATHWAY SANITY CHECK RESULTS")
         print(f"{'='*80}")
-        print(f"📊 SUMMARY:")
-        print(f"   • Total Predictions Analyzed: {total_predictions:,}")
-        print(f"   • Total Scenarios Flagged: {total_flagged:,} ({total_flagged/total_predictions*100:.1f}%)")
+        # Calculate and display value ranges
+        if predictions_data:
+            movements = [p['predicted_annual_movements'] for p in predictions_data]
+            feasibility = [p['feasibility_percentage'] for p in predictions_data]
+            confidence = [p['confidence_score'] for p in predictions_data]
+            
+            print(f"📊 SUMMARY:")
+            print(f"   • Total Predictions Analyzed: {total_predictions:,}")
+            print(f"   • Total Scenarios Flagged: {total_flagged:,} ({total_flagged/total_predictions*100:.1f}%)")
+            print(f"\n📈 VALUE RANGES (Debug Info):")
+            print(f"   • Annual Movements: {min(movements):.2f} - {max(movements):.2f} (avg: {sum(movements)/len(movements):.2f})")
+            print(f"   • Feasibility %: {min(feasibility):.2f}% - {max(feasibility):.2f}% (avg: {sum(feasibility)/len(feasibility):.2f}%)")
+            print(f"   • Confidence: {min(confidence):.3f} - {max(confidence):.3f} (avg: {sum(confidence)/len(confidence):.3f})")
+        else:
+            print(f"📊 SUMMARY:")
+            print(f"   • Total Predictions Analyzed: {total_predictions:,}")
+            print(f"   • Total Scenarios Flagged: {total_flagged:,} ({total_flagged/total_predictions*100:.1f}%)")
         
         for category in categories:
             if category in flagged_scenarios:
@@ -926,9 +960,17 @@ Examples:
                 with open(output_path, 'w') as f:
                     json.dump(results, f, indent=2)
                 print(f"💾 Results saved to {output_path}")
-            elif args.format == 'csv' and isinstance(results, list):
-                pd.DataFrame(results).to_csv(output_path, index=False)
-                print(f"💾 Results saved to {output_path}")
+            elif args.format == 'csv':
+                if args.sanity_check and 'all_predictions' in results:
+                    # Export sanity check predictions data to CSV
+                    df = pd.DataFrame(results['all_predictions'])
+                    df.to_csv(output_path, index=False)
+                    print(f"💾 Sanity check predictions data saved to {output_path}")
+                elif isinstance(results, list):
+                    pd.DataFrame(results).to_csv(output_path, index=False)
+                    print(f"💾 Results saved to {output_path}")
+                else:
+                    print(f"⚠️  Cannot export to CSV - results format not supported")
         else:
             # Print to console (only for single predictions)
             if args.job_to_job:
