@@ -442,8 +442,11 @@ class RealtimePathwayPredictor:
                 return {
                     'from_job_id': from_job_id,
                     'to_job_id': to_job_id,
-                    'feasibility_percentage': 0.0,
                     'confidence_score': 0.0,
+                    'confidence_percentage': 0.0,
+                    'confidence_category': 'No Data',
+                    'predicted_annual_movements': 0.0,
+                    'business_narrative': '0% confidence - insufficient data',
                     'prediction_status': 'failed',
                     'error': 'Could not generate features'
                 }
@@ -473,36 +476,61 @@ class RealtimePathwayPredictor:
                 return {
                     'from_job_id': from_job_id,
                     'to_job_id': to_job_id,
-                    'feasibility_percentage': 0.0,
                     'confidence_score': 0.0,
+                    'confidence_percentage': 0.0,
+                    'confidence_category': 'Model Error',
+                    'predicted_annual_movements': 0.0,
+                    'business_narrative': '0% confidence - model predictions failed',
                     'prediction_status': 'failed',
                     'error': 'All model predictions failed'
                 }
             
-            # Calculate ensemble prediction
+            # Calculate ensemble prediction (raw headcount)
             ensemble_prediction = np.mean(raw_predictions)
             
-            # Convert to feasibility percentage
-            max_movement = self.model_metadata.get('max_movement_volume', 100.0)
-            feasibility_percentage = min(100.0, max(0.0, (ensemble_prediction / max_movement) * 100))
-            
-            # Calculate confidence from model agreement
+            # Calculate confidence from model agreement (most important metric!)
             if len(raw_predictions) > 1:
                 prediction_std = np.std(raw_predictions)
                 prediction_mean = np.mean(raw_predictions)
                 coefficient_of_variation = prediction_std / (prediction_mean + 1e-6)
                 confidence_score = max(0.0, min(1.0, 1.0 - coefficient_of_variation))
             else:
-                confidence_score = 0.5
+                confidence_score = 0.5  # Medium confidence for single model
+            
+            # Convert raw prediction to annualized headcount movements
+            predicted_annual_movements = max(0.0, ensemble_prediction)
+            
+            # Create confidence category for storytelling
+            if confidence_score >= 0.9:
+                confidence_category = "High"
+            elif confidence_score >= 0.7:
+                confidence_category = "Medium"
+            elif confidence_score >= 0.5:
+                confidence_category = "Low"
+            else:
+                confidence_category = "Very Low"
+            
+            # Create business narrative
+            confidence_percentage = confidence_score * 100
+            business_narrative = f"{confidence_percentage:.0f}% confidence of {predicted_annual_movements:.1f} movements per annum"
             
             return {
                 'from_job_id': from_job_id,
                 'to_job_id': to_job_id,
-                'feasibility_percentage': round(feasibility_percentage, 2),
+                
+                # Primary outputs for web app
                 'confidence_score': round(confidence_score, 3),
+                'confidence_percentage': round(confidence_percentage, 1),
+                'confidence_category': confidence_category,
+                'predicted_annual_movements': round(predicted_annual_movements, 1),
+                'business_narrative': business_narrative,
+                
+                # Detailed information
                 'prediction_status': 'success',
                 'model_predictions': model_predictions,
                 'ensemble_raw_prediction': float(ensemble_prediction),
+                'model_agreement_std': round(prediction_std, 4) if len(raw_predictions) > 1 else 0.0,
+                'coefficient_of_variation': round(coefficient_of_variation, 4) if len(raw_predictions) > 1 else 0.0,
                 'feature_count': len(self.feature_columns)
             }
             
@@ -511,8 +539,11 @@ class RealtimePathwayPredictor:
             return {
                 'from_job_id': from_job_id,
                 'to_job_id': to_job_id,
-                'feasibility_percentage': 0.0,
                 'confidence_score': 0.0,
+                'confidence_percentage': 0.0,
+                'confidence_category': 'Error',
+                'predicted_annual_movements': 0.0,
+                'business_narrative': '0% confidence - prediction error',
                 'prediction_status': 'failed',
                 'error': str(e)
             }
@@ -603,8 +634,10 @@ class RealtimePathwayPredictor:
                     'error': 'No successful predictions'
                 }
             
-            feasibility_scores = successful_predictions['feasibility_percentage']
+            # Extract the new output metrics
+            predicted_movements = successful_predictions['predicted_annual_movements']
             confidence_scores = successful_predictions['confidence_score']
+            confidence_categories = successful_predictions['confidence_category'].value_counts().to_dict()
             
             analysis_results = {
                 'analysis_timestamp': datetime.now().isoformat(),
@@ -615,18 +648,18 @@ class RealtimePathwayPredictor:
                 'success_rate': len(successful_predictions) / len(predictions),
                 'processing_time': time.time() - start_time,
                 
-                # Feasibility distribution
-                'feasibility_stats': {
-                    'mean': float(feasibility_scores.mean()),
-                    'median': float(feasibility_scores.median()),
-                    'std': float(feasibility_scores.std()),
-                    'min': float(feasibility_scores.min()),
-                    'max': float(feasibility_scores.max()),
-                    'q25': float(feasibility_scores.quantile(0.25)),
-                    'q75': float(feasibility_scores.quantile(0.75))
+                # Predicted movement headcount distribution
+                'predicted_movements_stats': {
+                    'mean': float(predicted_movements.mean()),
+                    'median': float(predicted_movements.median()),
+                    'std': float(predicted_movements.std()),
+                    'min': float(predicted_movements.min()),
+                    'max': float(predicted_movements.max()),
+                    'q25': float(predicted_movements.quantile(0.25)),
+                    'q75': float(predicted_movements.quantile(0.75))
                 },
                 
-                # Confidence distribution
+                # Confidence distribution (key metric for model reliability)
                 'confidence_stats': {
                     'mean': float(confidence_scores.mean()),
                     'median': float(confidence_scores.median()),
@@ -636,6 +669,9 @@ class RealtimePathwayPredictor:
                     'q25': float(confidence_scores.quantile(0.25)),
                     'q75': float(confidence_scores.quantile(0.75))
                 },
+                
+                # Confidence category breakdown (storytelling)
+                'confidence_categories': confidence_categories,
                 
                 # Model info
                 'model_info': {
@@ -655,9 +691,9 @@ class RealtimePathwayPredictor:
             return {'error': str(e)}
     
     def _print_distribution_analysis(self, results: Dict[str, Any]) -> None:
-        """Print comprehensive distribution analysis."""
+        """Print comprehensive distribution analysis with enhanced storytelling."""
         print(f"\n{'='*80}")
-        print(f"🎯 REAL-TIME PATHWAY PREDICTION ANALYSIS")
+        print(f"🎯 CAREER PATHWAY PREDICTION ANALYSIS - ENHANCED STORYTELLING")
         print(f"{'='*80}")
         
         # Summary
@@ -669,23 +705,31 @@ class RealtimePathwayPredictor:
         print(f"   • Processing Time: {results['processing_time']:.1f} seconds")
         print(f"   • Rate: {results['total_predictions']/results['processing_time']:.1f} predictions/sec")
         
-        # Feasibility distribution
-        feas = results['feasibility_stats']
-        print(f"\n📈 FEASIBILITY DISTRIBUTION (%):")
-        print(f"   • Mean: {feas['mean']:.2f}%")
-        print(f"   • Median: {feas['median']:.2f}%")
-        print(f"   • Std Dev: {feas['std']:.3f}")
-        print(f"   • Range: {feas['min']:.2f}% - {feas['max']:.2f}%")
-        print(f"   • Q25-Q75: {feas['q25']:.2f}% - {feas['q75']:.2f}%")
+        # Predicted movements (the actual business value)
+        movements = results['predicted_movements_stats']
+        print(f"\n📈 PREDICTED ANNUAL MOVEMENTS (Headcount):")
+        print(f"   • Mean: {movements['mean']:.2f} people/year")
+        print(f"   • Median: {movements['median']:.2f} people/year")
+        print(f"   • Std Dev: {movements['std']:.3f}")
+        print(f"   • Range: {movements['min']:.2f} - {movements['max']:.2f} people/year")
+        print(f"   • Q25-Q75: {movements['q25']:.2f} - {movements['q75']:.2f} people/year")
         
-        # Confidence distribution
+        # Confidence distribution (key for model reliability)
         conf = results['confidence_stats']
-        print(f"\n🎯 CONFIDENCE DISTRIBUTION:")
-        print(f"   • Mean: {conf['mean']:.4f} ({conf['mean']*100:.2f}%)")
-        print(f"   • Median: {conf['median']:.4f} ({conf['median']*100:.2f}%)")
-        print(f"   • Std Dev: {conf['std']:.6f}")
-        print(f"   • Range: {conf['min']:.4f} - {conf['max']:.4f}")
-        print(f"   • Q25-Q75: {conf['q25']:.4f} - {conf['q75']:.4f}")
+        print(f"\n🎯 MODEL CONFIDENCE DISTRIBUTION:")
+        print(f"   • Mean: {conf['mean']:.3f} ({conf['mean']*100:.1f}%)")
+        print(f"   • Median: {conf['median']:.3f} ({conf['median']*100:.1f}%)")
+        print(f"   • Std Dev: {conf['std']:.4f}")
+        print(f"   • Range: {conf['min']:.3f} - {conf['max']:.3f}")
+        print(f"   • Q25-Q75: {conf['q25']:.3f} - {conf['q75']:.3f}")
+        
+        # Confidence categories breakdown (storytelling!)
+        categories = results['confidence_categories']
+        print(f"\n🎭 CONFIDENCE CATEGORIES (Storytelling):")
+        total_successful = results['successful_predictions']
+        for category, count in sorted(categories.items()):
+            percentage = (count / total_successful) * 100
+            print(f"   • {category}: {count:,} predictions ({percentage:.1f}%)")
         
         # Model information
         model_info = results['model_info']
@@ -693,11 +737,29 @@ class RealtimePathwayPredictor:
         print(f"   • Models Used: {', '.join(model_info['models_used'])}")
         print(f"   • Feature Count: {model_info['feature_columns_count']}")
         
-        # Memory optimization note
-        print(f"\n⚡ REAL-TIME OPTIMIZATION:")
-        print(f"   • Memory Footprint: ~71KB (vs ~15MB batch)")
-        print(f"   • Per-prediction Queries: Movement data only")
-        print(f"   • Cached Global Context: Mobility scores, job hierarchy")
+        # Business interpretation guide
+        print(f"\n💼 BUSINESS INTERPRETATION GUIDE:")
+        print(f"   📊 Predicted Movements: Actual headcount expected to transition annually")
+        print(f"   🎯 Confidence: How reliable the prediction is (model agreement)")
+        print(f"   🎭 Categories: High (90%+), Medium (70-89%), Low (50-69%), Very Low (<50%)")
+        
+        # Quality assessment
+        print(f"\n✅ MODEL QUALITY ASSESSMENT:")
+        if conf['std'] > 0.1:
+            print(f"   ✅ Excellent confidence variation (std={conf['std']:.4f}) - model distinguishes prediction quality")
+        elif conf['std'] > 0.05:
+            print(f"   ✅ Good confidence variation (std={conf['std']:.4f}) - healthy prediction differentiation")
+        elif conf['std'] > 0.01:
+            print(f"   ⚠️  Moderate confidence variation (std={conf['std']:.4f}) - some prediction differentiation")
+        else:
+            print(f"   ⚠️  Low confidence variation (std={conf['std']:.4f}) - limited prediction differentiation")
+        
+        # Web app output example
+        if movements['max'] > 0:
+            example_conf = conf['mean'] * 100
+            example_movement = movements['mean']
+            print(f"\n🌐 WEB APP OUTPUT EXAMPLE:")
+            print(f'   "{example_conf:.0f}% confidence of {example_movement:.1f} movements per annum"')
         
         print(f"{'='*80}\n")
 
