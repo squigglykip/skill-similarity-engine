@@ -44,7 +44,7 @@ from datetime import datetime
 
 from ..config.architectural_config_manager import get_config_manager
 
-from skill_similarity_engine.config.architectural_config_manager import ConfigurationAdapter
+from ..config.architectural_config_manager import ConfigurationAdapter
 
 
 

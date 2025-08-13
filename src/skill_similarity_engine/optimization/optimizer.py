@@ -65,8 +65,9 @@ def process_job_pairs_chunk(args):
     return similarities
 
 
-def create_defining_skills(job_skills_df: pd.DataFrame, percentile_threshold: float) -> Dict[str, Set[str]]:
-    """Create defining skills for each job"""
+def create_defining_skills_constrained(job_skills_df: pd.DataFrame, percentile_threshold: float, 
+                                      max_percentile_cap: float = 50.0) -> Dict[str, Set[str]]:
+    """Create defining skills for each job with business constraints"""
     total_jobs = job_skills_df['JobProfileID'].nunique()
     skill_prevalence = job_skills_df.groupby('Skill_Name').agg({
         'JobProfileID': 'nunique'
@@ -87,12 +88,25 @@ def create_defining_skills(job_skills_df: pd.DataFrame, percentile_threshold: fl
             skill_prevalence['Skill_Name'].isin(job_skill_names)
         ].sort_values('prevalence_percentage')
         
-        num_defining = max(1, int(len(job_skill_prevalence) * percentile_threshold / 100))
-        defining_skills = job_skill_prevalence.head(num_defining)['Skill_Name'].tolist()
+        # Apply business constraint cap if specified
+        effective_percentile = percentile_threshold
+        if max_percentile_cap is not None:
+            effective_percentile = min(percentile_threshold, max_percentile_cap)
         
+        num_defining = max(1, int(len(job_skill_prevalence) * effective_percentile / 100))
+        
+        # Apply absolute business limits (hard caps)
+        num_defining = max(1, min(num_defining, 10))  # min 1, max 10 defining skills
+        
+        defining_skills = job_skill_prevalence.head(num_defining)['Skill_Name'].tolist()
         job_defining_skills[job_id] = set(defining_skills)
     
     return job_defining_skills
+
+
+def create_defining_skills(job_skills_df: pd.DataFrame, percentile_threshold: float) -> Dict[str, Set[str]]:
+    """Create defining skills for each job (legacy wrapper for backward compatibility)"""
+    return create_defining_skills_constrained(job_skills_df, percentile_threshold)
 
 
 def calculate_smoothness_score(scores: np.ndarray) -> float:
@@ -132,6 +146,9 @@ class OptunaSimilarityOptimizer:
         
         if not OPTUNA_AVAILABLE:
             raise ImportError("Optuna not available. Install with: pip install optuna")
+        
+        # Suppress Optuna logging to prevent interference with progress bars
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
         
         # Load optimization configuration
         self.optimization_config = self._load_optimization_config()
@@ -188,8 +205,94 @@ class OptunaSimilarityOptimizer:
         print(f"✅ Loaded {len(jobs_df):,} jobs and {len(job_skills_df):,} job-skill relationships")
         return jobs_df, job_skills_df
     
+    def objective_function_stratified(self, trial, job_skills_subset: pd.DataFrame, 
+                                     layer_name: str, max_percentile_cap: float):
+        """Stratified objective function for specific job size layer"""
+        # Get parameter ranges from config
+        param_config = self.optimization_config.get('parameter_space', {})
+        
+        percentile_config = param_config.get('percentile_threshold', {'min': 5.0, 'max': 50.0})
+        multiplier_config = param_config.get('multiplier', {'min': 1.01, 'max': 1.50})
+        
+        # Constrain percentile to business cap for this layer
+        max_percentile = min(percentile_config['max'], max_percentile_cap)
+        
+        percentile_threshold = trial.suggest_float('percentile_threshold', 
+                                                 percentile_config['min'], 
+                                                 max_percentile)
+        multiplier = trial.suggest_float('multiplier', 
+                                       multiplier_config['min'], 
+                                       multiplier_config['max'])
+        
+        # Create job-to-skills mapping for this subset
+        job_to_skills = {}
+        for job_id, group in job_skills_subset.groupby('JobProfileID'):
+            job_to_skills[job_id] = set(group['Skill_Name'].tolist())
+        
+        job_ids = list(job_to_skills.keys())
+        
+        # Create defining skills with business constraints
+        job_defining_skills = create_defining_skills_constrained(
+            job_skills_subset, percentile_threshold, max_percentile_cap
+        )
+        
+        # Generate job pairs
+        job_pairs = [(job_a, job_b) for job_a in job_ids for job_b in job_ids if job_a != job_b]
+        
+        if not job_pairs:
+            return float('inf')  # Invalid if no pairs
+        
+        # Process in chunks
+        chunk_size = 5000
+        job_pair_chunks = [job_pairs[i:i + chunk_size] for i in range(0, len(job_pairs), chunk_size)]
+        
+        chunk_args = [
+            (chunk, job_to_skills, job_defining_skills, multiplier)
+            for chunk in job_pair_chunks
+        ]
+        
+        # Process (sequential on Windows for safety)
+        all_similarities = []
+        for chunk_arg in chunk_args:
+            chunk_similarities = process_job_pairs_chunk(chunk_arg)
+            all_similarities.extend(chunk_similarities)
+        
+        if not all_similarities:
+            return float('inf')
+        
+        # Normalize scores using logarithmic scaling
+        raw_scores = np.array(all_similarities)
+        max_score = np.max(raw_scores)
+        
+        # Apply logarithmic normalization: log(1 + x) / log(1 + max)
+        if max_score > 0:
+            normalized_scores = np.log(1 + raw_scores) / np.log(1 + max_score)
+        else:
+            normalized_scores = raw_scores
+        
+        # Calculate smoothness
+        smoothness_score = calculate_smoothness_score(normalized_scores)
+        
+        # Calculate improvement
+        baseline_scores = np.array([
+            len(job_to_skills[job_a] & job_to_skills[job_b]) / len(job_to_skills[job_a])
+            for job_a, job_b in job_pairs if job_a != job_b
+        ])
+        avg_improvement = np.mean(raw_scores - baseline_scores)
+        
+        # Simple combined objective (to minimize)
+        combined_objective = float(smoothness_score - (avg_improvement * 10))  # Encourage improvement
+        
+        trial.set_user_attr('smoothness_score', smoothness_score)
+        trial.set_user_attr('avg_improvement', avg_improvement)
+        trial.set_user_attr('normalization_factor', max_score)
+        trial.set_user_attr('scores_above_1_percent', (np.sum(raw_scores > 1.0) / len(raw_scores)) * 100)
+        
+        return combined_objective
+
+
     def objective_function(self, trial, jobs_df: pd.DataFrame, job_skills_df: pd.DataFrame):
-        """Simple objective function for Optuna"""
+        """Legacy objective function for backward compatibility"""
         # Get parameter ranges from config
         param_config = self.optimization_config.get('parameter_space', {})
         
@@ -202,8 +305,6 @@ class OptunaSimilarityOptimizer:
         multiplier = trial.suggest_float('multiplier', 
                                        multiplier_config['min'], 
                                        multiplier_config['max'])
-        
-        print(f"🔬 Trial {trial.number}: {percentile_threshold:.1f}% percentile, {multiplier:.3f}x multiplier")
         
         # Create job-to-skills mapping
         job_to_skills = {}
@@ -233,10 +334,15 @@ class OptunaSimilarityOptimizer:
             chunk_similarities = process_job_pairs_chunk(chunk_arg)
             all_similarities.extend(chunk_similarities)
         
-        # Normalize scores
+        # Normalize scores using logarithmic scaling
         raw_scores = np.array(all_similarities)
         max_score = np.max(raw_scores)
-        normalized_scores = raw_scores / max_score if max_score > 0 else raw_scores
+        
+        # Apply logarithmic normalization: log(1 + x) / log(1 + max)
+        if max_score > 0:
+            normalized_scores = np.log(1 + raw_scores) / np.log(1 + max_score)
+        else:
+            normalized_scores = raw_scores
         
         # Calculate smoothness
         smoothness_score = calculate_smoothness_score(normalized_scores)
@@ -256,149 +362,247 @@ class OptunaSimilarityOptimizer:
         trial.set_user_attr('normalization_factor', max_score)
         trial.set_user_attr('scores_above_1_percent', (np.sum(raw_scores > 1.0) / len(raw_scores)) * 100)
         
-        print(f"   ✅ Smoothness: {smoothness_score:.4f}, Improvement: {avg_improvement*100:.2f}%, Objective: {combined_objective:.4f}")
-        
         return combined_objective
     
-    def run_optimization(self) -> Dict:
-        """Run simple optimization with fixed 25 trials"""
-        print("🚀 Starting Optuna optimization...")
-        
+    def run_stratified_optimization(self) -> Dict:
+        """Run stratified optimization per job size category"""
         jobs_df, job_skills_df = self.load_data()
-        num_jobs = len(jobs_df)
-        num_skills = job_skills_df['Skill_Name'].nunique()
-        print(f"✅ Loaded {num_jobs} jobs and {len(job_skills_df):,} job-skill relationships")
+        
+        # Calculate job skill counts
+        job_skill_counts = job_skills_df.groupby('JobProfileID')['Skill_Name'].count().reset_index()
+        job_skill_counts.columns = ['JobProfileID', 'skill_count']
+        
+        # Define business constraint layers
+        layers = {
+            'small_jobs': {'max_skills': 15, 'max_percentile': 50.0, 'description': '≤15 skills'},
+            'medium_jobs': {'max_skills': 30, 'max_percentile': 30.0, 'description': '16-30 skills'},
+            'large_jobs': {'max_skills': 50, 'max_percentile': 20.0, 'description': '31-50 skills'},
+            'xlarge_jobs': {'max_skills': 999, 'max_percentile': 15.0, 'description': '>50 skills'}
+        }
         
         # Get configuration settings
         optuna_config = self.optimization_config.get('optuna', {})
-        max_trials = optuna_config.get('max_trials', 25)
+        trials_per_layer = 25  # 25 trials per layer for thorough optimization
         timeout_minutes = optuna_config.get('timeout_minutes', 20)
         
-        print(f"\n🎯 Simple Optimization Strategy:")
-        print(f"   • Fixed trials: {max_trials}")
+        print(f"🚀 Starting Stratified Optuna Optimization...")
+        print(f"   • {trials_per_layer} trials per job size layer")
+        print(f"   • {len(layers)} job size categories")
+        print(f"   • Total trials: {trials_per_layer * len(layers)}")
         print(f"   • Time limit: {timeout_minutes} minutes")
-        print(f"   • No early stopping - all trials will complete")
+        print(f"   • Early stopping: MedianPruner enabled")
         print()
         
-        # Ask for confirmation
-        confirm = input(f"   Proceed with {max_trials} trials? (y/N): ").strip().lower()
-        if confirm != 'y':
-            print("   Optimization cancelled.")
+        # Segment jobs by size
+        stratified_results = {}
+        total_jobs_processed = 0
+        layer_names = list(layers.keys())
+        
+        for i, (layer_name, layer_config) in enumerate(layers.items()):
+            # Filter jobs for this layer
+            if layer_name == 'small_jobs':
+                layer_jobs = job_skill_counts[job_skill_counts['skill_count'] <= 15]['JobProfileID']
+            elif layer_name == 'medium_jobs':
+                layer_jobs = job_skill_counts[
+                    (job_skill_counts['skill_count'] > 15) & 
+                    (job_skill_counts['skill_count'] <= 30)
+                ]['JobProfileID']
+            elif layer_name == 'large_jobs':
+                layer_jobs = job_skill_counts[
+                    (job_skill_counts['skill_count'] > 30) & 
+                    (job_skill_counts['skill_count'] <= 50)
+                ]['JobProfileID']
+            else:  # xlarge_jobs
+                layer_jobs = job_skill_counts[job_skill_counts['skill_count'] > 50]['JobProfileID']
+            
+            if len(layer_jobs) == 0:
+                print(f"   ⚠️  No jobs found for {layer_name} ({layer_config['description']}) - skipping")
+                continue
+                
+            # Filter job skills for this layer
+            layer_job_skills = job_skills_df[job_skills_df['JobProfileID'].isin(layer_jobs)]
+            
+            total_jobs_processed += len(layer_jobs)
+            
+            # Create study for this layer with enhanced early stopping
+            sampler_config = optuna_config.get('sampler', {})
+            pruner_config = optuna_config.get('pruner', {})
+            
+            study = optuna.create_study(
+                direction='minimize',
+                sampler=TPESampler(
+                    n_startup_trials=sampler_config.get('n_startup_trials', 5),  # More startup trials for 25 total
+                    seed=sampler_config.get('seed', 42)
+                ),
+                pruner=MedianPruner(
+                    n_startup_trials=pruner_config.get('n_startup_trials', 5),  # Wait for 5 trials before pruning
+                    n_warmup_steps=pruner_config.get('n_warmup_steps', 3),      # More warmup for stability
+                    interval_steps=pruner_config.get('interval_steps', 1)       # Check every trial for pruning
+                )
+            )
+            
+            # Run optimization for this layer using the progress utilities
+            from skill_similarity_engine.utils.progress import progress_context
+            import time
+            
+            # Use the existing progress utilities with leave=True to keep bars visible
+            with progress_context(
+                total=trials_per_layer, 
+                desc=f"Optimizing {layer_name} ({layer_config['description']}) - {len(layer_jobs)} jobs",
+                memory_tracking=False,  # Disable memory tracking for faster updates
+                show_tqdm=True
+            ) as progress_tracker:
+                
+                def callback(study, trial):
+                    progress_tracker.update(1)
+                    # Log pruned trials for transparency
+                    if trial.state == optuna.trial.TrialState.PRUNED:
+                        print(f"   🔪 Trial {trial.number} pruned early (poor performance)")
+                    # Small delay to ensure progress bar visibility for fast layers
+                    if len(layer_jobs) < 50:  # For small layers
+                        time.sleep(0.05)
+                
+                study.optimize(
+                    lambda trial: self.objective_function_stratified(
+                        trial, layer_job_skills, layer_name, layer_config['max_percentile']
+                    ),
+                    n_trials=trials_per_layer,
+                    timeout=timeout_minutes * 60 // len(layers) if len(layers) <= 4 else timeout_minutes * 60 // 4,  # Min 5 min per layer
+                    callbacks=[callback]
+                )
+                
+            # Brief pause between layers for visual clarity
+            time.sleep(0.2)
+            
+            # Store results for this layer
+            if study.best_trial:
+                best_trial = study.best_trial
+                # Calculate pruning statistics
+                completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+                pruned_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED]
+                
+                stratified_results[layer_name] = {
+                    'defining_skills_percentile': best_trial.params['percentile_threshold'],
+                    'defining_skills_multiplier': best_trial.params['multiplier'],
+                    'job_count': len(layer_jobs),
+                    'smoothness_score': best_trial.user_attrs['smoothness_score'],
+                    'avg_improvement': best_trial.user_attrs['avg_improvement'],
+                    'normalization_factor': best_trial.user_attrs['normalization_factor'],
+                    'scores_above_1_percent': best_trial.user_attrs['scores_above_1_percent'],
+                    'trial_count': len(study.trials),
+                    'completed_trials': len(completed_trials),
+                    'pruned_trials': len(pruned_trials),
+                    'best_trial': best_trial.number,
+                    'max_percentile_cap': layer_config['max_percentile'],
+                    'description': f"{layer_config['description']} jobs"
+                }
+        
+        # Calculate global summary
+        total_trials = sum(result['trial_count'] for result in stratified_results.values())
+        avg_smoothness = np.mean([result['smoothness_score'] for result in stratified_results.values()])
+        avg_improvement = np.mean([result['avg_improvement'] for result in stratified_results.values()])
+        
+        # Print comprehensive summary
+        print(f"\n🏆 Stratified Optimization Complete:")
+        print(f"   • Total jobs processed: {total_jobs_processed:,}")
+        print(f"   • Total trials completed: {total_trials}")
+        print(f"   • Layers optimized: {len(stratified_results)}/{len(layers)}")
+        if stratified_results:
+            print(f"   • Average smoothness: {avg_smoothness:.4f}")
+            print(f"   • Average improvement: {avg_improvement*100:.2f}%")
+        print()
+        
+        if stratified_results:
+            print("📊 Layer-by-Layer Results:")
+            for layer_name, result in stratified_results.items():
+                print(f"   {layer_name.replace('_', ' ').title()}:")
+                print(f"      Jobs: {result['job_count']:,} | Trials: {result['trial_count']} ({result['completed_trials']} completed, {result['pruned_trials']} pruned)")
+                print(f"      Optimal: {result['defining_skills_percentile']:.1f}% percentile, {result['defining_skills_multiplier']:.3f}x multiplier")
+                print(f"      Performance: {result['smoothness_score']:.4f} smoothness, {result['avg_improvement']*100:.2f}% improvement")
+        else:
+            print("⚠️  No layers were successfully optimized.")
             return {}
         
-        # Create study with configuration
-        sampler_config = optuna_config.get('sampler', {})
-        pruner_config = optuna_config.get('pruner', {})
-        
-        study = optuna.create_study(
-            direction=optuna_config.get('study_direction', 'minimize'),
-            sampler=TPESampler(
-                n_startup_trials=sampler_config.get('n_startup_trials', 5),
-                seed=sampler_config.get('seed', 42)
-            ),
-            pruner=MedianPruner(
-                n_startup_trials=pruner_config.get('n_startup_trials', 5),
-                n_warmup_steps=pruner_config.get('n_warmup_steps', 3)
-            )
-        )
-        
-        # Run optimization
-        print(f"🔍 Running {max_trials} optimization trials...")
-        study.optimize(
-            lambda trial: self.objective_function(trial, jobs_df, job_skills_df),
-            n_trials=max_trials,
-            timeout=timeout_minutes * 60,  # Convert to seconds
-            show_progress_bar=optuna_config.get('show_progress_bar', True)
-        )
-        
-        # Get best results
-        best_trial = study.best_trial
-        total_trials_run = len(study.trials)
-        
-        print(f"\n🏆 Optimization Complete:")
-        print(f"   • Trials completed: {total_trials_run}/{max_trials}")
-        print(f"   • All trials completed successfully")
-        
-        print(f"\n📊 Best trial: {best_trial.number}")
-        print(f"📊 Best parameters:")
-        print(f"   • Percentile threshold: {best_trial.params['percentile_threshold']:.1f}%")
-        print(f"   • Multiplier: {best_trial.params['multiplier']:.3f}x")
-        print(f"   • Smoothness score: {best_trial.user_attrs['smoothness_score']:.4f}")
-        print(f"   • Average improvement: {best_trial.user_attrs['avg_improvement']*100:.2f}%")
-        
-        # Option to select different trial (simplified)
-        ux_config = self.optimization_config.get('user_experience', {})
-        if ux_config.get('allow_custom_trial_selection', True):
-            print(f"\n🎯 Trial Selection:")
-            print(f"   Best trial: {best_trial.number} (recommended)")
-            
-            trial_choice = input(f"   Use best trial or specify different number (0-{len(study.trials)-1})? (default: best): ").strip()
-            
-            if trial_choice == "" or trial_choice.lower() == 'best':
-                selected_trial = best_trial
-                print(f"   ✅ Using best trial: {best_trial.number}")
-            else:
-                try:
-                    trial_num = int(trial_choice)
-                    if 0 <= trial_num < len(study.trials):
-                        selected_trial = study.trials[trial_num]
-                        print(f"   ✅ Using trial: {trial_num}")
-                    else:
-                        print(f"   ❌ Invalid trial number. Using best trial: {best_trial.number}")
-                        selected_trial = best_trial
-                except ValueError:
-                    print(f"   ❌ Invalid input. Using best trial: {best_trial.number}")
-                    selected_trial = best_trial
-        else:
-            selected_trial = best_trial
-        
         return {
-            'percentile_threshold': selected_trial.params['percentile_threshold'],
-            'multiplier': selected_trial.params['multiplier'],
-            'trial_count': len(study.trials),
-            'best_trial': selected_trial.number,
-            'smoothness_score': selected_trial.user_attrs['smoothness_score'],
-            'avg_improvement': selected_trial.user_attrs['avg_improvement'],
-            'normalization_factor': selected_trial.user_attrs['normalization_factor'],
-            'scores_above_1_percent': selected_trial.user_attrs['scores_above_1_percent']
+            'stratified_parameters': stratified_results,
+            'global_summary': {
+                'total_jobs_processed': total_jobs_processed,
+                'total_trials': total_trials,
+                'avg_smoothness': avg_smoothness,
+                'avg_improvement': avg_improvement
+            }
         }
+
+
+    def run_optimization(self) -> Dict:
+        """Run optimization - now defaults to stratified approach"""
+        return self.run_stratified_optimization()
     
     def write_yaml_config(self, results: Dict):
-        """Write completely new similarity_parameters.yaml"""
+        """Write stratified similarity_parameters.yaml"""
         current_date = datetime.now().strftime("%Y-%m-%d")
         
-        yaml_content = f"""# =============================================================================
+        # Handle both legacy and stratified results
+        if 'stratified_parameters' in results:
+            # Stratified results
+            stratified_params = results['stratified_parameters']
+            global_summary = results['global_summary']
+            
+            # Use first layer's parameters as global fallback
+            first_layer = next(iter(stratified_params.values()))
+            fallback_percentile = first_layer['defining_skills_percentile']
+            fallback_multiplier = first_layer['defining_skills_multiplier']
+            
+            yaml_content = f"""# =============================================================================
 # Core - Similarity Parameters Configuration
 # =============================================================================
 # 
-# CRITICAL PARAMETERS - These values are the result of Optuna Bayesian optimization
+# CRITICAL PARAMETERS - These values are the result of Stratified Optuna Bayesian optimization
 # and are fundamental to the career pathway intelligence algorithms.
 # 
 # AUTO-GENERATED on {current_date} - DO NOT MODIFY manually
 # =============================================================================
 
 # Optuna-Optimized Parameters ({current_date})
-# Based on full dataset optimization with asymmetric Jaccard + corpus normalization
+# Based on stratified dataset optimization with asymmetric Jaccard + corpus normalization
 # NOTE: This file is loaded as core.similarity_parameters by the config manager
 optuna_optimal:
-  # Defining skills threshold - Top % rarest skills per job profile
-  defining_skills_percentile: {results['percentile_threshold']:.1f}
+  # Global fallback parameters (for backward compatibility)
+  defining_skills_percentile: {fallback_percentile:.1f}
+  defining_skills_multiplier: {fallback_multiplier:.3f}
   
-  # Similarity boost multiplier for shared defining skills
-  defining_skills_multiplier: {results['multiplier']:.3f}
+  # Stratified optimization results (job size specific parameters)
+  stratified_parameters:"""
+            
+            # Add each layer's parameters
+            for layer_name, layer_data in stratified_params.items():
+                yaml_content += f"""
+    {layer_name}:
+      defining_skills_percentile: {layer_data['defining_skills_percentile']:.1f}
+      defining_skills_multiplier: {layer_data['defining_skills_multiplier']:.3f}
+      job_count: {layer_data['job_count']}
+      smoothness_score: {layer_data['smoothness_score']:.4f}
+      avg_improvement: {layer_data['avg_improvement']:.4f}
+      normalization_factor: {layer_data['normalization_factor']:.4f}
+      scores_above_1_percent: {layer_data['scores_above_1_percent']:.2f}
+      trial_count: {layer_data['trial_count']}
+      best_trial: {layer_data['best_trial']}
+      max_percentile_cap: {layer_data['max_percentile_cap']:.1f}
+      description: "{layer_data['description']}\""""
+            
+            yaml_content += f"""
   
-  # Optimization metadata for transparency
+  # Global optimization metadata
   optimization_metadata:
     optimization_date: "{current_date}"
-    optimization_method: "Optuna TPE Sampler + Median Pruner"
-    dataset_size: "Full dataset analysis"
-    objective_function: "Smoothness optimization with improvement penalty"
-    trial_count: {results['trial_count']}
-    selected_trial: {results['best_trial']}
-    smoothness_score: {results['smoothness_score']:.4f}
-    average_improvement: {results['avg_improvement']:.4f}
-    normalization_factor: {results['normalization_factor']:.4f}
-    scores_above_1_percent: {results['scores_above_1_percent']:.2f}
+    optimization_method: "Stratified Optuna TPE Sampler + Median Pruner"
+    dataset_size: "Stratified by job size with business constraints"
+    objective_function: "Layer-specific smoothness optimization with improvement penalty"
+    total_jobs_processed: {global_summary['total_jobs_processed']}
+    total_trials: {global_summary['total_trials']}
+    avg_smoothness: {global_summary['avg_smoothness']:.4f}
+    avg_improvement: {global_summary['avg_improvement']:.4f}
+    stratification_strategy: "4 layers by skill count with percentile caps"
 
 # Rarity Analysis Parameters
 rarity_thresholds:
@@ -421,15 +625,65 @@ similarity_method:
 algorithm_config:
   calculation_steps:
     1: "Calculate asymmetric Jaccard baseline (|shared| / |job_a_skills|)"
-    2: "Identify defining skills for both jobs (top {results['percentile_threshold']:.1f}% rarest per job)"
+    2: "Identify defining skills using stratified parameters per job size"
     3: "Find shared defining skills between jobs"
-    4: "Apply {results['multiplier']:.3f}x multiplier boost for shared defining skills"
+    4: "Apply layer-specific multiplier boost for shared defining skills"
     5: "Allow scores >1.0 for corpus normalization"
     6: "Normalize entire corpus to 0-1 range preserving differentiation"
   
   store_both_raw_and_normalized: true
   primary_score_field: "similarity_score"
   raw_score_field: "raw_similarity_score"
+
+# Business Logic Constraints (Override Optimization Results)
+business_constraints:
+  # Dynamic defining skills limits based on job size
+  defining_skills_limits:
+    enabled: true
+    
+    # Job size categories and their constraints
+    job_size_categories:
+      small:
+        max_skills_threshold: 15
+        max_percentile_cap: 50.0
+        description: "Small jobs (≤15 skills): max 50% percentile → 3-7 defining skills"
+      medium:
+        max_skills_threshold: 30
+        max_percentile_cap: 30.0
+        description: "Medium jobs (16-30 skills): max 30% percentile → 5-9 defining skills"
+      large:
+        max_skills_threshold: 50
+        max_percentile_cap: 20.0
+        description: "Large jobs (31-50 skills): max 20% percentile → 6-10 defining skills"
+      xlarge:
+        max_skills_threshold: 999
+        max_percentile_cap: 15.0
+        description: "XLarge jobs (>50 skills): max 15% percentile → 8-15 defining skills"
+    
+    # Absolute business limits (hard caps)
+    absolute_limits:
+      max_defining_skills_per_job: 10
+      min_defining_skills_per_job: 1
+    
+    # Constraint application behavior
+    override_optimization: true
+    log_constraint_applications: true
+    constraint_priority: "business_first"  # business_first, optimization_first
+
+# Enhanced Similarity Normalization Rules
+normalization_config:
+  # Column-specific normalization
+  normalize_enhanced_similarity_score: true
+  preserve_raw_rarity_weighted_score: true
+  
+  # Database column mapping
+  primary_normalized_column: "enhanced_similarity_score"
+  raw_values_column: "rarity_weighted_score"
+  
+  # Normalization behavior
+  method: "corpus_max_normalization"
+  preserve_score_differentiation: true
+  allow_intermediate_scores_above_1: true
 
 # Validation and Quality Assurance
 validation:
@@ -447,15 +701,22 @@ validation:
 
 # Configuration Metadata
 metadata:
-  version: "3.0"
+  version: "3.2"
   last_updated: "{current_date}"
-  optimization_source: "Optuna Bayesian Optimization"
+  optimization_source: "Stratified Optuna Bayesian Optimization with Business Constraints"
   critical_for_modules:
     - "similarity/defining_skills.py"
     - "similarity/rarity_weighted.py" 
     - "similarity/asymmetric.py"
     - "business_context/analytics_orchestrator.py"
-  description: "Auto-generated optimal similarity parameters"
+  description: "Auto-generated stratified optimal similarity parameters with business logic constraints"
+"""
+        else:
+            # Legacy single optimization results (minimal fallback)
+            yaml_content = f"""# Legacy optimization result - consider running stratified optimization
+optuna_optimal:
+  defining_skills_percentile: {results.get('percentile_threshold', 49.9):.1f}
+  defining_skills_multiplier: {results.get('multiplier', 1.5):.3f}
 """
         
         # Write the file
@@ -475,12 +736,32 @@ metadata:
                 print("⚠️  Optimization was cancelled or failed.")
                 return False
             
-            # Validate required keys exist
-            required_keys = ['percentile_threshold', 'multiplier', 'trial_count', 'best_trial']
-            missing_keys = [key for key in required_keys if key not in results]
-            if missing_keys:
-                print(f"❌ Optimization results missing required data: {missing_keys}")
-                return False
+            # Validate stratified results format
+            if 'stratified_parameters' in results:
+                # Stratified results validation
+                stratified_params = results['stratified_parameters']
+                if not stratified_params:
+                    print("❌ No stratified parameters found in optimization results.")
+                    return False
+                
+                # Validate each layer has required data
+                for layer_name, layer_data in stratified_params.items():
+                    required_layer_keys = ['defining_skills_percentile', 'defining_skills_multiplier', 'job_count']
+                    missing_layer_keys = [key for key in required_layer_keys if key not in layer_data]
+                    if missing_layer_keys:
+                        print(f"❌ Layer {layer_name} missing required data: {missing_layer_keys}")
+                        return False
+                
+                print(f"✅ Stratified optimization validated successfully!")
+                print(f"   • {len(stratified_params)} job size layers optimized")
+                print(f"   • {results['global_summary']['total_jobs_processed']} jobs processed")
+            else:
+                # Legacy results validation
+                required_keys = ['percentile_threshold', 'multiplier', 'trial_count', 'best_trial']
+                missing_keys = [key for key in required_keys if key not in results]
+                if missing_keys:
+                    print(f"❌ Optimization results missing required data: {missing_keys}")
+                    return False
             
             self.write_yaml_config(results)
             print(f"🎉 Optimization complete! Enhanced Similarity Analytics will use new parameters.")

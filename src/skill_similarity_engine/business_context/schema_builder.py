@@ -117,7 +117,7 @@ class SchemaBuilder:
             'analytics_bundle_characteristics', 'analytics_specialized_skills', 
             'analytics_skill_demand_trends', 'analytics_skill_bundles', 'analytics_job_family_characteristics',
             'analytics_job_families', 'analytics_job_defining_skills', 'analytics_skill_rarity', 
-            'analytics_job_similarities', 'analytics_pathway_predictions', 'analytics_movement_patterns',
+            'analytics_job_similarities', 'analytics_movement_patterns',
             
             # Core relationship tables
             'core_job_skill_requirements',
@@ -166,7 +166,7 @@ class SchemaBuilder:
         """Create analytics tables ready for Phase 2 (empty initially)."""
         phase_2_tables = self.schema_config.get('analytics_tables', {}).get('phase_2', {})
         # Creating Phase 2 analytics tables
-        self._create_analytics_pathway_predictions_table(conn)
+
         
     def _create_analytics_tables_phase_3(self, conn: sqlite3.Connection) -> None:
         """Create analytics tables ready for Phase 3 (empty initially)."""
@@ -409,54 +409,7 @@ class SchemaBuilder:
         conn.execute(sql)
         logger.debug("Created analytics_movement_patterns table")
     
-    # Analytics Tables - Phase 2 (1 table)
-    
-    def _create_analytics_pathway_predictions_table(self, conn: sqlite3.Connection) -> None:
-        """Create analytics_pathway_predictions table - ML-generated pathway predictions (populated by Phase 2.2)."""
-        sql = """
-        CREATE TABLE analytics_pathway_predictions (
-            prediction_id TEXT PRIMARY KEY,                    -- "R0001.5_R0002.1" format
-            from_job_profile_id TEXT,                         -- Source JobProfileID
-            to_job_profile_id TEXT,                           -- Target JobProfileID
-            
-            -- Core ML Predictions
-            ml_predicted_movements REAL,                      -- Raw ensemble prediction
-            pathway_volume_percentile REAL,                   -- 0-100th percentile ranking
-            pathway_volume_category TEXT,                     -- "Major pathway (Top 5%)"
-            
-            -- Confidence Metrics
-            prediction_interval_lower_80pct REAL,             -- Lower confidence bound
-            prediction_interval_upper_80pct REAL,             -- Upper confidence bound
-            prediction_interval_width_80pct REAL,             -- Confidence interval width
-            model_agreement_fraction TEXT,                    -- "3/3" = all models agree
-            models_agreeing_count INTEGER,                    -- Number of agreeing models
-            agreement_rate_decimal REAL,                      -- 0.0-1.0 consensus rate
-            
-            -- Individual Model Predictions
-            prediction_random_forest REAL,                    -- Random Forest prediction
-            prediction_xgboost REAL,                         -- XGBoost prediction  
-            prediction_gradient_boosting REAL,               -- Gradient Boosting prediction
-            
-            -- Historical Context
-            historical_sample_size INTEGER,                   -- Training examples count
-            ensemble_standard_deviation REAL,                 -- Prediction uncertainty
-            prediction_coefficient_of_variation_percent REAL, -- Relative variability
-            
-            -- Business Context (for webapp display)
-            from_job_profile_name TEXT,                      -- Source job name
-            to_job_profile_name TEXT,                        -- Target job name
-            
-            -- Metadata
-            training_algorithm TEXT DEFAULT 'ensemble_v1.0', -- Algorithm version
-            training_timestamp TEXT,                          -- When models were trained
-            created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-            
-            FOREIGN KEY (from_job_profile_id) REFERENCES core_job_architecture(JobProfileID),
-            FOREIGN KEY (to_job_profile_id) REFERENCES core_job_architecture(JobProfileID)
-        );
-        """
-        conn.execute(sql)
-        logger.debug("Created analytics_pathway_predictions table")
+
     
     # Analytics Tables - Phase 1 (2 tables)
     
@@ -610,7 +563,8 @@ class SchemaBuilder:
         """Create analytics_job_family_characteristics table - Business-readable job family naming conventions."""
         sql = """
         CREATE TABLE analytics_job_family_characteristics (
-            cluster_id INTEGER PRIMARY KEY,        -- Unique job family identifier
+            id INTEGER PRIMARY KEY AUTOINCREMENT,   -- Unique characteristic record identifier
+            cluster_id INTEGER NOT NULL,            -- Job family cluster identifier (allows multiple characteristics per cluster)
             family_name TEXT,                      -- Business-readable family name
             family_description TEXT,               -- Human-interpretable description
             family_rationale TEXT,                -- Explanation of family grouping logic
@@ -653,7 +607,10 @@ class SchemaBuilder:
             created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
             
             -- Foreign key constraint to ensure data integrity
-            FOREIGN KEY (cluster_id) REFERENCES analytics_job_families(cluster_id)
+            FOREIGN KEY (cluster_id) REFERENCES analytics_job_families(cluster_id),
+            
+            -- Unique constraint to prevent duplicate characteristics of the same type for a cluster
+            UNIQUE(cluster_id, family_name)
         );
         """
         conn.execute(sql)
@@ -803,7 +760,8 @@ class SchemaBuilder:
         """Create analytics_bundle_characteristics table - Detailed skill bundle characteristics with quality metrics."""
         sql = """
         CREATE TABLE analytics_bundle_characteristics (
-            cluster_id INTEGER PRIMARY KEY,        -- Unique bundle identifier
+            id INTEGER PRIMARY KEY AUTOINCREMENT,   -- Unique characteristic record identifier
+            cluster_id INTEGER NOT NULL,            -- Skill bundle cluster identifier (allows multiple characteristics per cluster)
             bundle_name TEXT,                      -- Business-readable bundle name
             bundle_description TEXT,               -- Human-interpretable description
             bundle_rationale TEXT,                -- Explanation of bundling logic
@@ -847,7 +805,10 @@ class SchemaBuilder:
             created_timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
             
             -- Foreign key constraint to ensure data integrity
-            FOREIGN KEY (cluster_id) REFERENCES analytics_skill_bundles(cluster_id)
+            FOREIGN KEY (cluster_id) REFERENCES analytics_skill_bundles(cluster_id),
+            
+            -- Unique constraint to prevent duplicate characteristics of the same type for a cluster
+            UNIQUE(cluster_id, bundle_name)
         );
         """
         conn.execute(sql)

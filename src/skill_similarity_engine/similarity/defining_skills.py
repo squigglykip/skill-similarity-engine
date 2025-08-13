@@ -59,11 +59,11 @@ class DefiningSkillsAnalyzer:
                                           skill_universe: pd.DataFrame, 
                                           job_skills_df: pd.DataFrame) -> Dict[str, Set[str]]:
         """
-        Create job-specific defining skills using empirically-tuned percentile threshold.
+        Create job-specific defining skills using empirically-tuned percentile threshold with business constraints.
         
-        Uses top 8.8% rarest skills per job profile based on Optuna optimization results:
-        - 8.8% percentile, 1.206x multiplier = optimal balance 
-        - 0.57% avg improvement, higher differentiation, 0.7723 smoothness score
+        Uses top X% rarest skills per job profile based on Optuna optimization results with business logic:
+        - Dynamic percentile scaling based on job size for realistic defining skills counts
+        - Business constraints override optimization when needed for practical application
         
         Args:
             skill_universe: DataFrame with all skills and their global rarity/prevalence
@@ -79,14 +79,33 @@ class DefiningSkillsAnalyzer:
             'core', 'similarity_parameters', 'optuna_optimal', 'optimization_metadata'
         )
         
-        print(f"🎯 Creating job-specific defining skills (top {self.defining_skills_percentile}% rarest per role)")
+        # Load business constraints
+        business_constraints = config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'business_constraints'
+        )
+        
+        print(f"🎯 Creating job-specific defining skills with business constraints")
         if optimization_metadata:
-            avg_improvement = optimization_metadata.get('average_improvement', 0) * 100  # Convert to percentage
-            smoothness_score = optimization_metadata.get('smoothness_score', 0)
-            print(f"   Based on Optuna optimization: {avg_improvement:.2f}% avg improvement, enhanced differentiation")
-            print(f"   Smoothness score: {smoothness_score:.4f} (optimal balance of smoothness + practical impact)")
+            # Check for stratified optimization metadata
+            if 'stratification_strategy' in optimization_metadata:
+                # Stratified optimization
+                avg_improvement = optimization_metadata.get('avg_improvement', 0) * 100  # Convert to percentage
+                smoothness_score = optimization_metadata.get('avg_smoothness', 0)
+                total_trials = optimization_metadata.get('total_trials', 0)
+                total_jobs = optimization_metadata.get('total_jobs_processed', 0)
+                print(f"   Based on Stratified Optuna optimization: {avg_improvement:.2f}% avg improvement, enhanced differentiation")
+                print(f"   Smoothness score: {smoothness_score:.4f} (optimal balance across {total_trials} trials, {total_jobs} jobs)")
+            else:
+                # Legacy optimization
+                avg_improvement = optimization_metadata.get('average_improvement', 0) * 100  # Convert to percentage
+                smoothness_score = optimization_metadata.get('smoothness_score', 0)
+                print(f"   Based on Optuna optimization: {avg_improvement:.2f}% avg improvement, enhanced differentiation")
+                print(f"   Smoothness score: {smoothness_score:.4f} (optimal balance of smoothness + practical impact)")
+        
+        if business_constraints and business_constraints.get('defining_skills_limits', {}).get('enabled', False):
+            print(f"   🏢 Business constraints enabled: Dynamic scaling by job size")
         else:
-            print(f"   Using configured parameters for defining skills analysis")
+            print(f"   Using base percentile: {self.defining_skills_percentile}% rarest per role")
         
         job_defining_skills = {}
         
@@ -111,8 +130,27 @@ class DefiningSkillsAnalyzer:
                 # Sort by prevalence (ascending = rarest first), then by skill name for deterministic tie-breaking
                 job_skills_with_rarity = job_skills_with_rarity.sort_values(['prevalence_percentage', 'Skill_Name'])
                 
-                # Take top 8.8% rarest skills for this job (Optuna optimal)
-                num_defining = max(1, int(len(job_skills_with_rarity) * self.defining_skills_percentile / 100))
+                job_skill_count = len(job_skills_with_rarity)
+                
+                # Try to get stratified parameters first, then apply business constraints as fallback
+                effective_percentile, effective_multiplier = self._get_optimal_parameters_for_job(job_skill_count)
+                
+                # Apply business constraints as a secondary safeguard (if stratified parameters aren't available)
+                if business_constraints and business_constraints.get('defining_skills_limits', {}).get('enabled', False):
+                    effective_percentile = self._apply_business_constraints(
+                        job_skill_count, effective_percentile, business_constraints
+                    )
+                
+                # Calculate number of defining skills with effective percentile
+                num_defining = max(1, int(len(job_skills_with_rarity) * effective_percentile / 100))
+                
+                # Apply absolute business limits if configured
+                if business_constraints and business_constraints.get('defining_skills_limits', {}).get('enabled', False):
+                    absolute_limits = business_constraints.get('defining_skills_limits', {}).get('absolute_limits', {})
+                    max_defining = absolute_limits.get('max_defining_skills_per_job', num_defining)
+                    min_defining = absolute_limits.get('min_defining_skills_per_job', 1)
+                    num_defining = max(min_defining, min(num_defining, max_defining))
+                
                 defining_for_this_job = job_skills_with_rarity.head(num_defining)['Skill_Name'].tolist()
                 
                 job_defining_skills[job_id] = set(defining_for_this_job)
@@ -288,6 +326,41 @@ class DefiningSkillsAnalyzer:
         
         return summary
     
+    def _apply_business_constraints(self, job_skill_count: int, base_percentile: float, 
+                                  business_constraints: Dict[str, Any]) -> float:
+        """
+        Apply business constraints to limit defining skills based on job size.
+        
+        Args:
+            job_skill_count: Number of skills in the job
+            base_percentile: Base percentile from optimization
+            business_constraints: Business constraints configuration
+            
+        Returns:
+            Effective percentile to use (may be capped by business rules)
+        """
+        defining_limits = business_constraints.get('defining_skills_limits', {})
+        if not defining_limits.get('enabled', False):
+            return base_percentile
+        
+        job_categories = defining_limits.get('job_size_categories', {})
+        
+        # Determine job size category
+        for category_name, category_config in job_categories.items():
+            max_threshold = category_config.get('max_skills_threshold', float('inf'))
+            if job_skill_count <= max_threshold:
+                max_percentile = category_config.get('max_percentile_cap', base_percentile)
+                effective_percentile = min(base_percentile, max_percentile)
+                
+                # Log constraint application if enabled
+                if defining_limits.get('log_constraint_applications', False) and effective_percentile < base_percentile:
+                    print(f"   🏢 Job size constraint applied: {job_skill_count} skills → {category_name} category → {effective_percentile:.1f}% (capped from {base_percentile:.1f}%)")
+                
+                return effective_percentile
+        
+        # Fallback - should not reach here with proper config
+        return base_percentile
+    
     def _get_defining_rank(self, 
                           job_id: str, 
                           skill_name: str, 
@@ -327,3 +400,34 @@ class DefiningSkillsAnalyzer:
                 return rank
                 
         return 0
+    
+    def _get_optimal_parameters_for_job(self, job_skill_count: int) -> tuple[float, float]:
+        """Get stratified optimal parameters for a specific job size."""
+        
+        # Try to get stratified parameters first
+        from skill_similarity_engine.config.architectural_config_manager import get_config_manager
+        config_manager = get_config_manager()
+        
+        stratified_config = config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal', 'stratified_parameters'
+        )
+        
+        if stratified_config:
+            # Determine which layer this job belongs to
+            if job_skill_count <= 15:
+                layer_config = stratified_config.get('small_jobs', {})
+            elif job_skill_count <= 30:
+                layer_config = stratified_config.get('medium_jobs', {})
+            elif job_skill_count <= 50:
+                layer_config = stratified_config.get('large_jobs', {})
+            else:
+                layer_config = stratified_config.get('xlarge_jobs', {})
+            
+            if layer_config:
+                return (
+                    layer_config.get('defining_skills_percentile', self.defining_skills_percentile),
+                    layer_config.get('defining_skills_multiplier', 1.5)  # default fallback multiplier
+                )
+        
+        # Fallback to global parameters
+        return (self.defining_skills_percentile, 1.5)  # default fallback multiplier

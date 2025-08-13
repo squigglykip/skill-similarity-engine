@@ -23,7 +23,7 @@ import numpy as np
 import sqlite3
 import warnings
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Set, Any, Union
 from collections import defaultdict, Counter
 from dataclasses import dataclass
@@ -386,11 +386,11 @@ class JobProfileClusterer:
         
         # Quality assessment
         quality_assessment = self._assess_clustering_quality(
-            silhouette, n_clusters, n_noise, len(cluster_labels), cluster_sizes
+            float(silhouette), n_clusters, n_noise, len(cluster_labels), cluster_sizes
         )
         
         return ClusteringMetrics(
-            silhouette_score=silhouette,
+            silhouette_score=float(silhouette),
             n_clusters=n_clusters,
             n_noise=n_noise,
             cluster_sizes=cluster_sizes,
@@ -623,11 +623,11 @@ class SkillsBundleClusterer:
             raise ValueError("No skills data available for clustering")
         
         # Perform skills clustering
-        clustered_skills = self._perform_skills_clustering(skills_data)
+        clustered_skills, cluster_silhouette_scores = self._perform_skills_clustering(skills_data)
         
         # Generate skill bundles
         skill_bundles_df, bundle_characteristics_df, specialized_skills_df = self._generate_skill_bundles(
-            clustered_skills
+            clustered_skills, cluster_silhouette_scores, db_path
         )
         
         log_info("Skills clustering completed", {
@@ -677,8 +677,8 @@ class SkillsBundleClusterer:
             log_info("Failed to load skills data", {'error': str(e)})
             return None
     
-    def _perform_skills_clustering(self, skills_data: pd.DataFrame) -> pd.DataFrame:
-        """Perform DBSCAN clustering on skills data."""
+    def _perform_skills_clustering(self, skills_data: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, float]]:
+        """Perform DBSCAN clustering on skills data and calculate silhouette scores."""
         # For now, implement a simplified clustering based on category and prevalence
         # TODO: Implement proper similarity-based clustering
         
@@ -698,41 +698,323 @@ class SkillsBundleClusterer:
                 ] = cluster_id
                 cluster_id += 1
         
-        return skills_with_clusters
+        # Calculate silhouette scores per cluster
+        cluster_silhouette_scores = self._calculate_cluster_silhouette_scores(skills_with_clusters)
+        
+        return skills_with_clusters, cluster_silhouette_scores
     
-    def _generate_skill_bundles(self, clustered_skills: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def _calculate_cluster_silhouette_scores(self, clustered_skills: pd.DataFrame) -> Dict[int, float]:
+        """Calculate silhouette scores for each cluster based on skill features."""
+        cluster_silhouette_scores = {}
+        
+        # Get unique cluster IDs (excluding noise)
+        unique_clusters = clustered_skills['cluster_id'].unique()
+        valid_clusters = [c for c in unique_clusters if c != -1]
+        
+        if len(valid_clusters) < 2:
+            # Need at least 2 clusters for silhouette score
+            for cluster_id in valid_clusters:
+                cluster_silhouette_scores[cluster_id] = 0.5  # Default moderate score
+            return cluster_silhouette_scores
+        
+        try:
+            # Create feature matrix based on skill characteristics
+            # Using prevalence_percent and jobs_count as features for similarity
+            features = clustered_skills[['prevalence_percent', 'jobs_count']].values
+            
+            # Standardize features for better silhouette calculation
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            features_scaled = scaler.fit_transform(features)
+            
+            # Calculate overall silhouette score
+            cluster_labels = clustered_skills['cluster_id'].values
+            overall_silhouette = silhouette_score(features_scaled, cluster_labels)
+            
+            # Calculate per-cluster silhouette scores
+            silhouette_samples_scores = silhouette_samples(features_scaled, cluster_labels)
+            
+            for cluster_id in valid_clusters:
+                cluster_mask = clustered_skills['cluster_id'] == cluster_id
+                cluster_samples = silhouette_samples_scores[cluster_mask.values]
+                cluster_silhouette_mean = float(np.mean(cluster_samples))
+                cluster_silhouette_scores[cluster_id] = round(cluster_silhouette_mean, 3)
+            
+            log_info("Calculated cluster silhouette scores", {
+                'overall_silhouette': round(overall_silhouette, 3),
+                'n_clusters': len(valid_clusters),
+                'cluster_scores': {k: v for k, v in cluster_silhouette_scores.items()}
+            })
+            
+        except Exception as e:
+            log_info("Failed to calculate silhouette scores, using defaults", {'error': str(e)})
+            # Fallback to default scores based on cluster quality indicators
+            for cluster_id in valid_clusters:
+                cluster_skills = clustered_skills[clustered_skills['cluster_id'] == cluster_id]
+                cluster_size = len(cluster_skills)
+                category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+                
+                # Estimate silhouette based on cluster quality
+                if cluster_size >= 10 and category_purity >= 0.8:
+                    estimated_silhouette = 0.7
+                elif cluster_size >= 5 and category_purity >= 0.6:
+                    estimated_silhouette = 0.5
+                else:
+                    estimated_silhouette = 0.3
+                    
+                cluster_silhouette_scores[cluster_id] = estimated_silhouette
+        
+        return cluster_silhouette_scores
+    
+    def _calculate_intra_bundle_similarity(self, cluster_skills: pd.DataFrame) -> float:
+        """
+        Calculate intra-bundle similarity - average similarity within the skill bundle.
+        Uses prevalence and job count patterns to determine how cohesive the bundle is.
+        """
+        if len(cluster_skills) <= 1:
+            return 1.0  # Single skill or empty bundle has perfect internal similarity
+        
+        try:
+            # Create feature vectors for similarity calculation
+            features = cluster_skills[['prevalence_percent', 'jobs_count']].values
+            
+            # Standardize features
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            features_scaled = scaler.fit_transform(features)
+            
+            # Calculate pairwise cosine similarities within the bundle
+            similarity_matrix = cosine_similarity(features_scaled)
+            
+            # Get upper triangle of similarity matrix (excluding diagonal)
+            n_skills = len(cluster_skills)
+            upper_triangle_indices = np.triu_indices(n_skills, k=1)
+            similarities = similarity_matrix[upper_triangle_indices]
+            
+            if len(similarities) == 0:
+                return 1.0
+            
+            # Calculate average similarity
+            intra_similarity = float(np.mean(similarities))
+            
+            # Apply category coherence bonus
+            category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+            category_bonus = category_purity * 0.1  # Small bonus for category coherence
+            
+            final_similarity = min(1.0, intra_similarity + category_bonus)
+            
+            return round(final_similarity, 3)
+            
+        except Exception as e:
+            log_info("Failed to calculate intra-bundle similarity, using fallback", {'error': str(e)})
+            
+            # Fallback: estimate based on category purity and size
+            category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+            size_factor = min(1.0, 1.0 / (1 + len(cluster_skills) / 20))  # Smaller bundles more similar
+            
+            fallback_similarity = (0.7 * category_purity) + (0.3 * size_factor)
+            return round(fallback_similarity, 3)
+    
+    def _calculate_inter_bundle_distance(self, current_cluster_skills: pd.DataFrame, all_clustered_skills: pd.DataFrame, current_cluster_id: int) -> float:
+        """
+        Calculate inter-bundle distance - average distance from current bundle to other bundles.
+        Higher values indicate better separation from other skill bundles.
+        """
+        if len(current_cluster_skills) == 0:
+            return 0.0
+        
+        try:
+            # Get other clusters (excluding current and noise)
+            other_clusters = all_clustered_skills[
+                (all_clustered_skills['cluster_id'] != current_cluster_id) & 
+                (all_clustered_skills['cluster_id'] != -1)
+            ]
+            
+            if len(other_clusters) == 0:
+                return 1.0  # Perfect separation if no other clusters
+            
+            # Calculate centroid of current cluster
+            current_features = current_cluster_skills[['prevalence_percent', 'jobs_count']].values
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            current_features_scaled = scaler.fit_transform(current_features)
+            current_centroid = np.mean(current_features_scaled, axis=0)
+            
+            # Calculate distances to other cluster centroids
+            other_cluster_ids = other_clusters['cluster_id'].unique()
+            distances_to_other_clusters = []
+            
+            for other_cluster_id in other_cluster_ids:
+                other_cluster_skills = other_clusters[other_clusters['cluster_id'] == other_cluster_id]
+                
+                if len(other_cluster_skills) > 0:
+                    # Calculate centroid of other cluster using the same scaler
+                    other_features = other_cluster_skills[['prevalence_percent', 'jobs_count']].values
+                    other_features_scaled = scaler.transform(other_features)
+                    other_centroid = np.mean(other_features_scaled, axis=0)
+                    
+                    # Calculate Euclidean distance between centroids
+                    distance = float(np.linalg.norm(current_centroid - other_centroid))
+                    distances_to_other_clusters.append(distance)
+            
+            if not distances_to_other_clusters:
+                return 1.0
+            
+            # Average distance to other clusters
+            avg_inter_distance = float(np.mean(distances_to_other_clusters))
+            
+            # Apply category separation bonus
+            current_categories = set(current_cluster_skills['category'].unique())
+            other_categories = set(other_clusters['category'].unique())
+            category_overlap = len(current_categories & other_categories) / len(current_categories | other_categories) if current_categories | other_categories else 0
+            category_separation_bonus = (1 - category_overlap) * 0.2  # Bonus for distinct categories
+            
+            final_distance = min(1.0, avg_inter_distance + category_separation_bonus)
+            
+            return round(final_distance, 3)
+            
+        except Exception as e:
+            log_info("Failed to calculate inter-bundle distance, using fallback", {'error': str(e)})
+            
+            # Fallback: estimate based on cluster size and category uniqueness
+            current_categories = set(current_cluster_skills['category'].unique())
+            other_clusters = all_clustered_skills[
+                (all_clustered_skills['cluster_id'] != current_cluster_id) & 
+                (all_clustered_skills['cluster_id'] != -1)
+            ]
+            
+            if len(other_clusters) == 0:
+                return 1.0
+            
+            other_categories = set(other_clusters['category'].unique())
+            category_uniqueness = 1 - (len(current_categories & other_categories) / len(current_categories | other_categories)) if current_categories | other_categories else 0.5
+            
+            # Size factor - smaller clusters typically more distinct
+            size_factor = min(1.0, 1.0 / (1 + len(current_cluster_skills) / 50))
+            
+            fallback_distance = (0.6 * category_uniqueness) + (0.4 * size_factor)
+            return round(fallback_distance, 3)
+    
+    def _calculate_taxonomy_alignment_score(self, cluster_skills: pd.DataFrame) -> float:
+        """
+        Calculate taxonomy alignment score - how well the skills in this bundle align with taxonomy categories.
+        Higher scores indicate better adherence to the existing skill taxonomy structure.
+        """
+        if len(cluster_skills) == 0:
+            return 0.0
+        
+        try:
+            # Factor 1: Category purity (40% weight)
+            category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+            
+            # Factor 2: Subcategory consistency (30% weight)
+            if 'subcategory' in cluster_skills.columns:
+                subcategory_purity = (cluster_skills['subcategory'] == cluster_skills['subcategory'].mode().iloc[0]).mean()
+            else:
+                subcategory_purity = 1.0  # Assume perfect if no subcategory data
+            
+            # Factor 3: Skill type consistency (20% weight)
+            if 'skill_type' in cluster_skills.columns:
+                skill_type_purity = (cluster_skills['skill_type'] == cluster_skills['skill_type'].mode().iloc[0]).mean()
+            else:
+                skill_type_purity = 1.0  # Assume perfect if no skill type data
+            
+            # Factor 4: Bundle size appropriateness (10% weight)
+            bundle_size = len(cluster_skills)
+            if 5 <= bundle_size <= 50:
+                size_score = 1.0  # Optimal size range
+            elif bundle_size < 5:
+                size_score = bundle_size / 5.0  # Penalty for very small bundles
+            else:
+                size_score = max(0.3, 1.0 - ((bundle_size - 50) / 100.0))  # Penalty for very large bundles
+            
+            # Calculate weighted taxonomy alignment score
+            taxonomy_score = (
+                0.4 * category_purity +
+                0.3 * subcategory_purity +
+                0.2 * skill_type_purity +
+                0.1 * size_score
+            )
+            
+            return round(taxonomy_score, 3)
+            
+        except Exception as e:
+            log_info("Failed to calculate taxonomy alignment score, using fallback", {'error': str(e)})
+            
+            # Simple fallback based on category purity
+            category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+            return round(category_purity * 0.8, 3)  # Conservative estimate
+    
+    def _get_sample_job_functions(self, cluster_skills: pd.DataFrame, db_path: str) -> str:
+        """
+        Get sample job functions that commonly use skills from this bundle.
+        """
+        try:
+            skill_ids = cluster_skills['skill_id'].tolist()
+            if not skill_ids:
+                return "No job functions found"
+            
+            with sqlite3.connect(db_path) as conn:
+                # Get job functions that use these skills
+                placeholders = ','.join(['?' for _ in skill_ids])
+                query = f"""
+                SELECT 
+                    jp.JobFunction,
+                    COUNT(DISTINCT js.Skill_ID) as skills_used,
+                    COUNT(DISTINCT js.JobProfileID) as jobs_count
+                FROM core_job_skill_requirements js
+                JOIN core_job_architecture jp ON js.JobProfileID = jp.JobProfileID
+                WHERE js.Skill_ID IN ({placeholders})
+                GROUP BY jp.JobFunction
+                ORDER BY skills_used DESC, jobs_count DESC
+                LIMIT 3
+                """
+                
+                cursor = conn.execute(query, skill_ids)
+                results = cursor.fetchall()
+                
+                if results:
+                    job_functions = [row[0] for row in results if row[0]]
+                    return '; '.join(job_functions)
+                else:
+                    return "General workforce functions"
+                    
+        except Exception as e:
+            log_info("Failed to get sample job functions", {'error': str(e)})
+            return "Analysis not available"
+    
+    def _generate_skill_bundles(self, clustered_skills: pd.DataFrame, cluster_silhouette_scores: Dict[int, float], db_path: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Generate skill bundles, characteristics, and identify specialized skills."""
         skill_bundles = []
         bundle_characteristics = []
         specialized_skills = []
+        
+        # Identify specialized skills based on multiple criteria
+        specialized_skills = self._identify_specialized_skills(clustered_skills)
         
         # Process each cluster
         for cluster_id in clustered_skills['cluster_id'].unique():
             cluster_skills = clustered_skills[clustered_skills['cluster_id'] == cluster_id]
             
             if cluster_id == -1:
-                # Handle noise/specialized skills
-                for _, skill in cluster_skills.iterrows():
-                    if skill['jobs_count'] < self.min_specialization_threshold:
-                        specialized_skills.append({
-                            'skill_id': skill['skill_id'],
-                            'skill_name': skill['skill_name'],
-                            'category': skill['category'],
-                            'subcategory': skill['subcategory'],
-                            'skill_type': skill['skill_type'],
-                            'jobs_count': skill['jobs_count'],
-                            'prevalence_percent': skill['prevalence_percent'],
-                            'specialization_reason': 'Low prevalence - highly specialized',
-                            'created_timestamp': datetime.now().isoformat()
-                        })
+                # Skip noise points - they're already handled in specialized skills
                 continue
             
             # Generate bundle for this cluster
             bundle_name = self._generate_bundle_name(cluster_skills)
             bundle_description = self._generate_bundle_description(cluster_skills)
             
+            # Calculate cluster-level metrics once per cluster
+            bundle_confidence = self._calculate_bundle_confidence(cluster_skills)
+            cluster_silhouette = cluster_silhouette_scores.get(cluster_id, 0.0)
+            intra_bundle_similarity = self._calculate_intra_bundle_similarity(cluster_skills)
+            inter_bundle_distance = self._calculate_inter_bundle_distance(cluster_skills, clustered_skills, cluster_id)
+            taxonomy_alignment = self._calculate_taxonomy_alignment_score(cluster_skills)
+            sample_job_functions = self._get_sample_job_functions(cluster_skills, db_path)
+            
             # Add skills to bundle
             for _, skill in cluster_skills.iterrows():
+                
                 skill_bundles.append({
                     'skill_id': skill['skill_id'],
                     'skill_name': skill['skill_name'],
@@ -747,11 +1029,33 @@ class SkillsBundleClusterer:
                     'bundle_description': bundle_description,
                     'bundle_rationale': f'Grouped by {skill["category"]} category similarity',
                     'sample_skills': '; '.join(cluster_skills['skill_name'].head(3).tolist()),
-                    'sample_job_functions': 'Analysis pending',  # TODO: Implement
+                    'sample_job_functions': sample_job_functions,
                     'bundle_size': len(cluster_skills),
                     'is_specialized': False,
+                    'bundle_confidence': bundle_confidence,
+                    'silhouette_score': cluster_silhouette,
+                    'intra_bundle_similarity': intra_bundle_similarity,
+                    'inter_bundle_distance': inter_bundle_distance,
+                    'clustering_algorithm': self.algorithm,
+                    'similarity_method': self.similarity_measure,
+                    'algorithm_parameters': self._get_algorithm_parameters_string(),
                     'created_timestamp': datetime.now().isoformat()
                 })
+            
+            # Identify core and peripheral skills
+            core_skills, peripheral_skills = self._identify_core_peripheral_skills(cluster_skills)
+            
+            # Calculate business value score
+            business_value_score = self._calculate_business_value_score(cluster_skills)
+            
+            # Assess training feasibility
+            training_feasibility = self._assess_training_feasibility(cluster_skills)
+            
+            # Calculate skill complementarity
+            skill_complementarity = self._calculate_skill_complementarity(cluster_skills)
+            
+            # Assess market demand level
+            market_demand_level = self._assess_market_demand_level(cluster_skills, db_path)
             
             # Add bundle characteristics
             bundle_characteristics.append({
@@ -761,14 +1065,22 @@ class SkillsBundleClusterer:
                 'bundle_rationale': f'Grouped by {cluster_skills["category"].iloc[0]} category',
                 'bundle_size': len(cluster_skills),
                 'sample_skills': '; '.join(cluster_skills['skill_name'].head(3).tolist()),
-                'sample_job_functions': 'Analysis pending',
+                'sample_job_functions': sample_job_functions,
+                'core_skills': '; '.join(core_skills),
+                'peripheral_skills': '; '.join(peripheral_skills),
                 'dominant_category': cluster_skills['category'].mode().iloc[0],
                 'category_purity': (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean(),
                 'application_level': self._assess_application_level(cluster_skills),
                 'specialization_area': cluster_skills['category'].iloc[0],
                 'average_jobs_per_skill': cluster_skills['jobs_count'].mean(),
-                'taxonomy_alignment_score': 0.8,  # TODO: Implement proper calculation
-                'silhouette_score': 0.0,  # TODO: Implement proper calculation
+                'taxonomy_alignment_score': taxonomy_alignment,
+                'business_value_score': business_value_score,
+                'training_feasibility': training_feasibility,
+                'skill_complementarity': skill_complementarity,
+                'market_demand_level': market_demand_level,
+                'silhouette_score': cluster_silhouette_scores.get(cluster_id, 0.0),
+                'clustering_algorithm': self.algorithm,
+                'algorithm_parameters': self._get_algorithm_parameters_string(),
                 'created_timestamp': datetime.now().isoformat()
             })
         
@@ -777,6 +1089,101 @@ class SkillsBundleClusterer:
             pd.DataFrame(bundle_characteristics), 
             pd.DataFrame(specialized_skills)
         )
+    
+    def _identify_specialized_skills(self, clustered_skills: pd.DataFrame) -> List[Dict[str, Any]]:
+        """
+        Identify specialized skills based on multiple strategic criteria.
+        
+        Specialized skills are those that:
+        - Have <1% prevalence (very rare/unique)
+        - Are in noise cluster (DBSCAN outliers)
+        - Have high strategic value (emerging/critical)
+        - Are unsuitable for bundling (too unique)
+        """
+        specialized_skills = []
+        
+        # Calculate total jobs for prevalence calculations
+        total_jobs = clustered_skills['jobs_count'].max() if len(clustered_skills) > 0 else 1
+        
+        for _, skill in clustered_skills.iterrows():
+            specialization_reasons = []
+            is_specialized = False
+            
+            # Criterion 1: Very low prevalence (<1%)
+            if skill['prevalence_percent'] < 1.0:
+                specialization_reasons.append("Very low prevalence (<1%)")
+                is_specialized = True
+            
+            # Criterion 2: Clustering outlier (noise points)
+            if skill['cluster_id'] == -1:
+                specialization_reasons.append("Clustering outlier - unique skill profile")
+                is_specialized = True
+            
+            # Criterion 3: Low job count but high value indicators
+            if skill['jobs_count'] < self.min_specialization_threshold:
+                # Check for emerging/strategic skills
+                if any(keyword in skill['skill_name'].lower() for keyword in 
+                       ['ai', 'machine learning', 'blockchain', 'quantum', 'cloud', 'devops', 'cybersecurity']):
+                    specialization_reasons.append("Emerging technology - strategic individual attention required")
+                    is_specialized = True
+                else:
+                    specialization_reasons.append("Low prevalence - highly specialized")
+                    is_specialized = True
+            
+            # Criterion 4: Skills in small clusters that should remain individual
+            elif skill['cluster_id'] != -1:
+                cluster_size = len(clustered_skills[clustered_skills['cluster_id'] == skill['cluster_id']])
+                if cluster_size <= 2 and skill['prevalence_percent'] < 5.0:
+                    specialization_reasons.append("Small cluster with unique characteristics")
+                    is_specialized = True
+            
+            # Add to specialized skills if any criteria met
+            if is_specialized:
+                # Calculate specialization score (0-100 based on rarity and criteria)
+                specialization_score = min(100.0, (100.0 - skill['prevalence_percent']) * 1.2)
+                
+                # Determine strategic importance
+                strategic_importance = 'High' if any('emerging' in reason.lower() or 'strategic' in reason.lower() 
+                                                   for reason in specialization_reasons) else 'Medium'
+                
+                # Determine specialization category
+                if skill['prevalence_percent'] < 1.0:
+                    spec_category = 'Ultra-Rare'
+                elif skill['cluster_id'] == -1:
+                    spec_category = 'Unique'
+                elif any('emerging' in reason.lower() for reason in specialization_reasons):
+                    spec_category = 'Emerging'
+                else:
+                    spec_category = 'Specialized'
+                
+                specialized_skills.append({
+                    'skill_id': skill['skill_id'],
+                    'skill_name': skill['skill_name'],
+                    'category': skill['category'],
+                    'subcategory': skill['subcategory'],
+                    'skill_type': skill['skill_type'],
+                    'jobs_count': skill['jobs_count'],
+                    'prevalence_percent': skill['prevalence_percent'],
+                    'specialization_score': specialization_score,
+                    'rarity_rank': None,  # To be calculated in post-processing
+                    'specialization_reason': '; '.join(specialization_reasons),
+                    'specialization_category': spec_category,
+                    'market_context': 'Internal analysis',
+                    'strategic_importance': strategic_importance,
+                    'skill_lifecycle_stage': 'Emerging' if 'emerging' in '; '.join(specialization_reasons).lower() else 'Mature',
+                    'investment_recommendation': 'Individual development' if strategic_importance == 'High' else 'Monitor',
+                    'related_skills': None,  # TODO: Implement skill relationship analysis
+                    'typical_job_functions': None,  # TODO: Implement job function analysis
+                    'training_availability': 'Limited' if specialization_score > 95 else 'Available',
+                    'external_market_demand': 'High' if strategic_importance == 'High' else 'Moderate',
+                    'analysis_methodology': 'Multi-criteria specialization analysis',
+                    'confidence_level': 'High' if len(specialization_reasons) > 1 else 'Medium',
+                    'last_review_date': datetime.now().isoformat(),
+                    'next_review_date': (datetime.now() + timedelta(days=90)).isoformat(),
+                    'created_timestamp': datetime.now().isoformat()
+                })
+        
+        return specialized_skills
     
     def _generate_bundle_name(self, cluster_skills: pd.DataFrame) -> str:
         """Generate business-readable bundle name."""
@@ -800,6 +1207,450 @@ class SkillsBundleClusterer:
             return "Intermediate"
         else:
             return "Advanced"
+    
+    def _get_algorithm_parameters_string(self) -> str:
+        """Get algorithm-specific parameters as a string for metadata."""
+        if self.algorithm == 'dbscan':
+            return f"eps={self.eps}, min_samples={self.min_samples}"
+        elif self.algorithm == 'hierarchical':
+            return f"n_clusters={self.n_clusters}, linkage={self.linkage}"
+        elif self.algorithm == 'kmeans':
+            return f"n_clusters={self.n_clusters}, random_state=42"
+        else:
+            return f"algorithm={self.algorithm}"
+    
+    def _identify_core_peripheral_skills(self, cluster_skills: pd.DataFrame) -> Tuple[List[str], List[str]]:
+        """
+        Identify core and peripheral skills within a bundle based on prevalence and job usage.
+        
+        Core skills: Top 30% by combined prevalence and job count
+        Peripheral skills: Bottom 30% by combined prevalence and job count
+        Standard skills: Middle 40% (not categorized as core or peripheral)
+        
+        Args:
+            cluster_skills: DataFrame with skills in the cluster
+            
+        Returns:
+            Tuple of (core_skills_list, peripheral_skills_list)
+        """
+        if len(cluster_skills) == 0:
+            return [], []
+        
+        # Calculate a composite score: prevalence (40%) + job usage (60%)
+        cluster_skills = cluster_skills.copy()
+        
+        # Normalize prevalence and job counts to 0-1 scale within this cluster
+        max_prevalence = cluster_skills['prevalence_percent'].max()
+        max_jobs = cluster_skills['jobs_count'].max()
+        
+        # Avoid division by zero
+        prevalence_norm = cluster_skills['prevalence_percent'] / max_prevalence if max_prevalence > 0 else 0
+        jobs_norm = cluster_skills['jobs_count'] / max_jobs if max_jobs > 0 else 0
+        
+        # Composite score (job usage weighted higher as it indicates actual usage)
+        cluster_skills['importance_score'] = (0.4 * prevalence_norm) + (0.6 * jobs_norm)
+        
+        # Sort by importance score
+        sorted_skills = cluster_skills.sort_values('importance_score', ascending=False)
+        
+        # Calculate thresholds
+        total_skills = len(sorted_skills)
+        core_threshold = int(total_skills * 0.3)  # Top 30%
+        peripheral_start = int(total_skills * 0.7)  # Bottom 30%
+        
+        # Ensure we have at least 1 skill in each category for larger bundles
+        if total_skills >= 3:
+            core_threshold = max(1, core_threshold)
+            peripheral_start = min(total_skills - 1, peripheral_start)
+        else:
+            # For very small bundles, just return empty lists
+            return [], []
+        
+        # Extract core and peripheral skills
+        core_skills = sorted_skills.head(core_threshold)['skill_name'].tolist()
+        peripheral_skills = sorted_skills.tail(total_skills - peripheral_start)['skill_name'].tolist()
+        
+        return core_skills, peripheral_skills
+    
+    def _calculate_business_value_score(self, cluster_skills: pd.DataFrame) -> float:
+        """
+        Calculate business value score for a skill bundle using multi-factor approach.
+        
+        Factors:
+        - Prevalence factor (30%): Higher prevalence indicates broader applicability
+        - Rarity balance factor (40%): Optimal value for skills that are neither too common nor too rare
+        - Bundle cohesion factor (30%): Larger, well-formed bundles have higher training value
+        
+        Args:
+            cluster_skills: DataFrame with skills in the cluster
+            
+        Returns:
+            Business value score (0.0 to 1.0)
+        """
+        if len(cluster_skills) == 0:
+            return 0.0
+        
+        # Factor 1: Prevalence factor (30% weight)
+        # Higher average prevalence = higher business value (more widely applicable)
+        avg_prevalence = cluster_skills['prevalence_percent'].mean()
+        prevalence_factor = min(avg_prevalence / 100.0, 1.0)  # Normalize to 0-1
+        
+        # Factor 2: Rarity balance factor (40% weight)
+        # Sweet spot is skills that are not too common (>80%) or too rare (<5%)
+        # Bell curve with peak around 20-40% prevalence
+        rarity_scores = []
+        for prevalence in cluster_skills['prevalence_percent']:
+            if prevalence < 5:  # Too rare
+                rarity_score = prevalence / 5.0  # 0.0 to 1.0
+            elif prevalence > 80:  # Too common
+                rarity_score = (100 - prevalence) / 20.0  # 1.0 to 0.0
+            else:  # Sweet spot (5-80%)
+                # Peak at 30% prevalence
+                if prevalence <= 30:
+                    rarity_score = prevalence / 30.0  # 0.17 to 1.0
+                else:
+                    rarity_score = 1.0 - ((prevalence - 30) / 50.0)  # 1.0 to 0.0
+            rarity_scores.append(min(max(rarity_score, 0.0), 1.0))
+        
+        rarity_balance_factor = np.mean(rarity_scores)
+        
+        # Factor 3: Bundle cohesion factor (30% weight)
+        # Larger bundles with consistent job usage = higher training value
+        bundle_size = len(cluster_skills)
+        avg_jobs_per_skill = cluster_skills['jobs_count'].mean()
+        
+        # Size score: optimal around 10-50 skills (too small = incomplete, too large = unwieldy)
+        if bundle_size < 5:
+            size_score = bundle_size / 5.0
+        elif bundle_size <= 50:
+            size_score = 1.0
+        else:
+            size_score = max(0.5, 1.0 - ((bundle_size - 50) / 100.0))  # Diminishing returns
+        
+        # Usage consistency score: higher average jobs per skill = more practical value
+        # Normalize based on reasonable job counts (1-500 jobs per skill)
+        usage_score = min(avg_jobs_per_skill / 100.0, 1.0)
+        
+        cohesion_factor = (size_score + usage_score) / 2.0
+        
+        # Combine factors with weights
+        business_value_score = (
+            0.3 * prevalence_factor +
+            0.4 * rarity_balance_factor +
+            0.3 * cohesion_factor
+        )
+        
+        return round(business_value_score, 3)
+    
+    def _assess_training_feasibility(self, cluster_skills: pd.DataFrame) -> str:
+        """
+        Assess training feasibility for a skill bundle based on complexity factors.
+        
+        Assessment factors:
+        - Bundle size: Larger bundles are more complex to train
+        - Skill diversity: Mixed categories are harder to coordinate training
+        - Prevalence accessibility: Common skills have more training resources available
+        - Specialization level: Highly specialized skills are harder to train
+        
+        Args:
+            cluster_skills: DataFrame with skills in the cluster
+            
+        Returns:
+            Training feasibility level: "high", "medium", or "low"
+        """
+        if len(cluster_skills) == 0:
+            return "low"
+        
+        # Factor 1: Bundle size complexity
+        bundle_size = len(cluster_skills)
+        if bundle_size <= 5:
+            size_feasibility = 1.0  # Very manageable
+        elif bundle_size <= 15:
+            size_feasibility = 0.8  # Good size
+        elif bundle_size <= 30:
+            size_feasibility = 0.6  # Moderate complexity
+        elif bundle_size <= 50:
+            size_feasibility = 0.4  # Complex but doable
+        else:
+            size_feasibility = 0.2  # Very complex
+        
+        # Factor 2: Category diversity (using existing category_purity calculation)
+        category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+        diversity_feasibility = category_purity  # Higher purity = easier to train together
+        
+        # Factor 3: Prevalence accessibility
+        avg_prevalence = cluster_skills['prevalence_percent'].mean()
+        if avg_prevalence >= 40:
+            prevalence_feasibility = 1.0  # Common skills, lots of training available
+        elif avg_prevalence >= 20:
+            prevalence_feasibility = 0.8  # Moderate availability
+        elif avg_prevalence >= 10:
+            prevalence_feasibility = 0.6  # Some training available
+        elif avg_prevalence >= 5:
+            prevalence_feasibility = 0.4  # Limited training available
+        else:
+            prevalence_feasibility = 0.2  # Very limited training resources
+        
+        # Factor 4: Specialization level (based on average jobs per skill)
+        avg_jobs_per_skill = cluster_skills['jobs_count'].mean()
+        if avg_jobs_per_skill >= 100:
+            specialization_feasibility = 1.0  # Widely used, easier to train
+        elif avg_jobs_per_skill >= 50:
+            specialization_feasibility = 0.8  # Good usage
+        elif avg_jobs_per_skill >= 20:
+            specialization_feasibility = 0.6  # Moderate usage
+        elif avg_jobs_per_skill >= 10:
+            specialization_feasibility = 0.4  # Limited usage
+        else:
+            specialization_feasibility = 0.2  # Highly specialized
+        
+        # Weighted combination (size and diversity matter most for training coordination)
+        training_feasibility_score = (
+            0.35 * size_feasibility +           # Bundle size impact
+            0.25 * diversity_feasibility +      # Category coherence
+            0.25 * prevalence_feasibility +     # Training resource availability
+            0.15 * specialization_feasibility   # Specialization level
+        )
+        
+        # Convert to categorical assessment
+        if training_feasibility_score >= 0.7:
+            return "high"
+        elif training_feasibility_score >= 0.4:
+            return "medium"
+        else:
+            return "low"
+    
+    def _calculate_skill_complementarity(self, cluster_skills: pd.DataFrame) -> float:
+        """
+        Calculate skill complementarity score - how well skills work together within bundle.
+        
+        Complementarity factors:
+        - Category coherence: Skills from same category naturally complement
+        - Usage pattern consistency: Skills used in similar job contexts work well together
+        - Prevalence diversity: Mix of common foundation + specialized skills is optimal
+        
+        Args:
+            cluster_skills: DataFrame with skills in the cluster
+            
+        Returns:
+            Complementarity score (0.0 to 1.0)
+        """
+        if len(cluster_skills) == 0:
+            return 0.0
+        
+        # Factor 1: Category coherence (40% weight)
+        # Higher category purity = better natural complementarity
+        category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+        coherence_score = category_purity
+        
+        # Factor 2: Usage pattern consistency (30% weight)
+        # Skills with similar job usage patterns complement well
+        job_counts = cluster_skills['jobs_count']
+        if len(job_counts) > 1 and job_counts.std() > 0:
+            # Lower coefficient of variation = more consistent usage patterns
+            cv = job_counts.std() / job_counts.mean()
+            consistency_score = max(0.0, 1.0 - min(cv / 2.0, 1.0))  # Normalize CV to 0-1
+        else:
+            consistency_score = 1.0  # Perfect consistency if all same or single skill
+            
+        # Factor 3: Prevalence diversity balance (30% weight) 
+        # Optimal mix: some foundational skills (high prevalence) + some specialized (low prevalence)
+        prevalences = cluster_skills['prevalence_percent']
+        
+        # Check for good diversity (some high, some low prevalence skills)
+        high_prevalence_skills = (prevalences >= 30).sum()
+        medium_prevalence_skills = ((prevalences >= 10) & (prevalences < 30)).sum()
+        low_prevalence_skills = (prevalences < 10).sum()
+        
+        total_skills = len(prevalences)
+        
+        # Optimal distribution: 40% high, 40% medium, 20% low prevalence
+        high_ratio = high_prevalence_skills / total_skills
+        medium_ratio = medium_prevalence_skills / total_skills
+        low_ratio = low_prevalence_skills / total_skills
+        
+        # Score based on distance from optimal distribution
+        optimal_high = 0.4
+        optimal_medium = 0.4  
+        optimal_low = 0.2
+        
+        diversity_distance = (
+            abs(high_ratio - optimal_high) +
+            abs(medium_ratio - optimal_medium) + 
+            abs(low_ratio - optimal_low)
+        ) / 2.0  # Normalize to 0-1
+        
+        diversity_score = max(0.0, 1.0 - diversity_distance)
+        
+        # Combine factors with weights
+        complementarity_score = (
+            0.4 * coherence_score +      # Category coherence
+            0.3 * consistency_score +    # Usage pattern consistency
+            0.3 * diversity_score        # Prevalence diversity balance
+        )
+        
+        return round(complementarity_score, 3)
+    
+    def _assess_market_demand_level(self, cluster_skills: pd.DataFrame, db_path: str) -> str:
+        """
+        Assess market demand level for a skill bundle by integrating with velocity analysis data.
+        
+        Combines:
+        - Velocity trends from analytics_skill_demand_trends table
+        - Current prevalence levels 
+        - Bundle composition for overall market assessment
+        
+        Args:
+            cluster_skills: DataFrame with skills in the cluster
+            db_path: Path to database for velocity lookup
+            
+        Returns:
+            Market demand level: "high", "medium", or "low"
+        """
+        if len(cluster_skills) == 0:
+            return "low"
+        
+        try:
+            with sqlite3.connect(db_path) as conn:
+                # Get velocity data for skills in this bundle
+                skill_ids = cluster_skills['skill_id'].tolist()
+                placeholders = ','.join(['?' for _ in skill_ids])
+                
+                velocity_query = f"""
+                SELECT skill_id, velocity_category, trend_direction, short_term_cagr, medium_term_cagr
+                FROM analytics_skill_demand_trends 
+                WHERE skill_id IN ({placeholders})
+                """
+                
+                velocity_df = pd.read_sql_query(velocity_query, conn, params=skill_ids)
+                
+        except Exception as e:
+            # If velocity data unavailable, fall back to prevalence-based assessment
+            log_info(f"Velocity data unavailable, using prevalence fallback: {e}")
+            velocity_df = pd.DataFrame()
+        
+        # Factor 1: Velocity trends (60% weight if available)
+        if len(velocity_df) > 0:
+            # Merge with cluster skills to get complete picture
+            skills_with_velocity = cluster_skills.merge(
+                velocity_df, on='skill_id', how='left'
+            )
+            
+            # Score velocity trends
+            velocity_scores = []
+            for _, row in skills_with_velocity.iterrows():
+                if pd.notna(row.get('velocity_category')):
+                    velocity_cat = row['velocity_category']
+                    if velocity_cat == 'accelerating':
+                        velocity_scores.append(1.0)  # High demand
+                    elif velocity_cat == 'growing':
+                        velocity_scores.append(0.8)  # Good demand
+                    elif velocity_cat == 'stable':
+                        velocity_scores.append(0.6)  # Moderate demand
+                    elif velocity_cat == 'declining':
+                        velocity_scores.append(0.3)  # Low demand
+                    else:
+                        velocity_scores.append(0.5)  # Unknown/neutral
+                else:
+                    # No velocity data for this skill, use prevalence as proxy
+                    prevalence = row['prevalence_percent']
+                    if prevalence >= 40:
+                        velocity_scores.append(0.7)  # High prevalence = likely demand
+                    elif prevalence >= 20:
+                        velocity_scores.append(0.6)  # Medium prevalence
+                    else:
+                        velocity_scores.append(0.4)  # Low prevalence
+            
+            velocity_factor = np.mean(velocity_scores) if velocity_scores else 0.5
+            velocity_weight = 0.6
+        else:
+            # No velocity data available
+            velocity_factor = 0.5  # Neutral
+            velocity_weight = 0.0
+        
+        # Factor 2: Current prevalence levels (40% weight, or 100% if no velocity data)
+        avg_prevalence = cluster_skills['prevalence_percent'].mean()
+        if avg_prevalence >= 50:
+            prevalence_factor = 0.9  # Very high demand (widely needed)
+        elif avg_prevalence >= 30:
+            prevalence_factor = 0.8  # High demand
+        elif avg_prevalence >= 15:
+            prevalence_factor = 0.6  # Moderate demand
+        elif avg_prevalence >= 5:
+            prevalence_factor = 0.4  # Lower demand
+        else:
+            prevalence_factor = 0.2  # Niche demand
+        
+        prevalence_weight = 1.0 - velocity_weight
+        
+        # Combine factors
+        demand_score = (velocity_weight * velocity_factor) + (prevalence_weight * prevalence_factor)
+        
+        # Convert to categorical assessment
+        if demand_score >= 0.7:
+            return "high"
+        elif demand_score >= 0.4:
+            return "medium"
+        else:
+            return "low"
+    
+    def _calculate_bundle_confidence(self, cluster_skills: pd.DataFrame) -> float:
+        """
+        Calculate confidence score for skill bundle assignment.
+        
+        Confidence factors:
+        - Cluster size stability: Optimal sizes are more reliable
+        - Category purity: Taxonomically coherent clusters are more confident
+        - Usage pattern consistency: Similar job usage indicates good clustering
+        
+        Args:
+            cluster_skills: DataFrame with skills in the cluster
+            
+        Returns:
+            Confidence score (0.0 to 1.0)
+        """
+        if len(cluster_skills) == 0:
+            return 0.0
+        
+        # Factor 1: Cluster size stability (40% weight)
+        # Optimal cluster sizes (5-50 skills) get highest confidence
+        cluster_size = len(cluster_skills)
+        if cluster_size < 3:
+            size_confidence = 0.3  # Too small, likely noise
+        elif cluster_size <= 10:
+            size_confidence = 0.9  # Excellent size
+        elif cluster_size <= 30:
+            size_confidence = 1.0  # Optimal size
+        elif cluster_size <= 50:
+            size_confidence = 0.8  # Good size
+        elif cluster_size <= 100:
+            size_confidence = 0.6  # Large but manageable
+        else:
+            size_confidence = 0.4  # Too large, possibly overgeneralized
+        
+        # Factor 2: Category purity (35% weight)
+        # Higher category purity = more confident clustering
+        category_purity = (cluster_skills['category'] == cluster_skills['category'].mode().iloc[0]).mean()
+        purity_confidence = category_purity
+        
+        # Factor 3: Usage pattern consistency (25% weight)
+        # Skills with similar job usage patterns should cluster together
+        job_counts = cluster_skills['jobs_count']
+        if len(job_counts) > 1 and job_counts.std() > 0:
+            # Lower coefficient of variation = more consistent = higher confidence
+            cv = job_counts.std() / job_counts.mean()
+            consistency_confidence = max(0.0, 1.0 - min(cv / 3.0, 1.0))  # Normalize CV
+        else:
+            consistency_confidence = 1.0  # Perfect consistency
+        
+        # Combine factors with weights
+        bundle_confidence = (
+            0.4 * size_confidence +        # Cluster size stability
+            0.35 * purity_confidence +     # Category purity
+            0.25 * consistency_confidence  # Usage pattern consistency
+        )
+        
+        return round(bundle_confidence, 3)
 
 
 class ClusteringAnalyzer:

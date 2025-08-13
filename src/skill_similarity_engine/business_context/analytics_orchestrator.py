@@ -185,7 +185,7 @@ class AnalyticsOrchestrator:
         This method:
         1. Validates that movement patterns are available
         2. Trains ensemble ML models (Random Forest, XGBoost, Gradient Boosting)
-        3. Generates pathway predictions and populates analytics_pathway_predictions table
+        3. Generates pathway predictions for real-time prediction models
         4. Saves trained models as .joblib files for webapp consumption
         
         Returns:
@@ -373,6 +373,21 @@ class AnalyticsOrchestrator:
             
             print(f"   Processing {len(job_pairs):,} job similarity pairs...")
             
+            # Show stratified job distribution for enhanced transparency  
+            job_categories = self.rarity_calculator._stratify_jobs_by_size(job_ids, job_to_skills)
+            print(f"📊 Job Distribution by Size Category:")
+            for category, category_jobs in job_categories.items():
+                if category_jobs:
+                    # Get parameters for this category
+                    sample_job_size = len(job_to_skills.get(category_jobs[0], set()))
+                    multiplier = self.rarity_calculator._get_stratified_multiplier_for_job(sample_job_size)
+                    percentile = self.rarity_calculator._get_stratified_percentile_for_job(sample_job_size)
+                    
+                    # Count pairs for this category (source jobs from this category to all other jobs)
+                    category_pairs_count = len(category_jobs) * (len(job_ids) - 1)  # -1 for no self-comparison
+                    
+                    print(f"   • {category.replace('_', ' ').title()}: {len(category_jobs)} jobs → {category_pairs_count:,} comparisons ({percentile:.1f}% threshold, {multiplier:.3f}x multiplier)")
+            
             # Configure processing orchestrator for production workload
             config = ProcessingConfig(
                 memory_threshold_mb=1500.0,  # 1.5GB threshold for chunking
@@ -393,13 +408,14 @@ class AnalyticsOrchestrator:
                            f"{estimates['estimated_memory_mb']:.1f} MB, "
                            f"{estimates['estimated_chunks']} chunks")
             
-            # Process using centralized orchestrator with intelligent strategy selection
+            # Process using centralized orchestrator with intelligent strategy selection and stratified progress
             similarities = processing_orchestrator.process_job_similarities(
                 calculator=self.rarity_calculator,
                 job_pairs=job_pairs,
                 job_to_skills=job_to_skills,
                 job_defining_skills=defining_skills_map,
-                use_intelligent_processing=True
+                use_intelligent_processing=True,
+                use_stratified_progress=True  # Enable stratified progress tracking by job size
             )
             
             # Convert to DataFrame for corpus normalization
@@ -417,46 +433,61 @@ class AnalyticsOrchestrator:
     
     def _apply_corpus_normalization(self, similarities_df: pd.DataFrame) -> pd.DataFrame:
         """
-        Apply corpus-wide normalization to preserve differentiation while ensuring 0-1 range.
+        Apply corpus-wide normalization with selective column handling based on configuration.
         
         Args:
             similarities_df: DataFrame with raw similarity scores
             
         Returns:
-            DataFrame with both raw and normalized similarity scores
+            DataFrame with selective normalization applied per configuration
         """
         try:
-            print(f"   🔧 Applying corpus normalization...")
+            print(f"   🔧 Applying selective corpus normalization...")
             
-            # Initialize corpus normalizer
-            normalizer = CorpusNormalizer()
+            # Load normalization configuration
+            normalization_config = self.config_manager.get_nested_value(
+                'core', 'similarity_parameters', 'normalization_config'
+            )
             
-            # Map to existing database schema columns first
+            # Apply default behavior if no config
+            if not normalization_config:
+                return self._apply_legacy_normalization(similarities_df)
+            
+            # Initialize corpus normalizer with method from config
+            normalization_method = normalization_config.get('method', 'corpus_max_normalization')
+            normalizer = CorpusNormalizer(normalization_method=normalization_method)
             similarities_df = similarities_df.copy()
             
-            # Map similarity calculator output to existing database schema:
-            # The calculator outputs 'enhanced_similarity_score' directly, so use that for normalization
+            # Determine which column contains the enhanced scores for normalization
             if 'enhanced_similarity_score' in similarities_df.columns:
-                # Use the enhanced score (which contains the defining skills boost) for normalization
-                raw_scores = similarities_df['enhanced_similarity_score'].tolist()
+                enhanced_scores = similarities_df['enhanced_similarity_score'].tolist()
             elif 'rarity_weighted_score' in similarities_df.columns:
-                # Fallback to rarity weighted score if enhanced not available
-                similarities_df['enhanced_similarity_score'] = similarities_df['rarity_weighted_score']
-                raw_scores = similarities_df['enhanced_similarity_score'].tolist()
+                enhanced_scores = similarities_df['rarity_weighted_score'].tolist()
             else:
-                # Final fallback to simple similarity
-                similarities_df['enhanced_similarity_score'] = similarities_df.get('similarity_score', 0.0)
-                raw_scores = similarities_df['enhanced_similarity_score'].tolist()
+                enhanced_scores_series = similarities_df.get('similarity_score', pd.Series([0.0] * len(similarities_df)))
+                enhanced_scores = enhanced_scores_series.tolist() if hasattr(enhanced_scores_series, 'tolist') else list(enhanced_scores_series)
             
-            # Collect raw scores for normalization
-            normalizer.collect_raw_scores_batch(raw_scores)
-            
-            # Normalize the corpus
+            # Collect and normalize the enhanced scores
+            normalizer.collect_raw_scores_batch(enhanced_scores)
             normalization_stats = normalizer.normalize_corpus()
+            normalized_scores = normalizer.get_normalized_scores_batch(enhanced_scores)
             
-            # Get normalized scores and put in similarity_score column (final 0-1 range)
-            normalized_scores = normalizer.get_normalized_scores_batch(raw_scores)
-            similarities_df['similarity_score'] = normalized_scores
+            # Apply selective normalization based on configuration
+            if normalization_config.get('normalize_enhanced_similarity_score', True):
+                # Normalize the enhanced_similarity_score column
+                similarities_df['enhanced_similarity_score'] = normalized_scores
+                print(f"   ✅ Normalized enhanced_similarity_score column")
+            
+            if normalization_config.get('preserve_raw_rarity_weighted_score', True):
+                # Keep rarity_weighted_score as raw values
+                if 'rarity_weighted_score' not in similarities_df.columns:
+                    similarities_df['rarity_weighted_score'] = enhanced_scores
+                print(f"   💾 Preserved raw values in rarity_weighted_score column")
+            
+            # IMPORTANT: Keep similarity_score as the original baseline scores (NOT normalized enhanced scores)
+            # similarity_score should contain the basic Jaccard similarity without defining skills boost
+            # This is already set correctly from the original calculation, so we DON'T overwrite it
+            print(f"   📊 Preserved baseline similarity_score column (basic Jaccard without defining skills boost)")
             
             # Show normalization summary
             print(f"   📊 Normalized {normalization_stats.total_scores:,} scores (range: {normalization_stats.raw_min:.2f} - {normalization_stats.raw_max:.2f} → 0.00 - 1.00)")
@@ -468,6 +499,42 @@ class AnalyticsOrchestrator:
             print(f"Failed to apply corpus normalization: {e}")
             # Return original DataFrame if normalization fails
             return similarities_df
+    
+    def _apply_legacy_normalization(self, similarities_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply legacy normalization behavior for backward compatibility.
+        
+        Args:
+            similarities_df: DataFrame with raw similarity scores
+            
+        Returns:
+            DataFrame with legacy normalization applied
+        """
+        # Initialize corpus normalizer
+        normalizer = CorpusNormalizer()
+        similarities_df = similarities_df.copy()
+        
+        # Use enhanced score for normalization
+        if 'enhanced_similarity_score' in similarities_df.columns:
+            raw_scores = similarities_df['enhanced_similarity_score'].tolist()
+        elif 'rarity_weighted_score' in similarities_df.columns:
+            similarities_df['enhanced_similarity_score'] = similarities_df['rarity_weighted_score']
+            raw_scores = similarities_df['enhanced_similarity_score'].tolist()
+        else:
+            similarities_df['enhanced_similarity_score'] = similarities_df.get('similarity_score', 0.0)
+            raw_scores = similarities_df['enhanced_similarity_score'].tolist()
+        
+        # Collect raw scores for normalization
+        normalizer.collect_raw_scores_batch(raw_scores)
+        
+        # Normalize the corpus
+        normalization_stats = normalizer.normalize_corpus()
+        
+        # Get normalized scores and put in similarity_score column (final 0-1 range)
+        normalized_scores = normalizer.get_normalized_scores_batch(raw_scores)
+        similarities_df['similarity_score'] = normalized_scores
+        
+        return similarities_df
     
     def _generate_skill_rarity_analysis(self, enhanced_components: Dict[str, Any]) -> Optional[pd.DataFrame]:
         """

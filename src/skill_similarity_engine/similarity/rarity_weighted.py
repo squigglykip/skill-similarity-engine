@@ -65,10 +65,11 @@ class RarityWeightedCalculator:
                                       job_b_skills: Set[str], 
                                       job_defining_skills: Dict[str, Set[str]]) -> Dict[str, Any]:
         """
-        Calculate Skills-Based Mobility Score with empirically-tuned gentle multiplier.
+        Calculate Skills-Based Mobility Score with stratified multipliers.
         
         This measures career transition feasibility based on shared skills, with bonus weighting
-        for rare/defining skills that indicate stronger pathway viability.
+        for rare/defining skills that indicate stronger pathway viability. Uses job-size specific
+        multipliers from stratified Optuna optimization.
         
         Args:
             job_a_id: JobProfileID for source job
@@ -99,11 +100,14 @@ class RarityWeightedCalculator:
             if skill in all_defining:
                 shared_defining_skills.append(skill)
         
-        # Apply gentle multiplier for each shared defining skill (multiplicative boost)
-        # Each shared defining skill applies the multiplier: similarity * (1.206^count)
+        # Get stratified multiplier based on source job size (Job A)
+        effective_multiplier = self._get_stratified_multiplier_for_job(len(job_a_skills))
+        
+        # Apply stratified multiplier for each shared defining skill (multiplicative boost)
+        # Each shared defining skill applies the multiplier: similarity * (multiplier^count)
         if len(shared_defining_skills) > 0:
             # Apply the multiplier raised to the power of shared defining skills count
-            multiplier_power = self.gentle_multiplier ** len(shared_defining_skills)
+            multiplier_power = effective_multiplier ** len(shared_defining_skills)
             weighted_similarity = simple_similarity * multiplier_power
             # Calculate the boost amount for reporting (how much the similarity was enhanced)
             defining_skill_boost = weighted_similarity - simple_similarity
@@ -140,7 +144,7 @@ class RarityWeightedCalculator:
                                  job_defining_skills: Dict[str, Set[str]],
                                  show_progress: bool = True) -> List[Dict[str, Any]]:
         """
-        Calculate rarity-weighted similarities for all job pairs (full asymmetric).
+        Calculate rarity-weighted similarities for all job pairs (full asymmetric) with stratified progress tracking.
         
         This method focuses purely on the similarity calculation algorithm.
         Processing orchestration (chunking, parallelization) should be handled
@@ -150,48 +154,81 @@ class RarityWeightedCalculator:
             job_ids: List of job profile IDs
             job_to_skills: Dict mapping job ID to set of skill names
             job_defining_skills: Dict mapping job ID to set of defining skill names
-            show_progress: Whether to show basic progress tracking
+            show_progress: Whether to show stratified progress tracking
             
         Returns:
             List of similarity records with mobility scores and gap analysis
         """
-        # Create job pairs for full asymmetric comparison (A->B and B->A separately)
-        job_pairs = []
-        for job_a_id in job_ids:
-            for job_b_id in job_ids:
-                if job_a_id != job_b_id:  # Skip self-comparison
-                    job_pairs.append((job_a_id, job_b_id))
+        # Stratify jobs by size for progress tracking
+        job_categories = self._stratify_jobs_by_size(job_ids, job_to_skills)
         
-        total_comparisons = len(job_pairs)
+        # Create stratified job pairs and show overview
+        stratified_pairs = {}
+        total_comparisons = 0
+        
         print(f"⚙️ Processing {len(job_ids)} jobs for similarity calculations")
+        print(f"📊 Job Distribution by Size Category:")
+        
+        for category, category_jobs in job_categories.items():
+            # Create pairs for this category (source jobs from this category to all other jobs)
+            category_pairs = []
+            for job_a_id in category_jobs:
+                for job_b_id in job_ids:
+                    if job_a_id != job_b_id:  # Skip self-comparison
+                        category_pairs.append((job_a_id, job_b_id))
+            
+            stratified_pairs[category] = category_pairs
+            total_comparisons += len(category_pairs)
+            
+            # Get multiplier for this category
+            sample_job_size = len(job_to_skills.get(category_jobs[0], set())) if category_jobs else 0
+            multiplier = self._get_stratified_multiplier_for_job(sample_job_size)
+            
+            print(f"   • {category.replace('_', ' ').title()}: {len(category_jobs)} jobs → {len(category_pairs):,} comparisons (multiplier: {multiplier:.3f}x)")
+        
         print(f"📊 Total comparisons to compute: {total_comparisons:,}")
         
         similarities = []
         
         if show_progress:
-            with progress_context(
-                total=total_comparisons,
-                desc="Enhanced Similarity Calculation",
-                memory_tracking=True,
-                show_tqdm=True
-            ) as progress:
-                for i, (job_a_id, job_b_id) in enumerate(job_pairs):
-                    similarity = self.calculate_single_similarity(
-                        job_a_id, job_b_id, job_to_skills, job_defining_skills
-                    )
-                    similarities.append(similarity)
+            # Process each category with its own progress bar
+            for category, category_pairs in stratified_pairs.items():
+                if not category_pairs:
+                    continue
                     
-                    # Update progress periodically
-                    if i % 1000 == 0:
-                        progress.update(1000)
+                category_display = category.replace('_', ' ').title()
+                sample_job_size = len(job_to_skills.get(category_pairs[0][0], set()))
+                multiplier = self._get_stratified_multiplier_for_job(sample_job_size)
                 
-                # Update remaining progress
-                remaining = len(job_pairs) % 1000
-                if remaining > 0:
-                    progress.update(remaining)
+                with progress_context(
+                    total=len(category_pairs),
+                    desc=f"{category_display} Jobs (×{multiplier:.3f}) Similarity Calculation",
+                    memory_tracking=True,
+                    show_tqdm=True
+                ) as progress:
+                    for i, (job_a_id, job_b_id) in enumerate(category_pairs):
+                        similarity = self.calculate_single_similarity(
+                            job_a_id, job_b_id, job_to_skills, job_defining_skills
+                        )
+                        similarities.append(similarity)
+                        
+                        # Update progress periodically
+                        if i % 1000 == 0:
+                            progress.update(1000)
+                    
+                    # Update remaining progress
+                    remaining = len(category_pairs) % 1000
+                    if remaining > 0:
+                        progress.update(remaining)
+                
+                print(f"   ✅ {category_display}: {len(category_pairs):,} similarities calculated")
         else:
-            # Simple processing without progress
-            for i, (job_a_id, job_b_id) in enumerate(job_pairs):
+            # Simple processing without stratified progress
+            all_pairs = []
+            for category_pairs in stratified_pairs.values():
+                all_pairs.extend(category_pairs)
+            
+            for i, (job_a_id, job_b_id) in enumerate(all_pairs):
                 similarity = self.calculate_single_similarity(
                     job_a_id, job_b_id, job_to_skills, job_defining_skills
                 )
@@ -200,7 +237,7 @@ class RarityWeightedCalculator:
                 if i % 10000 == 0 and i > 0:
                     print(f"Processed {i:,} comparisons...")
         
-        print(f"Generated {len(similarities):,} similarity records")
+        print(f"✅ Generated {len(similarities):,} similarity records across all job size categories")
         return similarities
     
     def calculate_single_similarity(self, 
@@ -322,6 +359,117 @@ class RarityWeightedCalculator:
             'transferable_advantage': len(shared_defining)        # Defining skills already possessed
         }
     
+    def _stratify_jobs_by_size(self, job_ids: List[str], job_to_skills: Dict[str, Set[str]]) -> Dict[str, List[str]]:
+        """
+        Stratify jobs into size categories for progress tracking and analysis.
+        
+        Args:
+            job_ids: List of job profile IDs
+            job_to_skills: Dict mapping job ID to set of skill names
+            
+        Returns:
+            Dict mapping category name to list of job IDs in that category
+        """
+        categories = {
+            'small_jobs': [],      # ≤15 skills
+            'medium_jobs': [],     # 16-30 skills  
+            'large_jobs': [],      # 31-50 skills
+            'xlarge_jobs': []      # >50 skills
+        }
+        
+        for job_id in job_ids:
+            job_skills = job_to_skills.get(job_id, set())
+            skill_count = len(job_skills)
+            
+            if skill_count <= 15:
+                categories['small_jobs'].append(job_id)
+            elif skill_count <= 30:
+                categories['medium_jobs'].append(job_id)
+            elif skill_count <= 50:
+                categories['large_jobs'].append(job_id)
+            else:
+                categories['xlarge_jobs'].append(job_id)
+        
+        return categories
+
+    def _get_stratified_multiplier_for_job(self, job_skill_count: int) -> float:
+        """
+        Get the stratified multiplier for a job based on its skill count.
+        
+        This method reads the stratified parameters from configuration and returns
+        the appropriate multiplier for the job's size category.
+        
+        Args:
+            job_skill_count: Number of skills in the job
+            
+        Returns:
+            Stratified multiplier value specific to the job's size category
+        """
+        # Reload config manager for fresh configuration data
+        config_manager = get_config_manager()
+        stratified_config = config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal', 'stratified_parameters'
+        )
+        
+        if not stratified_config:
+            # Fallback to global parameter if stratified not available
+            self.logger.warning("Stratified parameters not found, using global fallback")
+            return self.gentle_multiplier
+        
+        # Determine job size category and return appropriate multiplier
+        if job_skill_count <= 15:
+            layer_config = stratified_config.get('small_jobs', {})
+        elif job_skill_count <= 30:
+            layer_config = stratified_config.get('medium_jobs', {})
+        elif job_skill_count <= 50:
+            layer_config = stratified_config.get('large_jobs', {})
+        else:
+            layer_config = stratified_config.get('xlarge_jobs', {})
+        
+        # Extract multiplier with fallback to global parameter
+        effective_multiplier = layer_config.get('defining_skills_multiplier', self.gentle_multiplier)
+        
+        return effective_multiplier
+
+    def _get_stratified_percentile_for_job(self, job_skill_count: int) -> float:
+        """
+        Get the stratified percentile threshold for a job based on its skill count.
+        
+        This method reads the stratified parameters from configuration and returns
+        the appropriate percentile threshold for the job's size category.
+        
+        Args:
+            job_skill_count: Number of skills in the job
+            
+        Returns:
+            Stratified percentile threshold specific to the job's size category
+        """
+        # Reload config manager for fresh configuration data
+        config_manager = get_config_manager()
+        stratified_config = config_manager.get_nested_value(
+            'core', 'similarity_parameters', 'optuna_optimal', 'stratified_parameters'
+        )
+        
+        if not stratified_config:
+            # Fallback to global parameter if stratified not available
+            self.logger.warning("Stratified parameters not found, using global fallback")
+            return self.defining_skills_percentile
+        
+        # Determine job size category and return appropriate percentile
+        if job_skill_count <= 15:
+            layer_config = stratified_config.get('small_jobs', {})
+        elif job_skill_count <= 30:
+            layer_config = stratified_config.get('medium_jobs', {})
+        elif job_skill_count <= 50:
+            layer_config = stratified_config.get('large_jobs', {})
+        else:
+            layer_config = stratified_config.get('xlarge_jobs', {})
+        
+        # Extract percentile with fallback to global parameter
+        effective_percentile = layer_config.get('defining_skills_percentile', self.defining_skills_percentile)
+        
+        return effective_percentile
+
     def _empty_mobility_result(self) -> Dict[str, Any]:
         """Return empty mobility result for edge cases."""
         return {

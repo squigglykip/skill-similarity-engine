@@ -95,9 +95,10 @@ class SimilarityProcessingOrchestrator:
                                job_pairs: List[Tuple[str, str]],
                                job_to_skills: Dict[str, Set[str]],
                                job_defining_skills: Dict[str, Set[str]],
-                               use_intelligent_processing: bool = True) -> List[Dict[str, Any]]:
+                               use_intelligent_processing: bool = True,
+                               use_stratified_progress: bool = True) -> List[Dict[str, Any]]:
         """
-        Process job similarity calculations with intelligent strategy selection.
+        Process job similarity calculations with intelligent strategy selection and optional stratified progress.
         
         Args:
             calculator: Similarity calculator instance with calculate_single_similarity method
@@ -105,6 +106,7 @@ class SimilarityProcessingOrchestrator:
             job_to_skills: Dict mapping job ID to set of skill names
             job_defining_skills: Dict mapping job ID to set of defining skill names
             use_intelligent_processing: Whether to use intelligent processing strategies
+            use_stratified_progress: Whether to show stratified progress tracking by job size
             
         Returns:
             List of similarity records
@@ -119,11 +121,76 @@ class SimilarityProcessingOrchestrator:
                 job_a_id, job_b_id, job_to_skills, job_defining_skills
             )
         
-        if use_intelligent_processing:
+        # Check if we should use stratified progress tracking
+        if use_stratified_progress and hasattr(calculator, '_stratify_jobs_by_size') and hasattr(calculator, '_get_stratified_multiplier_for_job'):
+            return self._process_with_stratified_progress(job_pairs, process_single_pair, job_to_skills, calculator)
+        elif use_intelligent_processing:
             return self._process_with_intelligent_strategy(job_pairs, process_single_pair)
         else:
             return self._process_simple(job_pairs, process_single_pair)
     
+    def _process_with_stratified_progress(self,
+                                        job_pairs: List[Tuple[str, str]],
+                                        process_func: Callable[[Tuple[str, str]], Dict[str, Any]],
+                                        job_to_skills: Dict[str, Set[str]],
+                                        calculator: Any) -> List[Dict[str, Any]]:
+        """
+        Process with stratified progress tracking by job size categories.
+        """
+        # Extract unique job IDs and stratify them
+        unique_jobs = set()
+        for job_a_id, job_b_id in job_pairs:
+            unique_jobs.add(job_a_id)
+            unique_jobs.add(job_b_id)
+        
+        job_categories = calculator._stratify_jobs_by_size(list(unique_jobs), job_to_skills)
+        
+        # Stratify job pairs by source job category
+        stratified_pairs = {}
+        for category, category_jobs in job_categories.items():
+            category_pairs = []
+            for job_a_id, job_b_id in job_pairs:
+                if job_a_id in category_jobs:
+                    category_pairs.append((job_a_id, job_b_id))
+            stratified_pairs[category] = category_pairs
+        
+        results = []
+        
+        # Process each category with its own progress bar
+        for category, category_pairs in stratified_pairs.items():
+            if not category_pairs:
+                continue
+                
+            category_display = category.replace('_', ' ').title()
+            sample_job_size = len(job_to_skills.get(category_pairs[0][0], set()))
+            multiplier = calculator._get_stratified_multiplier_for_job(sample_job_size)
+            
+            # Get the percentile threshold for this job size category
+            percentile = calculator._get_stratified_percentile_for_job(sample_job_size)
+            
+            with progress_context(
+                total=len(category_pairs),
+                desc=f"{category_display} Jobs ({percentile:.1f}%, ×{multiplier:.3f}) {self.config.progress_desc}",
+                memory_tracking=self.config.show_memory_tracking,
+                show_tqdm=True
+            ) as progress:
+                for i, pair in enumerate(category_pairs):
+                    result = process_func(pair)
+                    results.append(result)
+                    
+                    # Update progress periodically for performance
+                    if i % 1000 == 0:
+                        progress.update(1000)
+                
+                # Update remaining progress
+                remaining = len(category_pairs) % 1000
+                if remaining > 0:
+                    progress.update(remaining)
+            
+            print(f"   ✅ {category_display}: {len(category_pairs):,} similarities calculated")
+        
+        return results
+
     def _process_with_intelligent_strategy(self,
                                          job_pairs: List[Tuple[str, str]],
                                          process_func: Callable[[Tuple[str, str]], Dict[str, Any]]) -> List[Dict[str, Any]]:

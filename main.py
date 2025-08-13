@@ -408,16 +408,40 @@ class WorkforceIntelligenceOrchestrator:
                         print("   Please ensure config/core/similarity_parameters.yaml contains the required parameters.")
                         continue
                     
-                    # Enhanced parameter display
+                    # Enhanced parameter display for stratified optimization
                     opt_metadata = similarity_config.get('optimization_metadata', {})
-                    print(f"   • Parameters: {similarity_config['defining_skills_percentile']}% defining skills threshold, {similarity_config['defining_skills_multiplier']}x multiplier")
-                    print("   • Algorithm: Asymmetric Jaccard with corpus normalization")
+                    stratified_params = similarity_config.get('stratified_parameters', {})
                     
-                    if opt_metadata:
-                        print(f"   • Optimization Date: {opt_metadata.get('optimization_date', 'Unknown')}")
-                        print(f"   • Selected Trial: {opt_metadata.get('selected_trial', 'Unknown')} (from {opt_metadata.get('trial_count', 'Unknown')} trials)")
-                        print(f"   • Performance: {opt_metadata.get('smoothness_score', 0):.4f} smoothness, {opt_metadata.get('average_improvement', 0)*100:.1f}% avg improvement")
-                        print(f"   • Quality Metrics: {opt_metadata.get('normalization_factor', 0):.1f} norm factor, {opt_metadata.get('scores_above_1_percent', 0):.1f}% scores >1.0")
+                    if stratified_params:
+                        # Display stratified parameters summary
+                        layer_count = len(stratified_params)
+                        total_jobs = sum(layer['job_count'] for layer in stratified_params.values())
+                        avg_smoothness = sum(layer['smoothness_score'] for layer in stratified_params.values()) / layer_count if layer_count > 0 else 0
+                        avg_improvement = sum(layer['avg_improvement'] for layer in stratified_params.values()) / layer_count if layer_count > 0 else 0
+                        
+                        print(f"   • Stratified Parameters: {layer_count} job size layers optimized ({total_jobs} jobs)")
+                        print("   • Algorithm: Asymmetric Jaccard with layer-specific optimization")
+                        
+                        # Show each layer briefly
+                        for layer_name, layer_data in stratified_params.items():
+                            layer_display = layer_name.replace('_', ' ').title()
+                            print(f"     - {layer_display}: {layer_data['defining_skills_percentile']:.1f}% threshold, {layer_data['defining_skills_multiplier']:.3f}x multiplier ({layer_data['job_count']} jobs)")
+                        
+                        if opt_metadata:
+                            print(f"   • Optimization Date: {opt_metadata.get('optimization_date', 'Unknown')}")
+                            print(f"   • Total Trials: {opt_metadata.get('total_trials', 'Unknown')} across {layer_count} layers")
+                            print(f"   • Performance: {avg_smoothness:.4f} avg smoothness, {avg_improvement*100:.1f}% avg improvement")
+                            print(f"   • Strategy: {opt_metadata.get('stratification_strategy', 'Dynamic job size optimization')}")
+                    else:
+                        # Fallback to legacy display
+                        print(f"   • Parameters: {similarity_config.get('defining_skills_percentile', 0)}% defining skills threshold, {similarity_config.get('defining_skills_multiplier', 0)}x multiplier")
+                        print("   • Algorithm: Asymmetric Jaccard with corpus normalization")
+                        
+                        if opt_metadata:
+                            print(f"   • Optimization Date: {opt_metadata.get('optimization_date', 'Unknown')}")
+                            print(f"   • Selected Trial: {opt_metadata.get('selected_trial', 'Unknown')} (from {opt_metadata.get('trial_count', 'Unknown')} trials)")
+                            print(f"   • Performance: {opt_metadata.get('smoothness_score', 0):.4f} smoothness, {opt_metadata.get('average_improvement', 0)*100:.1f}% avg improvement")
+                            print(f"   • Quality Metrics: {opt_metadata.get('normalization_factor', 0):.1f} norm factor, {opt_metadata.get('scores_above_1_percent', 0):.1f}% scores >1.0")
                     print()
                     
                     success = orchestrator.execute_phase_1_enhanced_similarity()

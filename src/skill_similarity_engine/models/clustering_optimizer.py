@@ -394,19 +394,20 @@ class SkillsParameterOptimizer:
         self.database_path = database_path
         self.config_manager = config_manager or get_config_manager()
         
-        # Skills-specific parameter ranges
-        self.dbscan_params = {
-            'eps': [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8],
-            'min_samples': [2, 3, 4, 5, 6, 7, 8]
+        # Base parameter ranges (will be adapted based on data)
+        self.base_dbscan_params = {
+            'eps_range': (0.1, 0.8),      # Will be narrowed based on data
+            'eps_max_steps': 20,          # Maximum eps values to test
+            'min_samples_base': [2, 3, 4, 5, 6, 7, 8]  # Will be adapted by dataset size
         }
         
-        self.hierarchical_params = {
-            'n_clusters': list(range(8, 31)),
+        self.base_hierarchical_params = {
+            'n_clusters_range': (5, 50),  # Will be adapted based on dataset size
             'linkage': ['ward', 'complete', 'average']
         }
         
-        self.kmeans_params = {
-            'n_clusters': list(range(8, 31))
+        self.base_kmeans_params = {
+            'n_clusters_range': (5, 50)   # Will be adapted based on dataset size
         }
         
         self.similarity_methods = ['jaccard', 'cosine', 'combined']
@@ -538,11 +539,14 @@ class SkillsParameterOptimizer:
         # Create similarity matrices
         similarity_matrices = self.create_similarity_matrices(cooccurrence_df)
         
-        # Run optimization for each algorithm
+        # Determine adaptive parameter ranges based on data characteristics
+        adaptive_params = self._determine_adaptive_parameters(skill_metadata, similarity_matrices)
+        
+        # Run optimization for each algorithm with adaptive parameters
         results = {
-            'dbscan': self._optimize_skills_dbscan(similarity_matrices, skill_metadata),
-            'hierarchical': self._optimize_skills_hierarchical(similarity_matrices, skill_metadata),
-            'kmeans': self._optimize_skills_kmeans(similarity_matrices, skill_metadata)
+            'dbscan': self._optimize_skills_dbscan(similarity_matrices, skill_metadata, adaptive_params['dbscan']),
+            'hierarchical': self._optimize_skills_hierarchical(similarity_matrices, skill_metadata, adaptive_params['hierarchical']),
+            'kmeans': self._optimize_skills_kmeans(similarity_matrices, skill_metadata, adaptive_params['kmeans'])
         }
         
         # Find best overall configuration
@@ -555,6 +559,68 @@ class SkillsParameterOptimizer:
         })
         
         return best_config
+    
+    def _determine_adaptive_parameters(self, skill_metadata: pd.DataFrame, similarity_matrices: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+        """Determine adaptive parameter ranges based on skills data characteristics."""
+        n_skills = len(skill_metadata)
+        n_categories = skill_metadata['Category'].nunique() if 'Category' in skill_metadata.columns else 10
+        
+        # Sample similarity matrix for analysis
+        sample_matrix = next(iter(similarity_matrices.values()))
+        sample_distances = 1 - sample_matrix.values
+        distance_stats = {
+            'mean': np.mean(sample_distances),
+            'median': np.median(sample_distances),
+            'q25': np.percentile(sample_distances, 25),
+            'q75': np.percentile(sample_distances, 75)
+        }
+        
+        # Adaptive DBSCAN parameters
+        eps_min = max(0.1, distance_stats['q25'] * 0.9)
+        eps_max = min(0.7, distance_stats['q75'] * 1.3)
+        eps_steps = min(self.base_dbscan_params['eps_max_steps'], max(10, int((eps_max - eps_min) / 0.03)))
+        eps_range = np.linspace(eps_min, eps_max, eps_steps).tolist()
+        
+        # Adaptive min_samples based on dataset size
+        if n_skills < 100:
+            min_samples_range = [2, 3, 4]
+        elif n_skills < 500:
+            min_samples_range = [2, 3, 4, 5, 6]
+        else:
+            min_samples_range = [3, 4, 5, 6, 7, 8]
+        
+        # Adaptive cluster count ranges based on skills and categories
+        # Rule of thumb: aim for 10-30% of data points, but respect category structure
+        min_clusters = max(5, int(n_categories * 0.5))
+        max_clusters = min(50, max(15, int(n_skills * 0.2)))
+        cluster_range = list(range(min_clusters, max_clusters + 1, max(1, (max_clusters - min_clusters) // 15)))
+        
+        adaptive_params = {
+            'dbscan': {
+                'eps': eps_range,
+                'min_samples': min_samples_range
+            },
+            'hierarchical': {
+                'n_clusters': cluster_range,
+                'linkage': self.base_hierarchical_params['linkage']
+            },
+            'kmeans': {
+                'n_clusters': cluster_range
+            }
+        }
+        
+        log_info("Adaptive skills parameters determined", {
+            'n_skills': n_skills,
+            'n_categories': n_categories,
+            'eps_range': f"{eps_min:.3f} - {eps_max:.3f} ({len(eps_range)} steps)",
+            'min_samples_range': f"{min(min_samples_range)} - {max(min_samples_range)} ({len(min_samples_range)} values)",
+            'cluster_range': f"{min_clusters} - {max_clusters} ({len(cluster_range)} values)",
+            'total_dbscan_combinations': len(eps_range) * len(min_samples_range) * len(self.similarity_methods),
+            'total_hierarchical_combinations': len(cluster_range) * len(self.base_hierarchical_params['linkage']) * len(self.similarity_methods),
+            'total_kmeans_combinations': len(cluster_range) * len(self.similarity_methods)
+        })
+        
+        return adaptive_params
     
     def _convert_numpy_types(self, obj):
         """Convert NumPy types to native Python types for YAML serialization."""
@@ -721,22 +787,22 @@ class SkillsParameterOptimizer:
             log_info("Failed to load skills data", {'error': str(e)})
             return None
     
-    def _optimize_skills_dbscan(self, similarity_matrices: Dict[str, pd.DataFrame], skill_metadata: pd.DataFrame) -> Dict[str, Any]:
-        """Optimize DBSCAN parameters for skills clustering."""
+    def _optimize_skills_dbscan(self, similarity_matrices: Dict[str, pd.DataFrame], skill_metadata: pd.DataFrame, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Optimize DBSCAN parameters for skills clustering with adaptive parameters."""
         best_result = None
         best_score = -1
         
-        total_combinations = len(self.similarity_methods) * len(self.dbscan_params['eps']) * len(self.dbscan_params['min_samples'])
+        total_combinations = len(self.similarity_methods) * len(params['eps']) * len(params['min_samples'])
         current_combination = 0
         
-        print(f"   🧪 Testing {total_combinations} DBSCAN combinations...")
+        print(f"   🧪 Testing {total_combinations} adaptive DBSCAN combinations...")
         
         for similarity_method, similarity_df in similarity_matrices.items():
             distance_matrix = 1 - similarity_df.values
             distance_matrix = np.maximum(distance_matrix, 0)
             
-            for eps in self.dbscan_params['eps']:
-                for min_samples in self.dbscan_params['min_samples']:
+            for eps in params['eps']:
+                for min_samples in params['min_samples']:
                     current_combination += 1
                     
                     if current_combination % 20 == 0:
@@ -780,23 +846,23 @@ class SkillsParameterOptimizer:
         
         return best_result or {}
     
-    def _optimize_skills_hierarchical(self, similarity_matrices: Dict[str, pd.DataFrame], skill_metadata: pd.DataFrame) -> Dict[str, Any]:
+    def _optimize_skills_hierarchical(self, similarity_matrices: Dict[str, pd.DataFrame], skill_metadata: pd.DataFrame, params: Dict[str, Any]) -> Dict[str, Any]:
         """Optimize hierarchical clustering parameters for skills."""
         best_result = None
         best_score = -1
         
-        total_combinations = len(self.similarity_methods) * len(self.hierarchical_params['n_clusters']) * len(self.hierarchical_params['linkage'])
+        total_combinations = len(self.similarity_methods) * len(params['n_clusters']) * len(params['linkage'])
         current_combination = 0
         
-        print(f"   🌳 Testing {total_combinations} Hierarchical combinations...")
+        print(f"   🌳 Testing {total_combinations} adaptive Hierarchical combinations...")
         
         for similarity_method, similarity_df in similarity_matrices.items():
             # For hierarchical clustering, we need to use distance matrix
             distance_matrix = 1 - similarity_df.values
             distance_matrix = np.maximum(distance_matrix, 0)
             
-            for n_clusters in self.hierarchical_params['n_clusters']:
-                for linkage in self.hierarchical_params['linkage']:
+            for n_clusters in params['n_clusters']:
+                for linkage in params['linkage']:
                     current_combination += 1
                     
                     if current_combination % 20 == 0:
@@ -839,15 +905,15 @@ class SkillsParameterOptimizer:
         
         return best_result or {}
     
-    def _optimize_skills_kmeans(self, similarity_matrices: Dict[str, pd.DataFrame], skill_metadata: pd.DataFrame) -> Dict[str, Any]:
+    def _optimize_skills_kmeans(self, similarity_matrices: Dict[str, pd.DataFrame], skill_metadata: pd.DataFrame, params: Dict[str, Any]) -> Dict[str, Any]:
         """Optimize K-means parameters for skills."""
         best_result = None
         best_score = -1
         
-        total_combinations = len(self.similarity_methods) * len(self.kmeans_params['n_clusters'])
+        total_combinations = len(self.similarity_methods) * len(params['n_clusters'])
         current_combination = 0
         
-        print(f"   🎯 Testing {total_combinations} K-means combinations...")
+        print(f"   🎯 Testing {total_combinations} adaptive K-means combinations...")
         
         for similarity_method, similarity_df in similarity_matrices.items():
             # Use PCA features for K-means
@@ -856,7 +922,7 @@ class SkillsParameterOptimizer:
             scaler = StandardScaler()
             features = scaler.fit_transform(features)
             
-            for n_clusters in self.kmeans_params['n_clusters']:
+            for n_clusters in params['n_clusters']:
                 current_combination += 1
                 
                 if current_combination % 10 == 0:
@@ -998,6 +1064,70 @@ class ClusteringParameterOptimizer:
             log_info("Failed to load optimization data", {'error': str(e)})
             return None, None
     
+    def _analyze_distance_matrix(self, distance_matrix: np.ndarray) -> Dict[str, float]:
+        """Analyze distance matrix characteristics to inform parameter selection."""
+        # Get upper triangle (excluding diagonal) for analysis
+        upper_triangle = distance_matrix[np.triu_indices_from(distance_matrix, k=1)]
+        
+        stats = {
+            'mean': np.mean(upper_triangle),
+            'median': np.median(upper_triangle),
+            'std': np.std(upper_triangle),
+            'min': np.min(upper_triangle),
+            'max': np.max(upper_triangle),
+            'q25': np.percentile(upper_triangle, 25),
+            'q75': np.percentile(upper_triangle, 75),
+            'q95': np.percentile(upper_triangle, 95),
+            'q99': np.percentile(upper_triangle, 99),
+            'data_points': len(upper_triangle),
+            'matrix_size': distance_matrix.shape[0]
+        }
+        
+        log_info("Distance matrix analysis", {
+            'mean_distance': f"{stats['mean']:.3f}",
+            'median_distance': f"{stats['median']:.3f}",
+            'std_distance': f"{stats['std']:.3f}",
+            'q25_q75_range': f"{stats['q25']:.3f} - {stats['q75']:.3f}",
+            'matrix_size': stats['matrix_size']
+        })
+        
+        return stats
+    
+    def _determine_dbscan_ranges(self, distance_matrix: np.ndarray, stats: Dict[str, float]) -> Tuple[List[float], List[int]]:
+        """Determine DBSCAN parameter ranges based on data characteristics."""
+        
+        # Adaptive eps range based on distance distribution
+        # Focus on the inter-quartile range with extensions
+        eps_min = max(0.05, stats['q25'] * 0.8)  # Start slightly below Q25
+        eps_max = min(0.8, stats['q75'] * 1.5)   # End above Q75 but cap at 0.8
+        
+        # Determine step size based on range and desired resolution
+        eps_span = eps_max - eps_min
+        target_eps_steps = min(30, max(15, int(eps_span / 0.02)))  # 15-30 steps
+        eps_step = eps_span / target_eps_steps
+        
+        eps_range = np.arange(eps_min, eps_max + eps_step/2, eps_step).tolist()
+        
+        # Adaptive min_samples range based on dataset size
+        matrix_size = stats['matrix_size']
+        if matrix_size < 100:
+            min_samples_range = list(range(2, 6))  # Small datasets: 2-5
+        elif matrix_size < 500:
+            min_samples_range = list(range(2, 8))  # Medium datasets: 2-7
+        elif matrix_size < 1500:
+            min_samples_range = list(range(3, 10)) # Large datasets: 3-9
+        else:
+            min_samples_range = list(range(5, 15)) # Very large datasets: 5-14
+        
+        log_info("Adaptive parameter ranges", {
+            'eps_analysis': f"Q25={stats['q25']:.3f}, Q75={stats['q75']:.3f}",
+            'eps_range': f"{eps_min:.3f} - {eps_max:.3f} (step={eps_step:.3f})",
+            'dataset_size': matrix_size,
+            'min_samples_rationale': f"Adapted for {matrix_size} data points"
+        })
+        
+        return eps_range, min_samples_range
+    
     def _optimize_job_clustering(self, similarity_matrix: np.ndarray) -> ParameterOptimizationResult:
         """Optimize job profile clustering parameters."""
         log_info("Optimizing job profile clustering parameters", {})
@@ -1006,10 +1136,17 @@ class ClusteringParameterOptimizer:
         distance_matrix = 1 - similarity_matrix
         distance_matrix = np.maximum(distance_matrix, 0)  # Ensure non-negative distances
         
-        # Define parameter ranges based on actual distance matrix characteristics
-        # Analysis shows distances are concentrated around 0.7-0.8, so focus eps range there
-        eps_range = np.arange(0.65, 0.85, 0.02).tolist()  # 0.65 to 0.83 with 0.02 step
-        min_samples_range = list(range(2, 8))  # 2 to 7
+        # Analyze distance matrix to determine data-driven parameter ranges
+        distance_stats = self._analyze_distance_matrix(distance_matrix)
+        eps_range, min_samples_range = self._determine_dbscan_ranges(distance_matrix, distance_stats)
+        
+        log_info("Data-driven parameter ranges determined", {
+            'eps_range': f"{min(eps_range):.3f} - {max(eps_range):.3f}",
+            'eps_count': len(eps_range),
+            'min_samples_range': f"{min(min_samples_range)} - {max(min_samples_range)}",
+            'min_samples_count': len(min_samples_range),
+            'total_combinations': len(eps_range) * len(min_samples_range)
+        })
         
         # Perform silhouette analysis
         silhouette_results = self.silhouette_analyzer.analyze_parameter_range(

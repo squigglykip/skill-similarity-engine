@@ -2,34 +2,70 @@
 # Core - Similarity Parameters Configuration
 # =============================================================================
 # 
-# CRITICAL PARAMETERS - These values are the result of Optuna Bayesian optimization
+# CRITICAL PARAMETERS - These values are the result of Stratified Optuna Bayesian optimization
 # and are fundamental to the career pathway intelligence algorithms.
 # 
-# AUTO-GENERATED on 2025-08-11 - DO NOT MODIFY manually
+# AUTO-GENERATED on 2025-08-13 - DO NOT MODIFY manually
 # =============================================================================
 
-# Optuna-Optimized Parameters (2025-08-11)
-# Based on full dataset optimization with asymmetric Jaccard + corpus normalization
+# Optuna-Optimized Parameters (2025-08-13)
+# Based on stratified dataset optimization with asymmetric Jaccard + corpus normalization
 # NOTE: This file is loaded as core.similarity_parameters by the config manager
 optuna_optimal:
-  # Defining skills threshold - Top % rarest skills per job profile
-  defining_skills_percentile: 49.9
+  # Global fallback parameters (for backward compatibility)
+  defining_skills_percentile: 27.2
+  defining_skills_multiplier: 1.479
   
-  # Similarity boost multiplier for shared defining skills
-  defining_skills_multiplier: 1.499
+  # Stratified optimization results (job size specific parameters)
+  stratified_parameters:
+    medium_jobs:
+      defining_skills_percentile: 27.2
+      defining_skills_multiplier: 1.479
+      job_count: 5
+      smoothness_score: 0.8540
+      avg_improvement: 0.3356
+      normalization_factor: 4.3561
+      scores_above_1_percent: 10.00
+      trial_count: 25
+      best_trial: 16
+      max_percentile_cap: 30.0
+      description: "16-30 skills jobs"
+    large_jobs:
+      defining_skills_percentile: 14.8
+      defining_skills_multiplier: 1.500
+      job_count: 200
+      smoothness_score: 0.7898
+      avg_improvement: 0.0523
+      normalization_factor: 4.4971
+      scores_above_1_percent: 2.27
+      trial_count: 25
+      best_trial: 22
+      max_percentile_cap: 20.0
+      description: "31-50 skills jobs"
+    xlarge_jobs:
+      defining_skills_percentile: 14.9
+      defining_skills_multiplier: 1.495
+      job_count: 510
+      smoothness_score: 0.5702
+      avg_improvement: 0.0407
+      normalization_factor: 5.9531
+      scores_above_1_percent: 1.20
+      trial_count: 25
+      best_trial: 17
+      max_percentile_cap: 15.0
+      description: ">50 skills jobs"
   
-  # Optimization metadata for transparency
+  # Global optimization metadata
   optimization_metadata:
-    optimization_date: "2025-08-11"
-    optimization_method: "Optuna TPE Sampler + Median Pruner"
-    dataset_size: "Full dataset analysis"
-    objective_function: "Smoothness optimization with improvement penalty"
-    trial_count: 25
-    selected_trial: 22
-    smoothness_score: 0.7900
-    average_improvement: 0.2936
-    normalization_factor: 24.4657
-    scores_above_1_percent: 12.20
+    optimization_date: "2025-08-13"
+    optimization_method: "Stratified Optuna TPE Sampler + Median Pruner"
+    dataset_size: "Stratified by job size with business constraints"
+    objective_function: "Layer-specific smoothness optimization with improvement penalty"
+    total_jobs_processed: 715
+    total_trials: 75
+    avg_smoothness: 0.7380
+    avg_improvement: 0.1429
+    stratification_strategy: "4 layers by skill count with percentile caps"
 
 # Rarity Analysis Parameters
 rarity_thresholds:
@@ -52,15 +88,65 @@ similarity_method:
 algorithm_config:
   calculation_steps:
     1: "Calculate asymmetric Jaccard baseline (|shared| / |job_a_skills|)"
-    2: "Identify defining skills for both jobs (top 49.9% rarest per job)"
+    2: "Identify defining skills using stratified parameters per job size"
     3: "Find shared defining skills between jobs"
-    4: "Apply 1.499x multiplier boost for shared defining skills"
+    4: "Apply layer-specific multiplier boost for shared defining skills"
     5: "Allow scores >1.0 for corpus normalization"
     6: "Normalize entire corpus to 0-1 range preserving differentiation"
   
   store_both_raw_and_normalized: true
   primary_score_field: "similarity_score"
   raw_score_field: "raw_similarity_score"
+
+# Business Logic Constraints (Override Optimization Results)
+business_constraints:
+  # Dynamic defining skills limits based on job size
+  defining_skills_limits:
+    enabled: true
+    
+    # Job size categories and their constraints
+    job_size_categories:
+      small:
+        max_skills_threshold: 15
+        max_percentile_cap: 50.0
+        description: "Small jobs (≤15 skills): max 50% percentile → 3-7 defining skills"
+      medium:
+        max_skills_threshold: 30
+        max_percentile_cap: 30.0
+        description: "Medium jobs (16-30 skills): max 30% percentile → 5-9 defining skills"
+      large:
+        max_skills_threshold: 50
+        max_percentile_cap: 20.0
+        description: "Large jobs (31-50 skills): max 20% percentile → 6-10 defining skills"
+      xlarge:
+        max_skills_threshold: 999
+        max_percentile_cap: 15.0
+        description: "XLarge jobs (>50 skills): max 15% percentile → 8-15 defining skills"
+    
+    # Absolute business limits (hard caps)
+    absolute_limits:
+      max_defining_skills_per_job: 10
+      min_defining_skills_per_job: 1
+    
+    # Constraint application behavior
+    override_optimization: true
+    log_constraint_applications: true
+    constraint_priority: "business_first"  # business_first, optimization_first
+
+# Enhanced Similarity Normalization Rules
+normalization_config:
+  # Column-specific normalization
+  normalize_enhanced_similarity_score: true
+  preserve_raw_rarity_weighted_score: true
+  
+  # Database column mapping
+  primary_normalized_column: "enhanced_similarity_score"
+  raw_values_column: "rarity_weighted_score"
+  
+  # Normalization behavior
+  method: "corpus_max_normalization"
+  preserve_score_differentiation: true
+  allow_intermediate_scores_above_1: true
 
 # Validation and Quality Assurance
 validation:
@@ -78,12 +164,12 @@ validation:
 
 # Configuration Metadata
 metadata:
-  version: "3.0"
-  last_updated: "2025-08-11"
-  optimization_source: "Optuna Bayesian Optimization"
+  version: "3.2"
+  last_updated: "2025-08-13"
+  optimization_source: "Stratified Optuna Bayesian Optimization with Business Constraints"
   critical_for_modules:
     - "similarity/defining_skills.py"
     - "similarity/rarity_weighted.py" 
     - "similarity/asymmetric.py"
     - "business_context/analytics_orchestrator.py"
-  description: "Auto-generated optimal similarity parameters"
+  description: "Auto-generated stratified optimal similarity parameters with business logic constraints"

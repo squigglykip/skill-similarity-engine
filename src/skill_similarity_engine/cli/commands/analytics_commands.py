@@ -104,13 +104,26 @@ class VelocityAnalysisCommand(BaseCommand):
                 
                 print()
                 
+                # Populate database with results
+                print("💾 Saving velocity data to analytics database...")
+                from ...business_context.database_integrator import DatabaseIntegrator
+                from pathlib import Path
+                db_integrator = DatabaseIntegrator(Path(db_path))
+                population_success = db_integrator.populate_skill_demand_trends(velocity_df)
+                
+                if population_success:
+                    print("✅ Velocity data saved to analytics database")
+                else:
+                    print("⚠️ Velocity analysis completed but database population failed")
+                
                 return CommandResult(
                     success=True,
                     message="Velocity analysis completed successfully",
                     data=summary,
                     metadata={
                         'total_skills': summary.get('total_skills_analyzed', 0),
-                        'velocity_categories': categories
+                        'velocity_categories': categories,
+                        'database_populated': population_success
                     }
                 )
             else:

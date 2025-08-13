@@ -211,8 +211,13 @@ class AsymmetricCoverageCalculator:
         all_defining = job_a_defining | job_b_defining
         shared_defining_skills = [skill for skill in shared_skills if skill in all_defining]
         
-        # Step 4: Apply gentle multiplier boost from configuration
-        gentle_multiplier = self.rarity_weighted_config['gentle_multiplier']
+        # Step 4: Apply stratified multiplier boost based on job size
+        # Get stratified multiplier based on the larger of the two jobs (more conservative)
+        job_a_size = len(job_a_skills)
+        job_b_size = len(job_b_skills)
+        reference_job_size = max(job_a_size, job_b_size)
+        gentle_multiplier = self._get_stratified_multiplier_for_job_size(reference_job_size)
+        
         defining_skill_boost = len(shared_defining_skills) * (gentle_multiplier - 1.0)
         enhanced_similarity = basic_similarity * (1.0 + defining_skill_boost)
         
@@ -615,3 +620,45 @@ class SkillIntelligenceEngine:
             
         except Exception as e:
             self._job_defining_skills = {} 
+    
+    def _get_stratified_multiplier_for_job_size(self, job_skill_count: int) -> float:
+        """
+        Get the stratified multiplier for a job based on its skill count.
+        
+        This method reads the stratified parameters from configuration and returns
+        the appropriate multiplier for the job's size category.
+        
+        Args:
+            job_skill_count: Number of skills in the job
+            
+        Returns:
+            Stratified multiplier value specific to the job's size category
+        """
+        try:
+            stratified_config = self.config_manager.get_nested_value(
+                'core', 'similarity_parameters', 'optuna_optimal', 'stratified_parameters'
+            )
+            
+            if not stratified_config:
+                # Fallback to global parameter if stratified not available
+                return self.rarity_weighted_config.get('gentle_multiplier', 1.2)
+            
+            # Determine job size category and return appropriate multiplier
+            if job_skill_count <= 15:
+                layer_config = stratified_config.get('small_jobs', {})
+            elif job_skill_count <= 30:
+                layer_config = stratified_config.get('medium_jobs', {})
+            elif job_skill_count <= 50:
+                layer_config = stratified_config.get('large_jobs', {})
+            else:
+                layer_config = stratified_config.get('xlarge_jobs', {})
+            
+            # Extract multiplier with fallback to global parameter
+            effective_multiplier = layer_config.get('defining_skills_multiplier', 
+                                                  self.rarity_weighted_config.get('gentle_multiplier', 1.2))
+            
+            return effective_multiplier
+            
+        except Exception as e:
+            # Fallback to global parameter on any error
+            return self.rarity_weighted_config.get('gentle_multiplier', 1.2)

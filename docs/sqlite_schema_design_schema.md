@@ -4,11 +4,11 @@
 
 ## Database Overview
 
-- **Database Size**: 362.72 MB
+- **Database Size**: 335.7 MB
 - **SQLite Version**: 3.45.3
-- **Last Modified**: 2025-08-11
+- **Last Modified**: 2025-08-13
 - **Total Tables**: 16
-- **Total Records**: 670,604
+- **Total Records**: 659,582
 
 ## Table of Contents
 
@@ -73,7 +73,8 @@
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `cluster_id` | INTEGER | PK, FK | Cluster Id |
+| `id` | INTEGER | PK | Id |
+| `cluster_id` | INTEGER | FK | Cluster Id |
 | `bundle_name` | TEXT | - | Bundle Name |
 | `bundle_description` | TEXT | - | Bundle Description |
 | `bundle_rationale` | TEXT | - | Bundle Rationale |
@@ -112,36 +113,37 @@
 
 ```json
 {
+  "id": 1,
   "cluster_id": 0,
   "bundle_name": "Analysis Skills Bundle (91 skills)",
   "bundle_description": "Collection of Analysis skills with 3.1% average prevalence",
   "bundle_rationale": "Grouped by Analysis category",
   "bundle_size": 91,
   "sample_skills": "Customer Centricity; Data Analysis; Data Literacy",
-  "sample_job_functions": "Analysis pending",
-  "core_skills": null,
-  "peripheral_skills": null,
+  "sample_job_functions": "Operations & Processing; Risk Management; Investment Management",
+  "core_skills": "Customer Centricity; Data Analysis; Data Literacy; Risk Modeling; Data Analysis And Display (DADiSP)...",
+  "peripheral_skills": "Systems Of Measurement; Business Intelligence Testing; Asset Analytics; SAS Certified Specialist: Fo...",
   "dominant_category": "Analysis",
   "category_purity": 1.0,
   "application_level": "Advanced",
   "specialization_area": "Analysis",
   "average_jobs_per_skill": 22.428571428571427,
-  "taxonomy_alignment_score": 0.8,
-  "silhouette_score": 0.0,
+  "taxonomy_alignment_score": 0.722,
+  "silhouette_score": -0.719,
   "intra_bundle_cohesion": null,
   "inter_bundle_separation": null,
-  "business_value_score": null,
-  "training_feasibility": null,
-  "skill_complementarity": null,
-  "market_demand_level": null,
+  "business_value_score": 0.246,
+  "training_feasibility": "medium",
+  "skill_complementarity": 0.47,
+  "market_demand_level": "low",
   "common_job_families": null,
   "typical_career_stage": null,
   "skill_acquisition_difficulty": null,
-  "clustering_algorithm": null,
-  "algorithm_parameters": null,
+  "clustering_algorithm": "dbscan",
+  "algorithm_parameters": "eps=0.15, min_samples=3",
   "quality_validation_date": null,
   "business_review_date": null,
-  "created_timestamp": "2025-08-11T20:55:02.035818"
+  "created_timestamp": "2025-08-13T17:02:36.829749"
 }
 ```
 
@@ -151,7 +153,7 @@
 
 ### analytics_job_defining_skills
 
-**Records**: 19,474
+**Records**: 5,564
 
 #### Schema
 
@@ -183,20 +185,20 @@
 ```json
 {
   "job_profile_id": "R0001.5",
-  "skill_id": "KS1215K6H2C5BNN63SHB",
-  "skill_name": "Infor LX",
+  "skill_id": "ESFC39D84A5813472420",
+  "skill_name": "Data Segmentation",
   "job_profile": "Payment Systems Analyst - 5",
-  "category": "Business",
-  "subcategory": "Business Operations",
+  "category": "Analysis",
+  "subcategory": "Data Analysis",
   "skill_type": "Specialized Skill",
-  "prevalence_percentage": 1.96,
-  "total_profiles_with_skill": 14,
+  "prevalence_percentage": 1.54,
+  "total_profiles_with_skill": 11,
   "rarity_category": "Rare",
-  "defining_skill_rank": 18,
-  "defining_skill_score": 98.04195804195804,
-  "analysis_date": "2025-08-11",
+  "defining_skill_rank": 8,
+  "defining_skill_score": 98.46153846153847,
+  "analysis_date": "2025-08-13",
   "percentile_threshold": 8.8,
-  "created_timestamp": "2025-08-11 10:50:22"
+  "created_timestamp": "2025-08-13 06:57:23"
 }
 ```
 
@@ -249,20 +251,20 @@
   "job_category": "Support",
   "management_level": "Group 2",
   "cluster_id": 0,
-  "cluster_name": "Operations & Processing - Group 2 Cluster",
-  "cluster_description": "Diverse cluster of 644 roles spanning 22 job functions with shared competencies",
+  "cluster_name": "Data & Analytics - Group 2 Cluster",
+  "cluster_description": "Diverse cluster of 13 roles spanning 10 job functions with shared competencies",
   "cluster_rationale": "Clustered based on cross-functional skill similarities despite different job functions",
-  "cluster_size": 644,
-  "sample_jobs": "Payment Systems Analyst - 5; Settlement Officer - 6; Sales Manager - II",
+  "cluster_size": 13,
+  "sample_jobs": "Payment Systems Analyst - 5; Settlement Officer - 6; Customer Service Representative - 0",
   "sample_skills": "Skills analysis pending",
-  "cluster_confidence": 0.261,
-  "silhouette_score": 0.21711856343968797,
+  "cluster_confidence": 0.535,
+  "silhouette_score": 0.44550283307594807,
   "intra_cluster_similarity": 0.0,
   "inter_cluster_distance": 0.0,
   "clustering_algorithm": "DBSCAN",
-  "algorithm_parameters": "eps=0.7300000000000001, min_samples=2",
-  "analysis_date": "2025-08-11",
-  "created_timestamp": "2025-08-11T20:55:01.869235"
+  "algorithm_parameters": "eps=0.5898989898989899, min_samples=3",
+  "analysis_date": "2025-08-13",
+  "created_timestamp": "2025-08-13T17:02:36.258707"
 }
 ```
 
@@ -272,13 +274,14 @@
 
 ### analytics_job_family_characteristics
 
-**Records**: 20
+**Records**: 76
 
 #### Schema
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `cluster_id` | INTEGER | PK, FK | Cluster Id |
+| `id` | INTEGER | PK | Id |
+| `cluster_id` | INTEGER | FK | Cluster Id |
 | `family_name` | TEXT | - | Family Name |
 | `family_description` | TEXT | - | Family Description |
 | `family_rationale` | TEXT | - | Family Rationale |
@@ -316,21 +319,22 @@
 
 ```json
 {
+  "id": 1,
   "cluster_id": 0,
-  "family_name": "Operations & Processing - Group 2 Cluster",
-  "family_description": "Diverse cluster of 644 roles spanning 22 job functions with shared competencies",
+  "family_name": "Data & Analytics - Group 2 Cluster",
+  "family_description": "Diverse cluster of 13 roles spanning 10 job functions with shared competencies",
   "family_rationale": "Clustered based on cross-functional skill similarities despite different job functions",
-  "cluster_size": 644,
-  "sample_jobs": "Payment Systems Analyst - 5; Settlement Officer - 6; Sales Manager - II",
+  "cluster_size": 13,
+  "sample_jobs": "Payment Systems Analyst - 5; Settlement Officer - 6; Customer Service Representative - 0",
   "sample_skills": "Skills analysis pending",
-  "core_job_functions": "{'Operations & Processing': 71, 'Finance & Treasury': 49, 'Risk Management': 47}",
-  "secondary_job_functions": "{'Strategy & Planning': 7, 'Business Development': 7}",
-  "dominant_function": "Operations & Processing",
-  "function_purity": 0.11,
-  "management_level_pattern": "{'Group 2': 156, 'Group 3': 128, 'Group 4': 119, 'Group 1': 105, 'Group 5': 66, 'Group 6': 39, 'Grou...",
+  "core_job_functions": "{'Data & Analytics': 2, 'Legal & Compliance': 2, 'Operations & Processing': 2}",
+  "secondary_job_functions": "{'Customer Relations': 1, 'Audit & Assurance': 1}",
+  "dominant_function": "Data & Analytics",
+  "function_purity": 0.154,
+  "management_level_pattern": "{'Group 2': 6, 'Group 1': 5, 'Group 4': 1, 'Group 3': 1}",
   "specialization_depth": "broad",
   "average_skills_per_job": 0.0,
-  "silhouette_score": 0.21711856343968797,
+  "silhouette_score": 0.44550283307594807,
   "intra_family_similarity": 0.0,
   "inter_family_separation": 0.0,
   "business_value_score": 0.8,
@@ -341,10 +345,10 @@
   "promotion_frequency": "medium",
   "lateral_movement_potential": "high",
   "clustering_algorithm": "DBSCAN",
-  "algorithm_parameters": "eps=0.7300000000000001, min_samples=2",
-  "quality_validation_date": "2025-08-11T20:55:01.885272",
-  "business_review_date": "2025-08-11T20:55:01.885272",
-  "created_timestamp": "2025-08-11T20:55:01.885272"
+  "algorithm_parameters": "eps=0.5898989898989899, min_samples=3",
+  "quality_validation_date": "2025-08-13T17:02:36.258707",
+  "business_review_date": "2025-08-13T17:02:36.258707",
+  "created_timestamp": "2025-08-13T17:02:36.258707"
 }
 ```
 
@@ -387,23 +391,23 @@
 
 ```json
 {
-  "similarity_id": "R0001.5_R0001.6",
-  "job_from": "R0001.5",
-  "job_to": "R0001.6",
-  "similarity_score": 0.003457619034586206,
-  "enhanced_similarity_score": 633073.135,
-  "rarity_weighted_score": 633073.135,
-  "shared_defining_skills_count": 33,
-  "defining_skill_boost": 633072.1346,
-  "shared_skills_count": 68,
-  "total_skills_from": 68,
+  "similarity_id": "R0210.0_R0001.5",
+  "job_from": "R0210.0",
+  "job_to": "R0001.5",
+  "similarity_score": 0.07400000000000001,
+  "enhanced_similarity_score": 0.0013268544584102851,
+  "rarity_weighted_score": 0.07400000000000001,
+  "shared_defining_skills_count": 0,
+  "defining_skill_boost": 0.0,
+  "shared_skills_count": 2,
+  "total_skills_from": 27,
   "total_skills_to": 68,
-  "skill_overlap_percentage": 100.0,
-  "shared_skills": "Emotional Intelligence, Stakeholder Engagement, Internal Influencing and Advising, Continuous Improv...",
-  "shared_defining_skills": "Infor LX, Contract Negotiation, Data Science, Analytics, Data Integrity, Predictive Analytics, Predi...",
-  "skill_gap_analysis": "Skills needed: 0, Defining gaps: 0",
+  "skill_overlap_percentage": 2.9,
+  "shared_skills": "Risk Management Framework, Risk Matrix",
+  "shared_defining_skills": "",
+  "skill_gap_analysis": "Skills needed: 66, Defining gaps: 10",
   "calculation_algorithm": "rarity_weighted_v1.0",
-  "created_timestamp": "2025-08-11 10:50:12"
+  "created_timestamp": "2025-08-13 06:57:13"
 }
 ```
 
@@ -458,7 +462,7 @@
   "skill_similarity_score": null,
   "difficulty_score": null,
   "success_rate": null,
-  "created_timestamp": "2025-08-11T20:50:36.001561"
+  "created_timestamp": "2025-08-13T16:57:44.602816"
 }
 ```
 
@@ -561,16 +565,16 @@
   "bundle_size": 91,
   "is_specialized": 0,
   "sample_skills": "Customer Centricity; Data Analysis; Data Literacy",
-  "sample_job_functions": "Analysis pending",
-  "bundle_confidence": null,
-  "silhouette_score": null,
-  "intra_bundle_similarity": null,
-  "inter_bundle_distance": null,
-  "clustering_algorithm": null,
-  "similarity_method": null,
-  "algorithm_parameters": null,
+  "sample_job_functions": "Operations & Processing; Risk Management; Investment Management",
+  "bundle_confidence": 0.59,
+  "silhouette_score": -0.719,
+  "intra_bundle_similarity": 0.486,
+  "inter_bundle_distance": 0.494,
+  "clustering_algorithm": "dbscan",
+  "similarity_method": "jaccard_combined",
+  "algorithm_parameters": "eps=0.15, min_samples=3",
   "analysis_date": null,
-  "created_timestamp": "2025-08-11T20:55:02.035818"
+  "created_timestamp": "2025-08-13T17:02:36.813732"
 }
 ```
 
@@ -580,7 +584,7 @@
 
 ### analytics_skill_demand_trends
 
-**Records**: 0
+**Records**: 1,603
 
 #### Schema
 
@@ -615,6 +619,41 @@
 #### Foreign Key Relationships
 
 - `skill_id` references `core_skills_taxonomy.Skill_ID`
+
+#### Sample Data
+
+```json
+{
+  "skill_id": "ES439D5D4E1DA572EFB8",
+  "skill_name": "Customer Centricity",
+  "category": "Analysis",
+  "skill_type": "Specialized Skill",
+  "jobs_requiring_skill": 578,
+  "total_skill_instances": 19888,
+  "current_prevalence_percent": null,
+  "short_term_cagr": -0.728424099873349,
+  "medium_term_cagr": -0.4647383273414609,
+  "long_term_cagr": -0.34941880870470565,
+  "velocity_category": "declining",
+  "trend_direction": "down",
+  "trend_strength": null,
+  "trend_confidence": null,
+  "total_movements": 20749,
+  "total_recency_weighted_movements": 16861.30700533036,
+  "recency_weighted_growth_pct": -26.122439090744088,
+  "projected_demand_1yr": null,
+  "projected_demand_2yr": null,
+  "projected_demand_3yr": null,
+  "analysis_windows": null,
+  "velocity_thresholds": null,
+  "data_quality_score": null,
+  "analysis_date": null,
+  "created_timestamp": "2025-08-13T17:02:43.763446"
+}
+```
+
+*(5 sample records available)*
+
 ---
 
 ### analytics_skill_rarity
@@ -663,9 +702,9 @@
   "is_defining_skill": 1,
   "defining_for_jobs_count": 0,
   "defining_for_jobs": "",
-  "analysis_date": "2025-08-11",
+  "analysis_date": "2025-08-13",
   "algorithm_version": "rarity_analyzer_v1.0",
-  "created_timestamp": "2025-08-11 10:50:22"
+  "created_timestamp": "2025-08-13 06:57:23"
 }
 ```
 
@@ -675,7 +714,7 @@
 
 ### analytics_specialized_skills
 
-**Records**: 0
+**Records**: 1,228
 
 #### Schema
 
@@ -709,6 +748,40 @@
 #### Foreign Key Relationships
 
 - `skill_id` references `core_skills_taxonomy.Skill_ID`
+
+#### Sample Data
+
+```json
+{
+  "skill_id": "BGS2F4A7E318485C9F01",
+  "skill_name": "Executive Presence",
+  "category": "Physical and Inherent Abilities",
+  "subcategory": "Initiative and Leadership",
+  "skill_type": "Common Skill",
+  "jobs_count": 7,
+  "prevalence_percent": 0.98,
+  "specialization_score": 100.0,
+  "rarity_rank": null,
+  "specialization_reason": "Very low prevalence (<1%)",
+  "specialization_category": "Ultra-Rare",
+  "market_context": "Internal analysis",
+  "strategic_importance": "Medium",
+  "skill_lifecycle_stage": "Mature",
+  "investment_recommendation": "Monitor",
+  "related_skills": null,
+  "typical_job_functions": null,
+  "training_availability": "Limited",
+  "external_market_demand": "Moderate",
+  "analysis_methodology": "Multi-criteria specialization analysis",
+  "confidence_level": "Medium",
+  "last_review_date": "2025-08-13T17:02:36.654890",
+  "next_review_date": "2025-11-11T17:02:36.654890",
+  "created_timestamp": "2025-08-13T17:02:36.654890"
+}
+```
+
+*(5 sample records available)*
+
 ---
 
 ## core Tables
@@ -760,8 +833,8 @@
   "is_Banker": "Non-Banker",
   "Executive_Leadership_Group": "",
   "Accountability_Scope": "",
-  "created_timestamp": "2025-08-11 10:44:08",
-  "updated_timestamp": "2025-08-11 10:44:08"
+  "created_timestamp": "2025-08-13 06:53:37",
+  "updated_timestamp": "2025-08-13 06:53:37"
 }
 ```
 
@@ -792,7 +865,7 @@
 {
   "JobProfileID": "R0001.5",
   "Skill_ID": "BGSD16A8EEF4F5775E15",
-  "created_timestamp": "2025-08-11 10:44:12"
+  "created_timestamp": "2025-08-13 06:53:41"
 }
 ```
 
@@ -851,8 +924,8 @@
   "tags": "[]",
   "type": "{"id": "ST1", "name": "Specialized Skill"}",
   "type_id": "ST1",
-  "created_timestamp": "2025-08-11 10:44:09",
-  "updated_timestamp": "2025-08-11 10:44:09"
+  "created_timestamp": "2025-08-13 06:53:38",
+  "updated_timestamp": "2025-08-13 06:53:38"
 }
 ```
 
@@ -918,7 +991,7 @@
   "ORG_UNIT_NAME_8": "Unit 038",
   "ORG_UNIT_NAME_9": "Cell 11",
   "ORG_UNIT_NAME_10": "Node 024",
-  "created_timestamp": "2025-08-11 10:44:13"
+  "created_timestamp": "2025-08-13 06:53:42"
 }
 ```
 
@@ -930,7 +1003,7 @@
 
 ### sys_schema_metadata
 
-**Records**: 25
+**Records**: 26
 
 #### Schema
 
@@ -951,8 +1024,8 @@
   "metadata_value": "2.0",
   "metadata_category": "schema",
   "description": "Enhanced database schema version",
-  "created_timestamp": "2025-08-11 10:44:08",
-  "updated_timestamp": "2025-08-11 10:44:08"
+  "created_timestamp": "2025-08-13 06:53:37",
+  "updated_timestamp": "2025-08-13 06:53:37"
 }
 ```
 

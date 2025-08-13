@@ -56,13 +56,18 @@ class CorpusNormalizer:
         normalized = normalizer.get_normalized_score(raw_score)
     """
     
-    def __init__(self):
-        """Initialize the corpus normalizer."""
+    def __init__(self, normalization_method: str = "corpus_max_normalization"):
+        """Initialize the corpus normalizer.
+        
+        Args:
+            normalization_method: Either "corpus_max_normalization" or "logarithmic_normalization"
+        """
         self.logger = logging.getLogger(__name__)
         self.raw_scores: List[float] = []
         self.is_normalized = False
         self.normalization_stats: Optional[NormalizationStats] = None
         self._normalization_factor: Optional[float] = None
+        self.normalization_method = normalization_method
     
     def collect_raw_score(self, raw_enhanced_similarity: float) -> None:
         """
@@ -93,8 +98,9 @@ class CorpusNormalizer:
         """
         Normalize the entire corpus of similarity scores to 0-1 range.
         
-        Uses max normalization to preserve all differentiation:
-        normalized_score = raw_score / max(raw_scores)
+        Supports two methods:
+        - corpus_max_normalization: normalized_score = raw_score / max(raw_scores)
+        - logarithmic_normalization: normalized_score = log(1 + raw_score) / log(1 + max(raw_scores))
         
         Returns:
             NormalizationStats with detailed information about the normalization
@@ -104,17 +110,24 @@ class CorpusNormalizer:
         
         if self.is_normalized:
             self.logger.warning("Corpus already normalized, returning existing stats")
+            if self.normalization_stats is None:
+                raise ValueError("Normalization stats not available")
             return self.normalization_stats
         
         # Convert to numpy array for efficient computation
         raw_array = np.array(self.raw_scores)
         
-        # Calculate normalization factor (max value)
-        self._normalization_factor = float(np.max(raw_array))
-        
-        if self._normalization_factor == 0:
-            self.logger.warning("Maximum similarity score is 0, normalization factor set to 1")
-            self._normalization_factor = 1.0
+        # Calculate normalization factor based on method
+        if self.normalization_method == "logarithmic_normalization":
+            # For log normalization: log(1 + max_value)
+            max_raw = float(np.max(raw_array))
+            self._normalization_factor = np.log(1 + max_raw) if max_raw > 0 else 1.0
+        else:
+            # For linear normalization: max_value
+            self._normalization_factor = float(np.max(raw_array))
+            if self._normalization_factor == 0:
+                self.logger.warning("Maximum similarity score is 0, normalization factor set to 1")
+                self._normalization_factor = 1.0
         
         # Calculate statistics
         raw_min = float(np.min(raw_array))
@@ -133,7 +146,7 @@ class CorpusNormalizer:
             raw_max=raw_max,
             raw_mean=raw_mean,
             raw_std=raw_std,
-            normalization_factor=self._normalization_factor,
+            normalization_factor=self._normalization_factor or 1.0,
             total_scores=len(self.raw_scores),
             scores_above_1=scores_above_1,
             percentage_above_1=percentage_above_1,
@@ -168,7 +181,13 @@ class CorpusNormalizer:
         if self._normalization_factor is None or self._normalization_factor == 0:
             return 0.0
         
-        normalized = raw_score / self._normalization_factor
+        # Apply normalization based on method
+        if self.normalization_method == "logarithmic_normalization":
+            # Log normalization: log(1 + raw_score) / log(1 + max_raw)
+            normalized = np.log(1 + raw_score) / self._normalization_factor
+        else:
+            # Linear normalization: raw_score / max_raw
+            normalized = raw_score / self._normalization_factor
         
         # Ensure result is in valid range (handle floating point precision)
         return max(0.0, min(1.0, normalized))
@@ -240,6 +259,9 @@ class CorpusNormalizer:
         
         # Post-normalization summary
         stats = self.normalization_stats
+        if stats is None:
+            return {"status": "error", "message": "Normalization stats not available"}
+            
         return {
             "status": "normalized",
             "total_scores": stats.total_scores,
