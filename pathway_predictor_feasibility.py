@@ -25,10 +25,9 @@ import joblib
 from tqdm import tqdm
 import yaml
 import random
+ 
 
-# Import existing modules for feature engineering consistency
-sys.path.append('src')
-from skill_similarity_engine.models.movement_ml_trainer import MovementMLTrainer
+# Real-time only script; no trainer import required
 
 class PathwayFeasibilityPredictor:
     """
@@ -44,7 +43,7 @@ class PathwayFeasibilityPredictor:
     """
     
     def __init__(self, db_path: str = "models/2025-Q3/business_context.sqlite", 
-                 models_dir: str = "models/2025-Q3", realtime_mode: bool = False):
+                 models_dir: str = "models/2025-Q3"):
         """
         Initialize the feasibility predictor.
         
@@ -57,7 +56,7 @@ class PathwayFeasibilityPredictor:
         self.models_dir = models_dir
         self.models = {}
         self.feature_columns = []
-        self.realtime_mode = realtime_mode
+        self.realtime_mode = True
         
         # Feasibility thresholds (Option A - Balanced approach)
         self.SYNTHETIC_FEATURE_THRESHOLD = 0.85  # >85% synthetic = fail fast
@@ -65,21 +64,14 @@ class PathwayFeasibilityPredictor:
         self.MIN_CONFIDENCE_THRESHOLD = 0.6  # <60% confidence = low feasibility  
         self.MAX_MODEL_DISAGREEMENT = 0.3  # Std dev threshold for model disagreement
         
-        if self.realtime_mode:
-            # Real-time mode: minimal memory footprint
-            self.source_mobility_scores = {}  # ~715 jobs -> ~10KB
-            self.target_mobility_scores = {}  # ~715 jobs -> ~10KB  
-            self.job_function_hierarchy = {}  # ~50 functions -> ~1KB
-            self.jobs_metadata = {}          # ~715 jobs -> ~50KB
-            
-            # Load models and global context only
-            self._load_models()
-            self._load_global_context()
-        else:
-            # Traditional mode: use MovementMLTrainer
-            self.ml_trainer = None
-            self._load_models()
-            self._initialize_ml_trainer()
+        # Real-time only: minimal memory footprint
+        self.source_mobility_scores = {}
+        self.target_mobility_scores = {}
+        self.job_function_hierarchy = {}
+        self.jobs_metadata = {}
+        # Load models and global context only
+        self._load_models()
+        self._load_global_context()
         
     def _load_models(self):
         """Load trained ML models and metadata."""
@@ -103,7 +95,12 @@ class PathwayFeasibilityPredictor:
         with open(metadata_path, 'r') as f:
             metadata = json.load(f)
             
-        self.feature_columns = metadata['feature_columns']
+        self.feature_columns = metadata.get('feature_columns', [])
+        # Capture recency decay used during training for parity in realtime mode
+        self.training_recency_decay = (
+            metadata.get('ml_config', {}).get('recency_decay_rate', 0.4)
+            if isinstance(metadata.get('ml_config'), dict) else 0.4
+        )
         
         # Define model files based on standard naming convention
         model_files = {
@@ -123,24 +120,8 @@ class PathwayFeasibilityPredictor:
         # Removed verbose output for scale testing
         
     def _initialize_ml_trainer(self):
-        """Initialize MovementMLTrainer for feature engineering consistency."""
-        # Suppress verbose logging during initialization
-        logging.getLogger().setLevel(logging.ERROR)
-        
-        # Load configuration
-        config_path = Path("config/modules/models/movement_ml_training.yaml")
-        if config_path.exists():
-            with open(config_path, 'r') as f:
-                config = yaml.safe_load(f)
-            pass  # Silent loading for scale testing
-        else:
-            config = {}
-            
-        # Initialize trainer
-        self.ml_trainer = MovementMLTrainer(self.db_path, config)
-        
-        # Reset logging level
-        logging.getLogger().setLevel(logging.INFO)
+        """Deprecated: Trainer path removed for real-time only mode."""
+        self.ml_trainer = None
         
     def _load_global_context(self) -> bool:
         """
@@ -227,11 +208,12 @@ class PathwayFeasibilityPredictor:
             
             # Calculate mobility score (same formula as training)
             diversity_score = min(unique_destinations / 10, 1.0)
+            volume_score = min(total_movements / 100, 1)
+            market_score = min(market_share * 10, 1)
             mobility_score = (
-                diversity_score * 40 +
-                min(unique_destinations / 10, 1) * 30 +
-                min(total_movements / 100, 1) * 20 +
-                min(market_share * 10, 1) * 10
+                diversity_score * 50 +
+                volume_score * 30 +
+                market_score * 20
             )
             
             self.source_mobility_scores[job_id] = mobility_score
@@ -250,11 +232,12 @@ class PathwayFeasibilityPredictor:
             market_share = row['avg_pct_total_movements']
             
             diversity_score = min(unique_sources / 10, 1.0)
+            volume_score = min(total_movements / 100, 1)
+            market_score = min(market_share * 10, 1)
             mobility_score = (
-                diversity_score * 40 +
-                min(unique_sources / 10, 1) * 30 +
-                min(total_movements / 100, 1) * 20 +
-                min(market_share * 10, 1) * 10
+                diversity_score * 50 +
+                volume_score * 30 +
+                market_score * 20
             )
             
             self.target_mobility_scores[job_id] = mobility_score
@@ -284,8 +267,8 @@ class PathwayFeasibilityPredictor:
                 monthly_results = conn.execute(query, (from_job_id, to_job_id)).fetchall()
                 
                 if monthly_results:  # Has movement data
-                    # Calculate exact recency weighting using the same logic as MovementMLTrainer
-                    recency_decay_rate = 0.4  # Same as config: movement_ml_training.yaml
+                    # Calculate recency weighting matching MovementMLTrainer
+                    recency_decay_rate = getattr(self, 'training_recency_decay', 0.4)
                     
                     total_movements = 0
                     total_unique_employees = 0
@@ -319,6 +302,8 @@ class PathwayFeasibilityPredictor:
                             avg_pct_list.append(pct_movements)
                         
                         # Calculate recency-weighted activity (key calculation!)
+                        # Note: training uses sum of weights across months; volume influence
+                        # is captured separately via total_movement_count.
                         recency_weighted_activity += recency_weight
                         movement_years.append(movement_year)
                     
@@ -344,7 +329,8 @@ class PathwayFeasibilityPredictor:
                         'years_active': years_active,
                         'avg_movements_per_year': total_movements / years_active,
                         'recency_weighted_activity': recency_weighted_activity,
-                        'recency_boost': recency_boost
+                        'recency_boost': recency_boost,
+                        'has_observed_history': True
                     }
                 else:
                     # No movement data - return zeros (unseen transition)
@@ -357,7 +343,8 @@ class PathwayFeasibilityPredictor:
                         'years_active': 1,
                         'avg_movements_per_year': 0.0,
                         'recency_weighted_activity': 0.0,
-                        'recency_boost': 1.0
+                        'recency_boost': 1.0,
+                        'has_observed_history': False
                     }
                     
         except Exception as e:
@@ -432,40 +419,10 @@ class PathwayFeasibilityPredictor:
         
     def load_and_cache_data(self, verbose: bool = False):
         """Load and cache all necessary data for predictions."""
-        if self.realtime_mode:
-            # Real-time mode: data already loaded in _load_global_context
-            if verbose:
-                print(f"✅ Using real-time mode - minimal memory footprint")
-            return
-            
+        # Real-time only: global context was loaded during __init__
         if verbose:
-            print("📊 Loading movement patterns and job data...")
-        
-        # Suppress verbose logging during data loading
-        logging.getLogger().setLevel(logging.ERROR)
-        
-        # Load data using MovementMLTrainer methods
-        self.movement_patterns = self.ml_trainer.load_movement_patterns_data()
-        if verbose:
-            print(f"✅ Loaded {len(self.movement_patterns):,} movement patterns from database")
-        
-        self.job_architecture = self.ml_trainer.load_job_architecture_data()  
-        if verbose:
-            print(f"✅ Loaded {len(self.job_architecture):,} job profiles from database")
-        
-        self.job_transitions = self.ml_trainer.aggregate_movement_patterns_to_job_level(self.movement_patterns)
-        if verbose:
-            print(f"✅ Aggregated to {len(self.job_transitions):,} job profile transition pairs")
-        
-        self.source_mobility_scores, self.target_mobility_scores = self.ml_trainer.calculate_mobility_scores(self.job_transitions)
-        if verbose:
-            print(f"✅ Calculated mobility for {len(self.source_mobility_scores):,} source and {len(self.target_mobility_scores):,} target roles")
-        
-        # Reset logging level
-        logging.getLogger().setLevel(logging.INFO)
-        
-        if verbose:
-            print(f"✅ Cached {len(self.movement_patterns):,} movement patterns, {len(self.job_architecture):,} jobs, {len(self.job_transitions):,} job transitions")
+            print(f"✅ Real-time mode - using minimal cached global context")
+        return
         
     def predict_pathway_feasibility(self, from_job_id: str, to_job_id: str) -> Dict[str, Any]:
         """
@@ -479,79 +436,24 @@ class PathwayFeasibilityPredictor:
             Dictionary containing feasibility assessment, reasoning, and detailed metrics
         """
         try:
-            if self.realtime_mode:
-                # Real-time mode: create features directly without caching large datasets
-                features = self._create_realtime_features(from_job_id, to_job_id)
-                
-                if features is None:
-                    return self._create_error_result(from_job_id, to_job_id, "Job IDs not found in architecture")
-                
-                # Convert to DataFrame for model compatibility
-                features_df = pd.DataFrame([features])
-                feature_values = features
-                
-            else:
-                # Traditional mode: use MovementMLTrainer approach
-                # Get transition data for this job pair
-                transition_data = self.job_transitions[
-                    (self.job_transitions['from_job_profile_id'] == from_job_id) &
-                    (self.job_transitions['to_job_profile_id'] == to_job_id)
-                ].copy()
-                
-                if transition_data.empty:
-                    # Create synthetic row for unseen transitions
-                    from_job_info = self.job_architecture[self.job_architecture['JobProfileID'] == from_job_id]
-                    to_job_info = self.job_architecture[self.job_architecture['JobProfileID'] == to_job_id]
-                    
-                    if from_job_info.empty or to_job_info.empty:
-                        return self._create_error_result(from_job_id, to_job_id, "Job IDs not found in architecture")
-                    
-                    # Create synthetic transition with zero movement history
-                    synthetic_row = {
-                        'from_job_profile_id': from_job_id,
-                        'to_job_profile_id': to_job_id,
-                        'total_movement_count': 0,
-                        'total_unique_employees': 0,
-                        'avg_days_between': 365.0,  # Default 1 year
-                        'avg_pct_total_movements': 0.0,
-                        'transition_frequency': 0,
-                        'years_active': 1,
-                        'avg_movements_per_year': 0.0,
-                        'recency_weighted_activity': 0.0,
-                        'recency_boost': 1.0
-                    }
-                    
-                    transition_data = pd.DataFrame([synthetic_row])
-                
-                # Create ML features using the exact same method as training (suppress verbose output)
-                import sys
-                from io import StringIO
-                
-                # Capture stdout to suppress all output
-                old_stdout = sys.stdout
-                old_stderr = sys.stderr
-                sys.stdout = StringIO()
-                sys.stderr = StringIO()
-                
-                try:
-                    features_df = self.ml_trainer.create_ml_features(
-                        transition_data, self.source_mobility_scores, self.target_mobility_scores, self.job_architecture
-                    )
-                finally:
-                    # Always restore stdout/stderr
-                    sys.stdout = old_stdout
-                    sys.stderr = old_stderr
-                
-                if features_df.empty:
-                    return self._create_error_result(from_job_id, to_job_id, "Feature generation failed")
-                    
-                # Extract feature values for synthetic percentage calculation
-                feature_values = features_df.iloc[0].to_dict()
+            # Real-time only path
+            features = self._create_realtime_features(from_job_id, to_job_id)
+            if features is None:
+                return self._create_error_result(from_job_id, to_job_id, "Job IDs not found in architecture")
+            features_df = pd.DataFrame([features])
+            feature_values = features
             
             # Calculate synthetic feature percentage  
             synthetic_pct = self._calculate_synthetic_feature_percentage(feature_values)
             
-            # FAIL FAST: Check for insufficient historical data
+            # FAIL FAST: Block unseen transitions outright
+            if not feature_values.get('has_observed_history', False):
+                return self._create_low_feasibility_result(
+                    from_job_id, to_job_id, "NO_OBSERVED_HISTORY",
+                    "Unseen transition in analytics_movement_patterns (last 5 years)",
+                    synthetic_pct=synthetic_pct
+                )
+            # FAIL FAST: Check for insufficient historical data (even if observed)
             if synthetic_pct > self.SYNTHETIC_FEATURE_THRESHOLD:
                 return self._create_low_feasibility_result(
                     from_job_id, to_job_id, "INSUFFICIENT_HISTORICAL_DATA",
@@ -560,6 +462,10 @@ class PathwayFeasibilityPredictor:
                 )
             
             # Filter features to match training columns (remove non-feature columns)
+            # Ensure parity with training feature columns
+            for col in self.feature_columns:
+                if col not in features_df.columns:
+                    features_df[col] = 0.0
             model_features_df = features_df[self.feature_columns].copy()
             
             # Run ensemble predictions
@@ -568,7 +474,7 @@ class PathwayFeasibilityPredictor:
             
             for model_name, model in self.models.items():
                 try:
-                    prediction = model.predict(model_features_df)[0]
+                    prediction = float(model.predict(model_features_df)[0])
                     raw_predictions.append(prediction)
                     model_predictions[model_name] = float(prediction)
                 except Exception as e:
@@ -579,16 +485,16 @@ class PathwayFeasibilityPredictor:
                 return self._create_error_result(from_job_id, to_job_id, "All model predictions failed")
                 
             # Calculate ensemble metrics
-            ensemble_prediction = np.mean(raw_predictions)
-            predicted_annual_movements = max(0.0, ensemble_prediction)
+            ensemble_prediction = float(np.mean(raw_predictions))
+            predicted_annual_movements = float(max(0.0, float(ensemble_prediction)))
             
             # Calculate model agreement (confidence)
             if len(raw_predictions) > 1:
-                prediction_std = np.std(raw_predictions)
-                prediction_mean = np.mean(raw_predictions) 
-                coefficient_of_variation = prediction_std / (prediction_mean + 1e-6)
-                confidence_score = max(0.0, min(1.0, 1.0 - coefficient_of_variation))
-                model_disagreement = prediction_std
+                prediction_std = float(np.std(raw_predictions))
+                prediction_mean = float(np.mean(raw_predictions)) 
+                coefficient_of_variation = float(prediction_std / (prediction_mean + 1e-6))
+                confidence_score = float(max(0.0, min(1.0, 1.0 - coefficient_of_variation)))
+                model_disagreement = float(prediction_std)
             else:
                 confidence_score = 0.5  # Medium confidence for single model
                 model_disagreement = 0.0
@@ -612,6 +518,7 @@ class PathwayFeasibilityPredictor:
                 'feasibility_category': feasibility_result['category'], 
                 'feasibility_reasoning': feasibility_result['reasoning'],
                 'red_flags': feasibility_result['red_flags'],
+                # This is recency-weighted activity, not calibrated movements/year
                 'predicted_annual_movements': round(predicted_annual_movements, 3),
                 'confidence_score': round(confidence_score, 3),
                 'model_disagreement_std': round(model_disagreement, 4),
@@ -619,7 +526,8 @@ class PathwayFeasibilityPredictor:
                 'model_predictions': model_predictions,
                 'coefficient_of_variation': round(coefficient_of_variation, 4),
                 'feature_count': len(self.feature_columns),
-                'assessment_status': 'success'
+                'assessment_status': 'success',
+                'ensemble_raw_prediction': round(ensemble_prediction, 3)
             }
             
             # Add feasibility score using red flag penalty system
@@ -720,21 +628,14 @@ class PathwayFeasibilityPredictor:
     def _check_career_reversal(self, from_job_id: str, to_job_id: str) -> Optional[str]:
         """Check for management level demotions (career reversals)."""
         try:
-            if self.realtime_mode:
-                from_job_info = self.jobs_metadata.get(from_job_id)
-                to_job_info = self.jobs_metadata.get(to_job_id)
+            from_job_info = self.jobs_metadata.get(from_job_id)
+            to_job_info = self.jobs_metadata.get(to_job_id)
+            
+            if not from_job_info or not to_job_info:
+                return None
                 
-                if not from_job_info or not to_job_info:
-                    return None
-                    
-                from_level_str = str(from_job_info['ManagementLevel']).replace('Group ', '').replace('Group', '')
-                to_level_str = str(to_job_info['ManagementLevel']).replace('Group ', '').replace('Group', '')
-            else:
-                from_job = self.job_architecture[self.job_architecture['JobProfileID'] == from_job_id].iloc[0]
-                to_job = self.job_architecture[self.job_architecture['JobProfileID'] == to_job_id].iloc[0]
-                
-                from_level_str = str(from_job['ManagementLevel']).replace('Group ', '').replace('Group', '')
-                to_level_str = str(to_job['ManagementLevel']).replace('Group ', '').replace('Group', '')
+            from_level_str = str(from_job_info['ManagementLevel']).replace('Group ', '').replace('Group', '')
+            to_level_str = str(to_job_info['ManagementLevel']).replace('Group ', '').replace('Group', '')
             
             # Skip if either level is NA/missing
             if from_level_str in ['NA', 'nan', ''] or to_level_str in ['NA', 'nan', '']:
@@ -895,11 +796,8 @@ class PathwayFeasibilityPredictor:
             print(f"   • Model Disagreement: >{self.MAX_MODEL_DISAGREEMENT} std dev")
             print("=" * 80)
         
-        # Generate random job pairs
-        if self.realtime_mode:
-            job_ids = list(self.jobs_metadata.keys())
-        else:
-            job_ids = self.job_architecture['JobProfileID'].tolist()
+        # Generate random job pairs (real-time only)
+        job_ids = list(self.jobs_metadata.keys())
             
         job_pairs = []
         
@@ -1037,12 +935,13 @@ class PathwayFeasibilityPredictor:
             
             print(f"\n🔬 STEP 3: DATA QUALITY ASSESSMENT")
             print(f"   Synthetic Features: {result['synthetic_feature_percentage']:.1%}")
-            print(f"   Historical Data Quality: {'✅ Sufficient' if result['synthetic_feature_percentage'] < 85 else '⚠️ Limited'}")
+            # Use proper threshold (0.85)
+            print(f"   Historical Data Quality: {'✅ Sufficient' if result['synthetic_feature_percentage'] < 0.85 else '⚠️ Limited'}")
             
             print(f"\n⚖️ STEP 4: FEASIBILITY THRESHOLDS")
-            print(f"   Volume Check: {result['predicted_annual_movements']:.3f} ≥ 0.3? {'✅ PASS' if result['predicted_annual_movements'] >= 0.3 else '❌ FAIL'}")
+            print(f"   Recency-Weighted Activity Check: {result['predicted_annual_movements']:.3f} ≥ 0.3? {'✅ PASS' if result['predicted_annual_movements'] >= 0.3 else '❌ FAIL'}")
             print(f"   Confidence Check: {result['confidence_score']:.1%} ≥ 60.0%? {'✅ PASS' if result['confidence_score'] >= 0.6 else '❌ FAIL'}")
-            print(f"   Synthetic Check: {result['synthetic_feature_percentage']:.1%} < 85.0%? {'✅ PASS' if result['synthetic_feature_percentage'] < 85 else '❌ FAIL'}")
+            print(f"   Synthetic Check: {result['synthetic_feature_percentage']:.1%} < 85.0%? {'✅ PASS' if result['synthetic_feature_percentage'] < 0.85 else '❌ FAIL'}")
             
             if result.get('red_flags'):
                 print(f"\n🚨 STEP 5: BUSINESS LOGIC CHECKS")
@@ -1166,7 +1065,7 @@ Examples:
     mode_group.add_argument('--from-job', type=str, 
                            help='Source job profile ID (requires --to-job)')
     mode_group.add_argument('--corpus-analysis', action='store_true',
-                           help='Run analysis on random sample of job transitions')
+                           help='Run real-time analysis on a random sample of job transitions')
     
     # Single prediction options
     parser.add_argument('--to-job', type=str,
@@ -1182,8 +1081,7 @@ Examples:
                        help='Path to SQLite database')
     parser.add_argument('--models-dir', type=str, default="models/2025-Q3",
                        help='Directory containing trained ML models')
-    parser.add_argument('--realtime', action='store_true',
-                       help='Use real-time mode (minimal memory footprint, per-prediction queries)')
+    # Real-time only: flag removed
     
     # Output options
     parser.add_argument('--format', choices=['console', 'json', 'csv'], default='console',
@@ -1202,16 +1100,12 @@ Examples:
         parser.error("--to-job requires --from-job")
         
     try:
-        # Initialize predictor
-        if args.realtime:
-            print("🔮 PathwayFeasibilityPredictor initializing (Real-time mode)...")
-        else:
-            print("🔮 PathwayFeasibilityPredictor initializing...")
+        # Initialize predictor (Real-time mode)
+        print("🔮 PathwayFeasibilityPredictor initializing (Real-time mode)...")
             
         predictor = PathwayFeasibilityPredictor(
             db_path=args.database,
-            models_dir=args.models_dir,
-            realtime_mode=args.realtime
+            models_dir=args.models_dir
         )
         
         # Thresholds are now hardcoded to Option C values - removed override capability for consistency
@@ -1222,11 +1116,8 @@ Examples:
             results = predictor.run_single_prediction(args.from_job, args.to_job)
             
         elif args.corpus_analysis:
-            # Corpus analysis - silent for scale testing
-            verbose = args.sample_size <= 1000  # Only verbose for small samples
+            verbose = args.sample_size <= 1000
             results = predictor.run_corpus_analysis(args.sample_size, verbose=verbose)
-            
-            # Print summary for large scale tests
             if args.sample_size > 1000:
                 analysis = results['analysis']
                 print(f"\n🎯 SCALE TEST SUMMARY ({args.sample_size:,} predictions)")

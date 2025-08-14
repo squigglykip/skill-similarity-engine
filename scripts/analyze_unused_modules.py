@@ -68,26 +68,133 @@ class AnalysisResult:
 
 
 class ImportVisitor(ast.NodeVisitor):
-    """AST visitor to extract import statements."""
+    """Enhanced AST visitor to extract import statements including dynamic ones."""
     
-    def __init__(self):
+    def __init__(self, current_module: str = ""):
         self.imports = set()
         self.from_imports = set()
+        self.dynamic_imports = set()
+        self.string_imports = set()
+        self.current_module = current_module
+        self.function_level_imports = set()
+        self.conditional_imports = set()
+        self._in_function = False
+        self._in_try_except = False
+    
+    def visit_FunctionDef(self, node):
+        """Track when we're inside a function."""
+        old_in_function = self._in_function
+        self._in_function = True
+        self.generic_visit(node)
+        self._in_function = old_in_function
+    
+    def visit_AsyncFunctionDef(self, node):
+        """Track async functions too."""
+        old_in_function = self._in_function
+        self._in_function = True
+        self.generic_visit(node)
+        self._in_function = old_in_function
+    
+    def visit_Try(self, node):
+        """Track when we're inside a try/except block."""
+        old_in_try = self._in_try_except
+        self._in_try_except = True
+        self.generic_visit(node)
+        self._in_try_except = old_in_try
     
     def visit_Import(self, node):
         """Handle 'import module' statements."""
         for alias in node.names:
-            self.imports.add(alias.name)
+            import_name = alias.name
+            self.imports.add(import_name)
+            
+            # Track context
+            if self._in_function:
+                self.function_level_imports.add(import_name)
+            if self._in_try_except:
+                self.conditional_imports.add(import_name)
     
     def visit_ImportFrom(self, node):
         """Handle 'from module import name' statements."""
         if node.module:
             self.from_imports.add(node.module)
+            
+            # Track context
+            if self._in_function:
+                self.function_level_imports.add(node.module)
+            if self._in_try_except:
+                self.conditional_imports.add(node.module)
+            
             # Also add the full module path for relative imports
             for alias in node.names:
                 if alias.name != '*':
                     full_name = f"{node.module}.{alias.name}"
                     self.from_imports.add(full_name)
+                    if self._in_function:
+                        self.function_level_imports.add(full_name)
+                    if self._in_try_except:
+                        self.conditional_imports.add(full_name)
+    
+    def visit_Call(self, node):
+        """Detect dynamic imports like importlib.import_module(), __import__()."""
+        # Check for importlib.import_module()
+        if (isinstance(node.func, ast.Attribute) and
+            isinstance(node.func.value, ast.Name) and
+            node.func.value.id == 'importlib' and
+            node.func.attr == 'import_module'):
+            if node.args and isinstance(node.args[0], ast.Str):
+                module_name = node.args[0].s
+                self.dynamic_imports.add(module_name)
+        
+        # Check for __import__()
+        elif (isinstance(node.func, ast.Name) and
+              node.func.id == '__import__'):
+            if node.args and isinstance(node.args[0], ast.Str):
+                module_name = node.args[0].s
+                self.dynamic_imports.add(module_name)
+        
+        # Check for exec() and eval() with import strings (less reliable but worth checking)
+        elif (isinstance(node.func, ast.Name) and
+              node.func.id in ('exec', 'eval')):
+            if node.args and isinstance(node.args[0], ast.Str):
+                code_str = node.args[0].s
+                if 'import ' in code_str:
+                    # Basic pattern matching for imports in strings
+                    import re
+                    import_matches = re.findall(r'(?:from\s+(\S+)\s+)?import\s+(\S+)', code_str)
+                    for from_module, import_name in import_matches:
+                        if from_module:
+                            self.string_imports.add(from_module)
+                        self.string_imports.add(import_name)
+        
+        self.generic_visit(node)
+    
+    def visit_Str(self, node):
+        """Look for module names in string literals (heuristic)."""
+        # This is a heuristic approach - look for strings that look like module names
+        # in the context of our project
+        string_value = getattr(node, 'value', getattr(node, 's', ''))
+        if (self.current_module and 
+            'skill_similarity_engine' in string_value and
+            '.' in string_value and
+            not ' ' in string_value):
+            self.string_imports.add(string_value)
+        self.generic_visit(node)
+    
+    def visit_Constant(self, node):
+        """Handle string constants in newer Python versions."""
+        if isinstance(node.value, str):
+            if (self.current_module and 
+                'skill_similarity_engine' in node.value and
+                '.' in node.value and
+                not ' ' in node.value):
+                self.string_imports.add(node.value)
+        self.generic_visit(node)
+    
+    def get_all_imports(self) -> set:
+        """Get all imports found by this visitor."""
+        return (self.imports | self.from_imports | 
+                self.dynamic_imports | self.string_imports)
 
 
 class UnusedModuleAnalyzer:
@@ -108,9 +215,6 @@ class UnusedModuleAnalyzer:
         print(f"🔍 Discovering modules in {self.src_dir}...")
         
         for py_file in self.src_dir.rglob("*.py"):
-            if py_file.name == "__init__.py" and py_file.stat().st_size == 0:
-                continue  # Skip empty __init__.py files
-            
             # Calculate relative path from src directory
             relative_path = py_file.relative_to(self.src_dir)
             module_name = str(relative_path.with_suffix("")).replace(os.sep, ".")
@@ -123,12 +227,20 @@ class UnusedModuleAnalyzer:
             # Count lines of code (excluding comments and empty lines)
             lines_of_code = self._count_lines_of_code(py_file)
             
+            # Determine if this is an __init__.py file
+            is_init_file = py_file.name == "__init__.py"
+            
             module_info = ModuleInfo(
                 path=py_file,
                 name=module_name,
                 is_test=is_test,
                 lines_of_code=lines_of_code
             )
+            
+            # Mark __init__.py files as always used (they're required for Python packages)
+            if is_init_file:
+                module_info.is_used = True
+                module_info.imported_by.add("PACKAGE_STRUCTURE")
             
             self.modules[module_name] = module_info
         
@@ -168,16 +280,29 @@ class UnusedModuleAnalyzer:
         
         for module_name, module_info in self.modules.items():
             try:
-                with open(module_info.path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                # Handle BOM and various encodings
+                encodings = ['utf-8-sig', 'utf-8', 'utf-16', 'cp1252']
+                content = None
+                
+                for encoding in encodings:
+                    try:
+                        with open(module_info.path, 'r', encoding=encoding) as f:
+                            content = f.read()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if content is None:
+                    print(f"⚠️  Warning: Could not read {module_info.path}: encoding issues")
+                    continue
                 
                 # Parse AST to extract imports
                 tree = ast.parse(content)
-                visitor = ImportVisitor()
+                visitor = ImportVisitor(current_module=module_name)
                 visitor.visit(tree)
                 
-                # Process imports
-                all_imports = visitor.imports | visitor.from_imports
+                # Process all types of imports
+                all_imports = visitor.get_all_imports()
                 for import_name in all_imports:
                     # Normalize import to match our module naming
                     normalized_import = self._normalize_import(import_name, module_name)
@@ -185,7 +310,19 @@ class UnusedModuleAnalyzer:
                         module_info.imports.add(normalized_import)
                         self.dependency_graph[module_name].add(normalized_import)
                         self.reverse_deps[normalized_import].add(module_name)
-                        self.modules[normalized_import].imported_by.add(module_name)
+                        
+                        # Track the type of import for better reporting
+                        import_type = "STATIC"
+                        if import_name in visitor.dynamic_imports:
+                            import_type = "DYNAMIC"
+                        elif import_name in visitor.function_level_imports:
+                            import_type = "FUNCTION_LEVEL"
+                        elif import_name in visitor.conditional_imports:
+                            import_type = "CONDITIONAL"
+                        elif import_name in visitor.string_imports:
+                            import_type = "STRING_BASED"
+                        
+                        self.modules[normalized_import].imported_by.add(f"{module_name}:{import_type}")
                 
             except Exception as e:
                 print(f"⚠️  Warning: Could not analyze {module_info.path}: {e}")
@@ -239,22 +376,47 @@ class UnusedModuleAnalyzer:
     def _analyze_entry_point(self, entry_path: Path, entry_name: str) -> None:
         """Analyze an entry point file and mark its dependencies as used."""
         try:
-            with open(entry_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            # Handle BOM and various encodings
+            encodings = ['utf-8-sig', 'utf-8', 'utf-16', 'cp1252']
+            content = None
+            
+            for encoding in encodings:
+                try:
+                    with open(entry_path, 'r', encoding=encoding) as f:
+                        content = f.read()
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if content is None:
+                print(f"⚠️  Warning: Could not read entry point {entry_path}: encoding issues")
+                return
             
             tree = ast.parse(content)
-            visitor = ImportVisitor()
+            visitor = ImportVisitor(current_module=f"ENTRY_POINT:{entry_name}")
             visitor.visit(tree)
             
             # Mark entry point dependencies as used
-            all_imports = visitor.imports | visitor.from_imports
+            all_imports = visitor.get_all_imports()
             for import_name in all_imports:
                 if import_name.startswith('skill_similarity_engine'):
                     # Find matching module in our src directory
                     for module_name in self.modules:
                         if module_name == import_name or import_name.startswith(module_name + '.'):
                             self.modules[module_name].is_used = True
-                            self.modules[module_name].imported_by.add(f"ENTRY_POINT:{entry_name}")
+                            
+                            # Track the type of import from entry point
+                            import_type = "STATIC"
+                            if import_name in visitor.dynamic_imports:
+                                import_type = "DYNAMIC"
+                            elif import_name in visitor.function_level_imports:
+                                import_type = "FUNCTION_LEVEL"
+                            elif import_name in visitor.conditional_imports:
+                                import_type = "CONDITIONAL"
+                            elif import_name in visitor.string_imports:
+                                import_type = "STRING_BASED"
+                            
+                            self.modules[module_name].imported_by.add(f"ENTRY_POINT:{entry_name}:{import_type}")
             
             print(f"✅ Analyzed entry point: {entry_name}")
             
@@ -299,9 +461,112 @@ class UnusedModuleAnalyzer:
         
         for module_name, module_info in self.modules.items():
             if not module_info.is_used and not module_info.is_test:
-                unused.append(module_name)
+                # Additional checks for modules that might be used in ways we can't detect
+                if self._is_likely_used_module(module_name, module_info):
+                    module_info.is_used = True
+                    module_info.imported_by.add("HEURISTIC_DETECTION")
+                else:
+                    unused.append(module_name)
         
         return sorted(unused)
+    
+    def _is_likely_used_module(self, module_name: str, module_info: ModuleInfo) -> bool:
+        """Check if a module is likely used based on common patterns."""
+        # Always keep __init__.py files (already handled in discover_modules)
+        if module_info.path.name == "__init__.py":
+            return True
+        
+        # Keep modules that are commonly imported dynamically or by external tools
+        dynamic_import_patterns = [
+            'main',          # Entry point modules
+            'cli',           # Command-line interfaces
+            '__main__',      # Python -m execution
+            'app',           # Flask/web applications
+            'config',        # Configuration modules
+            'settings',      # Settings modules
+        ]
+        
+        module_basename = module_name.split('.')[-1]
+        if module_basename in dynamic_import_patterns:
+            return True
+        
+        # Keep modules that might be imported by external scripts or tools
+        if module_name.endswith('.webapp.app'):
+            return True
+        
+        # Project-specific patterns for skill-similarity-engine
+        if self._has_project_specific_usage_patterns(module_name, module_info):
+            return True
+        
+        return False
+    
+    def _has_project_specific_usage_patterns(self, module_name: str, module_info: ModuleInfo) -> bool:
+        """Check for project-specific usage patterns that indicate a module is used."""
+        try:
+            content = self._read_file_content(module_info.path)
+            if not content:
+                return False
+            
+            # Pattern 1: Modules that are likely imported in try/except blocks
+            # Look for modules that are imported elsewhere in conditional imports
+            for other_module_name, other_module_info in self.modules.items():
+                if other_module_name != module_name:
+                    other_content = self._read_file_content(other_module_info.path)
+                    if other_content:
+                        # Look for dynamic import patterns
+                        import re
+                        
+                        module_basename = module_name.split('.')[-1]
+                        
+                        # Pattern: from ..api.skills_updater import prompt_skills_update
+                        relative_import_pattern = rf"from\s+\.\.api\.{module_basename}\s+import"
+                        if re.search(relative_import_pattern, other_content):
+                            return True
+                        
+                        # Pattern: from ...api.skills_updater import prompt_skills_update  
+                        triple_relative_pattern = rf"from\s+\.\.\.api\.{module_basename}\s+import"
+                        if re.search(triple_relative_pattern, other_content):
+                            return True
+                        
+                        # Pattern: import skill_similarity_engine.api.lightcast_client
+                        full_import_pattern = rf"import\s+{re.escape(module_name)}"
+                        if re.search(full_import_pattern, other_content):
+                            return True
+            
+            # Pattern 2: API client modules (often used dynamically)
+            if 'client' in module_name.lower() or 'api' in module_name.lower():
+                # Check if it defines client classes
+                if 'class ' in content and ('Client' in content or 'API' in content):
+                    return True
+            
+            # Pattern 3: Modules with factory patterns or plugin interfaces
+            factory_patterns = ['factory', 'builder', 'creator', 'manager']
+            if any(pattern in module_name.lower() for pattern in factory_patterns):
+                return True
+            
+            # Pattern 4: Command modules (often imported dynamically by CLI)
+            if 'command' in module_name.lower() and 'class ' in content:
+                return True
+            
+            # Pattern 5: Modules that define important base classes
+            if any(pattern in content for pattern in ['class.*Base', 'class.*Abstract', '@abstractmethod']):
+                return True
+            
+        except Exception:
+            pass
+        
+        return False
+    
+    def _read_file_content(self, file_path: Path) -> Optional[str]:
+        """Read file content with encoding handling."""
+        encodings = ['utf-8-sig', 'utf-8', 'utf-16', 'cp1252']
+        for encoding in encodings:
+            try:
+                with open(file_path, 'r', encoding=encoding) as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                continue
+        return None
     
     def generate_recommendations(self, unused_modules: List[str]) -> List[str]:
         """Generate actionable recommendations for cleanup."""
@@ -388,22 +653,66 @@ def print_tree_format(result: AnalysisResult, analyzer: UnusedModuleAnalyzer) ->
     print("🌳 DEPENDENCY TREE ANALYSIS")
     print("=" * 50)
     
+    # Calculate different categories of used modules
+    package_structure_count = sum(1 for m in analyzer.modules.values() 
+                                 if m.is_used and "PACKAGE_STRUCTURE" in m.imported_by)
+    entry_point_count = sum(1 for m in analyzer.modules.values() 
+                           if m.is_used and any("ENTRY_POINT:" in imp for imp in m.imported_by))
+    heuristic_count = sum(1 for m in analyzer.modules.values() 
+                         if m.is_used and "HEURISTIC_DETECTION" in m.imported_by)
+    
+    # Count different types of imports
+    dynamic_count = sum(1 for m in analyzer.modules.values() 
+                       if m.is_used and any("DYNAMIC" in imp or "FUNCTION_LEVEL" in imp or "CONDITIONAL" in imp 
+                                          for imp in m.imported_by))
+    
+    dependency_count = result.used_modules - package_structure_count - entry_point_count - heuristic_count
+    
     print(f"📊 Summary:")
     print(f"   • Total modules: {result.total_modules}")
     print(f"   • Used modules: {result.used_modules}")
+    print(f"     - Package structure (__init__.py): {package_structure_count}")
+    print(f"     - Entry point dependencies: {entry_point_count}")
+    print(f"     - Import chain dependencies: {dependency_count}")
+    print(f"     - Dynamic/conditional imports: {dynamic_count}")
+    print(f"     - Heuristic detection (app/config/etc): {heuristic_count}")
     print(f"   • Unused modules: {result.unused_modules}")
-    print(f"   • Entry points: {', '.join(result.entry_points)}")
+    print(f"   • Entry points analyzed: {', '.join(result.entry_points)}")
     print()
     
+    # Show some examples of dynamic imports found
+    dynamic_examples = []
+    for module_name, module_info in analyzer.modules.items():
+        if module_info.is_used:
+            for imported_by in module_info.imported_by:
+                if any(keyword in imported_by for keyword in ["DYNAMIC", "FUNCTION_LEVEL", "CONDITIONAL"]):
+                    dynamic_examples.append(f"{module_name} ← {imported_by}")
+                    if len(dynamic_examples) >= 3:  # Show max 3 examples
+                        break
+            if len(dynamic_examples) >= 3:
+                break
+    
+    if dynamic_examples:
+        print("🔍 Enhanced Detection Examples:")
+        for example in dynamic_examples:
+            print(f"   • {example}")
+        print()
+    
     if result.unused_modules > 0:
-        print("🗑️  UNUSED MODULES:")
-        print("-" * 20)
+        print("🗑️  POTENTIALLY UNUSED MODULES:")
+        print("-" * 30)
+        print("⚠️  These modules are not imported by your entry points, but verify before deleting!")
+        print()
         for module_name in result.unused_module_list:
             module_info = analyzer.modules[module_name]
             print(f"   📄 {module_name}")
             print(f"      Path: {module_info.path.relative_to(analyzer.project_root)}")
             print(f"      Lines: {module_info.lines_of_code}")
             print()
+    else:
+        print("✅ NO UNUSED MODULES DETECTED!")
+        print("   All modules are either imported by entry points or are package structure files.")
+        print()
     
     print("💡 RECOMMENDATIONS:")
     print("-" * 20)
