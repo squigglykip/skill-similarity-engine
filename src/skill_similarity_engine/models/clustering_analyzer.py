@@ -28,6 +28,9 @@ from typing import Dict, List, Tuple, Optional, Set, Any, Union
 from collections import defaultdict, Counter
 from dataclasses import dataclass
 
+# Import calculation error classes for fail-fast implementation
+from ..errors.calculation_errors import CalculationError, ConfigurationError, DataQualityError, BusinessLogicError
+
 # Scientific computing
 from sklearn.cluster import DBSCAN, AgglomerativeClustering, KMeans
 from sklearn.metrics import silhouette_score, silhouette_samples
@@ -1733,6 +1736,93 @@ class ClusteringAnalyzer:
             })
             raise
     
+    def _calculate_business_value_score_or_fail(self, cluster_jobs: pd.DataFrame, metrics: ClusteringMetrics) -> float:
+        """
+        Calculate actual business value score based on cluster quality and size.
+        
+        Factors:
+        - Cluster quality (silhouette score): 40% weight
+        - Cluster size/relevance: 30% weight  
+        - Management level diversity: 30% weight
+        
+        Returns:
+            float: Business value score (0.0-1.0)
+            
+        Raises:
+            DataQualityError: If cluster data is insufficient
+            CalculationError: If calculation fails
+        """
+        if len(cluster_jobs) == 0:
+            raise DataQualityError(
+                "Cannot calculate business value for empty cluster",
+                data_issue="empty_cluster",
+                required_conditions="cluster must have at least 1 job"
+            )
+        
+        try:
+            # Factor 1: Cluster quality (silhouette score) - 40% weight
+            if metrics.silhouette_score is None:
+                raise CalculationError(
+                    "Missing silhouette score for business value calculation",
+                    calculation_type="business_value",
+                    data_context={'cluster_size': len(cluster_jobs)}
+                )
+            
+            # Normalize silhouette score from [-1,1] to [0,1]
+            quality_score = max(0, (metrics.silhouette_score + 1) / 2)
+            
+            # Factor 2: Cluster size relevance - 30% weight
+            # Optimal size is 15-50 jobs (gets score of 1.0)
+            cluster_size = len(cluster_jobs)
+            if cluster_size >= 15 and cluster_size <= 50:
+                size_score = 1.0
+            elif cluster_size >= 5 and cluster_size <= 100:
+                # Gradual penalty for too small or too large
+                size_score = 0.8
+            elif cluster_size >= 2:
+                size_score = 0.6
+            else:
+                size_score = 0.3
+            
+            # Factor 3: Management level diversity - 30% weight
+            management_levels = cluster_jobs.get('management_level', cluster_jobs.get('ManagementLevel', pd.Series()))
+            if not management_levels.empty:
+                unique_levels = len(management_levels.unique())
+                # More diverse levels = more business value (cross-level skills)
+                if unique_levels >= 4:
+                    diversity_score = 1.0
+                elif unique_levels >= 3:
+                    diversity_score = 0.8
+                elif unique_levels >= 2:
+                    diversity_score = 0.6
+                else:
+                    diversity_score = 0.4
+            else:
+                # Missing management level data
+                diversity_score = 0.5  # Neutral score
+            
+            # Calculate weighted business value score
+            business_value = (
+                quality_score * 0.4 +
+                size_score * 0.3 +
+                diversity_score * 0.3
+            )
+            
+            return round(business_value, 3)
+            
+        except Exception as e:
+            if isinstance(e, (DataQualityError, CalculationError)):
+                raise
+            
+            raise CalculationError(
+                f"Business value calculation failed: {str(e)}",
+                calculation_type="business_value",
+                data_context={
+                    'cluster_size': len(cluster_jobs),
+                    'silhouette_score': getattr(metrics, 'silhouette_score', None)
+                }
+            ) from e
+
     def _extract_job_characteristics(self, job_clusters_df: pd.DataFrame, 
                                    metrics: ClusteringMetrics) -> pd.DataFrame:
         """Extract job cluster characteristics for analytics_job_family_characteristics table."""
@@ -1790,7 +1880,7 @@ class ClusteringAnalyzer:
                     'silhouette_score': metrics.silhouette_score,
                     'intra_family_similarity': char.get('intra_cluster_similarity', 0.0),
                     'inter_family_separation': char.get('inter_cluster_distance', 0.0),
-                    'business_value_score': 0.8,  # Default high value for all clusters
+                    'business_value_score': self._calculate_business_value_score_or_fail(cluster_jobs, metrics),
                     'career_pathway_potential': 'medium',  # Default assessment
                     'skill_transferability': 0.7,  # Default good transferability
                     'market_demand_level': 'medium',  # Default market demand

@@ -4,11 +4,11 @@
 
 ## Database Overview
 
-- **Database Size**: 1300.36 MB
+- **Database Size**: 1228.48 MB
 - **SQLite Version**: 3.49.1
-- **Last Modified**: 2025-08-11
-- **Total Tables**: 16
-- **Total Records**: 3,320,538
+- **Last Modified**: 2025-08-14
+- **Total Tables**: 15
+- **Total Records**: 3,297,416
 
 ## Table of Contents
 
@@ -19,7 +19,6 @@
 - [analytics_job_family_characteristics](#analytics-job-family-characteristics)
 - [analytics_job_similarities](#analytics-job-similarities)
 - [analytics_movement_patterns](#analytics-movement-patterns)
-- [analytics_pathway_predictions](#analytics-pathway-predictions)
 - [analytics_skill_bundles](#analytics-skill-bundles)
 - [analytics_skill_demand_trends](#analytics-skill-demand-trends)
 - [analytics_skill_rarity](#analytics-skill-rarity)
@@ -49,8 +48,6 @@
 - `analytics_job_similarities.job_from` → `core_job_architecture.JobProfileID`
 - `analytics_movement_patterns.to_job_profile_id` → `core_job_architecture.JobProfileID`
 - `analytics_movement_patterns.from_job_profile_id` → `core_job_architecture.JobProfileID`
-- `analytics_pathway_predictions.to_job_profile_id` → `core_job_architecture.JobProfileID`
-- `analytics_pathway_predictions.from_job_profile_id` → `core_job_architecture.JobProfileID`
 - `analytics_skill_bundles.skill_id` → `core_skills_taxonomy.Skill_ID`
 - `analytics_skill_demand_trends.skill_id` → `core_skills_taxonomy.Skill_ID`
 - `analytics_skill_rarity.skill_id` → `core_skills_taxonomy.Skill_ID`
@@ -73,7 +70,8 @@
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `cluster_id` | INTEGER | PK, FK | Cluster Id |
+| `id` | INTEGER | PK | Id |
+| `cluster_id` | INTEGER | FK | Cluster Id |
 | `bundle_name` | TEXT | - | Bundle Name |
 | `bundle_description` | TEXT | - | Bundle Description |
 | `bundle_rationale` | TEXT | - | Bundle Rationale |
@@ -112,36 +110,37 @@
 
 ```json
 {
+  "id": 1,
   "cluster_id": 0,
   "bundle_name": "Analysis Skills Bundle (100 skills)",
   "bundle_description": "Collection of Analysis skills with 2.3% average prevalence",
   "bundle_rationale": "Grouped by Analysis category",
   "bundle_size": 100,
   "sample_skills": "Customer Centricity; Data Analysis; Data Literacy",
-  "sample_job_functions": "Analysis pending",
-  "core_skills": null,
-  "peripheral_skills": null,
+  "sample_job_functions": "Data & Analytics; Executive Leadership; Markets & Institutional Bank",
+  "core_skills": "Customer Centricity; Data Analysis; Data Literacy; Data Analysis And Display (DADiSP); Decision Mode...",
+  "peripheral_skills": "Applied Mathematics; Statistical Indicators; Business Intelligence Data Modeling; Mathematical Econo...",
   "dominant_category": "Analysis",
   "category_purity": 1.0,
   "application_level": "Advanced",
   "specialization_area": "Analysis",
   "average_jobs_per_skill": 39.82,
-  "taxonomy_alignment_score": 0.8,
-  "silhouette_score": 0.0,
+  "taxonomy_alignment_score": 0.717,
+  "silhouette_score": -0.689,
   "intra_bundle_cohesion": null,
   "inter_bundle_separation": null,
-  "business_value_score": null,
-  "training_feasibility": null,
-  "skill_complementarity": null,
-  "market_demand_level": null,
+  "business_value_score": 0.242,
+  "training_feasibility": "medium",
+  "skill_complementarity": 0.469,
+  "market_demand_level": "low",
   "common_job_families": null,
   "typical_career_stage": null,
   "skill_acquisition_difficulty": null,
-  "clustering_algorithm": null,
-  "algorithm_parameters": null,
+  "clustering_algorithm": "dbscan",
+  "algorithm_parameters": "eps=0.15, min_samples=3",
   "quality_validation_date": null,
   "business_review_date": null,
-  "created_timestamp": "2025-08-11T14:27:40.314431"
+  "created_timestamp": "2025-08-14T12:29:32.374721"
 }
 ```
 
@@ -151,7 +150,7 @@
 
 ### analytics_job_defining_skills
 
-**Records**: 37,015
+**Records**: 10,112
 
 #### Schema
 
@@ -183,20 +182,20 @@
 ```json
 {
   "job_profile_id": "R0001.15",
-  "skill_id": "KS121996C1P31W0YZVNF",
-  "skill_name": "Strategic Management",
+  "skill_id": "KS122P679TKY3RR1HMFC",
+  "skill_name": "Data Hub",
   "job_profile": "Executive Manager - 15",
-  "category": "Business",
-  "subcategory": "Business Strategy",
+  "category": "Information Technology",
+  "subcategory": "Data Management",
   "skill_type": "Specialized Skill",
-  "prevalence_percentage": 1.88,
-  "total_profiles_with_skill": 33,
+  "prevalence_percentage": 1.14,
+  "total_profiles_with_skill": 20,
   "rarity_category": "Rare",
-  "defining_skill_rank": 16,
-  "defining_skill_score": 98.12179852020489,
-  "analysis_date": "2025-08-11",
+  "defining_skill_rank": 6,
+  "defining_skill_score": 98.86169607285146,
+  "analysis_date": "2025-08-14",
   "percentile_threshold": 8.8,
-  "created_timestamp": "2025-08-11 03:42:41"
+  "created_timestamp": "2025-08-14 02:20:37"
 }
 ```
 
@@ -250,19 +249,19 @@
   "management_level": "Group 3",
   "cluster_id": 0,
   "cluster_name": "Technology Enablement & Operations - Group 4 Cluster",
-  "cluster_description": "Diverse cluster of 1707 roles spanning 27 job functions with shared competencies",
+  "cluster_description": "Diverse cluster of 1672 roles spanning 27 job functions with shared competencies",
   "cluster_rationale": "Clustered based on cross-functional skill similarities despite different job functions",
-  "cluster_size": 1707,
+  "cluster_size": 1672,
   "sample_jobs": "Executive Manager - 15; Executive Manager - 18; Executive Manager - 19",
   "sample_skills": "Skills analysis pending",
-  "cluster_confidence": 0.063,
-  "silhouette_score": 0.05283422243680769,
+  "cluster_confidence": 0.051,
+  "silhouette_score": 0.04280457733569496,
   "intra_cluster_similarity": 0.0,
   "inter_cluster_distance": 0.0,
   "clustering_algorithm": "DBSCAN",
-  "algorithm_parameters": "eps=0.8300000000000002, min_samples=7",
-  "analysis_date": "2025-08-11",
-  "created_timestamp": "2025-08-11T14:27:40.101386"
+  "algorithm_parameters": "eps=0.8, min_samples=10",
+  "analysis_date": "2025-08-14",
+  "created_timestamp": "2025-08-14T12:29:31.571602"
 }
 ```
 
@@ -278,7 +277,8 @@
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `cluster_id` | INTEGER | PK, FK | Cluster Id |
+| `id` | INTEGER | PK | Id |
+| `cluster_id` | INTEGER | FK | Cluster Id |
 | `family_name` | TEXT | - | Family Name |
 | `family_description` | TEXT | - | Family Description |
 | `family_rationale` | TEXT | - | Family Rationale |
@@ -316,21 +316,22 @@
 
 ```json
 {
+  "id": 1,
   "cluster_id": 0,
   "family_name": "Technology Enablement & Operations - Group 4 Cluster",
-  "family_description": "Diverse cluster of 1707 roles spanning 27 job functions with shared competencies",
+  "family_description": "Diverse cluster of 1672 roles spanning 27 job functions with shared competencies",
   "family_rationale": "Clustered based on cross-functional skill similarities despite different job functions",
-  "cluster_size": 1707,
+  "cluster_size": 1672,
   "sample_jobs": "Executive Manager - 15; Executive Manager - 18; Executive Manager - 19",
   "sample_skills": "Skills analysis pending",
-  "core_job_functions": "{'Technology Enablement & Operations': 185, 'Markets & Institutional Bank': 178, 'Risk': 161}",
+  "core_job_functions": "{'Technology Enablement & Operations': 185, 'Markets & Institutional Bank': 169, 'Risk': 161}",
   "secondary_job_functions": "{'Business Development Management': 14, 'Group Executive & Directors': 9}",
   "dominant_function": "Technology Enablement & Operations",
-  "function_purity": 0.108,
-  "management_level_pattern": "{'Group 4': 370, 'Group 2': 333, 'Group 5': 316, 'Group 3': 311, 'Group 6': 127, 'Group NA': 126, 'G...",
+  "function_purity": 0.111,
+  "management_level_pattern": "{'Group 4': 365, 'Group 2': 327, 'Group 5': 312, 'Group 3': 304, 'Group 6': 127, 'Group NA': 123, 'G...",
   "specialization_depth": "broad",
   "average_skills_per_job": 0.0,
-  "silhouette_score": 0.05283422243680769,
+  "silhouette_score": 0.04280457733569496,
   "intra_family_similarity": 0.0,
   "inter_family_separation": 0.0,
   "business_value_score": 0.8,
@@ -341,10 +342,10 @@
   "promotion_frequency": "medium",
   "lateral_movement_potential": "high",
   "clustering_algorithm": "DBSCAN",
-  "algorithm_parameters": "eps=0.8300000000000002, min_samples=7",
-  "quality_validation_date": "2025-08-11T14:27:40.101386",
-  "business_review_date": "2025-08-11T14:27:40.101386",
-  "created_timestamp": "2025-08-11T14:27:40.101386"
+  "algorithm_parameters": "eps=0.8, min_samples=10",
+  "quality_validation_date": "2025-08-14T12:29:31.579139",
+  "business_review_date": "2025-08-14T12:29:31.579139",
+  "created_timestamp": "2025-08-14T12:29:31.579139"
 }
 ```
 
@@ -387,23 +388,23 @@
 
 ```json
 {
-  "similarity_id": "R0001.15_R0001.18",
-  "job_from": "R0001.15",
-  "job_to": "R0001.18",
-  "similarity_score": 0.021192979806001665,
-  "enhanced_similarity_score": 95.402,
-  "rarity_weighted_score": 95.402,
-  "shared_defining_skills_count": 27,
-  "defining_skill_boost": 94.6416,
-  "shared_skills_count": 38,
-  "total_skills_from": 50,
-  "total_skills_to": 56,
-  "skill_overlap_percentage": 67.9,
-  "shared_skills": "Change Leadership, Risk Management Planning, Strategic Management, Data Normalization, Analytical Th...",
-  "shared_defining_skills": "Change Leadership, Risk Management Planning, Strategic Management, Data Normalization, Analytical Th...",
-  "skill_gap_analysis": "Skills needed: 18, Defining gaps: 0",
+  "similarity_id": "R0002.00_R0001.15",
+  "job_from": "R0002.00",
+  "job_to": "R0001.15",
+  "similarity_score": 0.133,
+  "enhanced_similarity_score": 0.005302424726885158,
+  "rarity_weighted_score": 0.19899999999999998,
+  "shared_defining_skills_count": 1,
+  "defining_skill_boost": 0.0661,
+  "shared_skills_count": 4,
+  "total_skills_from": 30,
+  "total_skills_to": 50,
+  "skill_overlap_percentage": 8.0,
+  "shared_skills": "Business Analysis, Business Acumen, Business Administration, Power BI",
+  "shared_defining_skills": "Power BI",
+  "skill_gap_analysis": "Skills needed: 46, Defining gaps: 8",
   "calculation_algorithm": "rarity_weighted_v1.0",
-  "created_timestamp": "2025-08-11 03:41:17"
+  "created_timestamp": "2025-08-14 02:18:47"
 }
 ```
 
@@ -458,50 +459,12 @@
   "skill_similarity_score": null,
   "difficulty_score": null,
   "success_rate": null,
-  "created_timestamp": "2025-08-11T13:44:11.650179"
+  "created_timestamp": "2025-08-14T12:22:24.014156"
 }
 ```
 
 *(5 sample records available)*
 
----
-
-### analytics_pathway_predictions
-
-**Records**: 0
-
-#### Schema
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `prediction_id` | TEXT | PK | Prediction Id |
-| `from_job_profile_id` | TEXT | FK | From Job Profile Id |
-| `to_job_profile_id` | TEXT | FK | To Job Profile Id |
-| `ml_predicted_movements` | REAL | - | Ml Predicted Movements |
-| `pathway_volume_percentile` | REAL | - | Pathway Volume Percentile |
-| `pathway_volume_category` | TEXT | - | Pathway Volume Category |
-| `prediction_interval_lower_80pct` | REAL | - | Prediction Interval Lower 80Pct |
-| `prediction_interval_upper_80pct` | REAL | - | Prediction Interval Upper 80Pct |
-| `prediction_interval_width_80pct` | REAL | - | Prediction Interval Width 80Pct |
-| `model_agreement_fraction` | TEXT | - | Model Agreement Fraction |
-| `models_agreeing_count` | INTEGER | - | Models Agreeing Count |
-| `agreement_rate_decimal` | REAL | - | Agreement Rate Decimal |
-| `prediction_random_forest` | REAL | - | Prediction Random Forest |
-| `prediction_xgboost` | REAL | - | Prediction Xgboost |
-| `prediction_gradient_boosting` | REAL | - | Prediction Gradient Boosting |
-| `historical_sample_size` | INTEGER | - | Historical Sample Size |
-| `ensemble_standard_deviation` | REAL | - | Ensemble Standard Deviation |
-| `prediction_coefficient_of_variation_percent` | REAL | - | Prediction Coefficient Of Variation Percent |
-| `from_job_profile_name` | TEXT | - | From Job Profile Name |
-| `to_job_profile_name` | TEXT | - | To Job Profile Name |
-| `training_algorithm` | TEXT | - | Training Algorithm |
-| `training_timestamp` | TEXT | - | Training Timestamp |
-| `created_timestamp` | TEXT | - | Created Timestamp |
-
-#### Foreign Key Relationships
-
-- `to_job_profile_id` references `core_job_architecture.JobProfileID`
-- `from_job_profile_id` references `core_job_architecture.JobProfileID`
 ---
 
 ### analytics_skill_bundles
@@ -561,16 +524,16 @@
   "bundle_size": 100,
   "is_specialized": 0,
   "sample_skills": "Customer Centricity; Data Analysis; Data Literacy",
-  "sample_job_functions": "Analysis pending",
-  "bundle_confidence": null,
-  "silhouette_score": null,
-  "intra_bundle_similarity": null,
-  "inter_bundle_distance": null,
-  "clustering_algorithm": null,
-  "similarity_method": null,
-  "algorithm_parameters": null,
+  "sample_job_functions": "Data & Analytics; Executive Leadership; Markets & Institutional Bank",
+  "bundle_confidence": 0.613,
+  "silhouette_score": -0.689,
+  "intra_bundle_similarity": 0.407,
+  "inter_bundle_distance": 0.528,
+  "clustering_algorithm": "dbscan",
+  "similarity_method": "jaccard_combined",
+  "algorithm_parameters": "eps=0.15, min_samples=3",
   "analysis_date": null,
-  "created_timestamp": "2025-08-11T14:27:40.298676"
+  "created_timestamp": "2025-08-14T12:29:32.366319"
 }
 ```
 
@@ -580,7 +543,7 @@
 
 ### analytics_skill_demand_trends
 
-**Records**: 0
+**Records**: 2,151
 
 #### Schema
 
@@ -615,6 +578,41 @@
 #### Foreign Key Relationships
 
 - `skill_id` references `core_skills_taxonomy.Skill_ID`
+
+#### Sample Data
+
+```json
+{
+  "skill_id": "KS440XG653B0ZK3926JF",
+  "skill_name": "Stakeholder Engagement",
+  "category": "Business",
+  "skill_type": "Specialized Skill",
+  "jobs_requiring_skill": 826,
+  "total_skill_instances": 21891,
+  "current_prevalence_percent": null,
+  "short_term_cagr": -0.3765129211645404,
+  "medium_term_cagr": -0.2631011310770365,
+  "long_term_cagr": -0.3685450981498579,
+  "velocity_category": "declining",
+  "trend_direction": "down",
+  "trend_strength": null,
+  "trend_confidence": null,
+  "total_movements": 21891,
+  "total_recency_weighted_movements": 16942.260986032306,
+  "recency_weighted_growth_pct": 52.32490266381213,
+  "projected_demand_1yr": null,
+  "projected_demand_2yr": null,
+  "projected_demand_3yr": null,
+  "analysis_windows": null,
+  "velocity_thresholds": null,
+  "data_quality_score": null,
+  "analysis_date": null,
+  "created_timestamp": "2025-08-14T12:29:49.590000"
+}
+```
+
+*(5 sample records available)*
+
 ---
 
 ### analytics_skill_rarity
@@ -663,9 +661,9 @@
   "is_defining_skill": 1,
   "defining_for_jobs_count": 0,
   "defining_for_jobs": "",
-  "analysis_date": "2025-08-11",
+  "analysis_date": "2025-08-14",
   "algorithm_version": "rarity_analyzer_v1.0",
-  "created_timestamp": "2025-08-11 03:42:40"
+  "created_timestamp": "2025-08-14 02:20:37"
 }
 ```
 
@@ -675,7 +673,7 @@
 
 ### analytics_specialized_skills
 
-**Records**: 2
+**Records**: 1,631
 
 #### Schema
 
@@ -714,34 +712,34 @@
 
 ```json
 {
-  "skill_id": "ES70711512BEABCE4DC0",
-  "skill_name": "Sustainable Agriculture",
-  "category": "Agriculture, Horticulture, and Landscaping",
-  "subcategory": "Agriculture and Crop Farming",
+  "skill_id": "BGS8DB61483F6A17FCDE",
+  "skill_name": "Service Improvement",
+  "category": "Business",
+  "subcategory": "Process Improvement and Optimization",
   "skill_type": "Specialized Skill",
-  "jobs_count": 3,
-  "prevalence_percent": 0.17,
-  "specialization_score": null,
+  "jobs_count": 17,
+  "prevalence_percent": 0.98,
+  "specialization_score": 100.0,
   "rarity_rank": null,
-  "specialization_reason": "Low prevalence - highly specialized",
-  "specialization_category": null,
-  "market_context": null,
-  "strategic_importance": null,
-  "skill_lifecycle_stage": null,
-  "investment_recommendation": null,
+  "specialization_reason": "Very low prevalence (<1%)",
+  "specialization_category": "Ultra-Rare",
+  "market_context": "Internal analysis",
+  "strategic_importance": "Medium",
+  "skill_lifecycle_stage": "Mature",
+  "investment_recommendation": "Monitor",
   "related_skills": null,
   "typical_job_functions": null,
-  "training_availability": null,
-  "external_market_demand": null,
-  "analysis_methodology": null,
-  "confidence_level": null,
-  "last_review_date": null,
-  "next_review_date": null,
-  "created_timestamp": "2025-08-11T14:27:40.408982"
+  "training_availability": "Limited",
+  "external_market_demand": "Moderate",
+  "analysis_methodology": "Multi-criteria specialization analysis",
+  "confidence_level": "Medium",
+  "last_review_date": "2025-08-14T12:29:32.088386",
+  "next_review_date": "2025-11-12T12:29:32.088386",
+  "created_timestamp": "2025-08-14T12:29:32.088386"
 }
 ```
 
-*(2 sample records available)*
+*(5 sample records available)*
 
 ---
 
@@ -794,12 +792,141 @@
   "is_Banker": "Non-Banker",
   "Executive_Leadership_Group": "",
   "Accountability_Scope": "",
-  "created_timestamp": "2025-08-11 03:23:19",
-  "updated_timestamp": "2025-08-11 03:23:19"
+  "created_timestamp": "2025-08-14 02:05:22",
+  "updated_timestamp": "2025-08-14 02:05:22"
 }
 ```
 
 *(5 sample records available)*
 
 ---
+
+### core_job_skill_requirements
+
+**Records**: 76,834
+
+#### Schema
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `JobProfileID` | TEXT | PK, FK | Jobprofileid |
+| `Skill_ID` | TEXT | PK, FK | Skill Id |
+| `created_timestamp` | TEXT | - | Created Timestamp |
+
+#### Foreign Key Relationships
+
+- `Skill_ID` references `core_skills_taxonomy.Skill_ID`
+- `JobProfileID` references `core_job_architecture.JobProfileID`
+
+#### Sample Data
+
+```json
+{
+  "JobProfileID": "R0001.15",
+  "Skill_ID": "KS122P76RK0FDFPLR32K",
+  "created_timestamp": "2025-08-14 02:05:23"
+}
+```
+
+*(5 sample records available)*
+
+---
+
+### core_skills_taxonomy
+
+**Records**: 38,525
+
+#### Schema
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `Skill_ID` | TEXT | PK | Skill Id |
+| `Skill_Name` | TEXT | - | Skill Name |
+| `Category` | TEXT | - | Category |
+| `Subcategory` | TEXT | - | Subcategory |
+| `SkillType` | TEXT | - | Skilltype |
+| `category_id` | REAL | - | Category Id |
+| `description` | TEXT | - | Description |
+| `descriptionSource` | TEXT | - | Descriptionsource |
+| `infoUrl` | TEXT | - | Infourl |
+| `isLanguage` | BOOLEAN | - | Islanguage |
+| `isSoftware` | BOOLEAN | - | Issoftware |
+| `source_version` | REAL | - | Source Version |
+| `subcategory_id` | REAL | - | Subcategory Id |
+| `tag_wikipediaExtract` | TEXT | - | Tag Wikipediaextract |
+| `tag_wikipediaUrl` | TEXT | - | Tag Wikipediaurl |
+| `tags` | TEXT | - | Tags |
+| `type` | TEXT | - | Type |
+| `type_id` | TEXT | - | Type Id |
+| `created_timestamp` | TEXT | - | Created Timestamp |
+| `updated_timestamp` | TEXT | - | Updated Timestamp |
+
+### core_workforce_current
+
+**Records**: 43,096
+
+#### Schema
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `employee_number` | TEXT | PK | Employee Number |
+| `position_number` | TEXT | - | Position Number |
+| `position_name` | TEXT | - | Position Name |
+| `JobProfileID` | TEXT | FK | Jobprofileid |
+| `Employee_Group` | TEXT | - | Employee Group |
+| `Employee_Subgroup` | TEXT | - | Employee Subgroup |
+| `Salary_Group` | TEXT | - | Salary Group |
+| `Location` | TEXT | - | Location |
+| `Rg` | TEXT | - | Rg |
+| `Cty` | TEXT | - | Cty |
+| `ORG_UNIT_NAME_1` | TEXT | - | Org Unit Name 1 |
+| `ORG_UNIT_NAME_2` | TEXT | - | Org Unit Name 2 |
+| `ORG_UNIT_NAME_3` | TEXT | - | Org Unit Name 3 |
+| `ORG_UNIT_NAME_4` | TEXT | - | Org Unit Name 4 |
+| `ORG_UNIT_NAME_5` | TEXT | - | Org Unit Name 5 |
+| `ORG_UNIT_NAME_6` | TEXT | - | Org Unit Name 6 |
+| `ORG_UNIT_NAME_7` | TEXT | - | Org Unit Name 7 |
+| `ORG_UNIT_NAME_8` | TEXT | - | Org Unit Name 8 |
+| `ORG_UNIT_NAME_9` | TEXT | - | Org Unit Name 9 |
+| `ORG_UNIT_NAME_10` | TEXT | - | Org Unit Name 10 |
+| `created_timestamp` | TEXT | - | Created Timestamp |
+
+#### Foreign Key Relationships
+
+- `JobProfileID` references `core_job_architecture.JobProfileID`
+
+## system Tables
+
+### sys_schema_metadata
+
+**Records**: 26
+
+#### Schema
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `metadata_key` | TEXT | PK | Metadata Key |
+| `metadata_value` | TEXT | - | Metadata Value |
+| `metadata_category` | TEXT | - | Metadata Category |
+| `description` | TEXT | - | Description |
+| `created_timestamp` | TEXT | - | Created Timestamp |
+| `updated_timestamp` | TEXT | - | Updated Timestamp |
+
+#### Sample Data
+
+```json
+{
+  "metadata_key": "schema_version",
+  "metadata_value": "2.0",
+  "metadata_category": "schema",
+  "description": "Enhanced database schema version",
+  "created_timestamp": "2025-08-14 02:05:22",
+  "updated_timestamp": "2025-08-14 02:05:22"
+}
+```
+
+*(5 sample records available)*
+
+---
+
 
