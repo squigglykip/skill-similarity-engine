@@ -63,48 +63,37 @@ def api_organizational_data():
     try:
         db = get_db()
         
-        # Get unique divisions
-        divisions_query = """
-        SELECT DISTINCT Division 
-        FROM positions 
-        WHERE Division IS NOT NULL AND Division != ''
-        ORDER BY Division
-        """
+        # Import queries locally to avoid circular imports
+        from ..sql import queries
+        
+        # Get unique divisions using organized SQL
+        divisions_query = queries.get('metadata', 'get_organizational_divisions')
         divisions = [row['Division'] for row in db.execute(divisions_query).fetchall()]
         
-        # Get unique business units
-        business_units_query = """
-        SELECT DISTINCT Business_Unit 
-        FROM positions 
-        WHERE Business_Unit IS NOT NULL AND Business_Unit != ''
-        ORDER BY Business_Unit
-        """
+        # Get unique business units using organized SQL
+        business_units_query = queries.get('metadata', 'get_organizational_business_units')
         business_units = [row['Business_Unit'] for row in db.execute(business_units_query).fetchall()]
         
-        # Get unique locations
-        locations_query = """
-        SELECT DISTINCT Location 
-        FROM positions 
-        WHERE Location IS NOT NULL AND Location != ''
-        ORDER BY Location
-        """
+        # Get unique locations using organized SQL
+        locations_query = queries.get('metadata', 'get_organizational_locations')
         locations = [row['Location'] for row in db.execute(locations_query).fetchall()]
         
-        # Get unique regions
-        regions_query = """
-        SELECT DISTINCT Rg 
-        FROM positions 
-        WHERE Rg IS NOT NULL AND Rg != ''
-        ORDER BY Rg
-        """
+        # Get unique regions using organized SQL
+        regions_query = queries.get('metadata', 'get_organizational_regions')
         regions = [row['Rg'] for row in db.execute(regions_query).fetchall()]
         
         return jsonify({
-            'divisions': divisions,
-            'business_units': business_units,
-            'locations': locations,
-            'regions': regions
+            'success': True,
+            'data': {
+                'divisions': divisions,
+                'business_units': business_units,
+                'locations': locations,
+                'regions': regions
+            }
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500 

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class DatabaseDefaults:
     """Default values for database configuration."""
     # Database path defaults
-    DATABASE_NAME: str = 'workforce_intelligence.sqlite'
+    DATABASE_NAME: str = 'business_context.sqlite'
     MODELS_BASE_DIR: str = 'models'  # Base directory for model versions
     
     # Connection defaults

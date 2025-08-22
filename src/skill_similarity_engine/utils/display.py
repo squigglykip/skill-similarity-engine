@@ -114,6 +114,10 @@ class JobDisplayManager:
         Returns:
             JobData object with job information, or None if not found
         """
+        # Validate input
+        if not job_profile_id or not job_profile_id.strip():
+            return None
+            
         # Check cache first if enabled
         if use_cache and job_profile_id in self._job_cache:
             return self._job_cache[job_profile_id]
@@ -131,7 +135,7 @@ class JobDisplayManager:
                 JobCategory,
                 Customer_Facing,
                 is_Banker
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             
@@ -162,7 +166,8 @@ class JobDisplayManager:
             return job_data
             
         except Exception as e:
-            logger.error(f"Error retrieving job data for {job_profile_id}: {e}")
+            if job_profile_id:  # Only log if not empty
+                logger.error(f"Error retrieving job data for {job_profile_id}: {e}")
             return None
     
     def get_logical_display_name(self, job_profile_id: str) -> str:

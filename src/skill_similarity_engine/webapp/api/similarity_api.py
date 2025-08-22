@@ -38,6 +38,13 @@ def get_webapp_config():
             def get_core_performance_config(self): return {'max_depth_default': 3, 'max_results_default': 10}
         return MockConfig()
 
+def safe_row_get(row, key, default=None):
+    """Safely get value from sqlite3.Row object with fallback to default."""
+    try:
+        return row[key] if key in row.keys() else default
+    except (KeyError, IndexError):
+        return default
+
 @similarity_bp.route('/skills-gap/<source_job_id>/<target_job_id>')
 def api_skills_gap(source_job_id, target_job_id):
     """API endpoint for skills gap analysis between two jobs."""
@@ -94,53 +101,14 @@ def api_skills_analysis(from_job_id, to_job_id):
     try:
         db = get_db()
         
-        # Get skills for both jobs with skill metadata
-        skills_query = """
-        WITH job1_skills AS (
-            SELECT js.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
-            WHERE js.JobProfileID = ?
-        ),
-        job2_skills AS (
-            SELECT js.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
-            WHERE js.JobProfileID = ?
-        ),
-        skills_matched AS (
-            SELECT j1.Skill_ID, j1.Skill_Name, j1.Category, j1.Subcategory, j1.SkillType
-            FROM job1_skills j1
-            INNER JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
-        ),
-        skills_to_develop AS (
-            SELECT j2.Skill_ID, j2.Skill_Name, j2.Category, j2.Subcategory, j2.SkillType
-            FROM job2_skills j2
-            LEFT JOIN job1_skills j1 ON j2.Skill_ID = j1.Skill_ID
-            WHERE j1.Skill_ID IS NULL
-        )
-        SELECT 
-            'matched' as skill_status,
-            COUNT(*) as skill_count,
-            SkillType,
-            Category
-        FROM skills_matched
-        GROUP BY SkillType, Category
-        UNION ALL
-        SELECT 
-            'develop' as skill_status,
-            COUNT(*) as skill_count,
-            SkillType,
-            Category
-        FROM skills_to_develop
-        GROUP BY SkillType, Category
-        """
-        
-        skills_analysis = db.execute(skills_query, (from_job_id, to_job_id)).fetchall()
+        # Get enhanced skills analysis using organized SQL (now requires 5 parameters)
+        skills_query = queries.get('skills', 'get_skills_analysis_summary_for_api')
+        skills_analysis = db.execute(skills_query, (from_job_id, to_job_id, to_job_id, to_job_id, from_job_id)).fetchall()
         
         # Calculate summary metrics
         skills_matched = sum(row['skill_count'] for row in skills_analysis if row['skill_status'] == 'matched')
         skills_to_develop = sum(row['skill_count'] for row in skills_analysis if row['skill_status'] == 'develop')
+        skills_transferable = sum(row['skill_count'] for row in skills_analysis if row['skill_status'] == 'transferable')
         
         # Calculate difficulty based on skills overlap
         total_required_skills = skills_matched + skills_to_develop
@@ -149,43 +117,9 @@ def api_skills_analysis(from_job_id, to_job_id):
             'Medium' if skills_to_develop / total_required_skills <= 0.6 else 'High'
         )
         
-        # Get detailed skills for each category (SQLite compatible)
-        detailed_skills_query = """
-        WITH job1_skills AS (
-            SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType, s.Info_URL
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
-            WHERE js.JobProfileID = ?
-        ),
-        job2_skills AS (
-            SELECT js.Skill_ID, s.Skill_Name, s.Category, s.SkillType, s.Info_URL
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
-            WHERE js.JobProfileID = ?
-        )
-        SELECT 
-            'matched' as status,
-            j1.Skill_Name as skill_name,
-            j1.Category as category,
-            j1.SkillType as skill_type,
-            j1.Info_URL as info_url
-        FROM job1_skills j1
-        INNER JOIN job2_skills j2 ON j1.Skill_ID = j2.Skill_ID
-        UNION ALL
-        SELECT 
-            'develop' as status,
-            j2.Skill_Name as skill_name,
-            j2.Category as category,
-            j2.SkillType as skill_type,
-            j2.Info_URL as info_url
-        FROM job2_skills j2
-        LEFT JOIN job1_skills j1 ON j2.Skill_ID = j1.Skill_ID
-        WHERE j1.Skill_ID IS NULL
-
-        ORDER BY status, category, skill_name
-        """
-        
-        detailed_skills = db.execute(detailed_skills_query, (from_job_id, to_job_id)).fetchall()
+        # Get detailed skills using organized SQL (now requires 5 parameters)
+        detailed_skills_query = queries.get('skills', 'get_detailed_skills_analysis_for_api')
+        detailed_skills = db.execute(detailed_skills_query, (from_job_id, to_job_id, to_job_id, to_job_id, from_job_id)).fetchall()
         
         # Handle ID mapping for backward compatibility
         # If job IDs look like node_X, they should be mapped to actual JobProfileIDs
@@ -194,36 +128,77 @@ def api_skills_analysis(from_job_id, to_job_id):
             print(f"⚠️ Received D3 node IDs instead of JobProfileIDs: {from_job_id} → {to_job_id}")
             print(f"   This suggests the JavaScript extractJobId function needs adjustment")
         
-        # Calculate SkillType breakdown for skills to develop
+        # Calculate enhanced metrics from V2 data
         skilltype_to_develop = {}
         skilltype_matched = {}
         
+        # Enhanced intelligence metrics
+        total_defining_matched = 0
+        total_defining_to_develop = 0
+        total_defining_transferable = 0
+        total_rare_matched = 0
+        total_rare_to_develop = 0
+        total_emerging_matched = 0
+        total_emerging_to_develop = 0
+        total_declining_matched = 0
+        total_declining_to_develop = 0
+        
         for row in skills_analysis:
-            skill_type = row['SkillType'] or 'Unspecified'
+            skill_type = safe_row_get(row, 'SkillType') or 'Unspecified'
             if row['skill_status'] == 'develop':
                 skilltype_to_develop[skill_type] = skilltype_to_develop.get(skill_type, 0) + row['skill_count']
+                total_defining_to_develop += safe_row_get(row, 'defining_skills_count', 0)
+                total_rare_to_develop += safe_row_get(row, 'rare_skills_count', 0)
+                total_emerging_to_develop += safe_row_get(row, 'emerging_skills_count', 0)
+                total_declining_to_develop += safe_row_get(row, 'declining_skills_count', 0)
             elif row['skill_status'] == 'matched':
                 skilltype_matched[skill_type] = skilltype_matched.get(skill_type, 0) + row['skill_count']
+                total_defining_matched += safe_row_get(row, 'defining_skills_count', 0)
+                total_rare_matched += safe_row_get(row, 'rare_skills_count', 0)
+                total_emerging_matched += safe_row_get(row, 'emerging_skills_count', 0)
+                total_declining_matched += safe_row_get(row, 'declining_skills_count', 0)
+            elif row['skill_status'] == 'transferable':
+                total_defining_transferable += safe_row_get(row, 'defining_skills_count', 0)
         
         return jsonify({
             'success': True,
             'skills_matched': skills_matched,
             'skills_to_develop': skills_to_develop,
+            'skills_transferable': skills_transferable,
             'transition_difficulty': difficulty,
             'skilltype_to_develop': skilltype_to_develop,
             'skilltype_matched': skilltype_matched,
             'skill_type_distribution': {
-                (row['SkillType'] or 'Unspecified'): row['skill_count'] 
+                (safe_row_get(row, 'SkillType') or 'Unspecified'): row['skill_count'] 
                 for row in skills_analysis 
                 if row['skill_status'] == 'matched'
+            },
+            # Enhanced V2 intelligence metrics
+            'enhanced_insights': {
+                'defining_skills_matched': total_defining_matched,
+                'defining_skills_to_develop': total_defining_to_develop,
+                'defining_skills_transferable': total_defining_transferable,
+                'rare_skills_matched': total_rare_matched,
+                'rare_skills_to_develop': total_rare_to_develop,
+                'emerging_skills_matched': total_emerging_matched,
+                'emerging_skills_to_develop': total_emerging_to_develop,
+                'declining_skills_matched': total_declining_matched,
+                'declining_skills_to_develop': total_declining_to_develop
             },
             'detailed_skills': [
                 {
                     'name': row['skill_name'],
-                    'category': row['category'] or 'General',
-                    'skill_type': row['skill_type'] or 'Skill',
+                    'category': safe_row_get(row, 'category') or 'General',
+                    'skill_type': safe_row_get(row, 'skill_type') or 'Skill',
                     'status': row['status'],
-                    'info_url': row['info_url']
+                    'is_defining': bool(safe_row_get(row, 'is_defining', 0)),
+                    'defining_rank': safe_row_get(row, 'defining_rank', 999),
+                    'rarity_score': safe_row_get(row, 'rarity_score', 50.0),
+                    'rarity_category': safe_row_get(row, 'rarity_category', 'Common'),
+                    'velocity_category': safe_row_get(row, 'velocity_category', 'stable'),
+                    'trend_direction': safe_row_get(row, 'trend_direction', 'stable'),
+                    'trend_strength': safe_row_get(row, 'trend_strength', 'stable'),
+                    'info_url': safe_row_get(row, 'info_url', '')
                 }
                 for row in detailed_skills
             ]

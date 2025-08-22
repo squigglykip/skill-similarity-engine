@@ -51,14 +51,8 @@ def api_career_pathways_distribution(job_id):
     try:
         db = get_db()
         
-        # Get all 12 career pathways for this job from the career_pathways table
-        pathways_query = """
-        SELECT cp.similarity_score, j.JobProfile as job_title, j.JobFunction as job_function
-        FROM career_pathways cp
-        JOIN jobs j ON cp.target_job_id = j.JobProfileID
-        WHERE cp.source_job_id = ?
-        ORDER BY cp.similarity_rank
-        """
+        # Get career pathways using organized SQL
+        pathways_query = queries.get('career_pathways', 'get_career_pathways_distribution_for_api')
         pathways = db.execute(pathways_query, (job_id,)).fetchall()
         
         # Return the raw data - exactly 12 pathways for distribution analysis
@@ -142,6 +136,7 @@ def api_d3_tree_data():
     similarity_threshold = float(request.args.get('similarity', webapp_config.get_similarity_threshold('pathway')))  # Configurable default 
     max_depth = int(request.args.get('depth', webapp_config.get_core_performance_config().get('max_depth_default', 3)))
     max_results = int(request.args.get('max_results', webapp_config.get_core_performance_config().get('max_results_default', 10)))  # Configurable default
+    similarity_method = request.args.get('similarity_method', 'enhanced')  # 'enhanced' or 'literal'
     
     # Organizational filters (optional)
     division_filter = request.args.get('division', '').strip()
@@ -160,7 +155,10 @@ def api_d3_tree_data():
         for node in node_dict.values():
             parent_id = node.get('parent')
             if parent_id and parent_id in node_dict:
-                node_dict[parent_id]['children'].append(node)
+                # Only add if not already in children (deduplicate multiple parent paths)
+                parent_children = node_dict[parent_id]['children']
+                if not any(child['id'] == node['id'] for child in parent_children):
+                    parent_children.append(node)
             else:
                 roots.append(node)  # Root level nodes
         
@@ -207,26 +205,44 @@ def api_d3_tree_data():
         
         db = get_db()
         
-        # Use optimized pre-computed career pathways query
-        job_placeholders = ','.join(['?' for _ in job_ids])
-        tree_query = queries.get('career_pathways', 'get_career_tree_fast')
+        # Use recursive career pathways query that builds proper multi-level trees
+        # Get the base recursive tree query
+        tree_query = queries.get('career_pathways', 'get_career_tree_recursive')
+        # Modify query based on similarity method
+        if tree_query and similarity_method == 'literal':
+            # Replace enhanced_similarity_score with similarity_score for literal comparison
+            tree_query = tree_query.replace('enhanced_similarity_score', 'similarity_score')
         
         if not tree_query:
-            # Fallback to original recursive query if career pathways not available
-            tree_query = queries.get('d3_visualization', 'get_recursive_job_tree')
+            # Fallback to older queries if recursive query not available
+            tree_query = queries.get('career_pathways', 'get_career_tree_fast')
             if not tree_query:
-                raise ValueError("No tree query available")
+                tree_query = queries.get('d3_visualization', 'get_recursive_job_tree')
+                if not tree_query:
+                    return jsonify({
+                        'success': False,
+                        'error': 'No tree query available - check SQL file structure',
+                        'tree': None,
+                        'total_nodes': 0
+                    }), 500
         
-        # Replace placeholder in query
-        tree_query = tree_query.replace('{job_placeholders}', job_placeholders)
+        # For the simple query, we support single job only for now
+        if len(job_ids) != 1:
+            return jsonify({
+                'success': False,
+                'error': f'Simple tree query supports single job only, got {len(job_ids)} jobs',
+                'tree': None,
+                'total_nodes': 0
+            }), 400
+            
+        job_id = job_ids[0]
         
-        # Execute with job IDs, similarity threshold, max depth, max results, and organizational filters
-        # Updated parameter order for new SQL logic (filters applied at Level 1 only)
-        params = job_ids + [similarity_threshold, max_depth, max_results,
-                           division_filter, division_filter,  # Division filter (check + value)
-                           business_unit_filter, business_unit_filter,  # Business Unit filter (check + value)
-                           location_filter, location_filter,  # Location filter (check + value)  
-                           region_filter, region_filter]  # Region filter (check + value)
+        # Parameters: job_id (root), max_depth, similarity_threshold, max_results, + 8 org filters  
+        params = [job_id, max_depth, similarity_threshold, max_results,
+                  division_filter, division_filter,  # Division filter (check + value)
+                  business_unit_filter, business_unit_filter,  # Business Unit filter (check + value)
+                  location_filter, location_filter,  # Location filter (check + value)  
+                  region_filter, region_filter]  # Region filter (check + value)
         
         # Build filter description for logging
         filters = []
@@ -236,7 +252,7 @@ def api_d3_tree_data():
         if region_filter: filters.append(f"region={region_filter}")
         filter_desc = f", filters=[{', '.join(filters)}]" if filters else ""
         
-        print(f"📊 Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}{filter_desc}")
+        print(f"📊 Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}, method={similarity_method}{filter_desc}")
         
         tree_data = db.execute(tree_query, params).fetchall()
         
@@ -267,14 +283,15 @@ def api_d3_tree_data():
             else:
                 print("[OK] Organizational filters working correctly - no unexpected root jobs")
             
-            # Additional validation: Check if Level 1 jobs match the organizational filter
+                            # Additional validation: Check if Level 1 jobs match the organizational filter
             if division_filter:
                 level_1_jobs = [row for row in tree_data if row['level'] == 1]
                 print(f"📊 Checking Level 1 jobs against Division filter '{division_filter}':")
+                division_check_query = queries.get('career_pathways', 'check_job_division_filter')
                 for job in level_1_jobs[:5]:  # Show first 5
                     job_id = str(job['id'])
-                    # Check if this job exists in the specified division
-                    division_check = db.execute("SELECT Division FROM positions WHERE JobProfileID = ?", (job_id,)).fetchall()
+                    # Check if this job exists in the specified division using organized SQL
+                    division_check = db.execute(division_check_query, (job_id,)).fetchall()
                     divisions = [d['Division'] for d in division_check] if division_check else ['No positions found']
                     matches_filter = division_filter in divisions
                     status = "[OK]" if matches_filter else "[X]"
@@ -344,6 +361,7 @@ def api_d3_tree_data():
             'success': True,
             'selected_jobs': job_ids,
             'similarity_threshold': similarity_threshold,
+            'similarity_method': similarity_method,
             'max_depth': max_depth,
             'max_results': max_results,
             'tree': tree_root,

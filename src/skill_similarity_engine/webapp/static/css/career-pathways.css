@@ -41,6 +41,331 @@
 }
 
 /* =================================================================
+   Skills Analysis Components - Enhanced UX
+   ================================================================= */
+
+/* Hero Cards for Primary Metrics */
+.skills-hero-card {
+    background: linear-gradient(135deg, var(--color-blue-50) 0%, var(--color-indigo-50) 100%);
+    border-left: 4px solid var(--color-blue-600);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+}
+
+.skills-hero-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.skills-metric-large {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: var(--font-epilogue);
+    line-height: 1.2;
+}
+
+.skills-metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* Priority-based Skills Display */
+.skills-priority-section {
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: all var(--transition-base);
+}
+
+.skills-priority-critical {
+    border-left: 4px solid var(--color-red-500);
+    background: linear-gradient(135deg, var(--color-red-50) 0%, var(--color-red-25) 100%);
+}
+
+.skills-priority-important {
+    border-left: 4px solid var(--color-orange-400);
+    background: linear-gradient(135deg, var(--color-orange-50) 0%, var(--color-orange-25) 100%);
+}
+
+.skills-priority-supporting {
+    border-left: 4px solid var(--color-gray-300);
+    background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-25) 100%);
+}
+
+.skills-section-header {
+    font-weight: 600;
+    font-family: var(--font-epilogue);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.skills-priority-critical .skills-section-header {
+    color: var(--color-red-800);
+}
+
+.skills-priority-important .skills-section-header {
+    color: var(--color-orange-800);
+}
+
+.skills-priority-supporting .skills-section-header {
+    color: var(--color-gray-700);
+}
+
+/* Skills Grid Layout */
+.skills-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .skills-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .skills-grid.skills-grid-3col {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+/* Individual Skill Items */
+.skill-item {
+    background: var(--color-white);
+    padding: 0.75rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-gray-200);
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.skill-item:hover {
+    border-color: var(--color-blue-300);
+    box-shadow: var(--shadow-sm);
+}
+
+.skill-item-name {
+    font-weight: 500;
+    font-family: var(--font-source);
+    color: var(--color-gray-900);
+    font-size: 0.875rem;
+    line-height: 1.3;
+}
+
+.skill-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.skill-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: var(--font-source);
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--border-radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.skill-badge-defining {
+    background: var(--color-red-100);
+    color: var(--color-red-700);
+}
+
+.skill-badge-rare {
+    background: var(--color-yellow-100);
+    color: var(--color-yellow-700);
+}
+
+.skill-badge-declining {
+    background: var(--color-purple-100);
+    color: var(--color-purple-700);
+}
+
+.skill-badge-emerging {
+    background: var(--color-green-100);
+    color: var(--color-green-700);
+}
+
+/* Expandable Skills Sections */
+.skills-expandable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.skills-expand-button {
+    background: var(--color-gray-100);
+    border: 1px solid var(--color-gray-300);
+    color: var(--color-gray-700);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: var(--font-source);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-top: 0.75rem;
+    width: 100%;
+    text-align: center;
+}
+
+.skills-expand-button:hover {
+    background: var(--color-gray-200);
+    border-color: var(--color-gray-400);
+}
+
+.skills-expand-button:focus {
+    outline: 2px solid var(--color-blue-500);
+    outline-offset: 2px;
+}
+
+/* Contextual Insights */
+.contextual-insight {
+    background: var(--color-amber-50);
+    border: 1px solid var(--color-amber-200);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.contextual-insight-icon {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    max-width: 1.25rem;
+    max-height: 1.25rem;
+    color: var(--color-amber-600);
+    margin-top: 0.125rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.contextual-insight-title {
+    font-weight: 500;
+    font-family: var(--font-epilogue);
+    color: var(--color-amber-800);
+    font-size: 0.875rem;
+}
+
+.contextual-insight-text {
+    color: var(--color-amber-700);
+    font-size: 0.875rem;
+    font-family: var(--font-source);
+    margin-top: 0.25rem;
+    line-height: 1.4;
+}
+
+/* Responsive Analysis Grid */
+.skills-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+    .skills-analysis-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .skills-analysis-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+/* Consistent Card Heights */
+.metric-card {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    transition: all var(--transition-base);
+}
+
+.metric-card:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-gray-300);
+}
+
+.metric-card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: var(--font-epilogue);
+    margin-bottom: 0.25rem;
+}
+
+.metric-card-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: var(--font-source);
+    color: var(--color-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-card-context {
+    font-size: 0.75rem;
+    font-family: var(--font-source);
+    margin-top: 0.25rem;
+    line-height: 1.3;
+}
+
+/* Tooltips for Contextual Help */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-content {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0.5rem;
+    padding: 0.75rem;
+    background: var(--color-gray-900);
+    color: var(--color-white);
+    font-size: 0.75rem;
+    font-family: var(--font-source);
+    border-radius: var(--border-radius-md);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+    z-index: 50;
+}
+
+.tooltip-wrapper:hover .tooltip-content {
+    opacity: 1;
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--color-gray-900);
+}
+
+/* =================================================================
    Tree Visualization Components
    ================================================================= */
 

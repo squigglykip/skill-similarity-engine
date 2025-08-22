@@ -61,6 +61,8 @@ def search_jobs(query, limit=None):
     
     db = get_db()
     search_query = queries.get('jobs', 'search_jobs')
+    if not search_query:
+        return []
     cursor = db.execute(search_query, (f'%{query}%', None, None))
     return cursor.fetchmany(limit)
 
@@ -109,8 +111,9 @@ def api_search_all_jobs():
                 ManagementLevel as management_level,
                 Job as job_name,
                 ProfileTitleSuffix as suffix
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfile LIKE ? OR JobProfileID LIKE ? OR Job LIKE ?
+              AND JobProfile IS NOT NULL  -- FAIL-FAST validation
             ORDER BY 
                 CASE 
                     WHEN JobProfileID LIKE ? THEN 1 
@@ -140,7 +143,8 @@ def api_search_all_jobs():
                 ManagementLevel as management_level,
                 Job as job_name,
                 ProfileTitleSuffix as suffix
-            FROM jobs 
+            FROM core_job_architecture 
+            WHERE JobProfile IS NOT NULL  -- FAIL-FAST validation
             ORDER BY JobProfile 
             LIMIT ?
             """
@@ -196,8 +200,9 @@ def api_career_analysis_jobs():
                 JobFunction as function,
                 JobFunctionID as function_id,
                 JobSubFunction as sub_function
-            FROM jobs 
-            WHERE JobProfile LIKE ? OR JobProfileID LIKE ?
+            FROM core_job_architecture 
+            WHERE (JobProfile LIKE ? OR JobProfileID LIKE ?)
+              AND JobProfile IS NOT NULL  -- FAIL-FAST validation
             ORDER BY 
                 CASE 
                     WHEN JobProfileID LIKE ? THEN 1 
@@ -223,7 +228,8 @@ def api_career_analysis_jobs():
                 JobFunction as function,
                 JobFunctionID as function_id,
                 JobSubFunction as sub_function
-            FROM jobs 
+            FROM core_job_architecture 
+            WHERE JobProfile IS NOT NULL  -- FAIL-FAST validation
             ORDER BY JobProfile 
             LIMIT ?
             """

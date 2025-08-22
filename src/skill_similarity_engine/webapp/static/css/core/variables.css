@@ -223,6 +223,65 @@
     /* Buttons */
     --button-border-white: var(--border-width-2) solid var(--color-white);
     
+    /* Expandable Content */
+    --expandable-trigger-gap: var(--spacing-2);
+    --expandable-trigger-margin-top: var(--spacing-2);
+    --expandable-trigger-padding-x: var(--spacing-2);
+    --expandable-trigger-padding-y: var(--spacing-1);
+    --expandable-icon-size: var(--font-size-xs);
+    
+    /* Expandable Color Variants */
+    --expandable-blue-text: var(--color-blue-600);
+    --expandable-blue-hover: var(--color-blue-700);
+    --expandable-blue-expanded: var(--color-blue-700);
+    --expandable-blue-expanded-hover: var(--color-blue-800);
+    --expandable-blue-bg: var(--color-blue-50);
+    
+    --expandable-orange-text: var(--color-orange-600);
+    --expandable-orange-hover: #c2410c;
+    --expandable-orange-expanded: #c2410c;
+    --expandable-orange-expanded-hover: #9a3412;
+    --expandable-orange-bg: var(--color-orange-50);
+    
+    --expandable-green-text: var(--color-green-600);
+    --expandable-green-hover: var(--color-green-700);
+    --expandable-green-expanded: var(--color-green-700);
+    --expandable-green-expanded-hover: #15803d;
+    --expandable-green-bg: var(--color-green-50);
+    
+    /* Focus Ring */
+    --expandable-focus-ring: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    
+    /* Skill Type Badge Colors */
+    --skill-badge-specialized-bg: #fef3c7;
+    --skill-badge-specialized-text: #92400e;
+    --skill-badge-specialized-border: #f59e0b;
+    
+    --skill-badge-core-bg: #dbeafe;
+    --skill-badge-core-text: #1e40af;
+    --skill-badge-core-border: #3b82f6;
+    
+    --skill-badge-common-bg: #f3f4f6;
+    --skill-badge-common-text: #374151;
+    --skill-badge-common-border: #6b7280;
+    
+    --skill-badge-certification-bg: #ecfdf5;
+    --skill-badge-certification-text: #065f46;
+    --skill-badge-certification-border: #10b981;
+    
+    --skill-badge-technical-bg: #fdf4ff;
+    --skill-badge-technical-text: #7c2d12;
+    --skill-badge-technical-border: #a855f7;
+    
+    --skill-badge-default-bg: var(--color-gray-100);
+    --skill-badge-default-text: var(--color-gray-700);
+    --skill-badge-default-border: var(--color-gray-400);
+    
+    /* Skill Link Colors */
+    --skill-link-color: var(--color-blue-600);
+    --skill-link-hover: var(--color-blue-800);
+    --skill-link-visited: var(--color-purple-600);
+    
     /* =================================================================
        Transitions & Animations
        ================================================================= */
@@ -234,6 +293,11 @@
     --ease-in: cubic-bezier(0.4, 0, 1, 1);
     --ease-out: cubic-bezier(0, 0, 0.2, 1);
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Expandable Content Animations */
+    --expandable-duration: 300ms;
+    --expandable-ease-in: ease-in;
+    --expandable-ease-out: ease-out;
     
     /* =================================================================
        Z-Index Scale

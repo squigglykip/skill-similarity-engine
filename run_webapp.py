@@ -176,17 +176,35 @@ if __name__ == '__main__':
     
     print("🟢 Server is now running! You can use the webapp in your browser.")
     print("📌 Keep this window open and minimized if needed.")
+    
+    # Windows-specific information about reloading
+    if os.name == 'nt':
+        print("ℹ️  Windows Mode: Auto-reload disabled to prevent socket errors")
+        print("   🔄 To see code changes: Stop (Ctrl+C) and restart this script")
+    else:
+        print("🔄 Auto-reload enabled: Code changes will restart the server automatically")
     print()
     
     try:
-        # Run the development server
-        app.run(
-            debug=False,
-            port=5000,
-            host='localhost',
-            use_reloader=False,  # Disable auto-reload
-            threaded=True  # Enable threading for better performance
-        )
+        # Run the development server with Windows-compatible configuration
+        if os.name == 'nt':  # Windows
+            # Use more stable configuration for Windows
+            app.run(
+                debug=True,           # Enable debug mode for development
+                port=5000,
+                host='127.0.0.1',     # Use 127.0.0.1 for Windows compatibility
+                use_reloader=False,   # Disable reloader on Windows to prevent socket errors
+                threaded=True         # Enable threading for better performance
+            )
+        else:  # Unix/Linux/Mac
+            # Use full-featured configuration for Unix systems
+            app.run(
+                debug=True,
+                port=5000,
+                host='127.0.0.1',
+                use_reloader=True,
+                threaded=True
+            )
     except KeyboardInterrupt:
         print("\n\n" + "🛑" * 25)
         print("         SERVER STOPPED BY USER (Ctrl+C)")

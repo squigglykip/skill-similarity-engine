@@ -1,0 +1,543 @@
+/**
+ * Expandable Content Component Styles
+ * Uses Tailwind CSS classes and centralized CSS variables
+ */
+
+/* Base expandable section styles */
+.expandable-section {
+    @apply relative;
+}
+
+/* Visible content - always shown */
+.expandable-visible-content {
+    @apply relative;
+}
+
+/* Hidden content - shown/hidden with animation */
+.expandable-hidden-content {
+    @apply relative;
+    /* Initial hidden state is set via JavaScript */
+}
+
+/* =================================================================
+   Expandable Trigger Button
+   ================================================================= */
+
+.expandable-trigger {
+    @apply inline-flex items-center bg-transparent border-none p-0 cursor-pointer;
+    gap: var(--expandable-trigger-gap);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    margin-top: var(--expandable-trigger-margin-top);
+    color: var(--expandable-blue-text);
+    transition: color var(--transition-base);
+}
+
+.expandable-trigger:hover {
+    color: var(--expandable-blue-hover);
+}
+
+.expandable-trigger:focus {
+    @apply outline-none rounded;
+    box-shadow: var(--expandable-focus-ring);
+}
+
+/* Trigger text */
+.expandable-trigger-text {
+    transition: color var(--transition-base);
+}
+
+/* Trigger icon */
+.expandable-trigger-icon {
+    font-size: var(--expandable-icon-size);
+    transition: transform var(--expandable-duration) var(--expandable-ease-out);
+    transform-origin: center;
+}
+
+/* Rotated state for expanded sections */
+.expandable-trigger-icon.rotated {
+    @apply rotate-180;
+}
+
+/* Expanded trigger state */
+.expandable-trigger.expanded {
+    color: var(--expandable-blue-expanded);
+}
+
+.expandable-trigger.expanded:hover {
+    color: var(--expandable-blue-expanded-hover);
+}
+
+/* =================================================================
+   Skills-Specific Color Variants
+   ================================================================= */
+
+.skills-expandable-trigger {
+    @apply font-medium;
+    color: var(--expandable-orange-text);
+}
+
+.skills-expandable-trigger:hover {
+    color: var(--expandable-orange-hover);
+}
+
+.skills-expandable-trigger.expanded {
+    color: var(--expandable-orange-expanded);
+}
+
+.skills-expandable-trigger.expanded:hover {
+    color: var(--expandable-orange-expanded-hover);
+}
+
+/* Green variant for matched skills */
+.skills-expandable-trigger.green {
+    color: var(--expandable-green-text);
+}
+
+.skills-expandable-trigger.green:hover {
+    color: var(--expandable-green-hover);
+}
+
+.skills-expandable-trigger.green.expanded {
+    color: var(--expandable-green-expanded);
+}
+
+.skills-expandable-trigger.green.expanded:hover {
+    color: var(--expandable-green-expanded-hover);
+}
+
+/* Blue variant for transferable skills */
+.skills-expandable-trigger.blue {
+    color: var(--expandable-blue-text);
+}
+
+.skills-expandable-trigger.blue:hover {
+    color: var(--expandable-blue-hover);
+}
+
+.skills-expandable-trigger.blue.expanded {
+    color: var(--expandable-blue-expanded);
+}
+
+.skills-expandable-trigger.blue.expanded:hover {
+    color: var(--expandable-blue-expanded-hover);
+}
+
+/* =================================================================
+   Animation Classes
+   ================================================================= */
+
+.expandable-entering {
+    @apply opacity-0 overflow-hidden;
+    max-height: 0;
+    transition: all var(--expandable-duration) var(--expandable-ease-out);
+}
+
+.expandable-entered {
+    @apply opacity-100 overflow-visible;
+    max-height: none;
+}
+
+.expandable-exiting {
+    @apply opacity-100 overflow-hidden;
+    transition: all var(--expandable-duration) var(--expandable-ease-in);
+}
+
+.expandable-exited {
+    @apply opacity-0 overflow-hidden;
+    max-height: 0;
+}
+
+/* =================================================================
+   Accessibility & Responsive Design
+   ================================================================= */
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .expandable-trigger-icon,
+    .expandable-hidden-content,
+    .expandable-entering,
+    .expandable-entered,
+    .expandable-exiting,
+    .expandable-exited {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    .expandable-trigger-icon.rotated {
+        transform: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .expandable-trigger {
+        @apply border border-blue-600 px-2 py-1 rounded;
+    }
+    
+    .expandable-trigger:hover,
+    .expandable-trigger:focus {
+        background-color: var(--expandable-blue-bg);
+    }
+    
+    .skills-expandable-trigger {
+        @apply border-orange-600;
+    }
+    
+    .skills-expandable-trigger:hover,
+    .skills-expandable-trigger:focus {
+        background-color: var(--expandable-orange-bg);
+    }
+    
+    .skills-expandable-trigger.green {
+        @apply border-green-600;
+    }
+    
+    .skills-expandable-trigger.green:hover,
+    .skills-expandable-trigger.green:focus {
+        background-color: var(--expandable-green-bg);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+    .expandable-trigger {
+        @apply text-xs gap-1 mt-1;
+    }
+    
+    .expandable-trigger-icon {
+        @apply text-xs;
+    }
+}
+
+/* =================================================================
+   Print Styles
+   ================================================================= */
+
+@media print {
+    .expandable-hidden-content {
+        @apply block opacity-100 overflow-visible !important;
+        max-height: none !important;
+    }
+    
+    .expandable-trigger {
+        @apply hidden !important;
+    }
+}
+
+/* =================================================================
+   Dark Mode Support
+   ================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .expandable-trigger {
+        color: var(--color-blue-400);
+    }
+    
+    .expandable-trigger:hover {
+        color: var(--color-blue-300);
+    }
+    
+    .expandable-trigger.expanded {
+        color: var(--color-blue-300);
+    }
+    
+    .expandable-trigger.expanded:hover {
+        color: var(--color-blue-200);
+    }
+    
+    .skills-expandable-trigger {
+        color: #fb923c;
+    }
+    
+    .skills-expandable-trigger:hover {
+        color: #fdba74;
+    }
+    
+    .skills-expandable-trigger.expanded {
+        color: #fdba74;
+    }
+    
+    .skills-expandable-trigger.expanded:hover {
+        color: #fed7aa;
+    }
+    
+    .skills-expandable-trigger.green {
+        color: #4ade80;
+    }
+    
+    .skills-expandable-trigger.green:hover {
+        color: #86efac;
+    }
+    
+    .skills-expandable-trigger.green.expanded {
+        color: #86efac;
+    }
+    
+    .skills-expandable-trigger.green.expanded:hover {
+        color: #bbf7d0;
+    }
+}
+
+/* =================================================================
+   State Classes
+   ================================================================= */
+
+/* Loading state for dynamic content */
+.expandable-loading {
+    @apply opacity-50 pointer-events-none;
+}
+
+.expandable-loading .expandable-trigger {
+    @apply cursor-wait;
+}
+
+/* Error state */
+.expandable-error .expandable-trigger {
+    @apply text-red-600 cursor-not-allowed;
+}
+
+.expandable-error .expandable-trigger:hover {
+    @apply text-red-800;
+}
+
+/* =================================================================
+   Utility Classes
+   ================================================================= */
+
+/* Smooth height animations for better UX */
+.expandable-height-transition {
+    transition: max-height var(--expandable-duration) var(--expandable-ease-out), 
+                opacity var(--expandable-duration) var(--expandable-ease-out);
+    @apply overflow-hidden;
+}
+
+/* Custom scrollbar for long expanded content */
+.expandable-hidden-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-gray-300) transparent;
+}
+
+.expandable-hidden-content::-webkit-scrollbar {
+    @apply w-1;
+}
+
+.expandable-hidden-content::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+.expandable-hidden-content::-webkit-scrollbar-thumb {
+    background-color: var(--color-gray-300);
+    @apply rounded-sm;
+}
+
+.expandable-hidden-content::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-gray-400);
+}
+
+/* =================================================================
+   Skill Enhancement Styles
+   ================================================================= */
+
+/* Skill name links - context-aware colors */
+.skill-name-link {
+    text-decoration: none !important;
+    transition: color var(--transition-base);
+    font-weight: 500;
+}
+
+.skill-name-link:focus {
+    outline: 2px solid var(--color-blue-500);
+    outline-offset: 2px;
+}
+
+/* Green section (Skills Matched) */
+.bg-green-50 .skill-name-link {
+    color: var(--color-green-700) !important;
+}
+
+.bg-green-50 .skill-name-link:hover {
+    color: var(--color-green-800) !important;
+    text-decoration: underline !important;
+}
+
+.bg-green-50 .skill-name-link:visited {
+    color: var(--color-green-600) !important;
+}
+
+/* Orange section (Skills to Develop) */
+.bg-orange-50 .skill-name-link {
+    color: var(--color-orange-700) !important;
+}
+
+.bg-orange-50 .skill-name-link:hover {
+    color: var(--color-orange-800) !important;
+    text-decoration: underline !important;
+}
+
+.bg-orange-50 .skill-name-link:visited {
+    color: var(--color-orange-600) !important;
+}
+
+/* Blue section (Transferable Skills) */
+.bg-blue-50 .skill-name-link {
+    color: var(--color-blue-700) !important;
+}
+
+.bg-blue-50 .skill-name-link:hover {
+    color: var(--color-blue-800) !important;
+    text-decoration: underline !important;
+}
+
+.bg-blue-50 .skill-name-link:visited {
+    color: var(--color-blue-600) !important;
+}
+
+/* Skill type badges with color coding */
+.skill-type-badge {
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid;
+    transition: all var(--transition-base);
+    text-decoration: none !important;
+    display: inline-block;
+}
+
+.skill-type-badge:hover {
+    @apply shadow-sm;
+    text-decoration: none !important;
+    transform: translateY(-1px);
+}
+
+.skill-type-badge:visited {
+    text-decoration: none !important;
+}
+
+.skill-type-badge:focus {
+    outline: 2px solid var(--color-blue-500);
+    outline-offset: 2px;
+}
+
+/* Specialized Skill */
+.skill-type-badge.specialized {
+    background-color: var(--skill-badge-specialized-bg) !important;
+    color: var(--skill-badge-specialized-text) !important;
+    border: 1px solid var(--skill-badge-specialized-border) !important;
+}
+
+.skill-type-badge.specialized:hover {
+    background-color: #fbbf24 !important;
+    color: #78350f !important;
+}
+
+.skill-type-badge.specialized:visited {
+    background-color: var(--skill-badge-specialized-bg) !important;
+    color: var(--skill-badge-specialized-text) !important;
+}
+
+/* Core Skill */
+.skill-type-badge.core {
+    background-color: var(--skill-badge-core-bg) !important;
+    color: var(--skill-badge-core-text) !important;
+    border: 1px solid var(--skill-badge-core-border) !important;
+}
+
+.skill-type-badge.core:hover {
+    background-color: #93c5fd !important;
+    color: #1e3a8a !important;
+}
+
+.skill-type-badge.core:visited {
+    background-color: var(--skill-badge-core-bg) !important;
+    color: var(--skill-badge-core-text) !important;
+}
+
+/* Common Skill */
+.skill-type-badge.common {
+    background-color: var(--skill-badge-common-bg) !important;
+    color: var(--skill-badge-common-text) !important;
+    border: 1px solid var(--skill-badge-common-border) !important;
+}
+
+.skill-type-badge.common:hover {
+    background-color: #e5e7eb !important;
+    color: #1f2937 !important;
+}
+
+.skill-type-badge.common:visited {
+    background-color: var(--skill-badge-common-bg) !important;
+    color: var(--skill-badge-common-text) !important;
+}
+
+/* Certification */
+.skill-type-badge.certification {
+    background-color: var(--skill-badge-certification-bg) !important;
+    color: var(--skill-badge-certification-text) !important;
+    border: 1px solid var(--skill-badge-certification-border) !important;
+}
+
+.skill-type-badge.certification:hover {
+    background-color: #86efac !important;
+    color: #064e3b !important;
+}
+
+.skill-type-badge.certification:visited {
+    background-color: var(--skill-badge-certification-bg) !important;
+    color: var(--skill-badge-certification-text) !important;
+}
+
+/* Technical Skill */
+.skill-type-badge.technical {
+    background-color: var(--skill-badge-technical-bg) !important;
+    color: var(--skill-badge-technical-text) !important;
+    border: 1px solid var(--skill-badge-technical-border) !important;
+}
+
+.skill-type-badge.technical:hover {
+    background-color: #e879f9 !important;
+    color: #581c87 !important;
+}
+
+.skill-type-badge.technical:visited {
+    background-color: var(--skill-badge-technical-bg) !important;
+    color: var(--skill-badge-technical-text) !important;
+}
+
+/* Default/fallback */
+.skill-type-badge.default {
+    background-color: var(--skill-badge-default-bg) !important;
+    color: var(--skill-badge-default-text) !important;
+    border: 1px solid var(--skill-badge-default-border) !important;
+}
+
+.skill-type-badge.default:hover {
+    background-color: #e5e7eb !important;
+    color: #374151 !important;
+}
+
+.skill-type-badge.default:visited {
+    background-color: var(--skill-badge-default-bg) !important;
+    color: var(--skill-badge-default-text) !important;
+}
+
+/* Defining Skill Badge */
+.skill-type-badge.defining-skill-badge {
+    background-color: #eef2ff !important;
+    color: #4338ca !important;
+    border: 1px solid #c7d2fe !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+}
+
+.skill-type-badge.defining-skill-badge:hover {
+    background-color: #ddd6fe !important;
+    color: #3730a3 !important;
+    border-color: #a5b4fc !important;
+}
+
+.skill-type-badge.defining-skill-badge:visited {
+    background-color: #eef2ff !important;
+    color: #4338ca !important;
+}

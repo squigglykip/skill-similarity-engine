@@ -383,9 +383,31 @@ class WorkforceIntelligenceOrchestrator:
             
             # Check Phase 0 completion using orchestrator's verification
             if not orchestrator._verify_phase_0_completion():
-                print("❌ Foundation database required. Please complete Phase 0 first.")
-                print("   Use option 1 'Build Workforce Database' to create the foundation data.")
-                return
+                print("⚠️  Foundation database verification failed.")
+                print()
+                print("This could mean:")
+                print("1. No database exists yet (need to build from scratch)")
+                print("2. Database exists but missing some expected tables/data")
+                print("3. You have an existing database and want to use it as-is")
+                print()
+                print("What would you like to do?")
+                print("1. Build new database from source data (full Phase 0)")
+                print("2. Use existing database (skip verification)")
+                print("0. Back to main menu")
+                
+                gate_choice = input("Enter your choice: ").strip()
+                
+                if gate_choice == '1':
+                    print("   Use option 2 'Build Workforce Database' to create the foundation data.")
+                    return
+                elif gate_choice == '2':
+                    print("   ✅ Proceeding with existing database...")
+                    print("   Note: Some analytics may fail if required data is missing.")
+                elif gate_choice == '0':
+                    return
+                else:
+                    print("❌ Invalid choice. Returning to main menu.")
+                    return
             
             while True:
                 choice = self.show_analytics_phases_menu()

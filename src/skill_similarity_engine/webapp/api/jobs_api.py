@@ -59,66 +59,46 @@ def api_job_details(job_id):
     try:
         db = get_db()
         
-        # Get complete job information with all 16 columns
-        job_query = """
-        SELECT JobProfileID, JobProfile, JobFunctionID, JobFunction, JobID, Job,
-               ProfileTitleSuffix, ManagementLevel, JobSubFunctionID, JobSubFunction,
-               JobCategoryID, JobCategory, Customer_Facing, is_Banker, 
-               Executive_Leadership_Group, Accountability_Scope
-        FROM jobs 
-        WHERE JobProfileID = ?
-        """
+        # Get complete job information using organized SQL
+        job_query = queries.get('jobs', 'get_job_complete_details')
         job = db.execute(job_query, (job_id,)).fetchone()
         
         if not job:
             return jsonify({'error': 'Job not found'}), 404
         
-        # Get skills for this job
-        skills_query = """
-        SELECT s.Skill_ID, s.Skill_Name, s.Category, s.Subcategory, s.SkillType, s.Info_URL
-        FROM job_skills js
-        JOIN skills s ON js.Skill_ID = s.Skill_ID
-        WHERE js.JobProfileID = ?
-        ORDER BY s.Category, s.Skill_Name
-        """
+        # Get skills for this job using organized SQL
+        skills_query = queries.get('jobs', 'get_job_skills_for_api')
         skills = db.execute(skills_query, (job_id,)).fetchall()
         
-        # Get position and employee counts for this job
-        workforce_stats_query = """
-        SELECT 
-            COUNT(DISTINCT "Position Number") as position_count,
-            COUNT(*) as employee_count
-        FROM positions p
-        WHERE p.JobProfileID = ?
-        """
+        # Get position and employee counts for this job using organized SQL
+        workforce_stats_query = queries.get('jobs', 'get_job_workforce_stats')
         workforce_stats = db.execute(workforce_stats_query, (job_id,)).fetchone()
         
-        # Get similarity count (career pathways)
-        pathways_query = """
-        SELECT COUNT(*) as pathway_count
-        FROM career_pathways cp
-        WHERE cp.source_job_id = ?
-        """
+        # Get similarity count (career pathways) using organized SQL
+        pathways_query = queries.get('jobs', 'get_job_pathway_count')
         pathway_count = db.execute(pathways_query, (job_id,)).fetchone()
         
-        # Prepare job data with display names
+        # Prepare job data with display names (V2 schema fields)
+        # Convert sqlite3.Row to dict for easier access
+        job_dict = dict(job)
+        
         job_data = {
             'id': job['JobProfileID'],
             'title': job['JobProfile'],
             'function': job['JobFunction'],
             'function_id': job['JobFunctionID'],
-            'job_id': job['JobID'],
-            'job_name': job['Job'],
-            'profile_title_suffix': job['ProfileTitleSuffix'],
-            'management_level': job['ManagementLevel'],
-            'job_subfunction_id': job['JobSubFunctionID'],
-            'job_subfunction': job['JobSubFunction'],
-            'job_category_id': job['JobCategoryID'],
-            'job_category': job['JobCategory'],
-            'customer_facing': job['Customer_Facing'] if job['Customer_Facing'] and job['Customer_Facing'].strip() else None,
-            'is_banker': job['is_Banker'] if job['is_Banker'] and job['is_Banker'].strip() else None,
-            'executive_leadership_group': job['Executive_Leadership_Group'] if job['Executive_Leadership_Group'] and job['Executive_Leadership_Group'].strip() else None,
-            'accountability_scope': job['Accountability_Scope'] if job['Accountability_Scope'] and job['Accountability_Scope'].strip() else None
+            'job_id': job_dict.get('Job'),  # May not be available in V2
+            'job_name': job_dict.get('Job'),
+            'profile_title_suffix': job_dict.get('ProfileTitleSuffix'),
+            'management_level': job_dict.get('ManagementLevel'),
+            'job_subfunction_id': None,  # Not available in V2 schema
+            'job_subfunction': job_dict.get('JobSubFunction'),
+            'job_category_id': None,  # Not available in V2 schema
+            'job_category': job_dict.get('JobCategory'),
+            'customer_facing': job_dict.get('Customer_Facing') if job_dict.get('Customer_Facing') and str(job_dict.get('Customer_Facing')).strip() else None,
+            'is_banker': job_dict.get('is_Banker') if job_dict.get('is_Banker') and str(job_dict.get('is_Banker')).strip() else None,
+            'executive_leadership_group': None,  # Not available in V2 schema
+            'accountability_scope': None  # Not available in V2 schema
         }
         
         # Add standardised display names
@@ -152,19 +132,8 @@ def api_job_workforce(job_id):
     try:
         db = get_db()
         
-        # Get workforce distribution by division, business unit, and location
-        # Note: COUNT(*) gives employee count (since each row = one employee)
-        workforce_query = """
-        SELECT 
-            p.Division,
-            p.Business_Unit,
-            p.Location,
-            COUNT(*) as employee_count
-        FROM positions p
-        WHERE p.JobProfileID = ?
-        GROUP BY p.Division, p.Business_Unit, p.Location
-        ORDER BY employee_count DESC
-        """
+        # Get workforce distribution using organized SQL
+        workforce_query = queries.get('positions', 'get_job_workforce_distribution')
         workforce_data = db.execute(workforce_query, (job_id,)).fetchall()
         
         # Aggregate by division, business unit, and location
@@ -310,30 +279,10 @@ def api_workforce_analysis(job_ids):
         
         placeholders = ','.join(['?' for _ in actual_job_ids])
         
-        # Get detailed workforce distribution for the jobs
-        workforce_query = f"""
-        SELECT 
-            j.JobProfileID,
-            j.JobProfile,
-            j.JobFunction,
-            (j.JobProfile || ' (' || j.JobProfileID || ')') as job_profile,
-            p."Position Name" as position_name,
-            p.Division,
-            p.Business_Unit,
-            p.Team,
-            p."Salary Group",
-            p."Employee Group",
-            p.Location,
-            p.Rg,
-            COUNT(DISTINCT p."Position Number") as position_count,
-            COUNT(DISTINCT p."Employee Number") as headcount
-        FROM jobs j
-        LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
-        WHERE j.JobProfileID IN ({placeholders})
-        GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, p."Position Name", p.Division, p.Business_Unit, p.Team, p."Salary Group", p."Employee Group", p.Location, p.Rg
-        ORDER BY j.JobProfile, p.Division, p.Business_Unit, position_count DESC
-        """
-        
+        # Get detailed workforce distribution using organized SQL
+        workforce_query = queries.get('positions', 'get_detailed_workforce_analysis')
+        # Replace placeholder in query
+        workforce_query = workforce_query.replace('{placeholders}', placeholders)
         workforce_data = db.execute(workforce_query, actual_job_ids).fetchall()
         
         # Calculate summary metrics
@@ -383,8 +332,8 @@ def api_workforce_analysis(job_ids):
                     'division': row['Division'],
                     'business_unit': row['Business_Unit'],
                     'team': row['Team'],
-                    'salary_group': row['Salary Group'],
-                    'employee_group': row['Employee Group'],
+                    'salary_group': row['salary_group'],
+                    'employee_group': row['employee_group'],
                     'location': row['Location'],
                     'region': row['Rg'],
                     'position_count': row['position_count'],

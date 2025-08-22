@@ -95,11 +95,11 @@
                 </div>
                 <div class="flex items-center space-x-2">
                     <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span>715+ Job Profiles</span>
+                    <span>{{ "{:,}".format(platform_metrics.jobs_count) if platform_metrics.jobs_count else '715' }}+ Job Profiles</span>
                 </div>
                 <div class="flex items-center space-x-2">
                     <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span>8,580+ Career Pathways</span>
+                    <span>{{ "{:,}".format(platform_metrics.pathways_count) if platform_metrics.pathways_count else '8,580' }}+ Career Pathways</span>
                 </div>
             </div>
         </div>
@@ -381,7 +381,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(platform_metrics.skills_in_use_count) if platform_metrics.skills_in_use_count else '2,091' }}</p>
+                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(platform_metrics.skills_in_use_count) if platform_metrics.skills_in_use_count}}</p>
                     </div>
                     <div class="p-3 bg-orange-100 rounded-full">
                         <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,7 +501,7 @@
                 </div>
                 <div class="space-y-4">
                     <div class="flex items-center space-x-3">
-                        <span class="text-2xl font-epilogue font-bold text-gray-900">2025-Q2</span>
+                        <span class="text-2xl font-epilogue font-bold text-gray-900">2025-Q3</span>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">
                             Current
                         </span>

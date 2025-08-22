@@ -69,13 +69,13 @@ def get_sample_jobs(limit=None):
         for job in jobs:
             job_dict = dict(job)
             # Add display names for consistent presentation
-            if display_manager:
+            if display_manager and job_dict.get('JobProfileID'):
                 from ...utils.display import DisplayFormat
                 job_dict['display_name'] = display_manager.get_display_name(
-                    job_dict.get('JobProfileID', ''), DisplayFormat.STANDARD
+                    job_dict['JobProfileID'], DisplayFormat.STANDARD
                 )
             else:
-                job_dict['display_name'] = job_dict.get('JobProfile', 'Unknown Job')
+                job_dict['display_name'] = job_dict.get('job_title', job_dict.get('JobProfile', 'Unknown Job'))
             jobs_with_display_names.append(job_dict)
         
         return jobs_with_display_names
