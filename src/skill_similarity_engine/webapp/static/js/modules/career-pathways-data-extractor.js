@@ -409,21 +409,24 @@ SkillEngine.CareerPathwaysDataExtractor = {
         
         // Analyze skill gaps for each parent-child relationship in the tree
         const analyzeNode = async (parentNode) => {
-            console.log('🔍 Analyzing node:', parentNode?.data?.job_title || 'Unknown');
+            console.log('🔍 Analyzing node:', parentNode?.name || parentNode?.data?.job_title || 'Unknown');
             
             if (!parentNode.children || parentNode.children.length === 0) {
-                console.log('📄 No children for node:', parentNode?.data?.job_title);
+                console.log('📄 No children for node:', parentNode?.name || parentNode?.data?.job_title);
                 return;
             }
             
             for (const childNode of parentNode.children) {
                 try {
-                    console.log(`🔗 Analyzing transition: ${parentNode.data?.job_title} → ${childNode.data?.job_title}`);
+                    const parentJobId = parentNode.job_id || parentNode.data?.job_id;
+                    const parentJobTitle = parentNode.name || parentNode.data?.job_title || 'Unknown';
+                    const childJobId = childNode.job_id || childNode.data?.job_id;
+                    const childJobTitle = childNode.name || childNode.data?.job_title || 'Unknown';
                     
-                    const comparison = await this.extractSkillsComparison(
-                        parentNode.data?.job_id, 
-                        childNode.data?.job_id
-                    );
+                    console.log(`🔗 Analyzing transition: ${parentJobTitle} → ${childJobTitle}`);
+                    console.log(`🔗 Job IDs: ${parentJobId} → ${childJobId}`);
+                    
+                    const comparison = await this.extractSkillsComparison(parentJobId, childJobId);
                     
                     if (comparison) {
                         console.log('✅ Got skills comparison:', comparison);
@@ -432,14 +435,14 @@ SkillEngine.CareerPathwaysDataExtractor = {
                         const gapAnalysis = {
                             transition: {
                                 from: {
-                                    id: parentNode.data?.job_id,
-                                    title: parentNode.data?.job_title || 'Unknown',
-                                    function: parentNode.data?.job_function || 'Unknown'
+                                    id: parentJobId,
+                                    title: parentJobTitle,
+                                    function: parentNode.category || parentNode.data?.job_function || 'Unknown'
                                 },
                                 to: {
-                                    id: childNode.data?.job_id,
-                                    title: childNode.data?.job_title || 'Unknown',
-                                    function: childNode.data?.job_function || 'Unknown'
+                                    id: childJobId,
+                                    title: childJobTitle,
+                                    function: childNode.category || childNode.data?.job_function || 'Unknown'
                                 }
                             },
                             similarity: comparison.similarity || 0,
@@ -461,13 +464,13 @@ SkillEngine.CareerPathwaysDataExtractor = {
                         skillGaps.push(gapAnalysis);
                         console.log('✅ Added skill gap analysis:', gapAnalysis);
                     } else {
-                        console.warn(`⚠️ No comparison data for ${parentNode.data?.job_title} -> ${childNode.data?.job_title}`);
+                        console.warn(`⚠️ No comparison data for ${parentJobTitle} -> ${childJobTitle}`);
                     }
                     
                     // Recursively analyze child nodes
                     await analyzeNode(childNode);
                 } catch (error) {
-                    console.error(`❌ Failed to analyze skill gap for ${parentNode.data?.job_title} -> ${childNode.data?.job_title}:`, error);
+                    console.error(`❌ Failed to analyze skill gap for ${parentNode?.name || 'Unknown'} -> ${childNode?.name || 'Unknown'}:`, error);
                 }
             }
         };
