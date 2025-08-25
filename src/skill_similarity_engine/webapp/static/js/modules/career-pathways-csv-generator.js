@@ -256,9 +256,15 @@ SkillEngine.CareerPathwaysCSVGenerator = {
      * This is critical for understanding what skills need development for career transitions
      */
     generateSkillGapsAnalysisSection(exportData, addLine, addSection) {
+        console.log('🔍 DEEP DIVE: Generating skill gaps section with data:', exportData.skillGapsAnalysis);
         const skillGaps = exportData.skillGapsAnalysis;
         
+        console.log('🔍 DEEP DIVE: Skill gaps exists:', !!skillGaps);
+        console.log('🔍 DEEP DIVE: Skill gaps length:', skillGaps ? skillGaps.length : 'null/undefined');
+        console.log('🔍 DEEP DIVE: Skill gaps content:', skillGaps);
+        
         if (skillGaps && skillGaps.length > 0) {
+            console.log('✅ DEEP DIVE: Generating skill gaps CSV section with', skillGaps.length, 'transitions');
             addSection('SKILL GAPS ANALYSIS - CAREER TRANSITIONS');
             addLine('"From Job","To Job","Similarity","Transition Difficulty","Skills Already Have","Skills Need to Develop","Defining Skills Gap"');
             
@@ -306,6 +312,7 @@ SkillEngine.CareerPathwaysCSVGenerator = {
             });
             
         } else {
+            console.log('⚠️ DEEP DIVE: No skill gaps data available - generating empty section');
             addSection('SKILL GAPS ANALYSIS - CAREER TRANSITIONS');
             addLine('"Status","Message"');
             addLine('"No Data","No career transitions available for skill gap analysis. Build a career tree with multiple levels to see skill development requirements."');

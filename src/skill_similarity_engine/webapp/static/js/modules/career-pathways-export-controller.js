@@ -137,15 +137,24 @@ SkillEngine.CareerPathwaysExportController = {
         };
 
         // Extract critical skill gaps analysis for career transitions
-        console.log('🔍 Analyzing skill gaps between career transitions...');
-        console.log('🔍 Tree structure data for analysis:', exportData.treeStructure);
+        console.log('🔍 DEEP DIVE: Analyzing skill gaps between career transitions...');
+        console.log('🔍 DEEP DIVE: Tree structure data for analysis:', exportData.treeStructure);
+        console.log('🔍 DEEP DIVE: Tree structure .data property:', exportData.treeStructure.data);
         
         try {
+            console.log('🔍 DEEP DIVE: About to call extractSkillGapsAnalysis with:', exportData.treeStructure.data);
             exportData.skillGapsAnalysis = await SkillEngine.CareerPathwaysDataExtractor.extractSkillGapsAnalysis(exportData.treeStructure.data);
-            console.log('✅ Skill gaps analysis completed:', exportData.skillGapsAnalysis.length, 'transitions analyzed');
-            console.log('🎯 Final skill gaps data:', exportData.skillGapsAnalysis);
+            console.log('✅ DEEP DIVE: Skill gaps analysis completed:', exportData.skillGapsAnalysis.length, 'transitions analyzed');
+            console.log('🎯 DEEP DIVE: Final skill gaps data structure:', exportData.skillGapsAnalysis);
+            
+            if (exportData.skillGapsAnalysis.length > 0) {
+                console.log('🎯 DEEP DIVE: First skill gap entry:', exportData.skillGapsAnalysis[0]);
+            } else {
+                console.warn('⚠️ DEEP DIVE: No skill gaps found - investigating why...');
+            }
         } catch (error) {
-            console.error('❌ Failed to extract skill gaps analysis:', error);
+            console.error('❌ DEEP DIVE: Failed to extract skill gaps analysis:', error);
+            console.error('❌ DEEP DIVE: Error stack:', error.stack);
             exportData.skillGapsAnalysis = [];
         }
 

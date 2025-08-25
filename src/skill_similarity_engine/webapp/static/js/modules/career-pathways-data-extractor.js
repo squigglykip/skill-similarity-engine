@@ -111,18 +111,24 @@ SkillEngine.CareerPathwaysDataExtractor = {
         const treeViz = SkillEngine.TreeVisualization;
         const treeNodes = [];
 
+        console.log('🔍 DEEP DIVE: TreeVisualization state:', treeViz?.state);
+        console.log('🔍 DEEP DIVE: TreeVisualization treeData:', treeViz?.state?.treeData);
+
         if (treeViz?.state?.treeData) {
             // Recursively extract tree nodes
             this.extractTreeNodes(treeViz.state.treeData, treeNodes, 0, null);
         }
 
-        return {
+        const result = {
             totalNodes: treeNodes.length,
             maxDepth: treeNodes.reduce((max, node) => Math.max(max, node.depth), 0),
             nodes: treeNodes,
             // Include raw tree data for skill gaps analysis
             data: treeViz?.state?.treeData || null
         };
+
+        console.log('🔍 DEEP DIVE: Tree structure result:', result);
+        return result;
     },
 
     /**
@@ -348,40 +354,79 @@ SkillEngine.CareerPathwaysDataExtractor = {
      */
     async extractSkillsComparison(sourceJobId, targetJobId) {
         if (!sourceJobId || !targetJobId) {
-            console.warn('⚠️ Missing job IDs for skills comparison:', { sourceJobId, targetJobId });
+            console.warn('⚠️ DEEP DIVE: Missing job IDs for skills comparison:', { sourceJobId, targetJobId });
             return null;
         }
 
-        console.log(`🔗 Fetching skills comparison: ${sourceJobId} → ${targetJobId}`);
+        console.log(`🔗 DEEP DIVE: Fetching skills comparison: ${sourceJobId} → ${targetJobId}`);
 
         try {
-            const url = `/api/job-similarity-details?source_job_id=${sourceJobId}&target_job_id=${targetJobId}`;
-            console.log('📡 API call:', url);
+            // Use the correct API endpoint that actually exists
+            const url = `/api/skills-analysis/${sourceJobId}/${targetJobId}`;
+            console.log('📡 DEEP DIVE: API call URL (CORRECTED):', url);
             
             const response = await fetch(url);
-            console.log('📡 Response status:', response.status, response.statusText);
+            console.log('📡 DEEP DIVE: Response status:', response.status, response.statusText);
+            console.log('📡 DEEP DIVE: Response headers:', [...response.headers.entries()]);
             
             if (!response.ok) {
-                console.warn(`⚠️ API response not OK: ${response.status} ${response.statusText}`);
+                const errorText = await response.text();
+                console.warn(`⚠️ DEEP DIVE: API response not OK: ${response.status} ${response.statusText}`);
+                console.warn(`⚠️ DEEP DIVE: Error response body:`, errorText);
                 return null;
             }
             
-            const data = await response.json();
-            console.log('📡 API response data:', data);
+            const rawData = await response.text();
+            console.log('📡 DEEP DIVE: Raw response data:', rawData);
+            
+            let data;
+            try {
+                data = JSON.parse(rawData);
+            } catch (parseError) {
+                console.error('❌ DEEP DIVE: JSON parse error:', parseError);
+                return null;
+            }
+            
+            console.log('📡 DEEP DIVE: Parsed API response data:', data);
+            console.log('📡 DEEP DIVE: Response structure:');
+            console.log('  - success:', data.success);
+            console.log('  - skills_matched:', data.skills_matched);
+            console.log('  - skills_to_develop:', data.skills_to_develop);
+            console.log('  - detailed_skills:', data.detailed_skills);
+            console.log('  - transition_difficulty:', data.transition_difficulty);
+            
+            // Map the skills-analysis API response to our expected format
+            const skillsMatched = (data.detailed_skills || []).filter(skill => skill.status === 'matched');
+            const skillsUnique = (data.detailed_skills || []).filter(skill => skill.status === 'develop');
+            const definingSkillsMatched = skillsMatched.filter(skill => skill.is_defining).length;
+            
+            // Calculate similarity based on overlap (since this API doesn't provide similarity score)
+            const totalSkills = skillsMatched.length + skillsUnique.length;
+            const similarity = totalSkills > 0 ? skillsMatched.length / totalSkills : 0;
             
             const result = {
-                sourceJob: data.source_job,
-                targetJob: data.target_job,
-                skillsMatched: data.skills_matched || [],
-                skillsUnique: data.skills_unique_to_target || [],
-                definingSkillsMatch: data.defining_skills_match || 0,
-                similarity: data.similarity_score || 0
+                sourceJob: { id: sourceJobId },
+                targetJob: { id: targetJobId },
+                skillsMatched: skillsMatched.map(skill => ({
+                    skill_name: skill.name,
+                    skill_category: skill.category,
+                    is_defining: skill.is_defining
+                })),
+                skillsUnique: skillsUnique.map(skill => ({
+                    skill_name: skill.name,
+                    skill_category: skill.category,
+                    is_defining: skill.is_defining
+                })),
+                definingSkillsMatch: definingSkillsMatched,
+                similarity: similarity,
+                transitionDifficulty: data.transition_difficulty
             };
             
-            console.log('✅ Processed skills comparison:', result);
+            console.log('✅ DEEP DIVE: Processed skills comparison result:', result);
             return result;
         } catch (error) {
-            console.error('❌ Failed to extract skills comparison:', error);
+            console.error('❌ DEEP DIVE: Failed to extract skills comparison:', error);
+            console.error('❌ DEEP DIVE: Error stack:', error.stack);
             return null;
         }
     },
@@ -391,19 +436,37 @@ SkillEngine.CareerPathwaysDataExtractor = {
      * This is critical for understanding what skills need development for each transition
      */
     async extractSkillGapsAnalysis(treeData) {
-        console.log('🔍 Starting skill gaps analysis with tree data:', treeData);
-        console.log('🔍 Tree data type:', typeof treeData);
-        console.log('🔍 Tree data keys:', treeData ? Object.keys(treeData) : 'null');
+        console.log('🔍 DEEP DIVE: Starting skill gaps analysis with tree data:', treeData);
+        console.log('🔍 DEEP DIVE: Tree data type:', typeof treeData);
+        console.log('🔍 DEEP DIVE: Tree data keys:', treeData ? Object.keys(treeData) : 'null');
         
         if (!treeData) {
-            console.warn('⚠️ No tree data provided for skill gaps analysis');
+            console.warn('⚠️ DEEP DIVE: No tree data provided for skill gaps analysis');
             return [];
         }
 
         // If treeData is an array, use it directly
         // If it's a single node, wrap it in an array
         let rootNodes = Array.isArray(treeData) ? treeData : [treeData];
-        console.log('🔍 Root nodes for analysis:', rootNodes.length, rootNodes);
+        console.log('🔍 DEEP DIVE: Root nodes for analysis:', rootNodes.length, rootNodes);
+        
+        // Let's examine the first root node in detail
+        if (rootNodes.length > 0) {
+            const firstNode = rootNodes[0];
+            console.log('🔍 DEEP DIVE: First root node details:');
+            console.log('  - Name:', firstNode.name);
+            console.log('  - Job ID:', firstNode.job_id);
+            console.log('  - Children count:', firstNode.children ? firstNode.children.length : 0);
+            console.log('  - Children:', firstNode.children);
+            
+            if (firstNode.children && firstNode.children.length > 0) {
+                console.log('🔍 DEEP DIVE: First child details:');
+                const firstChild = firstNode.children[0];
+                console.log('  - Child Name:', firstChild.name);
+                console.log('  - Child Job ID:', firstChild.job_id);
+                console.log('  - Child object:', firstChild);
+            }
+        }
 
         const skillGaps = [];
         
