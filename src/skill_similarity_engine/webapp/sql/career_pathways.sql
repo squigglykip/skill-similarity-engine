@@ -482,17 +482,21 @@ ORDER BY total_historical_movements DESC, avg_similarity DESC;
 
 -- query_name: get_career_pathways_distribution_for_api
 -- Get career pathway similarities distribution for a specific job using V2 analytics
+-- Enhanced version with configurable parameters for job explorer
 SELECT 
-    js.enhanced_similarity_score as similarity_score,
+    js.similarity_score,
+    js.enhanced_similarity_score,
     ja.JobProfile as job_title,
-    ja.JobFunction as job_function
+    ja.JobFunction as job_function,
+    js.job_to as job_id
 FROM analytics_job_similarities js
 JOIN core_job_architecture ja ON js.job_to = ja.JobProfileID
 WHERE js.job_from = ?
+  AND js.enhanced_similarity_score >= ?  -- min_similarity threshold
   AND js.enhanced_similarity_score IS NOT NULL  -- FAIL-FAST validation
   AND ja.JobProfile IS NOT NULL
 ORDER BY js.enhanced_similarity_score DESC
-LIMIT 12;
+LIMIT ?;
 
 -- query_name: check_job_division_filter
 -- Check if a job exists in the specified division (for organizational filter validation)

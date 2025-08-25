@@ -115,6 +115,31 @@ def job_search():
                              job_functions=[], 
                              jobs=sample_jobs)
 
+@job_explorer_bp.route('/job-search-v2')
+def job_search_v2():
+    """Job search and exploration interface - V2 Clean Layout."""
+    from ..sql import queries
+    
+    try:
+        db = get_db()
+        
+        # Get job functions for filter dropdown
+        functions_query = queries.get('jobs', 'get_job_functions')
+        functions = db.execute(functions_query).fetchall()
+        
+        # Get sample jobs for initial display
+        sample_jobs = get_sample_jobs(20)
+        
+        return render_template('job_explorer_v2.html', 
+                             job_functions=functions,
+                             jobs=sample_jobs)
+    except Exception as e:
+        print(f"Error loading job search v2: {e}")
+        sample_jobs = get_sample_jobs(20)
+        return render_template('job_explorer_v2.html', 
+                             job_functions=[], 
+                             jobs=sample_jobs)
+
 @job_explorer_bp.route('/similarity-results')
 def similarity_results():
     """Similarity results page."""

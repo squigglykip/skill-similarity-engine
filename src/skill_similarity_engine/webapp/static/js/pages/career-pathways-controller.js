@@ -305,6 +305,11 @@ SkillEngine.CareerPathwaysController = {
                 Select Jobs to Build Tree
             `;
         }
+
+        // Update export button state when build button state changes
+        if (window.SkillEngine?.CareerPathwaysExportController) {
+            SkillEngine.CareerPathwaysExportController.updateExportButtonState();
+        }
     },
 
     /**
@@ -332,6 +337,11 @@ SkillEngine.CareerPathwaysController = {
         if (SkillEngine.TreeVisualization) {
             const jobIds = Array.from(this.state.selectedJobs.keys());
             await SkillEngine.TreeVisualization.buildTree(jobIds);
+            
+            // Update export button state after tree is built
+            if (window.SkillEngine?.CareerPathwaysExportController) {
+                SkillEngine.CareerPathwaysExportController.updateExportButtonState();
+            }
         }
     }
 };

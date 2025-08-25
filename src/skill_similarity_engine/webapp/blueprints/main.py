@@ -11,6 +11,7 @@ Routes:
 """
 
 from flask import Blueprint, render_template, g
+import time
 
 # Create blueprint
 main_bp = Blueprint('main', __name__)
@@ -91,70 +92,59 @@ def index():
     
     try:
         db = get_db()
+        start_time = time.time()
         
-        # Get platform metrics for dashboard
+        print("🔍 PERFORMANCE DEBUG: Starting dashboard data loading...")
+        
+        # Get platform metrics for dashboard - TIMING THIS
+        print("📊 Loading platform metrics...")
+        query_start = time.time()
         platform_metrics_query = queries.get('metadata', 'get_platform_metrics')
         platform_metrics_raw = db.execute(platform_metrics_query).fetchall()
+        print(f"  ✅ Platform metrics: {(time.time() - query_start)*1000:.2f}ms")
         
         # Convert platform metrics to dictionary for easier template access
         platform_metrics = {}
         for row in platform_metrics_raw:
             platform_metrics[row['metric']] = row['count']
         
-        # Get top job functions (formerly job families)
-        top_families_query = queries.get('metadata', 'get_top_job_functions')
-        top_families = db.execute(top_families_query).fetchall()
+        # TEMPORARILY DISABLE SLOW QUERIES FOR PERFORMANCE TESTING
+        print("⚠️  PERFORMANCE TEST: Skipping slow queries...")
         
-        # Get career pathway insights
-        career_insights_query = queries.get('metadata', 'get_career_insights_summary')
-        career_insights_raw = db.execute(career_insights_query).fetchall()
+        # Get top job functions (formerly job families) - DISABLED
+        # top_families_query = queries.get('metadata', 'get_top_job_functions')
+        # top_families = db.execute(top_families_query).fetchall()
+        top_families = []
         
-        # Convert career insights to dictionary
+        # Get career pathway insights - DISABLED
+        # career_insights_query = queries.get('metadata', 'get_career_insights_summary')
+        # career_insights_raw = db.execute(career_insights_query).fetchall()
         career_insights = {}
-        for row in career_insights_raw:
-            career_insights[row['metric']] = row['value']
         
-        # Get mobility hubs
-        mobility_hubs_query = queries.get('metadata', 'get_mobility_hubs')
-        mobility_hubs = db.execute(mobility_hubs_query).fetchall()
+        # Get mobility hubs - DISABLED
+        # mobility_hubs_query = queries.get('metadata', 'get_mobility_hubs')
+        # mobility_hubs = db.execute(mobility_hubs_query).fetchall()
+        mobility_hubs = []
         
-        # Get similarity distribution for mobility readiness analysis
-        similarity_dist_query = queries.get('metadata', 'get_similarity_distribution')
-        similarity_distribution = db.execute(similarity_dist_query).fetchall()
+        # Get similarity distribution - DISABLED
+        # similarity_dist_query = queries.get('metadata', 'get_similarity_distribution')
+        # similarity_distribution = db.execute(similarity_dist_query).fetchall()
+        similarity_distribution = []
         
-        # Get similarity statistics
-        similarity_stats_query = queries.get('metadata', 'get_similarity_statistics')
-        similarity_stats_raw = db.execute(similarity_stats_query).fetchall()
-        
-        # Convert similarity stats to dictionary
+        # Get similarity statistics - DISABLED
+        # similarity_stats_query = queries.get('metadata', 'get_similarity_statistics')
+        # similarity_stats_raw = db.execute(similarity_stats_query).fetchall()
         similarity_stats = {}
-        for row in similarity_stats_raw:
-            similarity_stats[row['metric']] = row['value']
         
-        # Get strategic recommendations for executive dashboard (lightweight queries)
-        try:
-            strategic_recs_query = queries.get('metadata', 'get_strategic_recommendations')
-            strategic_recommendations = db.execute(strategic_recs_query).fetchall()
-            
-            cross_family_query = queries.get('metadata', 'get_cross_family_mobility_opportunities')
-            cross_family_opportunities = db.execute(cross_family_query).fetchall()
-            
-            # Get cross-function similarity analysis (renamed from cross-family)
-            cross_family_similarities_query = queries.get('similarities', 'get_cross_function_similarities')
-            cross_family_similarities = db.execute(cross_family_similarities_query, (0.4, 12)).fetchall()
-            
-            cross_family_stats_query = queries.get('similarities', 'get_cross_function_stats')
-            cross_family_stats_raw = db.execute(cross_family_stats_query).fetchall()
-            
-            skills_concentration_query = queries.get('metadata', 'get_skills_concentration_analysis')
-            skills_concentration = db.execute(skills_concentration_query).fetchall()
-        except Exception as e:
-            print(f"Warning: Strategic recommendations query failed: {e}")
-            strategic_recommendations = []
-            skills_concentration = []
-            cross_family_opportunities = []
-            cross_family_similarities = []
-            cross_family_stats_raw = None
+        # Strategic recommendations - DISABLED
+        strategic_recommendations = []
+        skills_concentration = []
+        cross_family_opportunities = []
+        cross_family_similarities = []
+        cross_family_stats_raw = None
+        
+        total_time = (time.time() - start_time) * 1000
+        print(f"🚀 PERFORMANCE DEBUG: Dashboard data loading completed in {total_time:.2f}ms")
         
         sample_jobs = get_sample_jobs(6)  # Reduced for cleaner display
         

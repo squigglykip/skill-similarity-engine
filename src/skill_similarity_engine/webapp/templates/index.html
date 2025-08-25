@@ -8,8 +8,8 @@
 <style>
     /* Modern SaaS enhancements */
     .feature-card {
-        opacity: 0;
-        transform: translateY(20px);
+        opacity: 1;
+        transform: translateY(0);
         transition: all 0.6s ease-out;
     }
     
@@ -111,7 +111,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             <!-- Job Profile Explorer Card -->
-            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-blue-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
+            <a href="{{ url_for('job_explorer.job_search') }}" class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-blue-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
                 <!-- Background Gradient -->
                 <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
@@ -154,17 +154,17 @@
                 
                 <!-- Action Button -->
                 <div class="relative mt-auto">
-                    <a href="{{ url_for('job_explorer.job_search') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-blue-500/25">
+                    <div class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl group-hover:from-blue-700 group-hover:to-blue-800 transform group-hover:scale-105 transition-all duration-200 shadow-lg group-hover:shadow-xl group-hover:shadow-blue-500/25">
                         <span>Browse Jobs</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>
-                    </a>
+                    </div>
                 </div>
-            </div>
+            </a>
             
             <!-- Career Pathway Explorer Card -->
-            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-purple-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
+            <a href="{{ url_for('career_pathways.career_pathways') }}" class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-purple-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
                 <!-- Background Gradient -->
                 <div class="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
@@ -207,17 +207,17 @@
                 
                 <!-- Action Button -->
                 <div class="relative mt-auto">
-                    <a href="{{ url_for('career_pathways.career_pathways') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-xl hover:from-purple-700 hover:to-purple-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-purple-500/25">
+                    <div class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-xl group-hover:from-purple-700 group-hover:to-purple-800 transform group-hover:scale-105 transition-all duration-200 shadow-lg group-hover:shadow-xl group-hover:shadow-purple-500/25">
                         <span>Start Exploring</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>
-                    </a>
+                    </div>
                 </div>
-            </div>
+            </a>
 
             <!-- Career Transition Analysis Generator Card -->
-            <div class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-red-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
+            <a href="{{ url_for('career_analysis.career_analysis') }}" class="feature-card bg-white rounded-2xl shadow-xl border border-gray-100 hover:border-red-200 p-8 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden flex flex-col">
                 <!-- Background Gradient -->
                 <div class="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 
@@ -263,14 +263,14 @@
                 
                 <!-- Action Button -->
                 <div class="relative mt-auto">
-                    <a href="{{ url_for('career_analysis.career_analysis') }}" class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl group-hover:shadow-red-500/25">
+                    <div class="inline-flex items-center justify-center w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl group-hover:from-red-700 group-hover:to-red-800 transform group-hover:scale-105 transition-all duration-200 shadow-lg group-hover:shadow-xl group-hover:shadow-red-500/25">
                         <span>Generate Reports</span>
                         <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>
-                    </a>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </section>
 
@@ -522,338 +522,144 @@
         <div class="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
     </div>
 
-    <!-- Workforce Mobility Intelligence Dashboard -->
+    <!-- V2 Analytics Intelligence Dashboard -->
     <section class="bg-white rounded-lg shadow-lg p-8 mb-16">
-        <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-8">Workforce Mobility Intelligence</h2>
+        <h2 class="text-xl md:text-2xl font-epilogue font-semibold text-gray-900 mb-8">V2 Analytics Intelligence</h2>
         
         <!-- Section Explanation -->
-        <div class="bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg p-6 mb-8 border-l-4 border-slate-400">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-8 border-l-4 border-blue-500">
             <p class="text-base font-source text-gray-800 mb-3">
-                This section provides comprehensive intelligence on workforce mobility potential across our organisation. 
-                It combines <strong>pathway connectivity analysis</strong> (which job families connect to each other) with 
-                <strong>transition feasibility assessment</strong> (how ready our workforce is for role changes).
+                Enhanced workforce intelligence powered by our <strong>V2 analytics database</strong> with 16 analytics tables. 
+                These real-time metrics provide insights into job families, skill intelligence, movement patterns, and architecture health.
             </p>
             <p class="text-sm font-source text-gray-600">
-                Use these insights to inform strategic workforce planning, identify mobility opportunities, and assess 
-                organisational flexibility for restructure or capability transformation initiatives.
+                All data sourced directly from V2 analytics tables for accuracy and performance. Metrics update automatically as the underlying data evolves.
             </p>
         </div>
         
-        <!-- Pathway Connectivity Overview -->
-        <div class="mb-6">
-            <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-2">Pathway Connectivity Overview</h3>
-            <p class="text-sm font-source text-gray-600 mb-4">
-                Analysis of career pathway networks showing which job families have the highest connectivity and mobility potential. 
-                Higher connectivity indicates more flexible workforce deployment and career progression opportunities.
-            </p>
-        </div>
-        
-        <!-- Career Insights Summary -->
+        <!-- V2 Analytics Widgets Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            
-            <!-- Pathway Combinations Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-indigo-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Pathway Combinations</p>
-                            <div class="relative">
-                                <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <div class="absolute left-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
-                                        <div class="font-medium text-slate-100 mb-1">Pathway Combinations</div>
-                                        <div class="text-slate-200">Unique job family pathway combinations identified through skill similarity analysis, representing cross-functional mobility opportunities.</div>
-                                        <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ career_insights.total_pathway_combinations or '128' }}</p>
-                    </div>
-                    <div class="p-3 bg-indigo-100 rounded-full">
-                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m0 0L9 7"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-sm font-source text-gray-600">Cross-family mobility opportunities</p>
-                </div>
-            </div>
-
-            <!-- Top Mobility Hub Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-orange-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Top Mobility Hub</p>
-                            <div class="relative">
-                                <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <div class="absolute left-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
-                                        <div class="font-medium text-slate-100 mb-1">Top Mobility Hub</div>
-                                        <div class="text-slate-200">Job family with highest connectivity to other families, representing a key career transition hub for workforce mobility.</div>
-                                        <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-lg font-epilogue font-bold text-gray-900">{{ mobility_hubs[0].JobFunction if mobility_hubs else 'Data & Analytics' }}</p>
-                        <p class="text-sm font-source text-gray-600">{{ career_insights.top_mobility_hub_connections or '618' }} connections</p>
-                    </div>
-                    <div class="p-3 bg-orange-100 rounded-full">
-                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Average Similarity Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-teal-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Avg Pathway Similarity</p>
-                            <div class="relative">
-                                <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <div class="absolute left-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
-                                        <div class="font-medium text-slate-100 mb-1">Average Pathway Similarity</div>
-                                        <div class="text-slate-200">Average skill similarity score across all career pathways, indicating overall transition feasibility and development effort required.</div>
-                                        <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "%.0f"|format((career_insights.avg_pathway_similarity * 100)) if career_insights.avg_pathway_similarity else '78' }}%</p>
-                    </div>
-                    <div class="p-3 bg-teal-100 rounded-full">
-                        <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-sm font-source text-gray-600">Transition feasibility score</p>
-                </div>
-            </div>
-
-            <!-- Total Pathways Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-pink-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">Total Pathways</p>
-                            <div class="relative">
-                                <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <div class="absolute left-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
-                                        <div class="font-medium text-slate-100 mb-1">Total Pathways</div>
-                                        <div class="text-slate-200">Total number of career pathways mapped across all job profiles and families, representing comprehensive transition opportunities.</div>
-                                        <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                        <p class="text-2xl font-epilogue font-bold text-gray-900">{{ "{:,}".format(career_insights.total_pathways) if career_insights.total_pathways else '8,580' }}</p>
-                    </div>
-                    <div class="p-3 bg-pink-100 rounded-full">
-                        <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-sm font-source text-gray-600">Mapped transition opportunities</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Most Connected Job Families -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-epilogue font-medium text-gray-900">Most Connected Job Families</h3>
-                        <p class="text-sm font-source text-gray-600">Mobility hubs with highest career transition connectivity</p>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <div class="relative z-30">
-                            <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                                </svg>
-                                <div class="absolute right-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 border border-slate-600 pointer-events-none text-left">
-                                    <div class="font-medium text-slate-100 mb-1">Connectivity Analysis</div>
-                                    <div class="text-slate-200">Connectivity percentage represents the proportion of total job profiles accessible through career pathways from each family hub.</div>
-                                    <div class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-                                </div>
-                            </button>
-                        </div>
-                        <a href="{{ url_for('career_pathways.career_pathways') }}" class="text-red-600 hover:text-red-700 text-sm font-source font-medium transition-colors duration-200">
-                            Explore Pathways →
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6">
-                <div class="space-y-4">
-                    {% for hub in mobility_hubs %}
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                <span class="text-white font-epilogue font-bold text-lg">{{ loop.index }}</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-epilogue font-medium text-gray-900">{{ hub.JobFunction }}</p>
-                                <p class="text-xs font-source text-gray-600">{{ hub.total_connectivity }} total connections</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-6">
-                            <div class="text-right">
-                                <p class="text-lg font-epilogue font-bold text-gray-900">{{ "%.1f"|format(hub.connectivity_percentage) }}%</p>
-                                <p class="text-xs font-source text-gray-500">Connectivity</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-source text-gray-600">{{ hub.outbound_pathways }}↗ {{ hub.inbound_pathways }}↙</p>
-                                <p class="text-xs font-source text-gray-500">Out/In</p>
-                            </div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <!-- Fallback data if no mobility hubs loaded -->
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                <span class="text-white font-epilogue font-bold text-lg">1</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-epilogue font-medium text-gray-900">Data & Analytics</p>
-                                <p class="text-xs font-source text-gray-600">618 total connections</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-6">
-                            <div class="text-right">
-                                <p class="text-lg font-epilogue font-bold text-gray-900">86.4%</p>
-                                <p class="text-xs font-source text-gray-500">Connectivity</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-source text-gray-600">312↗ 306↙</p>
-                                <p class="text-xs font-source text-gray-500">Out/In</p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        
-        <!-- Workforce Mobility Readiness Analysis -->
-        <div class="mb-6 mt-12">
-            <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-2">Workforce Mobility Readiness</h3>
-            <p class="text-sm font-source text-gray-600 mb-4">
-                Assessment of transition feasibility across all job profile relationships. This analysis categorises workforce mobility 
-                potential into high, medium, and low readiness levels based on skill similarity scores, helping prioritise development investments.
-            </p>
-        </div>
-        
-        <!-- Similarity Distribution Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            
-            {% for dist in similarity_distribution %}
-            <!-- {{ dist.mobility_potential }} Mobility Potential Card -->
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 {% if dist.mobility_potential == 'High' %}border-green-500{% elif dist.mobility_potential == 'Medium' %}border-yellow-500{% else %}border-red-500{% endif %}">
+            <!-- Job Families Widget -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-blue-600">
                 <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <p class="text-xs font-source font-medium text-gray-500 uppercase tracking-wide">{{ dist.mobility_potential }} Mobility</p>
-                            <div class="relative">
-                                <button class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <div class="absolute left-0 bottom-full mb-3 w-72 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
-                                        <div class="font-medium text-slate-100 mb-1">{{ dist.mobility_potential }} Mobility Potential</div>
-                                        <div class="text-slate-200">Similarity range {{ dist.min_score }} - {{ dist.max_score }}: {{ dist.mobility_potential|lower }} potential for job profile transitions based on skill overlap analysis.</div>
-                                        <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
-                                    </div>
-                                </button>
-                            </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
                         </div>
-                        <p class="text-2xl font-epilogue font-bold {% if dist.mobility_potential == 'High' %}text-green-600{% elif dist.mobility_potential == 'Medium' %}text-yellow-600{% else %}text-red-600{% endif %}">
-                            {{ dist.percentage }}%
-                        </p>
-                        <p class="text-sm text-gray-600">{{ "{:,}".format(dist.job_pairs) }} job profile pairs</p>
-                    </div>
-                    <div class="p-3 {% if dist.mobility_potential == 'High' %}bg-green-100{% elif dist.mobility_potential == 'Medium' %}bg-yellow-100{% else %}bg-red-100{% endif %} rounded-full">
-                        {% if dist.mobility_potential == 'High' %}
-                        <svg class="w-6 h-6 {% if dist.mobility_potential == 'High' %}text-green-600{% elif dist.mobility_potential == 'Medium' %}text-yellow-600{% else %}text-red-600{% endif %}" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                        {% elif dist.mobility_potential == 'Medium' %}
-                        <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        {% else %}
-                        <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                        </svg>
-                        {% endif %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            V2 Analytics
+                        </span>
                     </div>
                 </div>
-                <div class="mt-4">
-                    <div class="flex justify-between text-xs text-gray-500">
-                        <span>Avg Score</span>
-                        <span>{{ "%.3f"|format(dist.avg_score) }}</span>
+                <div class="space-y-2">
+                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Job Families</h3>
+                    <p class="text-3xl font-epilogue font-bold text-blue-600" id="total-families-count">--</p>
+                    <p class="text-sm text-gray-600">DBSCAN clusters • <span id="family-quality-score">--</span> avg quality</p>
+                </div>
+            </div>
+
+            <!-- Movement Patterns Widget -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-600">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-green-100 rounded-lg">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Real Data
+                        </span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Movement Patterns</h3>
+                    <p class="text-3xl font-epilogue font-bold text-green-600" id="total-movements-count">--</p>
+                    <p class="text-sm text-gray-600"><span id="movement-patterns-count">--</span> patterns • <span id="movement-success-rate">--</span> success rate</p>
+                </div>
+            </div>
+
+            <!-- Skill Intelligence Widget -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-purple-600">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-purple-100 rounded-lg">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            Enhanced
+                        </span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skill Intelligence</h3>
+                    <p class="text-3xl font-epilogue font-bold text-purple-600" id="rare-skills-count">--</p>
+                    <p class="text-sm text-gray-600">Rare skills • <span id="skill-bundles-count">--</span> bundles</p>
+                </div>
+            </div>
+
+            <!-- Architecture Health Widget -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-600">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-red-100 rounded-lg">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Health Check
+                        </span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Architecture Health</h3>
+                    <p class="text-3xl font-epilogue font-bold text-red-600" id="health-percentage">--</p>
+                    <p class="text-sm text-gray-600">Quality score • <span id="health-status">Excellent</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Analytics Summary -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Top Job Families -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Top Job Families</h3>
+                    <p class="text-sm font-source text-gray-600">Highest value families from V2 clustering</p>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3" id="top-families-list">
+                        <!-- Populated by JavaScript -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                            <div class="h-4 bg-gray-300 rounded w-3/4"></div>
+                            <div class="h-4 bg-gray-300 rounded w-1/4"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
-            
-        </div>
-        
-        <!-- Strategic Insights Summary --> 
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border-l-4 border-blue-500">
-            <div class="flex items-start space-x-4">
-                <div class="p-3 bg-blue-100 rounded-full">
-                    <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
+
+            <!-- Movement Hot Paths -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-epilogue font-medium text-gray-900">Hot Movement Paths</h3>
+                    <p class="text-sm font-source text-gray-600">Most active career transitions</p>
                 </div>
-                <div>
-                    <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-2">Strategic Mobility Insights</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-                        <div>
-                            <span class="font-medium">Total Workforce Relationships:</span>
-                            <span class="text-gray-900">{{ "{:,}".format(similarity_stats.total_records) if similarity_stats.total_records else 'N/A' }}</span>
-                        </div>
-                        <div>
-                            <span class="font-medium">Average Similarity Score:</span>
-                            <span class="text-gray-900">{{ "%.3f"|format(similarity_stats.avg_score) if similarity_stats.avg_score else 'N/A' }}</span>
-                        </div>
-                        <div>
-                            <span class="font-medium">High-Mobility Opportunities:</span>
-                            <span class="text-green-600 font-medium">{{ "{:,}".format(similarity_stats.high_mobility_pairs) if similarity_stats.high_mobility_pairs else 'N/A' }} job profile pairs</span>
-                        </div>
-                        <div>
-                            <span class="font-medium">Perfect Skill Matches:</span>
-                            <span class="text-blue-600 font-medium">{{ "{:,}".format(similarity_stats.perfect_matches) if similarity_stats.perfect_matches else 'N/A' }} job profile pairs</span>
+                <div class="p-6">
+                    <div class="space-y-3" id="hot-paths-list">
+                        <!-- Populated by JavaScript -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                            <div class="h-4 bg-gray-300 rounded w-2/3"></div>
+                            <div class="h-4 bg-gray-300 rounded w-1/4"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
     </section>
 
     <!-- Section Divider -->
@@ -1076,9 +882,229 @@
     // Update last updated timestamp
     document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-AU');
     
+    // Load V2 Analytics Data  
+    async function loadV2Analytics() {
+        console.log('🚀 Starting V2 analytics load...');
+        
+        // Load all API calls in parallel with individual error handling
+        const apiCalls = [
+            loadJobFamiliesData(),
+            loadMovementPatternsData(), 
+            loadSkillIntelligenceData(),
+            loadArchitectureHealthData()
+        ];
+        
+        // Wait for all calls to complete (don't fail if some fail)
+        await Promise.allSettled(apiCalls);
+        console.log('✅ V2 analytics load completed');
+    }
+    
+    async function loadJobFamiliesData() {
+        try {
+            console.log('📊 Loading job families data...');
+            const response = await fetch('/api/v2/dashboard/job-families-summary', {
+                signal: AbortSignal.timeout(3000)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const summary = data.data.summary;
+                    document.getElementById('total-families-count').textContent = summary.total_families || '--';
+                    document.getElementById('family-quality-score').textContent = summary.avg_quality_score || '--';
+                    
+                    // Populate top families
+                    const topFamiliesList = document.getElementById('top-families-list');
+                    if (data.data.top_families && data.data.top_families.length > 0) {
+                        topFamiliesList.innerHTML = data.data.top_families.map((family, index) => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    <span class="w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">${index + 1}</span>
+                                    <span class="text-sm font-medium text-gray-900">${family.cluster_name || 'Unknown'}</span>
+                                </div>
+                                <span class="text-xs text-gray-600">${family.cluster_size || 0} jobs</span>
+                            </div>
+                        `).join('');
+                    }
+                    console.log('✅ Job families data loaded');
+                } else {
+                    console.warn('❌ Job families API returned error:', data.error);
+                }
+            } else {
+                console.warn('❌ Job families API failed:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Job families error:', error.message);
+        }
+    }
+    
+    async function loadMovementPatternsData() {
+        try {
+            console.log('🔄 Loading movement patterns data...');
+            const response = await fetch('/api/v2/dashboard/movement-patterns-summary', {
+                signal: AbortSignal.timeout(3000)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const summary = data.data.summary;
+                    document.getElementById('total-movements-count').textContent = (summary.total_movements || 0).toLocaleString();
+                    document.getElementById('movement-patterns-count').textContent = (summary.total_patterns || 0).toLocaleString();
+                    document.getElementById('movement-success-rate').textContent = summary.avg_success_rate ? `${(summary.avg_success_rate * 100).toFixed(1)}%` : '--';
+                    
+                    // Populate hot paths
+                    const hotPathsList = document.getElementById('hot-paths-list');
+                    if (data.data.hot_paths && data.data.hot_paths.length > 0) {
+                        hotPathsList.innerHTML = data.data.hot_paths.map((path, index) => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    <span class="w-6 h-6 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-bold">${index + 1}</span>
+                                    <span class="text-sm font-medium text-gray-900">${path.from_job} → ${path.to_job}</span>
+                                </div>
+                                <span class="text-xs text-gray-600">${path.total_movements || 0} moves</span>
+                            </div>
+                        `).join('');
+                    }
+                    console.log('✅ Movement patterns data loaded');
+                }
+            } else {
+                console.warn('❌ Movement patterns API failed:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Movement patterns error:', error.message);
+        }
+    }
+    
+    async function loadSkillIntelligenceData() {
+        try {
+            console.log('🧠 Loading skill intelligence data...');
+            const response = await fetch('/api/v2/dashboard/skill-intelligence-summary', {
+                signal: AbortSignal.timeout(3000)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const rarity = data.data.rarity_analysis;
+                    document.getElementById('rare-skills-count').textContent = (rarity.rare_skills + rarity.very_rare_skills) || '--';
+                    document.getElementById('skill-bundles-count').textContent = rarity.skill_bundles || '--';
+                    console.log('✅ Skill intelligence data loaded');
+                } else {
+                    console.warn('❌ Skill intelligence API returned error:', data.error);
+                }
+            } else {
+                console.warn('❌ Skill intelligence API failed:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Skill intelligence error:', error.message);
+        }
+    }
+    
+    async function loadArchitectureHealthData() {
+        try {
+            console.log('🏗️ Loading architecture health data...');
+            const response = await fetch('/api/v2/dashboard/architecture-health-summary', {
+                signal: AbortSignal.timeout(3000)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const summary = data.data.summary;
+                    document.getElementById('health-percentage').textContent = summary.health_percentage ? `${summary.health_percentage}%` : '--';
+                    document.getElementById('health-status').textContent = summary.health_status || 'Unknown';
+                    
+                    // Update health color
+                    const healthElement = document.getElementById('health-percentage');
+                    if (summary.health_color === 'green') {
+                        healthElement.className = 'text-3xl font-epilogue font-bold text-green-600';
+                    } else if (summary.health_color === 'blue') {
+                        healthElement.className = 'text-3xl font-epilogue font-bold text-blue-600';
+                    } else if (summary.health_color === 'yellow') {
+                        healthElement.className = 'text-3xl font-epilogue font-bold text-yellow-600';
+                    } else if (summary.health_color === 'red') {
+                        healthElement.className = 'text-3xl font-epilogue font-bold text-red-600';
+                    }
+                    console.log('✅ Architecture health data loaded');
+                }
+            } else {
+                console.warn('❌ Architecture health API failed:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Architecture health error:', error.message);
+        }
+    }
+    
+    // Performance monitoring
+    function startPerformanceMonitoring() {
+        const startTime = performance.now();
+        console.log('🔍 Performance monitoring started');
+        
+        // Track when DOM content loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const domTime = performance.now() - startTime;
+            console.log(`📄 DOM Content Loaded: ${domTime.toFixed(2)}ms`);
+        });
+        
+        // Track when everything loads
+        window.addEventListener('load', function() {
+            const loadTime = performance.now() - startTime;
+            console.log(`🚀 Window Load Complete: ${loadTime.toFixed(2)}ms`);
+            
+            // Get performance metrics
+            setTimeout(() => {
+                const navigation = performance.getEntriesByType('navigation')[0];
+                console.log('📊 Performance Breakdown:');
+                console.log(`  DNS: ${navigation.domainLookupEnd - navigation.domainLookupStart}ms`);
+                console.log(`  Connect: ${navigation.connectEnd - navigation.connectStart}ms`);
+                console.log(`  Request: ${navigation.responseStart - navigation.requestStart}ms`);
+                console.log(`  Response: ${navigation.responseEnd - navigation.responseStart}ms`);
+                console.log(`  DOM Processing: ${navigation.domComplete - navigation.domLoading}ms`);
+                console.log(`  Total: ${navigation.loadEventEnd - navigation.navigationStart}ms`);
+                
+                // Check for slow resources
+                const resources = performance.getEntriesByType('resource');
+                const slowResources = resources.filter(r => r.duration > 1000);
+                if (slowResources.length > 0) {
+                    console.log('🐌 Slow resources (>1s):');
+                    slowResources.forEach(r => {
+                        console.log(`  ${r.name}: ${r.duration.toFixed(2)}ms`);
+                    });
+                }
+                
+                // Check for large transfers
+                const largeResources = resources.filter(r => r.transferSize > 100000); // >100KB
+                if (largeResources.length > 0) {
+                    console.log('📦 Large resources (>100KB):');
+                    largeResources.forEach(r => {
+                        console.log(`  ${r.name}: ${(r.transferSize/1024).toFixed(2)}KB`);
+                    });
+                }
+            }, 100);
+        });
+    }
+    
+    // Start monitoring immediately
+    startPerformanceMonitoring();
+    
+    // Log static resources as they load
+    console.log('📦 Checking static resources...');
+    const staticResources = performance.getEntriesByType('resource');
+    staticResources.forEach(resource => {
+        if (resource.duration > 100) { // Log resources taking >100ms
+            console.log(`📄 ${resource.name.split('/').pop()}: ${resource.duration.toFixed(2)}ms`);
+        }
+    });
+    
     // Add interactive hover effects
     document.addEventListener('DOMContentLoaded', function() {
         console.log('NAB Skills Intelligence Platform - Dashboard Loaded');
+        
+        // Load V2 analytics data (non-blocking)
+        setTimeout(() => {
+            loadV2Analytics();
+        }, 100);
         
         // Add analytics tracking placeholder
         const buttons = document.querySelectorAll('button, a[href]');

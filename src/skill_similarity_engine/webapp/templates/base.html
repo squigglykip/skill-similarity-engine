@@ -5,14 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Skill Similarity Engine{% endblock %}</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Epilogue for headers, Source Sans Pro for body -->
+    <!-- Tailwind CSS with timeout -->
+    <script>
+        console.log('🔄 Loading Tailwind CSS...');
+        const tailwindStart = performance.now();
+    </script>
+    <script src="https://cdn.tailwindcss.com" onload="console.log(`✅ Tailwind loaded: ${(performance.now() - tailwindStart).toFixed(2)}ms`)" onerror="console.error('❌ Tailwind failed to load')"></script>
+    
+    <!-- Google Fonts with performance monitoring -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <!-- Heroicons for icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/heroicons@2.0.18/24/outline/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;500;600&display=swap" rel="stylesheet" onload="console.log('✅ Google Fonts loaded')" onerror="console.error('❌ Google Fonts failed')">
+    
+    <!-- Heroicons removed - using inline SVGs instead for better performance -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/heroicons@2.0.18/24/outline/style.css" onload="console.log('✅ Heroicons loaded')" onerror="console.error('❌ Heroicons failed')"> -->
+    
+    <script>
+        // Performance monitoring for external resources
+        setTimeout(() => {
+            const resources = performance.getEntriesByType('resource');
+            const externalResources = resources.filter(r => r.name.includes('cdn.') || r.name.includes('fonts.'));
+            console.log('🌐 External resource loading times:');
+            externalResources.forEach(r => {
+                console.log(`  ${r.name.split('/')[2]}: ${r.duration.toFixed(2)}ms`);
+            });
+        }, 2000);
+    </script>
     <!-- Custom Tailwind Config -->
     <script>
         tailwind.config = {

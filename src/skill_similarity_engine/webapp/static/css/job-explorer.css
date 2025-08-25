@@ -254,4 +254,29 @@
 .welcome-state-icon:hover {
     background: var(--gradient-blue-medium);
     transform: scale(1.05);
+}
+
+/* =================================================================
+   Container Integrity Protection
+   ================================================================= */
+
+#job-profile-content {
+    /* Ensure container integrity and prevent element escape */
+    isolation: isolate;
+    contain: layout;
+    position: relative;
+}
+
+#job-profile-content > .bg-white.rounded-lg.shadow-lg {
+    /* Prevent cards from breaking out of container */
+    position: relative;
+    box-sizing: border-box;
+    contain: layout;
+}
+
+/* Specific protection for problematic cards */
+#job-family-intelligence-card {
+    position: relative !important;
+    display: block !important;
+    float: none !important;
 } 

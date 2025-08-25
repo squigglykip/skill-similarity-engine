@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Job Profile Explorer - NAB Skills Intelligence Platform{% endblock %}
+{% block title %}Job Profile Explorer V2 - NAB Skills Intelligence Platform{% endblock %}
 
 {% block head %}
 <!-- Core CSS - Modular approach -->
@@ -13,9 +13,14 @@
 <script src="{{ url_for('static', filename='js/api/client.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/ui/dom-helpers.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/modules/search-module.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/modules/skills-analysis.js') }}" defer></script>
+
+<!-- Job Explorer Modules (same order as original) -->
+<script src="{{ url_for('static', filename='js/pages/job-explorer/ui.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/pages/job-explorer/controller.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/pages/job-explorer/details.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/pages/job-explorer/career-pathways.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/pages/job-explorer/job-intelligence.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/pages/job-explorer/strategic-intelligence.js') }}" defer></script>
 {% endblock %}
 
@@ -25,51 +30,76 @@
 
         <!-- Header -->
         <div class="mb-6">
-            <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
-                Job Profile Explorer
-            </h1>
-            <p class="text-lg font-source text-gray-600">
-                Browse detailed job profiles with skills analysis, workforce context, and career opportunities
-            </p>
+            <div class="flex items-start justify-between">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-epilogue font-bold text-gray-900 mb-2">
+                        Job Profile Explorer V2
+                    </h1>
+                    <p class="text-lg font-source text-gray-600">
+                        Browse detailed job profiles with skills analysis, workforce context, and career opportunities
+                    </p>
+                </div>
+
+                <!-- Export Button -->
+                <div class="flex-shrink-0 ml-6">
+                    <button id="export-csv-btn"
+                        class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                        disabled title="Select a job profile to enable export">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        Export CSV
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Main Layout - Sidebar + Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Layout Container -->
+        <div class="job-explorer-container">
 
-            <!-- Left Sidebar - Search & Job Details -->
-            <div class="lg:col-span-1">
+            <!-- Left Sidebar (25% width) -->
+            <aside class="job-explorer-sidebar">
 
-                <!-- Search Panel -->
-                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <!-- Search Section -->
+                <div class="search-section">
                     <h2 class="text-lg font-epilogue font-semibold text-gray-900 mb-4">Find Job Profile</h2>
 
                     <!-- Search Input -->
                     <div class="mb-4">
                         <label class="block text-xs font-source font-medium text-gray-700 uppercase tracking-wide mb-2">
-                            Search by Job Title or ID
+                            Search Job Profiles
                         </label>
                         <div class="search-input-wrapper relative">
-                            <input type="text" id="job-explorer-search"
-                                class="search-input-with-icon w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-source"
-                                placeholder="Search by job profile or ID (e.g., 'Risk Analyst' or 'R0025.1')..." autocomplete="off">
-                            <div class="search-input-icon">
-                                <i class="fas fa-search"></i>
+                            <!-- Multi-select search container with pills -->
+                            <div
+                                class="flex flex-wrap items-center gap-2 w-full px-3 py-2 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white min-h-[2.5rem]">
+                                <!-- Selected job pills container -->
+                                <div id="job-explorer-selected-pills" class="flex flex-wrap items-center gap-2">
+                                    <!-- Pills will be inserted here dynamically -->
+                                </div>
+
+                                <!-- Search input -->
+                                <input type="text" id="job-explorer-search"
+                                    class="flex-1 border-none outline-none focus:ring-0 p-0 text-sm font-source"
+                                    placeholder="Search for Job Profiles..." autocomplete="off">
                             </div>
 
-                            <!-- Hidden input to store selected JobProfileID -->
-                            <input type="hidden" id="selected-job-explorer-job" name="explorer_job_id">
-
-                            <!-- Search Results Container -->
-                            <div id="job-explorer-dropdown" class="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto hidden">
-                                <!-- Results populated by unified search module -->
+                            <!-- Search dropdown -->
+                            <div id="job-explorer-dropdown"
+                                class="search-results absolute top-full left-0 right-0 bg-white border border-gray-300 border-t-0 rounded-b-md shadow-lg z-10 max-h-60 overflow-y-auto hidden">
+                                <!-- Search results will be populated here -->
                             </div>
                         </div>
+
+                        <!-- Hidden input for form submission -->
+                        <input type="hidden" id="selected-job-explorer-job" name="explorer_job_id" value="">
                     </div>
                 </div>
 
-                <!-- Getting Started -->
-                <div id="getting-started-panel"
-                    class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border-l-4 border-blue-500">
+                <!-- Getting Started Panel -->
+                <div id="getting-started-panel" class="getting-started-section">
                     <h3 class="text-lg font-epilogue font-semibold text-gray-900 mb-2">Getting Started</h3>
                     <p class="text-sm font-source text-gray-700 mb-3">
                         Use the search above to find and explore detailed job profiles. Each profile includes:
@@ -82,8 +112,8 @@
                     </ul>
                 </div>
 
-                <!-- Job Architecture Info -->
-                <div id="job-architecture-panel" class="bg-white rounded-lg border border-gray-200 p-4 hidden">
+                <!-- Job Architecture Info Panel (hidden initially) -->
+                <div id="job-architecture-panel" class="job-info-section hidden">
                     <h3 class="text-sm font-epilogue font-semibold text-gray-900 mb-3">Job Architecture Info</h3>
                     <div class="space-y-3">
                         <!-- Key Metrics -->
@@ -110,7 +140,7 @@
                             </div>
                         </div>
 
-                        <!-- Job Architecture Details -->
+                        <!-- Job Details -->
                         <div class="space-y-2">
                             <div class="flex justify-between items-start">
                                 <span class="text-xs font-source text-gray-600">Job Profile ID</span>
@@ -118,14 +148,14 @@
                                     class="text-xs font-source font-medium text-gray-700 text-right">-</span>
                             </div>
                             <div class="flex justify-between items-start">
-                                <span class="text-xs font-source text-gray-600">Job Profile</span>
-                                <span id="sidebar-job-profile"
-                                    class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
-                            </div>
-                            <div class="flex justify-between items-start">
                                 <span class="text-xs font-source text-gray-600">Job ID</span>
                                 <span id="sidebar-job-id"
                                     class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Profile</span>
+                                <span id="sidebar-job-profile"
+                                    class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
                             </div>
                             <div class="flex justify-between items-start">
                                 <span class="text-xs font-source text-gray-600">Job Name</span>
@@ -138,261 +168,1103 @@
                                     class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
                             </div>
                             <div class="flex justify-between items-start">
-                                <span class="text-xs font-source text-gray-600">Function ID</span>
+                                <span class="text-xs font-source text-gray-600">Job Function ID</span>
                                 <span id="sidebar-job-function-id"
+                                    class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Title Suffix</span>
+                                <span id="sidebar-profile-title-suffix"
                                     class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
                             </div>
-
-                            <!-- Enhanced Job Architecture Fields -->
-                            <div class="pt-2 border-t border-gray-100">
-                                <div class="flex justify-between items-start">
-                                    <span class="text-xs font-source text-gray-600">Title Suffix</span>
-                                    <span id="sidebar-profile-title-suffix"
-                                        class="text-xs font-source font-medium text-gray-700 text-right">-</span>
-                                </div>
-                                <div class="flex justify-between items-start">
-                                    <span class="text-xs font-source text-gray-600">Management Level</span>
-                                    <span id="sidebar-management-level"
-                                        class="text-xs font-source font-medium text-gray-700 text-right">-</span>
-                                </div>
-                                <div class="flex justify-between items-start">
-                                    <span class="text-xs font-source text-gray-600">Job Category</span>
-                                    <span id="sidebar-job-category"
-                                        class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
-                                </div>
-                                <div class="flex justify-between items-start">
-                                    <span class="text-xs font-source text-gray-600">Sub-Function</span>
-                                    <span id="sidebar-job-subfunction"
-                                        class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
-                                </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Management Level</span>
+                                <span id="sidebar-management-level"
+                                    class="text-xs font-source font-medium text-gray-700 text-right">-</span>
                             </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Category</span>
+                                <span id="sidebar-job-category"
+                                    class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-source text-gray-600">Job Subfunction</span>
+                                <span id="sidebar-job-subfunction"
+                                    class="text-xs font-source font-medium text-gray-700 text-right max-w-32 truncate">-</span>
+                            </div>
+                        </div>
 
-                            <!-- Conditional Fields (only show if data exists) -->
-                            <div id="sidebar-conditional-fields" class="pt-2 border-t border-gray-100 space-y-2 hidden">
-                                <div id="customer-facing-row" class="flex justify-between items-start hidden">
-                                    <span class="text-xs font-source text-gray-600">Customer Facing</span>
-                                    <span id="sidebar-customer-facing"
-                                        class="text-xs font-source font-medium text-blue-700 text-right">-</span>
-                                </div>
-                                <div id="is-banker-row" class="flex justify-between items-start hidden">
-                                    <span class="text-xs font-source text-gray-600">Banking Role</span>
-                                    <span id="sidebar-is-banker"
-                                        class="text-xs font-source font-medium text-green-700 text-right">-</span>
-                                </div>
-                                <div id="executive-leadership-row" class="flex justify-between items-start hidden">
-                                    <span class="text-xs font-source text-gray-600">Executive Leadership</span>
-                                    <span id="sidebar-executive-leadership"
-                                        class="text-xs font-source font-medium text-purple-700 text-right text-xs">Yes</span>
-                                </div>
-                                <div id="accountability-scope-row" class="flex justify-between items-start hidden">
-                                    <span class="text-xs font-source text-gray-600">Accountability</span>
-                                    <span id="sidebar-accountability-scope"
-                                        class="text-xs font-source font-medium text-orange-700 text-right">-</span>
-                                </div>
+                        <!-- Optional conditional fields section (hidden by default) -->
+                        <div id="sidebar-conditional-fields" class="space-y-2 hidden">
+                            <div class="pb-3 border-b border-gray-100">
+                                <h4 class="text-sm font-epilogue font-semibold text-gray-900 mb-3">Additional Details
+                                </h4>
+                            </div>
+                            <div id="customer-facing-row" class="flex justify-between items-start hidden">
+                                <span class="text-xs font-source text-gray-600">Customer Facing</span>
+                                <span id="sidebar-customer-facing"
+                                    class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div id="is-banker-row" class="flex justify-between items-start hidden">
+                                <span class="text-xs font-source text-gray-600">Is Banker</span>
+                                <span id="sidebar-is-banker"
+                                    class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div id="executive-leadership-row" class="flex justify-between items-start hidden">
+                                <span class="text-xs font-source text-gray-600">Executive Leadership</span>
+                                <span id="sidebar-executive-leadership"
+                                    class="text-xs font-source font-medium text-gray-700 text-right">-</span>
+                            </div>
+                            <div id="accountability-scope-row" class="flex justify-between items-start hidden">
+                                <span class="text-xs font-source text-gray-600">Accountability Scope</span>
+                                <span id="sidebar-accountability-scope"
+                                    class="text-xs font-source font-medium text-gray-700 text-right">-</span>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Main Content Area -->
-            <div class="lg:col-span-3">
+            </aside>
 
-                <!-- Welcome State -->
-                <div id="welcome-state" class="text-center py-20">
-                    <div class="max-w-md mx-auto">
-                        <div class="welcome-state-icon p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-6">
-                            <svg class="w-12 h-12 text-blue-600 mx-auto mt-1" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
+            <!-- Main Content Area (75% width) -->
+            <main class="job-explorer-main">
+
+                <!-- Welcome State (shown initially) -->
+                <div id="welcome-state" class="welcome-section">
+                    <div class="text-center py-20">
+                        <div class="max-w-md mx-auto">
+                            <div class="welcome-state-icon p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-6">
+                                <svg class="w-12 h-12 text-blue-600 mx-auto mt-1" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-2">Search for a Job Profile
+                            </h3>
+                            <p class="text-sm font-source text-gray-600">
+                                Start by searching for a job profile in the sidebar to view detailed information, skills
+                                analysis, and career pathways.
+                            </p>
                         </div>
-                        <h3 class="text-xl font-epilogue font-semibold text-gray-900 mb-2">Search for a Job Profile</h3>
-                        <p class="text-sm font-source text-gray-600">
-                            Start by searching for a job profile in the sidebar to view detailed information, skills
-                            analysis, and career pathways.
-                        </p>
                     </div>
                 </div>
 
-                <!-- Job Profile Content -->
-                <div id="job-profile-content" class="hidden space-y-6">
+                <!-- Job Content Sections (hidden initially) -->
+                <div id="job-profile-content" class="job-content-sections hidden">
 
-                    <!-- Job Header -->
-                    <div class="job-profile-card bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-start justify-between mb-4">
-                            <div>
-                                <h2 id="job-title-header" class="text-2xl font-epilogue font-bold text-gray-900 mb-2">
-                                    Job Title</h2>
-                                <div class="flex items-center space-x-3 flex-wrap">
-                                    <span id="job-function-badge"
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-blue-100 text-blue-800">
-                                        Job Function
-                                    </span>
-                                    <span id="job-function-id-badge"
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-gray-100 text-gray-700">
-                                        Function ID
-                                    </span>
-                                    <span id="management-level-badge"
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-green-100 text-green-800 hidden">
-                                        Management Level
-                                    </span>
-                                    <span id="job-category-badge"
-                                        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-purple-100 text-purple-800 hidden">
-                                        Job Category
-                                    </span>
+                    <!-- Job Header Section -->
+                    <section class="job-section job-header-section">
+                        <div class="job-card">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <h2 id="job-title-header"
+                                        class="text-2xl font-epilogue font-bold text-gray-900 mb-2">Job Title</h2>
+                                    <div class="flex items-center space-x-3 flex-wrap">
+                                        <span id="job-function-badge"
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-blue-100 text-blue-800">Job
+                                            Function</span>
+                                        <span id="job-function-id-badge"
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-gray-100 text-gray-700">Function
+                                            ID</span>
+                                        <span id="job-category-badge"
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-purple-100 text-purple-800"
+                                            style="display: none;">Job Category</span>
+                                        <span id="management-level-badge"
+                                            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-source font-medium bg-green-100 text-green-800"
+                                            style="display: none;">Management Level</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-source text-gray-600">Job Profile ID</p>
+                                    <p id="job-profile-id" class="text-lg font-epilogue font-semibold text-gray-900">-
+                                    </p>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-source text-gray-600">Job Profile ID</p>
-                                <p id="job-profile-id" class="text-lg font-epilogue font-semibold text-gray-900">R0001.5
+                        </div>
+                    </section>
+
+                    <!-- Skills Analysis Section -->
+                    <section class="job-section skills-analysis-section">
+                        <div class="job-card">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center">
+                                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skills Requirements By
+                                        Category</h3>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-80 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Skills Requirements
+                                                    Analysis</div>
+                                                <div class="text-slate-200 mb-2">This section shows all skills required
+                                                    for the role, organised by functional categories. Each category uses
+                                                    dynamic colouring for visual distinction.</div>
+                                                <div class="text-slate-200"><strong>Defining Skills:</strong> Skills
+                                                    marked with a yellow background and star (★) are most critical for
+                                                    role success and carry higher weight in similarity calculations.
+                                                </div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">Live
+                                    Data</span>
+                            </div>
+
+                            <!-- User Guidance -->
+                            <p class="text-sm text-gray-600 mb-3">Comprehensive breakdown of skill requirements
+                                organised by functional categories. Skills marked as "defining" are most critical for
+                                role success.</p>
+                            <div
+                                class="text-xs text-gray-500 bg-blue-50 border-l-4 border-blue-400 pl-4 py-2 rounded-r-lg mb-6">
+                                <strong>Understanding Skills:</strong> Each skill category is dynamically coloured for
+                                visual distinction. Defining skills (marked with ★) are the most important skills for
+                                this role and receive higher weighting in our similarity algorithms.
+                            </div>
+
+                            <!-- Skills by Category -->
+                            <div id="skills-by-category" class="space-y-4">
+                                <div class="text-sm text-gray-500 italic">Skills analysis will appear here when a job is
+                                    selected</div>
+                            </div>
+
+                            <!-- Skills List -->
+                            <div class="mt-6">
+                                <h4 class="text-sm font-source font-semibold text-gray-700 mb-3">All Required Skills
+                                </h4>
+                                <div id="skills-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <div class="text-sm text-gray-500 italic">Skills list will appear here when a job is
+                                        selected</div>
+                                </div>
+                                <!-- Alternative skills container that some JS might expect -->
+                                <div id="skills-complete-list" class="grid grid-cols-1 md:grid-cols-2 gap-2 hidden">
+                                    <div class="text-sm text-gray-500 italic">Complete skills list container</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Workforce Context Section -->
+                    <section class="job-section workforce-context-section">
+                        <div class="job-card">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-epilogue font-semibold text-gray-900">Workforce Context</h3>
+                                <span
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">Market
+                                    Intelligence</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-6">Understand where this Job Profile exists in the
+                                organisation and the scale of operational positions available.</p>
+
+                            <!-- Workforce Summary Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Total Positions</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Total number of active
+                                                        positions across the organisation for this specific job profile
+                                                    </div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="total-positions" class="metric-card-value text-blue-600">—</div>
+                                    <div class="metric-card-context text-gray-500">Active positions</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Divisions</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Number of different
+                                                        organisational divisions where this job profile exists,
+                                                        indicating business unit diversity</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="divisions-represented" class="metric-card-value text-green-600">—</div>
+                                    <div class="metric-card-context text-gray-500">Represented</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Locations</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Geographic distribution
+                                                        showing how many different locations this job profile operates
+                                                        in across the organisation</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="locations-spread" class="metric-card-value text-purple-600">—</div>
+                                    <div class="metric-card-context text-gray-500">Geographic spread</div>
+                                </div>
+                            </div>
+
+                            <!-- Workforce Table -->
+                            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                                    <h4 class="text-lg font-medium text-gray-900">Organisational Distribution</h4>
+                                    <p class="text-sm text-gray-600 mt-1">Where this role exists across the organisation
+                                    </p>
+                                </div>
+                                <div class="w-full">
+                                    <table class="w-full table-fixed divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th
+                                                    class="w-1/4 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Division</th>
+                                                <th
+                                                    class="w-1/4 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Business Unit</th>
+                                                <th
+                                                    class="w-1/4 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Location</th>
+                                                <th
+                                                    class="w-1/4 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Total Positions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="workforce-pathway-table" class="bg-white divide-y divide-gray-200">
+                                            <tr>
+                                                <td colspan="4" class="px-3 py-8 text-center text-sm text-gray-500">
+                                                    Select a job profile to see organisational distribution
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Career Pathways Section -->
+                    <section class="job-section career-pathways-section">
+                        <div class="job-card">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center">
+                                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Similar Jobs & Career
+                                        Pathways</h3>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-96 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Career Pathways Analysis
+                                                </div>
+                                                <div class="text-slate-200 mb-2">This section shows job profiles with
+                                                    similar skill requirements, ranked by similarity score. Use this to
+                                                    identify potential career transitions and lateral moves.</div>
+                                                <div class="text-slate-200 mb-2"><strong>Enhanced Method:</strong> Uses
+                                                    weighted algorithm prioritising defining skills for more strategic
+                                                    results.</div>
+                                                <div class="text-slate-200"><strong>Literal Method:</strong> Simple
+                                                    skill overlap count - useful for broader exploration.</div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button id="view-all-pathways"
+                                    class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
+                                    Launch Career Explorer →
+                                </button>
+                            </div>
+
+                            <!-- User Guidance -->
+                            <p class="text-sm text-gray-600 mb-3">Discover job profiles with similar skill requirements
+                                and explore potential career transitions.</p>
+                            <div
+                                class="text-xs text-gray-500 bg-purple-50 border-l-4 border-purple-400 pl-4 py-2 rounded-r-lg mb-6">
+                                <strong>Career Intelligence:</strong> Similarity scores help identify the closest role
+                                matches. Higher scores indicate stronger skill alignment. Use the similarity method and
+                                threshold controls to fine-tune results for strategic workforce planning.
+                            </div>
+
+                            <!-- Similarity Controls -->
+                            <div class="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <h4 class="text-sm font-medium text-blue-900">Similarity Calculation Method</h4>
+                                        <div class="relative ml-2">
+                                            <button
+                                                class="text-blue-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-72 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100 mb-1">Similarity Calculation
+                                                        Methods</div>
+                                                    <div class="text-slate-200 mb-2"><strong>Enhanced:</strong> Weighted
+                                                        algorithm that prioritises defining skills, job architecture,
+                                                        and strategic competencies for more nuanced results.</div>
+                                                    <div class="text-slate-200"><strong>Literal:</strong> Simple skill
+                                                        overlap count - useful for broader exploration and identifying
+                                                        roles with basic skill alignment.</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-6">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="job-explorer-similarity-method"
+                                            id="job-explorer-enhanced" value="enhanced" checked
+                                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Enhanced</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="job-explorer-similarity-method"
+                                            id="job-explorer-literal" value="literal"
+                                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Literal</span>
+                                    </label>
+                                </div>
+                                <p id="job-explorer-similarity-description" class="text-xs text-blue-700 mt-2">
+                                    Weighted analysis prioritising defining skills
                                 </p>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Skills Analysis -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skills Requirements By Category</h3>
-                            <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">
-                                Live Data
-                            </span>
-                        </div>
+                            <!-- Similarity Filter -->
+                            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-source font-medium text-gray-700">Minimum
+                                        Similarity</label>
+                                    <span id="similarity-percentage"
+                                        class="text-sm font-source font-semibold text-blue-600">0%</span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-xs font-source text-gray-500">0%</span>
+                                    <input type="range" id="similarity-slider" min="0" max="100" value="0" step="5"
+                                        class="similarity-slider flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    <span class="text-xs font-source text-gray-500">100%</span>
+                                </div>
+                                <p class="text-xs font-source text-gray-600 mt-2">
+                                    Show jobs with similarity up to this threshold - lower values show broader
+                                    opportunities
+                                </p>
+                            </div>
 
-                        <!-- Skills by Category -->
-                        <div id="skills-by-category" class="space-y-4">
-                            <!-- Populated by JavaScript -->
-                        </div>
-
-                        <!-- Skills List -->
-                        <div class="mt-6">
-                            <h4 class="text-sm font-source font-semibold text-gray-700 mb-3">All Required Skills</h4>
-                            <div id="skills-list" class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                <!-- Populated by JavaScript -->
+                            <!-- Similar Jobs List -->
+                            <div id="similar-jobs-list" class="space-y-3">
+                                <div class="text-sm text-gray-500 italic">Similar jobs will appear here when a job is
+                                    selected</div>
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <!-- Workforce Context -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Workforce Context</h3>
-                            <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-orange-100 text-orange-800">
-                                Strategic Intelligence
-                            </span>
-                        </div>
+                    <!-- Job Intelligence Section -->
+                    <section class="job-section job-intelligence-section">
+                        <div class="job-card">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center">
+                                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Defining Skills & Job
+                                        Intelligence</h3>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-96 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Job Intelligence Analysis
+                                                </div>
+                                                <div class="text-slate-200 mb-2">This section provides deep analysis of
+                                                    the most critical skills for role success. Defining skills carry the
+                                                    highest weight in similarity calculations.</div>
+                                                <div class="text-slate-200 mb-2"><strong>Defining Skills:</strong> Core
+                                                    competencies that most strongly characterise successful performance
+                                                    in this role.</div>
+                                                <div class="text-slate-200 mb-2"><strong>Rare Skills:</strong> Uncommon
+                                                    skills that provide competitive advantage and specialisation.</div>
+                                                <div class="text-slate-200"><strong>Expert-Level:</strong> Advanced
+                                                    capabilities that distinguish senior performers in this role.</div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <span
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-indigo-100 text-indigo-800">Critical
+                                    Analysis</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-3">Focus on the most important skills that define success
+                                in this role and understand its position within the job architecture.</p>
+                            <div
+                                class="text-xs text-gray-500 bg-indigo-50 border-l-4 border-indigo-400 pl-4 py-2 rounded-r-lg mb-6">
+                                <strong>Strategic Insight:</strong> Defining skills are weighted heavily in our enhanced
+                                similarity algorithm. Strong alignment here indicates excellent role compatibility,
+                                while gaps highlight key development areas for career transitions.
+                            </div>
 
-                        <!-- Position Distribution -->
-                        <div id="position-distribution" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Populated by JavaScript -->
-                        </div>
+                            <!-- Job Analytics Summary Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Defining Skills</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Skills that most strongly
+                                                        characterise successful performance in this role and carry the
+                                                        highest weight in similarity calculations</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="job-defining-skills-count" class="metric-card-value text-indigo-600">—
+                                    </div>
+                                    <div class="metric-card-context text-gray-500">Critical role skills</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Rare Skills</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Uncommon skills that are
+                                                        required by fewer than 10% of roles, providing competitive
+                                                        advantage and specialisation</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="job-rare-skills-count" class="metric-card-value text-orange-600">—</div>
+                                    <div class="metric-card-context text-gray-500">Specialised skills</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Clustered Job Family Size</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Number of similar roles in
+                                                        the same job family cluster based on shared skills and
+                                                        competencies</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="job-family-size" class="metric-card-value text-green-600">—</div>
+                                    <div class="metric-card-context text-gray-500">Related roles</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="flex items-center justify-between">
+                                        <div class="metric-card-label">Specialised Skills</div>
+                                        <div class="relative">
+                                            <button
+                                                class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <div
+                                                    class="absolute right-0 bottom-full mb-2 w-64 px-3 py-2 bg-slate-800 text-white text-xs leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                    <div class="font-medium text-slate-100">Advanced capabilities that
+                                                        distinguish senior performers and require deep expertise in
+                                                        specific domains</div>
+                                                    <div
+                                                        class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="job-specialised-skills-count" class="metric-card-value text-purple-600">—
+                                    </div>
+                                    <div class="metric-card-context text-gray-500">Expert-level requirements</div>
+                                </div>
+                            </div>
 
-                        <!-- Geographic Distribution -->
-                        <div class="mt-6">
-                            <h4 class="text-sm font-source font-semibold text-gray-700 mb-3">Geographic Distribution
-                            </h4>
-                            <div id="geographic-distribution" class="space-y-2">
-                                <!-- Populated by JavaScript -->
+                            <!-- Skills Analysis Subsections -->
+                            <div class="space-y-4">
+
+                                <!-- Defining Skills Subsection -->
+                                <div class="intelligence-subsection">
+                                    <div class="subsection-header">
+                                        <h4 class="subsection-title">Critical Role-Defining Skills</h4>
+                                        <button id="defining-skills-btn" class="subsection-toggle"
+                                            onclick="toggleSkillSection('defining-skills')">
+                                            <span id="defining-skills-chevron" class="toggle-icon">▼</span>
+                                        </button>
+                                    </div>
+                                    <div id="defining-skills-content" class="subsection-content hidden">
+                                        <div class="text-sm text-gray-500 italic">Defining skills analysis will appear
+                                            here when a job is selected</div>
+                                    </div>
+                                </div>
+
+                                <!-- Rare Skills Subsection -->
+                                <div class="intelligence-subsection">
+                                    <div class="subsection-header">
+                                        <h4 class="subsection-title">Rare & Specialised Skills</h4>
+                                        <button id="rare-skills-btn" class="subsection-toggle"
+                                            onclick="toggleSkillSection('rare-skills')">
+                                            <span id="rare-skills-chevron" class="toggle-icon">▼</span>
+                                        </button>
+                                    </div>
+                                    <div id="rare-skills-content" class="subsection-content hidden">
+                                        <div class="text-sm text-gray-500 italic">Rare skills analysis will appear here
+                                            when a job is selected</div>
+                                    </div>
+                                </div>
+
+                                <!-- Expert-Level Requirements Subsection -->
+                                <div class="intelligence-subsection">
+                                    <div class="subsection-header">
+                                        <h4 class="subsection-title">Expert-Level Requirements</h4>
+                                        <button id="specialised-skills-btn" class="subsection-toggle"
+                                            onclick="toggleSkillSection('specialised-skills')">
+                                            <span id="specialised-skills-chevron" class="toggle-icon">▼</span>
+                                        </button>
+                                    </div>
+                                    <div id="specialised-skills-content" class="subsection-content hidden">
+                                        <div class="text-sm text-gray-500 italic">Expert-level requirements will appear
+                                            here when a job is selected</div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <!-- Similar Jobs & Career Pathways -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Similar Jobs & Career Pathways
-                            </h3>
-                            <button id="view-all-pathways"
-                                class="text-blue-600 hover:text-blue-700 text-sm font-source font-medium">
-                                Launch Career Explorer →
-                            </button>
-                        </div>
-
-                        <!-- Similarity Filter -->
-                        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="text-sm font-source font-medium text-gray-700">Minimum Similarity</label>
-                                <span id="similarity-percentage"
-                                    class="text-sm font-source font-semibold text-blue-600">90%</span>
+                    <!-- Job Family Section -->
+                    <section class="job-section job-family-section">
+                        <div class="job-card">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center">
+                                    <h3 class="text-lg font-epilogue font-semibold text-gray-900">Job Family &
+                                        Clustering Intelligence</h3>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-96 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Job Family & Clustering
+                                                    Explained</div>
+                                                <div class="text-slate-200 mb-2">We group similar jobs together based on
+                                                    their skill requirements, creating "job families". Think of it like
+                                                    grouping similar houses in a neighbourhood.</div>
+                                                <div class="text-slate-200 mb-2"><strong>Job Family:</strong> A cluster
+                                                    of roles that share similar skills and responsibilities.</div>
+                                                <div class="text-slate-200 mb-2"><strong>Strategic Indicators:</strong>
+                                                    Key metrics that help you understand career mobility and transition
+                                                    opportunities.</div>
+                                                <div class="text-slate-200"><strong>Workforce Insights:</strong>
+                                                    Intelligence about how roles connect and relate across the
+                                                    organisation.</div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <span
+                                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-purple-100 text-purple-800">Strategic
+                                    Intelligence</span>
                             </div>
-                            <div class="flex items-center space-x-3">
-                                <span class="text-xs font-source text-gray-500">0%</span>
-                                <input type="range" id="similarity-slider" min="0" max="100" value="90" step="5"
-                                    class="similarity-slider flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                                <span class="text-xs font-source text-gray-500">100%</span>
+                            <p class="text-sm text-gray-600 mb-3">Discover how this role connects to similar positions
+                                and explore potential career transitions within the organisation.</p>
+                            <div
+                                class="text-xs text-gray-500 bg-purple-50 border-l-4 border-purple-400 pl-4 py-2 rounded-r-lg mb-6">
+                                <strong>How It Works:</strong> Our system automatically groups jobs with similar skill
+                                requirements into families. This helps identify which roles you could transition into
+                                based on your current skills, and which additional skills you might need to develop.
                             </div>
-                            <p class="text-xs font-source text-gray-600 mt-2">
-                                Show jobs with similarity up to this threshold - lower values show broader opportunities
-                            </p>
 
-                            <!-- Similarity Distribution Chart -->
-                            <div id="similarity-distribution-chart" class="similarity-chart-container">
-                                <div class="chart-title">Similarity Score Distribution</div>
-                                <div class="bg-white border border-gray-200 rounded p-2">
-                                    <svg id="distribution-svg" width="100%" height="60" viewBox="0 0 400 60"
-                                        preserveAspectRatio="none">
-                                        <!-- Distribution area -->
-                                        <path id="distribution-area"
-                                            d="M 0,50 Q 100,50 200,10 Q 300,50 400,30 L 400,60 L 0,60 Z"
-                                            fill="url(#areaGradient)" opacity="0.8" />
-                                        <!-- Distribution curve outline -->
-                                        <path id="distribution-curve" d="M 0,50 Q 100,50 200,10 Q 300,50 400,30"
-                                            fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.9" />
-                                        <!-- Gradient definition -->
-                                        <defs>
-                                            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
-                                                <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.05" />
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
+                            <!-- Job Family Analysis -->
+                            <div class="mb-6">
+                                <div class="flex items-center mb-3">
+                                    <h4 class="text-md font-medium text-gray-900">Your Job Family</h4>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-80 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Job Family Information
+                                                </div>
+                                                <div class="text-slate-200 mb-2">This shows which "family" or cluster
+                                                    this job belongs to - essentially, which other jobs are most similar
+                                                    to it.</div>
+                                                <div class="text-slate-200 mb-1"><strong>• Family Name:</strong> The
+                                                    group this job belongs to</div>
+                                                <div class="text-slate-200 mb-1"><strong>• Related Roles:</strong> How
+                                                    many similar jobs exist in this family</div>
+                                                <div class="text-slate-200"><strong>• Sample Jobs:</strong> Examples of
+                                                    other roles in the same family</div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div
+                                    class="text-xs text-gray-500 bg-purple-50 border-l-4 border-purple-400 pl-4 py-2 rounded-r-lg mb-4">
+                                    <strong>Why This Matters:</strong> Understanding your job family helps you identify
+                                    which roles you could naturally transition into and which skills are most valued
+                                    across similar positions.
+                                </div>
+                                <div id="job-family-content" class="space-y-3">
+                                    <div class="text-sm text-gray-500 italic">Job family analysis will appear here when
+                                        a job is selected</div>
+                                </div>
+                            </div>
+
+                            <!-- Strategic Intelligence Indicators -->
+                            <div class="mt-6">
+                                <div class="flex items-center mb-4">
+                                    <h4 class="text-md font-medium text-gray-900">Strategic Intelligence Indicators</h4>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-96 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Strategic Intelligence
+                                                    Indicators</div>
+                                                <div class="text-slate-200 mb-2">Key metrics that help you understand
+                                                    this role's position in the organisation and its career potential:
+                                                </div>
+                                                <div class="text-slate-200 mb-1"><strong>• Mobility Hub Score:</strong>
+                                                    How well-connected this role is to other positions</div>
+                                                <div class="text-slate-200 mb-1"><strong>• Transition
+                                                        Readiness:</strong> How easily you could move to similar roles
+                                                </div>
+                                                <div class="text-slate-200 mb-1"><strong>• Cross-Family
+                                                        Connections:</strong> How many different job types this role
+                                                    connects to</div>
+                                                <div class="text-slate-200"><strong>• Strategic Value:</strong> Overall
+                                                    importance for career flexibility and growth</div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div
+                                    class="text-xs text-gray-500 bg-indigo-50 border-l-4 border-indigo-400 pl-4 py-2 rounded-r-lg mb-4">
+                                    <strong>Reading the Indicators:</strong> Higher scores indicate better career
+                                    mobility and more strategic value. These metrics help you understand how this role
+                                    fits into your long-term career strategy.
+                                </div>
+                                <div id="strategic-indicators" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="text-sm text-gray-500 italic">Strategic indicators will appear here when
+                                        pathways are loaded</div>
+                                </div>
+                            </div>
+
+                            <!-- Context Insights -->
+                            <div class="mt-6">
+                                <div class="flex items-center mb-4">
+                                    <h4 class="text-md font-medium text-gray-900">Workforce Context Insights</h4>
+                                    <div class="relative ml-2">
+                                        <button
+                                            class="text-gray-400 hover:text-blue-600 transition-colors duration-200 group">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <div
+                                                class="absolute left-0 bottom-full mb-2 w-96 px-4 py-3 bg-slate-800 text-white text-sm leading-relaxed rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 border border-slate-600 pointer-events-none text-left">
+                                                <div class="font-medium text-slate-100 mb-2">Workforce Context Insights
+                                                </div>
+                                                <div class="text-slate-200 mb-2">Intelligence about how this role
+                                                    connects to the broader workforce and what it means for career
+                                                    planning:</div>
+                                                <div class="text-slate-200 mb-1"><strong>• Career Connectivity:</strong>
+                                                    How this role serves as a bridge to other opportunities</div>
+                                                <div class="text-slate-200 mb-1"><strong>• Market Position:</strong>
+                                                    Where this role sits in the organisational landscape</div>
+                                                <div class="text-slate-200 mb-1"><strong>• Risk Assessment:</strong>
+                                                    Factors that might affect career flexibility</div>
+                                                <div class="text-slate-200"><strong>• Growth Potential:</strong>
+                                                    Opportunities for advancement and development</div>
+                                                <div
+                                                    class="absolute top-full left-6 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800">
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div
+                                    class="text-xs text-gray-500 bg-green-50 border-l-4 border-green-400 pl-4 py-2 rounded-r-lg mb-4">
+                                    <strong>Strategic Value:</strong> These insights help you understand the broader
+                                    implications of choosing this role and how it fits into your career trajectory
+                                    within the organisation.
+                                </div>
+                                <div id="context-insights" class="space-y-3">
+                                    <div class="text-sm text-gray-500 italic">Context insights will appear here when
+                                        pathways are loaded</div>
                                 </div>
                             </div>
                         </div>
+                    </section>
 
-                        <!-- Top Similar Jobs -->
-                        <div id="similar-jobs-list" class="space-y-3">
-                            <!-- Populated by JavaScript -->
-                        </div>
-
-
-                    </div>
-
-                    <!-- Strategic Job Intelligence -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Strategic Job Intelligence
-                            </h3>
-                            <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-source font-medium bg-purple-100 text-purple-800">
-                                Workforce Analytics
-                            </span>
-                        </div>
-
-                        <!-- Strategic Indicators Grid -->
-                        <div id="strategic-indicators" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <!-- Populated by JavaScript -->
-                        </div>
-
-                        <!-- Workforce Context Insights -->
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h4 class="text-sm font-source font-semibold text-gray-700 mb-3">Workforce Context
-                                Assessment</h4>
-                            <div id="context-insights" class="space-y-2">
-                                <!-- Populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            </div>
+            </main>
+
         </div>
     </div>
 </div>
 
-<!-- All JavaScript functionality moved to external job-explorer-controller.js -->
+<!-- Custom CSS for V2 Layout -->
+<style>
+    /* Job Explorer V2 Layout */
+    .job-explorer-container {
+        display: grid;
+        grid-template-columns: 1fr 3fr;
+        gap: 2rem;
+        min-height: 600px;
+    }
+
+    /* Sidebar Styling */
+    .job-explorer-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .search-section,
+    .getting-started-section,
+    .job-info-section {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .getting-started-section {
+        background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);
+        border-left: 4px solid #3b82f6;
+    }
+
+    .job-info-section {
+        border: 1px solid #d1d5db;
+    }
+
+    /* Main Content Styling */
+    .job-explorer-main {
+        display: flex;
+        flex-direction: column;
+        min-height: 600px;
+        position: relative;
+    }
+
+    .welcome-section {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    .job-content-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        flex: 1;
+    }
+
+    /* State Management - Ensure proper showing/hiding */
+    .job-content-sections.hidden {
+        display: none !important;
+    }
+
+    .welcome-section.hidden {
+        display: none !important;
+    }
+
+    /* Ensure only one state is visible at a time - fallback approach */
+
+    .job-section {
+        margin-bottom: 0;
+    }
+
+    .job-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    /* Metric Cards */
+    .metric-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .metric-card-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-card-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        font-family: 'Epilogue', sans-serif;
+        margin-bottom: 0.25rem;
+    }
+
+    .metric-card-context {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Intelligence Subsections */
+    .intelligence-subsection {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .subsection-header {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .subsection-header:hover {
+        background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+    }
+
+    .subsection-title {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #374151;
+        flex: 1;
+    }
+
+    .subsection-toggle {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+    }
+
+    .toggle-icon {
+        display: inline-block;
+        transition: transform 0.2s;
+        color: #6b7280;
+    }
+
+    .subsection-content {
+        padding: 1.5rem;
+        background: white;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .job-explorer-container {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .job-explorer-sidebar {
+            order: 2;
+        }
+
+        .job-explorer-main {
+            order: 1;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .job-explorer-container {
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .search-section,
+        .getting-started-section,
+        .job-info-section,
+        .job-card {
+            padding: 1rem;
+        }
+    }
+
+    /* Ensure no elements escape their containers */
+    .job-content-sections>* {
+        position: relative;
+        box-sizing: border-box;
+    }
+</style>
+
+<!-- Basic JavaScript for V2 -->
+<script>
+    // Initialize V2 when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 Job Explorer V2 initialized - using existing controller logic');
+
+        // The existing controller.js will handle the initialization
+        // This page uses the same IDs as the original so it should work seamlessly
+        // toggleSkillSection is provided by ui.js and made globally available
+
+        // Debug state management
+        function debugStates() {
+            const welcomeState = document.getElementById('welcome-state');
+            const jobContent = document.getElementById('job-profile-content');
+
+            console.log('🔧 DEBUG: Current states:', {
+                welcomeVisible: welcomeState ? !welcomeState.classList.contains('hidden') : 'NOT_FOUND',
+                jobContentVisible: jobContent ? !jobContent.classList.contains('hidden') : 'NOT_FOUND',
+                welcomeDisplay: welcomeState ? window.getComputedStyle(welcomeState).display : 'NOT_FOUND',
+                jobContentDisplay: jobContent ? window.getComputedStyle(jobContent).display : 'NOT_FOUND'
+            });
+        }
+
+        // Initial state check
+        debugStates();
+
+        // Monitor state changes
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    console.log('🔧 DEBUG: Class change detected on:', mutation.target.id);
+                    debugStates();
+                }
+            });
+        });
+
+        const welcomeState = document.getElementById('welcome-state');
+        const jobContent = document.getElementById('job-profile-content');
+
+        if (welcomeState) observer.observe(welcomeState, { attributes: true });
+        if (jobContent) observer.observe(jobContent, { attributes: true });
+    });
+</script>
 
 {% endblock %}

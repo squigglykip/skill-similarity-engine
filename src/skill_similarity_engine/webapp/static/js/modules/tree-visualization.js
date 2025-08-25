@@ -1077,7 +1077,7 @@ SkillEngine.TreeVisualization = {
         
         const subtitle = document.querySelector('div[style*="font-size: 0.875rem"][style*="color: #6b7280"]');
         if (subtitle) {
-            subtitle.innerHTML = 'Processing large dataset, almost ready<span id="loading-dots">...</span>';
+            subtitle.innerHTML = 'Processing large dataset, almost ready<span id="loading-dots" style="display: inline-block; width: 24px; text-align: left;">...</span>';
             subtitle.style.color = '#f59e0b'; // amber-500
         }
         

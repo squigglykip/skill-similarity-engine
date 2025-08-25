@@ -51,18 +51,53 @@ def api_career_pathways_distribution(job_id):
     try:
         db = get_db()
         
-        # Get career pathways using organized SQL
-        pathways_query = queries.get('career_pathways', 'get_career_pathways_distribution_for_api')
-        pathways = db.execute(pathways_query, (job_id,)).fetchall()
+        # Get parameters for job explorer enhancements
+        similarity_method = request.args.get('similarity_method', 'enhanced')  # 'enhanced' or 'literal'
+        min_similarity = float(request.args.get('min_similarity', 0.0))  # Minimum threshold
+        limit = min(int(request.args.get('limit', 12)), 50)  # Max 50 results for performance
         
-        # Return the raw data - exactly 12 pathways for distribution analysis
+        # Get career pathways using organized SQL
+        try:
+            pathways_query = queries.get('career_pathways', 'get_career_pathways_distribution_for_api')
+            print(f"🔍 DEBUG: Query lookup result: {pathways_query is not None}")
+            if pathways_query:
+                print(f"🔍 DEBUG: Query length: {len(pathways_query)} characters")
+            else:
+                print(f"🔍 DEBUG: Available categories: {queries.list_categories()}")
+                print(f"🔍 DEBUG: Career pathways queries: {queries.list_queries_in_category('career_pathways')}")
+        except Exception as e:
+            print(f"❌ DEBUG: Exception in query lookup: {e}")
+            return jsonify({'error': f'Query lookup failed: {str(e)}'}), 500
+        
+        if not pathways_query:
+            return jsonify({'error': 'Career pathways query not available'}), 500
+        
+        # Modify query based on similarity method (like in d3-tree-data endpoint)
+        if similarity_method == 'literal':
+            # Replace enhanced_similarity_score with similarity_score for literal comparison
+            pathways_query = pathways_query.replace('enhanced_similarity_score', 'similarity_score')
+        
+        # Execute with enhanced parameters
+        try:
+            print(f"🔍 DEBUG: Executing query with params: job_id={job_id}, min_similarity={min_similarity}, limit={limit}")
+            print(f"🔍 DEBUG: Similarity method: {similarity_method}")
+            pathways = db.execute(pathways_query, (job_id, min_similarity, limit)).fetchall()
+            print(f"🔍 DEBUG: Query executed successfully, got {len(pathways)} results")
+        except Exception as e:
+            print(f"❌ DEBUG: SQL execution error: {e}")
+            return jsonify({'error': f'SQL execution failed: {str(e)}'}), 500
+        
+        # Return enhanced data with job explorer parameters
         display_manager = get_display_manager()
         result = []
         for pathway in pathways:
             pathway_data = {
                 'similarity_score': round(pathway['similarity_score'], 3),
+                'enhanced_similarity_score': round(pathway['enhanced_similarity_score'], 3),
                 'job_title': pathway['job_title'],
-                'job_function': pathway['job_function']
+                'job_function': pathway['job_function'],
+                'job_id': pathway['job_id'] if 'job_id' in pathway.keys() else '',  # Include job_id for enhanced functionality
+                'job_profile_id': pathway['job_id'] if 'job_id' in pathway.keys() else pathway['job_title']  # Compatibility field
             }
             # Add standardised display names (use job_title as id source)
             if display_manager:
@@ -91,6 +126,8 @@ def api_career_pathway(start_job_id):
         
         # Get career progression options using available query
         pathway_query = queries.get('career_pathways', 'get_direct_career_options')
+        if not pathway_query:
+            return jsonify({'error': 'Career progression query not available'}), 500
         pathways = db.execute(pathway_query, (start_job_id, min_similarity, limit)).fetchall()
         
         # Add display names to pathway results
@@ -288,14 +325,15 @@ def api_d3_tree_data():
                 level_1_jobs = [row for row in tree_data if row['level'] == 1]
                 print(f"📊 Checking Level 1 jobs against Division filter '{division_filter}':")
                 division_check_query = queries.get('career_pathways', 'check_job_division_filter')
-                for job in level_1_jobs[:5]:  # Show first 5
-                    job_id = str(job['id'])
-                    # Check if this job exists in the specified division using organized SQL
-                    division_check = db.execute(division_check_query, (job_id,)).fetchall()
-                    divisions = [d['Division'] for d in division_check] if division_check else ['No positions found']
-                    matches_filter = division_filter in divisions
-                    status = "[OK]" if matches_filter else "[X]"
-                    print(f"   {status} {job_id}: {job['name'][:40]} -> Divisions: {divisions}")
+                if division_check_query:
+                    for job in level_1_jobs[:5]:  # Show first 5
+                        job_id = str(job['id'])
+                        # Check if this job exists in the specified division using organized SQL
+                        division_check = db.execute(division_check_query, (job_id,)).fetchall()
+                        divisions = [d['Division'] for d in division_check] if division_check else ['No positions found']
+                        matches_filter = division_filter in divisions
+                        status = "[OK]" if matches_filter else "[X]"
+                        print(f"   {status} {job_id}: {job['name'][:40]} -> Divisions: {divisions}")
                 if len(level_1_jobs) > 5:
                     print(f"   ... and {len(level_1_jobs) - 5} more Level 1 jobs")
         else:
