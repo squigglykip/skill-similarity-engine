@@ -389,20 +389,20 @@ def export_workforce_analysis_csv(job_ids):
             j.JobProfile,
             j.JobFunction,
             j.JobSubFunction,
-            p."Position Number",
-            p."Position Name",
-            p."Employee Number",
-            p.Division,
-            p.Business_Unit,
-            p.Team,
-            p."Salary Group",
-            p."Employee Group",
+            p.position_number,
+            p.position_name,
+            p.employee_number,
+            p.ORG_UNIT_NAME_2,
+            p.ORG_UNIT_NAME_3,
+            p.ORG_UNIT_NAME_4,
+            p.Salary_Group,
+            p.Employee_Group,
             p.Location,
             p.Rg as Region
-        FROM jobs j
-        LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+        FROM core_job_architecture j
+        LEFT JOIN core_workforce_current p ON j.JobProfileID = p.JobProfileID
         WHERE j.JobProfileID IN ({placeholders})
-        ORDER BY j.JobProfile, p.Division, p.Business_Unit, p.Team, p."Position Name"
+        ORDER BY j.JobProfile, p.ORG_UNIT_NAME_2, p.ORG_UNIT_NAME_3, p.ORG_UNIT_NAME_4, p.position_name
         """
         
         workforce_data = db.execute(workforce_query, actual_job_ids).fetchall()

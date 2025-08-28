@@ -48,10 +48,10 @@ def career_analysis():
         
         # Get available divisions and locations for filters
         db = get_db()
-        divisions_query = "SELECT DISTINCT Division FROM positions WHERE Division IS NOT NULL ORDER BY Division"
+        divisions_query = "SELECT DISTINCT ORG_UNIT_NAME_2 FROM core_workforce_current WHERE ORG_UNIT_NAME_2 IS NOT NULL ORDER BY ORG_UNIT_NAME_2"
         divisions = [row[0] for row in db.execute(divisions_query).fetchall()]
         
-        locations_query = "SELECT DISTINCT Location FROM positions WHERE Location IS NOT NULL ORDER BY Location"
+        locations_query = "SELECT DISTINCT Location FROM core_workforce_current WHERE Location IS NOT NULL ORDER BY Location"
         locations = [row[0] for row in db.execute(locations_query).fetchall()]
         
         return render_template('career_analysis.html', 
@@ -63,4 +63,27 @@ def career_analysis():
         return render_template('career_analysis.html', 
                              sample_jobs=[],
                              divisions=[],
-                             locations=[]) 
+                             locations=[])
+
+@career_analysis_bp.route('/career-analysis-v2')
+def career_analysis_v2():
+    """Career Transition Analysis Generator V2 interface with enhanced configuration."""
+    try:
+        # Get sample data for the interface (minimal for V2 as it uses API-driven search)
+        sample_jobs = get_sample_jobs(5)
+        
+        # Get organizational data for context (optional - V2 focuses on API-driven data)
+        db = get_db()
+        divisions_query = "SELECT DISTINCT ORG_UNIT_NAME_2 FROM core_workforce_current WHERE ORG_UNIT_NAME_2 IS NOT NULL ORDER BY ORG_UNIT_NAME_2"
+        divisions = [row[0] for row in db.execute(divisions_query).fetchall()]
+        
+        return render_template('career_analysis_v2.html', 
+                             sample_jobs=sample_jobs,
+                             divisions=divisions[:10],  # Limited for V2 as it's primarily API-driven
+                             version='2.0')
+    except Exception as e:
+        print(f"Error loading Career Transition Analysis V2 page: {e}")
+        return render_template('career_analysis_v2.html', 
+                             sample_jobs=[],
+                             divisions=[],
+                             version='2.0') 

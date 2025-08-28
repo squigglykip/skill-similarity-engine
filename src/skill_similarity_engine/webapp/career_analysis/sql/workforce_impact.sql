@@ -6,6 +6,6 @@ SELECT
     Division,
     Business_Unit,
     Location
-FROM positions 
+FROM core_workforce_current 
 WHERE JobProfileID = ?
 GROUP BY JobProfileID, Division, Business_Unit, Location;

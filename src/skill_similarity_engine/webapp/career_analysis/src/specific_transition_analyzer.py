@@ -3,7 +3,7 @@ Specific Transition Analyzer for NAB Skills Intelligence Platform
 
 This module provides analysis capabilities for specific job-to-job transitions,
 supporting both single target analysis and multiple target comparisons.
-Uses the job_similarities table for comprehensive transition data.
+Uses the analytics_job_similarities table for comprehensive transition data.
 
 Author: NAB Skills Intelligence Team
 Created: 2025-01-19
@@ -21,7 +21,7 @@ class SpecificTransitionAnalyzer:
     Analyzer for specific job transition scenarios.
     
     Provides detailed analysis of transitions between specific jobs using the
-    job_similarities table, supporting both single transitions and comparative
+    analytics_job_similarities table, supporting both single transitions and comparative
     analysis of multiple targets.
     """
     
@@ -39,7 +39,7 @@ class SpecificTransitionAnalyzer:
     def analyze_single_transition(self, job_from: str, job_to: str, 
                                 similarity_range: Tuple[float, float] = (0.4, 0.9)) -> Dict[str, Any]:
         """
-        Analyze a specific job-to-job transition using job_similarities table.
+        Analyze a specific job-to-job transition using analytics_job_similarities table.
         
         Args:
             job_from: Source JobProfileID
@@ -123,6 +123,7 @@ class SpecificTransitionAnalyzer:
             - Strategic recommendations for portfolio approach
         """
         print(f"Analyzing multiple transitions from {job_from} to {len(job_to_list)} targets")
+        print(f"🎯 Target jobs list: {job_to_list}")
         
         # Analyze each individual transition
         individual_analyses = []
@@ -186,8 +187,8 @@ class SpecificTransitionAnalyzer:
             j.ManagementLevel,
             js.shared_skills_count,
             js.total_skills_to
-        FROM job_similarities js
-        JOIN jobs j ON js.job_to = j.JobProfileID
+        FROM analytics_job_similarities js
+        JOIN core_job_architecture j ON js.job_to = j.JobProfileID
         WHERE js.job_from = ? 
         AND js.similarity_score BETWEEN ? AND ?
         AND js.job_from != js.job_to  -- Exclude self-matches
@@ -219,11 +220,11 @@ class SpecificTransitionAnalyzer:
         query = """
         SELECT 
             similarity_score,
-            skill_overlap_score,
+            skill_overlap_percentage as skill_overlap_score,
             shared_skills_count,
             total_skills_from,
             total_skills_to
-        FROM job_similarities 
+        FROM analytics_job_similarities 
         WHERE job_from = ? AND job_to = ?
         """
         
@@ -248,9 +249,9 @@ class SpecificTransitionAnalyzer:
             s.Category,
             CASE WHEN source_skills.Skill_ID IS NOT NULL THEN 1 ELSE 0 END as in_source,
             CASE WHEN target_skills.Skill_ID IS NOT NULL THEN 1 ELSE 0 END as in_target
-        FROM skills s
-        LEFT JOIN job_skills source_skills ON s.Skill_ID = source_skills.Skill_ID AND source_skills.JobProfileID = ?
-        LEFT JOIN job_skills target_skills ON s.Skill_ID = target_skills.Skill_ID AND target_skills.JobProfileID = ?
+        FROM core_skills_taxonomy s
+        LEFT JOIN core_job_skill_requirements source_skills ON s.Skill_ID = source_skills.Skill_ID AND source_skills.JobProfileID = ?
+        LEFT JOIN core_job_skill_requirements target_skills ON s.Skill_ID = target_skills.Skill_ID AND target_skills.JobProfileID = ?
         WHERE source_skills.Skill_ID IS NOT NULL OR target_skills.Skill_ID IS NOT NULL
         """
         
@@ -339,7 +340,7 @@ class SpecificTransitionAnalyzer:
         # Note: Division is in positions table, not jobs table
         query = """
         SELECT j.JobProfile, j.JobFunction, j.ManagementLevel, j.JobCategory
-        FROM jobs j
+        FROM core_job_architecture j
         WHERE j.JobProfileID = ?
         """
         
@@ -384,7 +385,7 @@ class SpecificTransitionAnalyzer:
         query = """
         SELECT COUNT(*) as total_count,
                SUM(CASE WHEN similarity_score <= ? THEN 1 ELSE 0 END) as below_or_equal
-        FROM job_similarities
+        FROM analytics_job_similarities
         WHERE job_from != job_to
         """
         

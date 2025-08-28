@@ -212,7 +212,7 @@ SkillEngine.CareerAnalysis = {
 
     // Handle generate button click
     async handleGenerateClick() {
-        console.log('📄 Generate button clicked');
+        console.log('📄 Generate button clicked - Using HTML capture approach');
 
         // Prevent double-clicks and multiple rapid requests
         if (this.state.isGenerating) {
@@ -220,39 +220,123 @@ SkillEngine.CareerAnalysis = {
             return;
         }
 
-        if (!this.validateForm()) {
+        // Debug: Check form validation status
+        const formValid = this.validateForm();
+        console.log('🔍 Form validation result:', formValid);
+        if (!formValid) {
             this.showAlert('Please select a source job first.', 'warning');
+            return;
+        }
+
+        // Debug: Check preview content availability
+        const previewContent = document.getElementById('previewContent');
+        const hasPreviewData = this.state.hasPreviewData;
+        const previewHtmlLength = previewContent ? previewContent.innerHTML.length : 0;
+        console.log('🔍 Preview content element exists:', !!previewContent);
+        console.log('🔍 Preview data state:', hasPreviewData);
+        console.log('🔍 Preview content HTML length:', previewHtmlLength);
+        
+        // Check if preview is available (either state flag or substantial HTML content)
+        const hasValidPreview = hasPreviewData || (previewContent && previewHtmlLength > 1000);
+        console.log('🔍 Has valid preview (state OR content):', hasValidPreview);
+        
+        if (!previewContent || !hasValidPreview) {
+            console.log('❌ Preview check failed - showing warning');
+            this.showAlert('Please generate a preview first before downloading the document.', 'warning');
             return;
         }
 
         try {
             this.state.isGenerating = true;
             this.setLoadingState(true);
+            
+            // Capture the HTML content from the preview panel
+            const htmlContent = this.capturePreviewHTML();
+            
+            // Get form data for metadata
             const formData = this.getFormData();
-            formData.output_format = 'word'; // Generate Word document
             
-            // Add timeout to handle potential server restarts
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+            // Prepare payload for HTML-to-document conversion
+            const payload = {
+                html: htmlContent,
+                format: 'word', // or 'pdf'
+                metadata: {
+                    job_from: formData.job_from,
+                    analysis_mode: formData.analysis_mode,
+                    generated_date: new Date().toISOString().split('T')[0]
+                }
+            };
             
-            const response = await fetch('/api/career-analysis-document', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-                signal: controller.signal
-            });
+            console.log('📄 Sending HTML content for document generation...');
+            console.log('📄 Payload HTML length:', payload.html.length);
+            console.log('📄 Payload metadata:', payload.metadata);
             
-            clearTimeout(timeoutId);
+            // Check if server is responsive before attempting document generation
+            try {
+                console.log('🏥 Checking server health...');
+                const healthResponse = await fetch('/api/career-analysis-jobs?limit=1');
+                if (!healthResponse.ok) {
+                    throw new Error('Server health check failed');
+                }
+                console.log('✅ Server is responsive');
+            } catch (healthError) {
+                console.log('⚠️ Server health check failed, but proceeding anyway:', healthError.message);
+            }
+            
+            // Add retry logic for server restarts
+            let response;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    // Add timeout to handle potential server restarts
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                    
+                    console.log(`🔄 Attempt ${retryCount + 1}/${maxRetries} - Making request...`);
+                    
+                    response = await fetch('/api/career-analysis-html-to-document', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    break; // Success, exit retry loop
+                    
+                } catch (fetchError) {
+                    retryCount++;
+                    console.log(`⚠️ Attempt ${retryCount} failed:`, fetchError.message);
+                    
+                    if (retryCount >= maxRetries) {
+                        throw fetchError; // Re-throw if all retries exhausted
+                    }
+                    
+                    // Wait before retry (exponential backoff)
+                    const waitTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+                    console.log(`⏳ Server might be restarting. Waiting ${waitTime}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            }
 
             if (response.ok) {
+                console.log('✅ API response successful');
+                
                 // Handle direct file download
                 const blob = await response.blob();
+                console.log('📄 Created blob:', blob.size, 'bytes, type:', blob.type);
+                
                 const url = window.URL.createObjectURL(blob);
+                console.log('🔗 Created blob URL:', url);
                 
                 // Extract filename from Content-Disposition header
                 const contentDisposition = response.headers.get('Content-Disposition');
+                console.log('📁 Content-Disposition header:', contentDisposition);
+                
                 let filename = 'career_analysis.docx';
                 if (contentDisposition) {
                     const filenameMatch = contentDisposition.match(/filename="(.+)"/);
@@ -260,6 +344,7 @@ SkillEngine.CareerAnalysis = {
                         filename = filenameMatch[1];
                     }
                 }
+                console.log('📁 Final filename:', filename);
                 
                 // Create temporary anchor and trigger download
                 const a = document.createElement('a');
@@ -267,13 +352,29 @@ SkillEngine.CareerAnalysis = {
                 a.download = filename;
                 a.style.display = 'none';
                 document.body.appendChild(a);
+                
+                console.log('🖱️ Triggering download click...');
                 a.click();
                 
-                // Cleanup
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                // Fallback: If click doesn't work, try opening in new window
+                setTimeout(() => {
+                    // Check if download worked by seeing if the anchor is still there
+                    if (document.body.contains(a)) {
+                        console.log('⚠️ Anchor click may have failed, trying window.open fallback');
+                        window.open(url, '_blank');
+                    }
+                }, 1000);
                 
-                console.log('✅ Document downloaded:', filename);
+                // Cleanup with delay to ensure download starts
+                setTimeout(() => {
+                    if (document.body.contains(a)) {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        console.log('🧹 Cleanup completed');
+                    }
+                }, 3000);
+                
+                console.log('✅ Document download initiated:', filename);
                 this.showAlert('Career Analysis document generated and downloaded successfully!', 'success');
                 
             } else {
@@ -289,9 +390,9 @@ SkillEngine.CareerAnalysis = {
             let errorMessage = 'Failed to Generate Career Report: ';
             
             if (error.name === 'AbortError') {
-                errorMessage += 'Request timed out. The server might be restarting. Please try again.';
-            } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_RESET')) {
-                errorMessage += 'Connection lost during document generation. The server might be restarting. Please try again in a moment.';
+                errorMessage += 'Request timed out after multiple attempts. The server might be restarting due to code changes. Please wait a moment and try again.';
+            } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_RESET') || error.message.includes('fetch')) {
+                errorMessage += 'Connection lost during document generation. The Flask server restarted (likely due to file changes in development mode). Please try again - the server should be ready now.';
             } else {
                 errorMessage += error.message;
             }
@@ -301,6 +402,77 @@ SkillEngine.CareerAnalysis = {
             this.state.isGenerating = false;
             this.setLoadingState(false);
         }
+    },
+
+    /**
+     * Capture HTML content from the preview panel for document generation
+     */
+    capturePreviewHTML() {
+        console.log('📸 Capturing preview HTML content...');
+        
+        // Get the preview content container
+        const previewContent = document.getElementById('previewContent');
+        if (!previewContent) {
+            throw new Error('Preview content not found');
+        }
+        
+        console.log('📸 Original HTML content length:', previewContent.innerHTML.length);
+        console.log('📸 First 500 chars of original HTML:', previewContent.innerHTML.substring(0, 500));
+        
+        // Clone the content to avoid modifying the original
+        const contentClone = previewContent.cloneNode(true);
+        
+        console.log('📸 Cloned HTML content length:', contentClone.innerHTML.length);
+        
+        // Remove any loading states, placeholders, or interactive elements
+        this.cleanHTMLForDocument(contentClone);
+        
+        // Get the cleaned HTML
+        const htmlContent = contentClone.innerHTML;
+        
+        console.log('📸 Final cleaned HTML content length:', htmlContent.length);
+        console.log('📸 First 500 chars of cleaned HTML:', htmlContent.substring(0, 500));
+        
+        if (htmlContent.length < 100) {
+            console.error('⚠️ WARNING: Cleaned HTML is very short, might be empty!');
+            console.log('📸 Full cleaned HTML:', htmlContent);
+        }
+        
+        return htmlContent;
+    },
+
+    /**
+     * Clean HTML content for document generation
+     */
+    cleanHTMLForDocument(element) {
+        console.log('🧹 Starting HTML cleanup - initial length:', element.innerHTML.length);
+        
+        // Remove loading spinners
+        const loadingElements = element.querySelectorAll('#loadingSpinner, .animate-spin, [id*="loading"]');
+        console.log(`🧹 Removing ${loadingElements.length} loading elements`);
+        loadingElements.forEach(el => el.remove());
+        
+        // Remove placeholder content
+        const placeholders = element.querySelectorAll('#preview-placeholder, [id*="placeholder"]');
+        console.log(`🧹 Removing ${placeholders.length} placeholder elements`);
+        placeholders.forEach(el => el.remove());
+        
+        // Remove empty sections
+        const emptySections = element.querySelectorAll('.hidden, [style*="display: none"]');
+        console.log(`🧹 Removing ${emptySections.length} hidden elements`);
+        emptySections.forEach(el => el.remove());
+        
+        // Remove buttons and interactive elements
+        const interactiveElements = element.querySelectorAll('button, [onclick], .cursor-pointer');
+        console.log(`🧹 Removing ${interactiveElements.length} interactive elements`);
+        interactiveElements.forEach(el => el.remove());
+        
+        // Clean up any remaining empty containers
+        const emptyDivs = element.querySelectorAll('div:empty');
+        console.log(`🧹 Removing ${emptyDivs.length} empty div elements`);
+        emptyDivs.forEach(el => el.remove());
+        
+        console.log('🧹 HTML cleanup completed - final length:', element.innerHTML.length);
     },
 
     // Initialize dual handle range slider
@@ -419,6 +591,20 @@ SkillEngine.CareerAnalysis = {
             };
         }
 
+        // Add Primary Algorithm Selection
+        const primaryAlgorithm = document.querySelector('input[name="primary_algorithm"]:checked')?.value;
+        formData.primary_algorithm = primaryAlgorithm || 'enhanced'; // Default to enhanced
+
+        // Add V2 Analytics preferences
+        formData.v2_analytics = {
+            defining_skills: document.getElementById('include-defining-skills')?.checked || false,
+            job_family_context: document.getElementById('include-job-families')?.checked || false,
+            movement_patterns: document.getElementById('include-movement-patterns')?.checked || false,
+            skills_rarity: document.getElementById('include-rarity-analysis')?.checked || false,
+            transition_insights: document.getElementById('include-transition-insights')?.checked || false,
+            dual_similarity_analysis: document.getElementById('include-dual-similarity')?.checked || false
+        };
+
         // Store for potential reuse
         this.state.lastFormData = formData;
         return formData;
@@ -449,9 +635,13 @@ SkillEngine.CareerAnalysis = {
     displayPreview(data) {
         const previewContent = document.getElementById('previewContent');
         
-        // DEBUG: Log the exact data structure we're receiving
-        console.log('🔍 DEBUG: Received data structure:', JSON.stringify(data, null, 2));
-        console.log('🔍 DEBUG: Data content keys:', Object.keys(data.content || {}));
+        // DEBUG: Check if we're receiving the dual similarity data properly
+        console.log('🔍 BACKEND DATA CHECK - pathways section:', data.content?.pathways?.subsections?.opportunities?.[0]?.header);
+        
+        // Also check if we can see the debug values from backend
+        if (data.content?.pathways?.subsections?.opportunities?.[0]?.header) {
+            console.log('🔍 CHECKING FOR DEBUG VALUES in header:', data.content.pathways.subsections.opportunities[0].header.includes('DEBUG:'));
+        }
         
         if (!data.success) {
             this.displayError(`Failed to generate preview: ${data.error || 'Unknown error'}`);
@@ -463,14 +653,13 @@ SkillEngine.CareerAnalysis = {
         const hasStructuredContent = Object.keys(content).length > 0;
         
         // DEBUG: Log content structure
-        console.log('🔍 DEBUG: Has structured content:', hasStructuredContent);
-        console.log('🔍 DEBUG: Content structure:', content);
+        // DEBUG: (removed verbose content structure logging)
         
         let htmlContent = '';
         
         if (hasStructuredContent) {
             // Use the structured content from all 5 sections
-            htmlContent = this.parseStructuredContent(content);
+            htmlContent = this.parseStructuredContent(content, data);
         } else {
             // Fallback to parsing raw CLI output
             htmlContent = this.parseCliOutputToHtml(data.raw_output, data);
@@ -518,14 +707,20 @@ SkillEngine.CareerAnalysis = {
                 <div class="prose prose-lg max-w-none space-y-12">
                     ${htmlContent}
                 </div>
+                
+                <!-- V2 Analytics Sections (now integrated within sections) -->
             </div>
         `;
+        
+        // Set preview data state to enable document generation
+        this.state.hasPreviewData = true;
+        console.log('✅ Preview data state set to:', this.state.hasPreviewData);
     },
 
     /**
      * Parse structured content from all 5 sections (like Word document)
      */
-    parseStructuredContent(content) {
+    parseStructuredContent(content, data) {
         let html = '';
         
         // 🚨 SPECIAL CASE: Check for no_results section first
@@ -534,13 +729,11 @@ SkillEngine.CareerAnalysis = {
             return this.formatNoResultsMessage(content.no_results);
         }
         
-        // Section order matching Word document structure
+        // Focused section order: Introduction + Current Role Context + Top N Career Pathways
         const sectionOrder = [
-            { key: 'executive_summary', defaultTitle: 'Executive Summary', icon: 'fas fa-chart-line' },
-            { key: 'current_role_context', defaultTitle: 'Current Role Context', icon: 'fas fa-user-tie' },
-            { key: 'pathway_analysis', defaultTitle: 'Pathway Analysis: Strategic Opportunities', icon: 'fas fa-route' },
-            { key: 'strategic_recommendations', defaultTitle: 'Strategic Recommendations', icon: 'fas fa-lightbulb' },
-            { key: 'conclusion', defaultTitle: 'Conclusion', icon: 'fas fa-flag-checkered' }
+            { key: 'introduction', defaultTitle: 'Introduction', icon: 'fas fa-chart-line' },
+            { key: 'current_role_context', defaultTitle: 'Current Role Context', icon: 'fas fa-user-circle' },
+            { key: 'pathways', defaultTitle: 'Top Career Pathways', icon: 'fas fa-route' }
         ];
         
         sectionOrder.forEach((section, index) => {
@@ -548,10 +741,9 @@ SkillEngine.CareerAnalysis = {
                 const sectionData = content[section.key];
                 const title = sectionData.title || section.defaultTitle;
                 
-                // DEBUG: Log pathway analysis structure
-                if (section.key === 'pathway_analysis') {
-                    console.log('🔍 DEBUG: Pathway Analysis structure:', JSON.stringify(sectionData, null, 2));
-                    console.log('🔍 DEBUG: Pathway Analysis subsections keys:', Object.keys(sectionData.subsections || {}));
+                // DEBUG: Log pathways structure
+                if (section.key === 'pathways') {
+                    // DEBUG: (removed verbose pathway structure logging)
                 }
                 
                 // Handle new subsections structure from service layer
@@ -574,6 +766,7 @@ SkillEngine.CareerAnalysis = {
                         </div>
                         <div class="ml-14">
                             ${sectionContent}
+                            ${this.renderSectionSpecificV2Analytics(section.key, data)}
                         </div>
                     </div>
                 `;
@@ -1467,16 +1660,11 @@ SkillEngine.CareerAnalysis = {
             html += `
                 <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
                     <h3 class="text-xl font-bold mb-3">${headerInfo.title}</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
                         <div class="flex items-center">
                             <i class="fas fa-bullseye mr-2"></i>
                             <span class="font-medium">Target:</span> 
                             <span class="ml-1">${headerInfo.targetRole}</span>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-chart-line mr-2"></i>
-                            <span class="font-medium">Similarity:</span> 
-                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded ml-1">${headerInfo.similarity}</span>
                         </div>
                         <div class="flex items-center">
                             <i class="fas fa-arrows-alt mr-2"></i>
@@ -1484,6 +1672,30 @@ SkillEngine.CareerAnalysis = {
                             <span class="ml-1">${headerInfo.moveType}</span>
                         </div>
                     </div>
+                    <!-- Dual Similarity Display -->
+                    <div class="mt-4 pt-4 border-t border-white border-opacity-20">
+                        <div class="flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-chart-line mr-2"></i>
+                                <span class="font-medium">Similarity Analysis:</span>
+                            </div>
+                            <div class="flex space-x-4">
+                                <div class="text-right">
+                                    <div class="bg-white bg-opacity-20 px-2 py-1 rounded">
+                                        <span class="font-semibold">${headerInfo.enhancedSimilarity || headerInfo.similarity}</span>
+                                        <span class="text-xs opacity-75 ml-1">Enhanced</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="bg-white bg-opacity-10 px-2 py-1 rounded">
+                                        <span class="font-semibold">${headerInfo.literalSimilarity || 'N/A'}</span>
+                                        <span class="text-xs opacity-75 ml-1">Literal</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                     ${headerInfo.classification ? `
                         <div class="mt-3">
                             <span class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-medium">
@@ -1520,48 +1732,108 @@ SkillEngine.CareerAnalysis = {
      * Parse opportunity header string into structured data
      */
     parseOpportunityHeader(headerString) {
-        console.log('🔍 DEBUG: Parsing opportunity header:', headerString);
+        console.log('🔍 TARGETED DEBUG: Parsing opportunity header');
+        console.log('📝 Header content:', JSON.stringify(headerString, null, 2));
         const lines = headerString.split('\n').filter(line => line.trim()); // Filter out empty lines
+        console.log('📋 Header lines after split:', lines);
         const result = {};
-        
-        console.log('🔍 DEBUG: Header lines:', lines);
         
         // Parse title from first line (remove ## prefix)
         if (lines[0]) {
             result.title = lines[0].replace(/^##\s*/, '').trim();
-            console.log('🔍 DEBUG: Parsed title:', result.title);
+            // DEBUG: (removed title parsing log)
         }
         
         // Parse metadata from subsequent lines
         lines.forEach((line, index) => {
-            console.log(`🔍 DEBUG: Processing line ${index}:`, line);
+            console.log(`🔍 Processing line ${index}: "${line}"`);
             
             if (line.includes('Target Role:')) {
+                console.log('🎯 Found Target Role line:', line);
                 const match = line.match(/Target Role:\s*(.+?)\s*\|/);
+                console.log('🎯 Target Role regex match:', match);
                 if (match) {
                     result.targetRole = match[1].trim();
-                    console.log('🔍 DEBUG: Found targetRole via regex:', result.targetRole);
+                    console.log('✅ Extracted targetRole via regex:', result.targetRole);
                 } else {
                     // Fallback: try to extract from the line directly
                     const fallbackMatch = line.match(/Target Role:\s*(.+?)(?:\s*$|\s*\n)/);
+                    console.log('🎯 Target Role fallback match:', fallbackMatch);
                     if (fallbackMatch) {
                         result.targetRole = fallbackMatch[1].trim();
-                        console.log('🔍 DEBUG: Found targetRole via fallback:', result.targetRole);
+                        console.log('✅ Extracted targetRole via fallback:', result.targetRole);
                     }
+                }
+            } else if (line.includes('Target:')) {
+                console.log('🎯 Found Target line:', line);
+                // Handle "Target: Software Engineer - 0 (R0041.0)" format
+                const match = line.match(/Target:\s*(.+)/);
+                console.log('🎯 Target regex match:', match);
+                if (match) {
+                    result.targetRole = match[1].trim();
+                    console.log('✅ Extracted targetRole from Target:', result.targetRole);
                 }
             }
             if (line.includes('Similarity Score:')) {
+                console.log('📊 Found Similarity Score line:', line);
                 const match = line.match(/Similarity Score:\s*([0-9.]+%)/);
+                console.log('📊 Similarity Score regex match:', match);
                 if (match) {
                     result.similarity = match[1];
-                    console.log('🔍 DEBUG: Found similarity:', result.similarity);
+                    console.log('✅ Extracted similarity:', result.similarity);
+                }
+            } else if (line.includes('Enhanced (PRIMARY):')) {
+                console.log('📊 Found Enhanced similarity line:', line);
+                const match = line.match(/Enhanced \(PRIMARY\):\s*([0-9.]+%)/);
+                console.log('📊 Enhanced similarity regex match:', match);
+                if (match) {
+                    result.similarity = match[1]; // Primary similarity
+                    result.enhancedSimilarity = match[1]; // Enhanced similarity
+                    result.primaryAlgorithm = 'enhanced';
+                    console.log('✅ Extracted enhanced similarity:', result.enhancedSimilarity);
+                }
+            } else if (line.includes('Literal (PRIMARY):')) {
+                console.log('📊 Found Literal similarity line:', line);
+                const match = line.match(/Literal \(PRIMARY\):\s*([0-9.]+%)/);
+                console.log('📊 Literal similarity regex match:', match);
+                if (match) {
+                    result.similarity = match[1]; // Primary similarity
+                    result.literalSimilarity = match[1]; // Literal similarity
+                    result.primaryAlgorithm = 'literal';
+                    console.log('✅ Extracted literal similarity:', result.literalSimilarity);
+                }
+            } else if (line.includes('• Enhanced:')) {
+                console.log('📊 Found secondary Enhanced similarity line:', line);
+                const match = line.match(/Enhanced:\s*([0-9.]+%)/);
+                if (match) {
+                    result.enhancedSimilarity = match[1];
+                    console.log('✅ Extracted secondary enhanced similarity:', result.enhancedSimilarity);
+                }
+            } else if (line.includes('• Literal:')) {
+                console.log('📊 Found secondary Literal similarity line:', line);
+                const match = line.match(/Literal:\s*([0-9.]+%)/);
+                if (match) {
+                    result.literalSimilarity = match[1];
+                    console.log('✅ Extracted secondary literal similarity:', result.literalSimilarity);
                 }
             }
             if (line.includes('Move Type:')) {
+                console.log('🏷️ Found Move Type line:', line);
                 const match = line.match(/Move Type:\s*(.+?)(?:\s*$|\s*\n)/);
+                console.log('🏷️ Move Type regex match:', match);
                 if (match) {
                     result.moveType = match[1].trim();
-                    console.log('🔍 DEBUG: Found moveType:', result.moveType);
+                    console.log('✅ Extracted moveType:', result.moveType);
+                }
+            }
+            if (line.includes('Type:') && !line.includes('Move Type:')) {
+                console.log('🏷️ Found Type line:', line);
+                const match = line.match(/Type:\s*(.+?)(?:\s*$|\s*\n)/);
+                console.log('🏷️ Type regex match:', match);
+                if (match) {
+                    result.type = match[1].trim();
+                    result.moveType = match[1].trim(); // Also set moveType for template compatibility
+                    console.log('✅ Extracted type and moveType:', result.type);
                 }
             }
             if (line.includes('Strategic Classification:')) {
@@ -1576,10 +1848,10 @@ SkillEngine.CareerAnalysis = {
         // If targetRole is still undefined, set a fallback
         if (!result.targetRole || result.targetRole === 'undefined') {
             result.targetRole = 'Target Role';
-            console.log('🔍 DEBUG: Using fallback targetRole');
+            console.log('⚠️ Using fallback targetRole');
         }
         
-        console.log('🔍 DEBUG: Final parsed result:', result);
+        console.log('🎯 FINAL PARSED RESULT:', result);
         return result;
     },
 
@@ -1635,11 +1907,11 @@ SkillEngine.CareerAnalysis = {
      * Format opportunity overview (typically contains metrics table)
      */
     formatOpportunityOverview(subsection) {
-        console.log('🔍 DEBUG: Formatting opportunity overview:', subsection);
+        // DEBUG: (removed overview formatting log)
         
         // Check for new structured overview table format
         if (subsection.content_type === 'structured_overview_table' && subsection.content && typeof subsection.content === 'object') {
-            console.log('🔧 DEBUG: Found structured overview table from backend');
+            // DEBUG: (removed table detection log)
             return this.formatStructuredTable(subsection.content, 'structured_overview_table');
         }
         // Legacy format handling
@@ -1675,12 +1947,12 @@ SkillEngine.CareerAnalysis = {
      * Format skills transition analysis (complex table with skills links)
      */
     formatSkillsTransitionAnalysis(subsection) {
-        console.log('🔍 DEBUG: Formatting skills transition analysis:', subsection);
+        // DEBUG: (removed skills formatting log)
         
         // Check for new structured skills table format from backend
         if (subsection.content_type === 'structured_skills_table' && subsection.content && typeof subsection.content === 'object') {
-            console.log('🔧 DEBUG: Found structured skills table from backend');
-            console.log('📊 DEBUG: Structured table data:', subsection.content);
+            // DEBUG: (removed skills table detection log)
+            // DEBUG: (removed table data log)
             return this.formatStructuredSkillsTable(subsection.content);
         } 
         // Legacy format handling
@@ -1703,15 +1975,13 @@ SkillEngine.CareerAnalysis = {
      * Universal Structured Table Renderer - handles all structured table types
      */
     formatStructuredTable(tableData, tableType = 'default') {
-        console.log(`🔧 DEBUG: formatStructuredTable called with type: ${tableType}`, tableData);
+        // DEBUG: (removed verbose table formatting logs)
         
         if (!tableData || !tableData.headers || !tableData.rows) {
-            console.log('❌ DEBUG: Invalid structured table data');
             return '<div class="text-gray-700">Invalid table data</div>';
         }
         
         const { headers, rows, metadata } = tableData;
-        console.log(`📊 DEBUG: Rendering ${tableType} table with ${headers.length} headers and ${rows.length} rows`);
         
         let html = `
             <div class="overflow-x-auto">
@@ -2450,13 +2720,13 @@ SkillEngine.CareerAnalysis = {
         let skillsArray = [];
         if (Array.isArray(content)) {
             skillsArray = content;
-            console.log(`🔍 DEBUG: formatSkillsWithLinks input: array with ${content.length} items`);
+            // DEBUG: (removed array input log)
         } else if (typeof content === 'string') {
-            console.log(`🔍 DEBUG: formatSkillsWithLinks input: string "${content.substring(0, 100)}..."`);
+            // DEBUG: (removed string input log)
             // Split by newlines to handle multiple skills
             skillsArray = content.split('\n').filter(line => line.trim());
         } else {
-            console.log(`🔍 DEBUG: formatSkillsWithLinks input: unknown type ${typeof content}`);
+            // DEBUG: (removed unknown type log)
             return content || '';
         }
         
@@ -2479,7 +2749,7 @@ SkillEngine.CareerAnalysis = {
                                     • ${skillName}
                                   </a>`;
                 formattedSkills.push(skillLink);
-                console.log(`🔍 DEBUG: Formatted skill with link: "${skillName}" -> ${skillId}`);
+                // DEBUG: (removed skill link log)
             } else if (trimmedSkill.includes('https://lightcast.io/')) {
                 // Try alternative parsing for malformed URLs
                 const parts = trimmedSkill.split('|');
@@ -2506,7 +2776,7 @@ SkillEngine.CareerAnalysis = {
             } else if (trimmedSkill.startsWith('•')) {
                 // Skill without URL, keep as is
                 formattedSkills.push(`<span class="text-gray-700">${trimmedSkill}</span>`);
-                console.log(`🔍 DEBUG: Formatted skill without link: "${trimmedSkill.substring(0, 30)}..."`);
+                // DEBUG: (removed skill without link log)
             } else {
                 // Non-skill content, keep as is
                 formattedSkills.push(`<span class="text-gray-600">${trimmedSkill}</span>`);
@@ -2519,7 +2789,7 @@ SkillEngine.CareerAnalysis = {
         }
         
         const result = formattedSkills.join('<br>');
-        console.log(`🔍 DEBUG: formatSkillsWithLinks result: ${formattedSkills.length} skills formatted`);
+        // DEBUG: (removed result count log)
         return result;
     },
 
@@ -4644,13 +4914,18 @@ SkillEngine.CareerAnalysis = {
             console.log('📋 Loading job options...');
             
             const response = await fetch('/api/career-analysis-jobs?limit=100');
-            const data = await response.json();
+            console.log('🔍 API Response status:', response.status, response.statusText);
             
-            if (data.success && data.jobs) {
+            const data = await response.json();
+            console.log('🔍 API Response data:', data);
+            
+            if (data.jobs && data.jobs.length > 0) {
                 this.populateJobDropdowns(data.jobs);
                 console.log(`✅ Loaded ${data.jobs.length} job options`);
             } else {
-                console.warn('⚠️ No jobs data received from API');
+                console.warn('⚠️ No jobs data received from API. Response:', data);
+                console.warn('⚠️ data.success:', data.success);
+                console.warn('⚠️ data.jobs length:', data.jobs ? data.jobs.length : 'undefined');
             }
         } catch (error) {
             console.error('❌ Error loading job options:', error);
@@ -4708,6 +4983,620 @@ SkillEngine.CareerAnalysis = {
             // Update validation when job is selected
             this.validateForm();
         });
+    },
+
+    /**
+     * Render V2 Analytics Sections (Legacy - now integrated within sections)
+     */
+    renderV2AnalyticsSections(data) {
+        // Legacy method - V2 analytics are now integrated within sections
+        return '';
+    },
+
+    /**
+     * Render section-specific V2 Analytics
+     */
+    renderSectionSpecificV2Analytics(sectionKey, data) {
+        if (!data.v2_analytics) {
+            return '';
+        }
+
+        let html = '';
+        
+        if (sectionKey === 'current_role_context' && data.v2_analytics.current_role_context) {
+            html += '<div class="mt-8 space-y-6">';
+            
+            const contextV2 = data.v2_analytics.current_role_context;
+            
+            // Defining Skills Analysis
+            if (contextV2.defining_skills) {
+                html += this.renderDefiningSkillsSection(contextV2.defining_skills);
+            }
+            
+            // Job Family Context
+            if (contextV2.job_family_context) {
+                html += this.renderJobFamilySection(contextV2.job_family_context);
+            }
+            
+            // Skills Rarity Analysis
+            if (contextV2.skills_rarity) {
+                html += this.renderSkillsRaritySection(contextV2.skills_rarity);
+            }
+            
+            html += '</div>';
+        }
+        
+        if (sectionKey === 'pathways' && data.v2_analytics.pathway_analysis) {
+            // Note: Dual Similarity Analysis is now integrated into individual pathway opportunities
+            // rather than being a separate section for cleaner UX without duplication
+            return '';
+        }
+        
+        return html;
+    },
+
+    /**
+     * Render Defining Skills Section
+     */
+    renderDefiningSkillsSection(definingSkills) {
+        return `
+            <div id="v2-defining-skills" class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-lg mr-3">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-epilogue font-semibold text-gray-900">Defining Skills Analysis</h3>
+                        <p class="text-sm font-source text-gray-600">Core competencies that distinguish these roles</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-blue-100 text-blue-800">
+                        <i class="fas fa-database mr-1"></i>
+                        V2 Enhanced
+                    </span>
+                </div>
+                
+                <div class="space-y-4">
+                    ${this.formatDefiningSkillsContent(definingSkills)}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render Job Family Section
+     */
+    renderJobFamilySection(jobFamily) {
+        return `
+            <div id="v2-job-family" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-10 h-10 bg-purple-600 text-white rounded-lg mr-3">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-epilogue font-semibold text-gray-900">Job Family Context</h3>
+                        <p class="text-sm font-source text-gray-600">Clustering insights and related roles</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-purple-100 text-purple-800">
+                        <i class="fas fa-database mr-1"></i>
+                        V2 Enhanced
+                    </span>
+                </div>
+                
+                <div class="space-y-4">
+                    ${this.formatJobFamilyContent(jobFamily)}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render Movement Patterns Section
+     */
+    renderMovementPatternsSection(movementPatterns) {
+        return `
+            <div id="v2-movement-patterns" class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-lg mr-3">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-epilogue font-semibold text-gray-900">Movement Patterns</h3>
+                        <p class="text-sm font-source text-gray-600">Career transition trends and pathways</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-database mr-1"></i>
+                        V2 Enhanced
+                    </span>
+                </div>
+                
+                <div class="space-y-4">
+                    ${this.formatMovementPatternsContent(movementPatterns)}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render Skills Rarity Section
+     */
+    renderSkillsRaritySection(skillsRarity) {
+        return `
+            <div id="v2-skills-rarity" class="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-10 h-10 bg-amber-600 text-white rounded-lg mr-3">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-epilogue font-semibold text-gray-900">Skills Rarity Analysis</h3>
+                        <p class="text-sm font-source text-gray-600">Market scarcity and competitive advantage</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-amber-100 text-amber-800">
+                        <i class="fas fa-database mr-1"></i>
+                        V2 Enhanced
+                    </span>
+                </div>
+                
+                <div class="space-y-4">
+                    ${this.formatSkillsRarityContent(skillsRarity)}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render Transition Insights Section
+     */
+    renderTransitionInsightsSection(transitionInsights) {
+        return `
+            <div id="v2-transition-insights" class="bg-gradient-to-r from-red-50 to-rose-50 rounded-lg border border-red-200 p-6">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-10 h-10 bg-red-600 text-white rounded-lg mr-3">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-epilogue font-semibold text-gray-900">Strategic Transition Insights</h3>
+                        <p class="text-sm font-source text-gray-600">Actionable intelligence for career moves</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-database mr-1"></i>
+                        V2 Enhanced
+                    </span>
+                </div>
+                
+                <div class="space-y-4">
+                    ${this.formatTransitionInsightsContent(transitionInsights)}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Render Dual Similarity Analysis Section
+     */
+    renderDualSimilaritySection(data) {
+        if (!data || data.error) {
+            return `
+                <div id="v2-dual-similarity" class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="flex items-center justify-center w-10 h-10 bg-red-600 text-white rounded-lg mr-3">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-epilogue font-semibold text-gray-900">Dual Similarity Analysis</h3>
+                            <p class="text-sm font-source text-gray-600">Basic vs Enhanced Similarity Comparison</p>
+                        </div>
+                        <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-red-100 text-red-800">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Error
+                        </span>
+                    </div>
+                    <p class="text-red-600">${data?.error || 'Unable to load dual similarity analysis'}</p>
+                </div>
+            `;
+        }
+
+        let html = `
+            <div id="v2-dual-similarity" class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6">
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center justify-center w-10 h-10 bg-purple-600 text-white rounded-lg mr-3">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-epilogue font-semibold text-gray-900">Dual Similarity Analysis</h3>
+                        <p class="text-sm font-source text-gray-600">Basic vs Enhanced Similarity Comparison</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-source font-medium bg-purple-100 text-purple-800">
+                        <i class="fas fa-database mr-1"></i>
+                        V2 Enhanced
+                    </span>
+                </div>
+                
+                <div class="mb-4 p-4 bg-white rounded-lg border border-purple-200">
+                    <p class="text-sm text-gray-700">
+                        <strong>Basic Similarity:</strong> Standard skill overlap percentage (Jaccard similarity)<br>
+                        <strong>Enhanced Similarity:</strong> Weighted by defining skills and rarity scores for strategic value
+                    </p>
+                </div>
+        `;
+
+        // Handle different analysis types
+        if (data.type === 'specific_transitions' && data.comparisons) {
+            html += this.formatSpecificTransitionComparisons(data.comparisons, data.summary);
+        } else if (data.type === 'top_pathways' && data.pathways) {
+            html += this.formatPathwayComparisons(data.pathways, data.insights);
+        } else {
+            html += '<p class="text-gray-600 p-4 bg-white rounded-lg">No similarity comparison data available.</p>';
+        }
+
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * Format specific transition comparisons
+     */
+    formatSpecificTransitionComparisons(comparisons, summary) {
+        let html = '<div class="space-y-4">';
+        
+        if (summary) {
+            html += `
+                <div class="bg-white p-4 rounded-lg border border-purple-200">
+                    <h5 class="font-semibold text-purple-800 mb-3">Analysis Summary</h5>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div class="text-center p-2 bg-blue-50 rounded">
+                            <div class="text-lg font-bold text-blue-600">${summary.total_transitions || 0}</div>
+                            <div class="text-xs text-gray-600">Transitions</div>
+                        </div>
+                        <div class="text-center p-2 bg-green-50 rounded">
+                            <div class="text-lg font-bold text-green-600">${summary.high_strategic_count || 0}</div>
+                            <div class="text-xs text-gray-600">High Strategic</div>
+                        </div>
+                        <div class="text-center p-2 bg-purple-50 rounded">
+                            <div class="text-lg font-bold text-purple-600">${summary.average_basic_similarity || 0}%</div>
+                            <div class="text-xs text-gray-600">Avg Basic</div>
+                        </div>
+                        <div class="text-center p-2 bg-indigo-50 rounded">
+                            <div class="text-lg font-bold text-indigo-600">${summary.average_enhanced_similarity || 0}%</div>
+                            <div class="text-xs text-gray-600">Avg Enhanced</div>
+                        </div>
+                    </div>
+                    ${summary.recommendation ? `<p class="mt-3 text-sm text-gray-700 italic bg-gray-50 p-3 rounded">${summary.recommendation}</p>` : ''}
+                </div>
+            `;
+        }
+
+        // Individual comparisons
+        comparisons.forEach(comp => {
+            const differenceColor = comp.similarity_difference > 0 ? 'text-green-600' : comp.similarity_difference < 0 ? 'text-red-600' : 'text-gray-600';
+            const strategicColor = this.getStrategicValueColor(comp.strategic_value);
+            
+            html += `
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h6 class="font-medium text-gray-900">${comp.job_title}</h6>
+                            <p class="text-sm text-gray-600">${comp.job_function} • ${comp.management_level}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded-full ${strategicColor}">${comp.strategic_value}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div class="text-center p-3 bg-blue-50 rounded">
+                            <div class="text-lg font-bold text-blue-600">${comp.basic_similarity}%</div>
+                            <div class="text-xs text-gray-600">Basic Similarity</div>
+                        </div>
+                        <div class="text-center p-3 bg-indigo-50 rounded">
+                            <div class="text-lg font-bold text-indigo-600">${comp.enhanced_similarity}%</div>
+                            <div class="text-xs text-gray-600">Enhanced Similarity</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm space-y-1 bg-gray-50 p-3 rounded">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Score Difference:</span>
+                            <span class="${differenceColor} font-medium">${comp.similarity_difference > 0 ? '+' : ''}${comp.similarity_difference}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Defining Skills:</span>
+                            <span class="font-medium">${comp.shared_defining_skills || 0}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Rarity Score:</span>
+                            <span class="font-medium">${comp.rarity_weighted_score || 0}%</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-gray-600 mt-2 italic bg-blue-50 p-2 rounded">${comp.interpretation}</p>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * Format pathway comparisons
+     */
+    formatPathwayComparisons(pathways, insights) {
+        let html = '<div class="space-y-4">';
+        
+        if (insights && insights.length > 0) {
+            html += `
+                <div class="bg-white p-4 rounded-lg border border-purple-200">
+                    <h5 class="font-semibold text-purple-800 mb-2">Key Insights</h5>
+                    <ul class="text-sm text-gray-700 space-y-1">
+                        ${insights.map(insight => `<li class="flex items-start"><i class="fas fa-arrow-right text-purple-500 mt-1 mr-2 text-xs"></i>${insight}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Get ranking information from first pathway if available
+        const rankingInfo = pathways.length > 0 ? pathways[0] : {};
+        const rankingDescription = rankingInfo.ranking_description || "Ranked by Enhanced Skill Matching";
+        const primaryAlgorithm = rankingInfo.primary_algorithm || 'enhanced';
+        
+        // Top pathways comparison
+        html += '<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">';
+        html += `
+            <div class="bg-gray-50 px-4 py-3 border-b">
+                <h5 class="font-semibold text-gray-800">Career Pathways Similarity Comparison</h5>
+                <p class="text-sm text-gray-600">${rankingDescription}</p>
+                <p class="text-xs text-gray-500 mt-1">Both scores shown for transparency • Primary algorithm emphasized</p>
+            </div>
+            <div class="divide-y divide-gray-200">
+        `;
+
+        pathways.slice(0, 8).forEach((pathway, index) => {
+            const differenceColor = pathway.similarity_difference > 0 ? 'text-green-600' : pathway.similarity_difference < 0 ? 'text-red-600' : 'text-gray-600';
+            const strategicColor = this.getStrategicValueColor(pathway.strategic_value);
+            
+            html += `
+                <div class="p-4 hover:bg-gray-50">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <h6 class="font-medium text-gray-900 text-sm">${index + 1}. ${pathway.job_title}</h6>
+                            <p class="text-xs text-gray-600">${pathway.job_function} • ${pathway.management_level}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded-full ${strategicColor} ml-2">${pathway.strategic_value}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-2">
+                        ${this.renderDualScoreDisplay(pathway, primaryAlgorithm)}
+                    </div>
+                    
+                    <p class="text-xs text-gray-600 mt-2 italic">${pathway.interpretation}</p>
+                </div>
+            `;
+        });
+
+        html += '</div></div></div>';
+        return html;
+    },
+
+    /**
+     * Get strategic value color classes
+     */
+    getStrategicValueColor(value) {
+        switch(value) {
+            case 'High Strategic Value':
+                return 'bg-green-100 text-green-800';
+            case 'Medium Strategic Value':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'Emerging Opportunity':
+                return 'bg-blue-100 text-blue-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    },
+
+    /**
+     * Render dual similarity score display with visual hierarchy
+     */
+    renderDualScoreDisplay(pathway, primaryAlgorithm) {
+        const isEnhancedPrimary = primaryAlgorithm === 'enhanced';
+        
+        // Determine primary and secondary scores
+        const primaryScore = isEnhancedPrimary ? pathway.enhanced_similarity : pathway.basic_similarity;
+        const secondaryScore = isEnhancedPrimary ? pathway.basic_similarity : pathway.enhanced_similarity;
+        
+        // Icons and styling
+        const primaryIcon = isEnhancedPrimary ? '🎯' : '📊';
+        const secondaryIcon = isEnhancedPrimary ? '📊' : '🎯';
+        const primaryLabel = isEnhancedPrimary ? 'Enhanced' : 'Literal';
+        const secondaryLabel = isEnhancedPrimary ? 'Literal' : 'Enhanced';
+        
+        return `
+            <div class="flex items-center space-x-4 text-sm">
+                <div class="flex items-center space-x-2 px-3 py-2 bg-purple-100 border-2 border-purple-300 rounded-lg">
+                    <span class="text-lg">${primaryIcon}</span>
+                    <div class="text-center">
+                        <div class="font-bold text-lg text-purple-800">${primaryScore}%</div>
+                        <div class="text-xs text-purple-600 font-medium uppercase">${primaryLabel} (PRIMARY)</div>
+                    </div>
+                </div>
+                
+                <div class="text-gray-400 font-bold">|</div>
+                
+                <div class="flex items-center space-x-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg">
+                    <span class="text-sm">${secondaryIcon}</span>
+                    <div class="text-center">
+                        <div class="font-semibold text-gray-700">${secondaryScore}%</div>
+                        <div class="text-xs text-gray-500">${secondaryLabel}</div>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-gray-500 italic">
+                    ${pathway.similarity_difference > 0 ? '+' : ''}${pathway.similarity_difference}% difference
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Format Defining Skills Content
+     */
+    formatDefiningSkillsContent(definingSkills) {
+        if (!definingSkills || !definingSkills.skills) {
+            return '<p class="text-gray-500">No defining skills data available</p>';
+        }
+
+        let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+        
+        definingSkills.skills.forEach(skill => {
+            html += `
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900">${skill.name}</h4>
+                        <span class="text-sm text-blue-600 font-medium">${skill.rarity_score}% rare</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">${skill.description || 'Core competency for role differentiation'}</p>
+                    <div class="flex items-center text-xs text-gray-500">
+                        <i class="fas fa-chart-bar mr-1"></i>
+                        <span>Market demand: ${skill.demand_level || 'High'}</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * Format Job Family Content
+     */
+    formatJobFamilyContent(jobFamily) {
+        if (!jobFamily) {
+            return '<p class="text-gray-500">No job family data available</p>';
+        }
+
+        return `
+            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <h4 class="font-semibold text-gray-900 mb-2">Family: ${jobFamily.family_name || 'Professional Services'}</h4>
+                <p class="text-sm text-gray-600 mb-3">${jobFamily.description || 'Related roles with similar skill requirements and career progression patterns.'}</p>
+                
+                <div class="space-y-2">
+                    <div class="flex items-center text-sm">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        <span class="font-medium">Family Size:</span>
+                        <span class="ml-1">${jobFamily.family_size || '12'} related roles</span>
+                    </div>
+                    <div class="flex items-center text-sm">
+                        <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                        <span class="font-medium">Avg Similarity:</span>
+                        <span class="ml-1">${jobFamily.avg_similarity || '78'}%</span>
+                    </div>
+                    <div class="flex items-center text-sm">
+                        <i class="fas fa-exchange-alt text-purple-600 mr-2"></i>
+                        <span class="font-medium">Transition Rate:</span>
+                        <span class="ml-1">${jobFamily.transition_rate || '23'}% annually</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Format Movement Patterns Content
+     */
+    formatMovementPatternsContent(movementPatterns) {
+        if (!movementPatterns || !movementPatterns.patterns) {
+            return '<p class="text-gray-500">No movement patterns data available</p>';
+        }
+
+        let html = '<div class="space-y-4">';
+        
+        movementPatterns.patterns.forEach((pattern, index) => {
+            html += `
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900">${pattern.pattern_name}</h4>
+                        <span class="text-sm text-green-600 font-medium">${pattern.frequency}% of transitions</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">${pattern.description}</p>
+                    <div class="flex items-center text-xs text-gray-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span>Avg timeframe: ${pattern.avg_timeframe || '18 months'}</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * Format Skills Rarity Content
+     */
+    formatSkillsRarityContent(skillsRarity) {
+        if (!skillsRarity || !skillsRarity.rare_skills) {
+            return '<p class="text-gray-500">No skills rarity data available</p>';
+        }
+
+        let html = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+        
+        skillsRarity.rare_skills.forEach(skill => {
+            const rarityLevel = skill.rarity_score >= 90 ? 'Extremely Rare' : 
+                               skill.rarity_score >= 70 ? 'Very Rare' : 
+                               skill.rarity_score >= 50 ? 'Moderately Rare' : 'Common';
+            
+            const rarityColor = skill.rarity_score >= 90 ? 'text-red-600' : 
+                               skill.rarity_score >= 70 ? 'text-orange-600' : 
+                               skill.rarity_score >= 50 ? 'text-yellow-600' : 'text-green-600';
+                               
+            html += `
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <h4 class="font-semibold text-gray-900 mb-1">${skill.name}</h4>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm ${rarityColor} font-medium">${rarityLevel}</span>
+                        <span class="text-sm text-gray-500">${skill.rarity_score}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div class="bg-amber-600 h-2 rounded-full" style="width: ${skill.rarity_score}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500">Market advantage potential</p>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * Format Transition Insights Content
+     */
+    formatTransitionInsightsContent(transitionInsights) {
+        if (!transitionInsights || !transitionInsights.insights) {
+            return '<p class="text-gray-500">No transition insights available</p>';
+        }
+
+        let html = '<div class="space-y-4">';
+        
+        transitionInsights.insights.forEach(insight => {
+            const priorityColor = insight.priority === 'high' ? 'text-red-600' : 
+                                 insight.priority === 'medium' ? 'text-yellow-600' : 'text-green-600';
+            
+            html += `
+                <div class="bg-white rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900">${insight.title}</h4>
+                        <span class="text-sm ${priorityColor} font-medium capitalize">${insight.priority} Priority</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">${insight.description}</p>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-sm font-medium text-gray-900 mb-1">Recommended Action:</p>
+                        <p class="text-sm text-gray-700">${insight.recommendation}</p>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        return html;
     },
 
     // Setup target job selector with multi-target support

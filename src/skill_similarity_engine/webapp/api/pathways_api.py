@@ -14,8 +14,12 @@ and visualization data for D3.js-based interactive charts.
 """
 
 from flask import Blueprint, request, jsonify, redirect, g
+import logging
 from ..sql import queries
 from ...utils.display import DisplayFormat
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Create blueprint for pathways API
 pathways_bp = Blueprint('pathways_api', __name__, url_prefix='/api')
@@ -31,7 +35,26 @@ def get_db():
 
 def get_display_manager():
     """Get display manager from Flask g object."""
-    return g.get('display_manager')
+    if 'display_manager' not in g:
+        try:
+            from ...utils.display import JobDisplayManager
+            db = get_db()
+            g.display_manager = JobDisplayManager(db)
+        except ImportError as e:
+            logger.warning(f"Could not import JobDisplayManager: {e}")
+            g.display_manager = None
+        except Exception as e:
+            logger.warning(f"Error creating JobDisplayManager: {e}")
+            g.display_manager = None
+    return g.display_manager
+
+def get_display_format():
+    """Get DisplayFormat enum if available."""
+    try:
+        from ...utils.display import DisplayFormat
+        return DisplayFormat
+    except ImportError:
+        return None
 
 def get_webapp_config():
     """Get webapp configuration manager."""
@@ -59,14 +82,7 @@ def api_career_pathways_distribution(job_id):
         # Get career pathways using organized SQL
         try:
             pathways_query = queries.get('career_pathways', 'get_career_pathways_distribution_for_api')
-            print(f"🔍 DEBUG: Query lookup result: {pathways_query is not None}")
-            if pathways_query:
-                print(f"🔍 DEBUG: Query length: {len(pathways_query)} characters")
-            else:
-                print(f"🔍 DEBUG: Available categories: {queries.list_categories()}")
-                print(f"🔍 DEBUG: Career pathways queries: {queries.list_queries_in_category('career_pathways')}")
         except Exception as e:
-            print(f"❌ DEBUG: Exception in query lookup: {e}")
             return jsonify({'error': f'Query lookup failed: {str(e)}'}), 500
         
         if not pathways_query:
@@ -75,39 +91,62 @@ def api_career_pathways_distribution(job_id):
         # Modify query based on similarity method (like in d3-tree-data endpoint)
         if similarity_method == 'literal':
             # Replace enhanced_similarity_score with similarity_score for literal comparison
-            pathways_query = pathways_query.replace('enhanced_similarity_score', 'similarity_score')
+            # But avoid duplicate columns in SELECT by using alias
+            pathways_query = pathways_query.replace(
+                'js.enhanced_similarity_score,', 
+                'js.similarity_score as enhanced_similarity_score,'
+            ).replace(
+                'js.enhanced_similarity_score >= ?', 
+                'js.similarity_score >= ?'
+            ).replace(
+                'js.enhanced_similarity_score IS NOT NULL', 
+                'js.similarity_score IS NOT NULL'
+            ).replace(
+                'ORDER BY js.enhanced_similarity_score DESC', 
+                'ORDER BY js.similarity_score DESC'
+            )
         
         # Execute with enhanced parameters
         try:
-            print(f"🔍 DEBUG: Executing query with params: job_id={job_id}, min_similarity={min_similarity}, limit={limit}")
-            print(f"🔍 DEBUG: Similarity method: {similarity_method}")
             pathways = db.execute(pathways_query, (job_id, min_similarity, limit)).fetchall()
-            print(f"🔍 DEBUG: Query executed successfully, got {len(pathways)} results")
         except Exception as e:
-            print(f"❌ DEBUG: SQL execution error: {e}")
             return jsonify({'error': f'SQL execution failed: {str(e)}'}), 500
         
         # Return enhanced data with job explorer parameters
-        display_manager = get_display_manager()
-        result = []
-        for pathway in pathways:
-            pathway_data = {
-                'similarity_score': round(pathway['similarity_score'], 3),
-                'enhanced_similarity_score': round(pathway['enhanced_similarity_score'], 3),
-                'job_title': pathway['job_title'],
-                'job_function': pathway['job_function'],
-                'job_id': pathway['job_id'] if 'job_id' in pathway.keys() else '',  # Include job_id for enhanced functionality
-                'job_profile_id': pathway['job_id'] if 'job_id' in pathway.keys() else pathway['job_title']  # Compatibility field
-            }
-            # Add standardised display names (use job_title as id source)
-            if display_manager:
-                # We need to find the job_id for this job_title to get display names
-                # For now, we'll add a simple display name that matches the job_title
-                pathway_data['display_name_standard'] = pathway['job_title']
-                pathway_data['display_name_search'] = pathway['job_title']
-                pathway_data['display_name_dropdown'] = pathway['job_title']
-                pathway_data['display_name_compact'] = pathway['job_title']
-            result.append(pathway_data)
+        try:
+            display_manager = get_display_manager()
+            DisplayFormat = get_display_format()
+            result = []
+            
+            for pathway in pathways:
+                pathway_data = {
+                    'similarity_score': round(pathway['similarity_score'], 3),
+                    'enhanced_similarity_score': round(pathway['enhanced_similarity_score'], 3),
+                    'job_title': pathway['job_title'],
+                    'job_function': pathway['job_function'],
+                    'job_id': pathway['job_id'] if 'job_id' in pathway.keys() else '',  # Include job_id for enhanced functionality
+                    'job_profile_id': pathway['job_id'] if 'job_id' in pathway.keys() else pathway['job_title']  # Compatibility field
+                }
+                
+                # Add standardised display names (use job_title as id source)
+                if display_manager:
+                    try:
+                        # We need to find the job_id for this job_title to get display names
+                        # For now, we'll add a simple display name that matches the job_title
+                        pathway_data['display_name_standard'] = pathway['job_title']
+                        pathway_data['display_name_search'] = pathway['job_title']
+                        pathway_data['display_name_dropdown'] = pathway['job_title']
+                    except Exception as e:
+                        # Use fallback display names
+                        pathway_data['display_name_standard'] = pathway['job_title']
+                        pathway_data['display_name_search'] = pathway['job_title']
+                        pathway_data['display_name_dropdown'] = pathway['job_title']
+                    pathway_data['display_name_compact'] = pathway['job_title']
+                
+                result.append(pathway_data)
+                    
+        except Exception as e:
+            return jsonify({'error': f'Error processing pathways: {str(e)}'}), 500
         
         return jsonify(result)
         
@@ -132,6 +171,7 @@ def api_career_pathway(start_job_id):
         
         # Add display names to pathway results
         display_manager = get_display_manager()
+        DisplayFormat = get_display_format()
         result = []
         
         for pathway in pathways:
@@ -149,11 +189,24 @@ def api_career_pathway(start_job_id):
                 'business_units': pathway['business_units']
             }
             # Add standardised display names using target_job_id
-            if display_manager:
-                pathway_data['target_display_name_standard'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
-                pathway_data['target_display_name_search'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.SEARCH)
-                pathway_data['target_display_name_dropdown'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.DROPDOWN)
-                pathway_data['target_display_name_compact'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.COMPACT)
+            if display_manager and DisplayFormat:
+                try:
+                    pathway_data['target_display_name_standard'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.STANDARD)
+                    pathway_data['target_display_name_search'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.SEARCH)
+                    pathway_data['target_display_name_dropdown'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.DROPDOWN)
+                    pathway_data['target_display_name_compact'] = display_manager.get_display_name(pathway['target_job_id'], DisplayFormat.COMPACT)
+                except Exception as e:
+                    # Use fallback display names
+                    pathway_data['target_display_name_standard'] = pathway['target_job_title']
+                    pathway_data['target_display_name_search'] = pathway['target_job_title']
+                    pathway_data['target_display_name_dropdown'] = pathway['target_job_title']
+                    pathway_data['target_display_name_compact'] = pathway['target_job_title']
+            else:
+                # Fallback when display manager or DisplayFormat not available
+                pathway_data['target_display_name_standard'] = pathway['target_job_title']
+                pathway_data['target_display_name_search'] = pathway['target_job_title']
+                pathway_data['target_display_name_dropdown'] = pathway['target_job_title']
+                pathway_data['target_display_name_compact'] = pathway['target_job_title']
             
             result.append(pathway_data)
         

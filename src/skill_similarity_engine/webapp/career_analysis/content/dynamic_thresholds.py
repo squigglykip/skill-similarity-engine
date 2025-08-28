@@ -40,7 +40,7 @@ class DynamicSimilarityThresholds:
             # Get all similarity scores
             query = """
             SELECT similarity_score 
-            FROM job_similarities 
+            FROM analytics_job_similarities 
             WHERE similarity_score > 0.0 AND similarity_score < 1.0
             ORDER BY similarity_score
             """
@@ -247,11 +247,11 @@ class AdaptiveContentSelector:
             # Get source job context
             source_query = """
             SELECT j.JobProfile, j.Job, j.JobFunction, j.JobCategory, j.ManagementLevel,
-                   COUNT(p."Position Number") as position_count,
-                   GROUP_CONCAT(DISTINCT p.Division) as divisions,
+                   COUNT(p.position_number) as position_count,
+                   GROUP_CONCAT(DISTINCT p.ORG_UNIT_NAME_2) as divisions,
                    GROUP_CONCAT(DISTINCT p.Location) as locations
-            FROM jobs j
-            LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+            FROM core_job_architecture j
+            LEFT JOIN core_workforce_current p ON j.JobProfileID = p.JobProfileID
             WHERE j.JobProfileID = ?
             GROUP BY j.JobProfileID, j.JobProfile, j.Job, j.JobFunction, j.JobCategory, j.ManagementLevel
             """

@@ -368,6 +368,15 @@ SkillEngine.TreeVisualization = {
         
         // Store tree data
         this.state.treeData = treeData;
+        console.log('🌳 TreeVisualization: treeData set, updating export button state...');
+        
+        // Update export button state after tree data is set
+        if (window.SkillEngine?.CareerPathwaysExportController) {
+            SkillEngine.CareerPathwaysExportController.updateExportButtonState();
+            console.log('✅ TreeVisualization: Export button state updated');
+        } else {
+            console.warn('⚠️ TreeVisualization: CareerPathwaysExportController not available');
+        }
         
         // Clear existing tree
         const container = d3.select('#tree-container');

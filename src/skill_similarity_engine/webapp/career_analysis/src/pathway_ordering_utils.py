@@ -26,7 +26,8 @@ class PathwayOrderingManager:
         self.display_manager = JobDisplayManager(db_connection) if JobDisplayManager else None
         
     def get_top_pathways_ordered(self, job_from: str, limit: int = 3, executive_refs: bool = True, 
-                                tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None) -> List[Dict]:
+                                tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None, 
+                                primary_algorithm: str = 'enhanced') -> List[Dict]:
         """
         Get top similarity pathways with consistent ordering for all Career Transition Analysis sections.
         
@@ -43,14 +44,22 @@ class PathwayOrderingManager:
             # Apply similarity range filtering if provided
             similarity_min, similarity_max = similarity_range if similarity_range else (0.0, 0.99)
             
-            # Build dynamic ORDER BY clause based on user preferences
-            order_clause = self._build_order_clause(job_from, tie_breaking_options or {})
+            # Build dynamic ORDER BY clause based on user preferences and algorithm selection
+            order_clause = self._build_order_clause(job_from, tie_breaking_options or {}, primary_algorithm)
             
-            # Build enhanced query with tie-breaking support and similarity range filtering
+            # Build enhanced query with tie-breaking support, dual similarity scores, and V2 analytics
             query = f"""
             SELECT 
                 js.job_to,
                 js.similarity_score,
+                js.enhanced_similarity_score,
+                js.rarity_weighted_score,
+                js.shared_defining_skills_count,
+                js.defining_skill_boost,
+                js.shared_skills_count,
+                js.total_skills_from,
+                js.total_skills_to,
+                js.skill_overlap_percentage,
                 j.JobProfile as target_job_title,
                 j.JobFunction as target_job_function,
                 j.ManagementLevel as target_management_level,
@@ -65,13 +74,14 @@ class PathwayOrderingManager:
                 END as career_progression_priority,
                 ABS(CAST(SUBSTR(j.ManagementLevel, -1) AS INTEGER) - CAST(SUBSTR(source_j.ManagementLevel, -1) AS INTEGER)) as level_jump_distance,
                 ROW_NUMBER() OVER ({order_clause}) as rank
-            FROM job_similarities js
-            JOIN jobs j ON js.job_to = j.JobProfileID
-            JOIN jobs source_j ON js.job_from = source_j.JobProfileID
+            FROM analytics_job_similarities js
+            JOIN core_job_architecture j ON js.job_to = j.JobProfileID
+            JOIN core_job_architecture source_j ON js.job_from = source_j.JobProfileID
             WHERE js.job_from = ?
-              AND js.similarity_score >= ?  -- Apply similarity minimum from slider
-              AND js.similarity_score <= ?  -- Apply similarity maximum from slider
-              AND js.similarity_score < 1.0  -- Exclude 100% matches
+              AND {self._get_similarity_filter_column(primary_algorithm)} >= ?  -- Apply similarity minimum from slider
+              AND {self._get_similarity_filter_column(primary_algorithm)} <= ?  -- Apply similarity maximum from slider
+              AND js.job_from != js.job_to  -- Exclude self-matches only
+              AND js.enhanced_similarity_score IS NOT NULL  -- V2 analytics validation
             {order_clause}
             LIMIT ?
             """
@@ -83,28 +93,44 @@ class PathwayOrderingManager:
             for result in results:
                 pathway = {
                     'target_job_id': result[0],
-                    'similarity_score': round(result[1] * 100, 1),  # Convert to percentage
-                    'target_job_title': result[2],
-                    'target_job_function': result[3],
-                    'target_management_level': result[4],
-                    'source_job_function': result[5],
-                    'source_management_level': result[6],
-                    'rank': result[10],
+                    'similarity_score': round(result[1] * 100, 1),  # Basic similarity percentage
+                    'enhanced_similarity_score': round(result[2] * 100, 1),  # V2 enhanced similarity percentage
+                    'rarity_weighted_score': round(result[3] * 100, 1) if result[3] else 0,
+                    'shared_defining_skills_count': result[4] or 0,
+                    'defining_skill_boost': round(result[5] * 100, 1) if result[5] else 0,
+                    'shared_skills_count': result[6] or 0,
+                    'total_skills_from': result[7] or 0,
+                    'total_skills_to': result[8] or 0,
+                    'skill_overlap_percentage': result[9] or 0,
+                    'target_job_title': result[10],
+                    'target_job_function': result[11],
+                    'target_management_level': result[12],
+                    'source_job_function': result[13],
+                    'source_management_level': result[14],
+                    'rank': result[18],
                     # Add tie-breaking transparency data
-                    'function_match': result[7] == 0,
-                    'career_progression_score': result[8],
-                    'level_jump_distance': result[9],
+                    'function_match': result[15] == 0,
+                    'career_progression_score': result[16],
+                    'level_jump_distance': result[17],
+                    # V2 Analytics Insights
+                    'v2_insights': {
+                        'similarity_method': 'dual_score_v2',
+                        'basic_vs_enhanced_ratio': round((result[1] / max(result[2], 0.001)), 2),
+                        'defining_skills_impact': result[5] or 0,
+                        'rarity_advantage': 'High' if result[3] and result[3] > 0.7 else 'Medium' if result[3] and result[3] > 0.4 else 'Standard',
+                        'strategic_value': self._calculate_strategic_value(result[2], result[4], result[3])
+                    }
                 }
                 
                 # Add consistent reference numbering based on section
                 if executive_refs:
                     # Executive Summary references: 5, 7, 9
-                    pathway['similarity_ref'] = str(4 + result[10])  # References 5, 7, 9
-                    pathway['move_type_ref'] = str(5 + result[10])   # References 6, 8, 10
+                    pathway['similarity_ref'] = str(4 + result[18])  # References 5, 7, 9
+                    pathway['move_type_ref'] = str(5 + result[18])   # References 6, 8, 10
                 else:
                     # Pathway Analysis references: 57, 58, 59
-                    pathway['similarity_ref'] = str(56 + result[10])  # References 57, 58, 59
-                    pathway['move_type_ref'] = str(58 + result[10])   # References 59, 60, 61
+                    pathway['similarity_ref'] = str(56 + result[18])  # References 57, 58, 59
+                    pathway['move_type_ref'] = str(58 + result[18])   # References 59, 60, 61
                 
                 # Add logical role display name using centralized display manager
                 if self.display_manager and DisplayFormat:
@@ -130,10 +156,12 @@ class PathwayOrderingManager:
             # Fallback to standard ordering
             return self._get_fallback_pathways(job_from, limit, executive_refs)
 
-    def _build_order_clause(self, job_from: str, tie_breaking_options: Dict) -> str:
-        """Build dynamic ORDER BY clause based on user preferences."""
+    def _build_order_clause(self, job_from: str, tie_breaking_options: Dict, primary_algorithm: str = 'enhanced') -> str:
+        """Build dynamic ORDER BY clause based on user preferences and algorithm selection."""
         
-        order_parts = ["js.similarity_score DESC"]  # Always primary sort
+        # Choose primary sort column based on algorithm selection
+        primary_sort = "js.enhanced_similarity_score DESC" if primary_algorithm == 'enhanced' else "js.similarity_score DESC"
+        order_parts = [primary_sort]
         
         # Add user-selected tie-breaking criteria in priority order
         if tie_breaking_options.get('same_function_priority'):
@@ -149,6 +177,10 @@ class PathwayOrderingManager:
         order_parts.append("js.job_to ASC")
         
         return "ORDER BY " + ", ".join(order_parts)
+    
+    def _get_similarity_filter_column(self, primary_algorithm: str) -> str:
+        """Get the appropriate similarity column for filtering based on algorithm selection."""
+        return "js.enhanced_similarity_score" if primary_algorithm == 'enhanced' else "js.similarity_score"
 
     def _generate_tie_breaking_explanation(self, pathway: Dict, tie_breaking_options: Dict) -> str:
         """Generate explanation of why this pathway was ranked at its position."""
@@ -183,10 +215,10 @@ class PathwayOrderingManager:
                 j.JobFunction as target_job_function,
                 j.ManagementLevel as target_management_level,
                 ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC, js.job_to ASC) as rank
-            FROM job_similarities js
-            JOIN jobs j ON js.job_to = j.JobProfileID
+            FROM analytics_job_similarities js
+            JOIN core_job_architecture j ON js.job_to = j.JobProfileID
             WHERE js.job_from = ?
-              AND js.similarity_score < 1.0  -- Exclude 100% matches
+              AND js.job_from != js.job_to  -- Exclude self-matches only
             ORDER BY js.similarity_score DESC, js.job_to ASC  -- Secondary sort for deterministic ordering
             LIMIT ?
             """
@@ -261,8 +293,8 @@ class PathwayOrderingManager:
                 j.JobFunction as target_job_function,
                 j.ManagementLevel as target_management_level,
                 ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC, js.job_to ASC) as rank
-            FROM job_similarities js
-            JOIN jobs j ON js.job_to = j.JobProfileID
+            FROM analytics_job_similarities js
+            JOIN core_job_architecture j ON js.job_to = j.JobProfileID
             WHERE js.job_from = ?
               AND js.job_to IN ({placeholders})
             ORDER BY js.similarity_score DESC, js.job_to ASC  -- Consistent deterministic ordering
@@ -319,7 +351,7 @@ class PathwayOrderingManager:
             # Get source job details
             source_query = """
             SELECT JobProfile, ManagementLevel, JobFunction 
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             source_result = self.db.execute(source_query, (job_from,)).fetchone()
@@ -422,9 +454,35 @@ class PathwayOrderingManager:
         except:
             return 1
 
+    def _calculate_strategic_value(self, enhanced_similarity_score: float, 
+                                  shared_defining_skills_count: int, 
+                                  rarity_weighted_score: float) -> str:
+        """Calculate strategic value assessment based on V2 analytics."""
+        try:
+            # Normalize scores for calculation
+            enhanced_score = enhanced_similarity_score or 0
+            defining_skills = shared_defining_skills_count or 0
+            rarity_score = rarity_weighted_score or 0
+            
+            # Strategic value algorithm
+            strategic_score = (enhanced_score * 0.4) + (min(defining_skills / 5, 1) * 0.3) + (rarity_score * 0.3)
+            
+            if strategic_score >= 0.7:
+                return 'Exceptional'
+            elif strategic_score >= 0.5:
+                return 'High'
+            elif strategic_score >= 0.3:
+                return 'Moderate'
+            else:
+                return 'Developing'
+                
+        except Exception:
+            return 'Standard'
+
 # Convenience function for easy imports
 def get_consistent_pathways(db_connection, job_from: str, limit: int = 3, executive_refs: bool = True, 
-                          tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None) -> List[Dict]:
+                          tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None,
+                          primary_algorithm: str = 'enhanced') -> List[Dict]:
     """
     Convenience function to get consistently ordered pathways.
     
@@ -439,7 +497,7 @@ def get_consistent_pathways(db_connection, job_from: str, limit: int = 3, execut
         List of consistently ordered pathway dictionaries
     """
     manager = PathwayOrderingManager(db_connection)
-    return manager.get_top_pathways_ordered(job_from, limit, executive_refs, tie_breaking_options, similarity_range)
+    return manager.get_top_pathways_ordered(job_from, limit, executive_refs, tie_breaking_options, similarity_range, primary_algorithm)
 
 def get_specific_job_pathways(db_connection, job_from: str, target_job_list: List[str], executive_refs: bool = True) -> List[Dict]:
     """

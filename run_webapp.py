@@ -11,50 +11,184 @@ from pathlib import Path
 import importlib.util
 
 def check_and_install_requirements():
-    """Check and install all required packages from requirements.txt or fallback list."""
+    """Check and install all required packages from requirements.txt with enhanced feedback."""
     print("📦 Checking and installing required packages...")
+    print("   ⏳ This may take a few moments...")
+    print()
     
-    # Try to install from requirements.txt first
     requirements_file = Path(__file__).parent / 'requirements.txt'
     
-    if requirements_file.exists():
-        print("   📋 Found requirements.txt - installing packages...")
-        try:
-            result = subprocess.run([
-                sys.executable, '-m', 'pip', 'install', '-q', '-r', str(requirements_file)
-            ], capture_output=True, text=True, check=True)
-            print("   ✅ Successfully installed packages from requirements.txt")
+    if not requirements_file.exists():
+        print("   ❌ requirements.txt not found!")
+        print("   💡 Falling back to basic package installation...")
+        return install_essential_packages()
+    
+    # Install core requirements first
+    print("   📋 Installing core dependencies from requirements.txt...")
+    try:
+        # Install main requirements (excluding commented optional ones)
+        result = subprocess.run([
+            sys.executable, '-m', 'pip', 'install', '-q', '-r', str(requirements_file),
+            '--disable-pip-version-check'
+        ], capture_output=True, text=True, timeout=300)  # 5 minute timeout
+        
+        if result.returncode == 0:
+            print("   ✅ Core dependencies installed successfully")
+            install_optional_packages()
             return True
-        except subprocess.CalledProcessError as e:
-            print(f"   ⚠️  Some packages from requirements.txt failed to install")
-            print(f"   ⚠️  Error: {e.stderr.strip() if e.stderr else 'Unknown error'}")
-            print("   🔄 Falling back to basic package installation...")
-    else:
-        print("   📄 No requirements.txt found - installing basic packages...")
+        else:
+            print("   ⚠️  Some core packages failed to install")
+            if result.stderr:
+                # Show only the most relevant error info
+                error_lines = result.stderr.strip().split('\n')
+                relevant_errors = [line for line in error_lines if 'ERROR' in line or 'Failed' in line]
+                if relevant_errors:
+                    print(f"   ⚠️  Key errors: {relevant_errors[-1][:100]}...")
+            print("   🔄 Trying essential packages individually...")
+            return install_essential_packages()
+            
+    except subprocess.TimeoutExpired:
+        print("   ⚠️  Installation timeout - trying essential packages only...")
+        return install_essential_packages()
+    except subprocess.CalledProcessError as e:
+        print(f"   ⚠️  Installation error - trying essential packages only...")
+        return install_essential_packages()
+
+def install_essential_packages():
+    """Install only the most critical packages needed for webapp functionality."""
+    print("   📦 Installing essential packages individually...")
     
-    # Fallback: install essential packages individually
-    essential_packages = ['flask', 'pandas', 'numpy']
+    # Core packages needed for basic webapp functionality
+    essential_packages = [
+        ('flask', 'Flask web framework'),
+        ('jinja2', 'Template engine'), 
+        ('pandas', 'Data processing'),
+        ('numpy', 'Numerical computing'),
+        ('pyyaml', 'Configuration files'),
+        ('requests', 'HTTP requests')
+    ]
+    
     failed_packages = []
+    success_count = 0
     
-    for package in essential_packages:
+    for package, description in essential_packages:
         try:
-            print(f"   📦 Installing {package}...")
+            print(f"   📦 Installing {package} ({description})...")
             subprocess.run([
-                sys.executable, '-m', 'pip', 'install', '-q', package
-            ], capture_output=True, text=True, check=True)
-            print(f"   ✅ {package} installed successfully")
-        except subprocess.CalledProcessError as e:
+                sys.executable, '-m', 'pip', 'install', '-q', package,
+                '--disable-pip-version-check'
+            ], capture_output=True, text=True, check=True, timeout=60)
+            print(f"   ✅ {package} installed")
+            success_count += 1
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             print(f"   ❌ Failed to install {package}")
             failed_packages.append(package)
     
+    print()
+    print(f"   📊 Installation Summary: {success_count}/{len(essential_packages)} essential packages installed")
+    
     if failed_packages:
-        print(f"   ⚠️  Failed to install: {', '.join(failed_packages)}")
+        print(f"   ⚠️  Failed packages: {', '.join(failed_packages)}")
         print("   💡 The webapp may still work with existing packages")
-        print("   💡 You can try installing manually: pip install " + " ".join(failed_packages))
-        return False
+        print("   💡 Manual installation: pip install " + " ".join(failed_packages))
+        return success_count >= 4  # Need at least Flask, Jinja2, pandas, numpy
     else:
-        print("   ✅ All essential packages are installed")
+        print("   ✅ All essential packages installed successfully")
+        install_optional_packages()
         return True
+
+def install_optional_packages():
+    """Install optional packages that enhance functionality but aren't critical."""
+    print("   🔧 Installing optional enhancement packages...")
+    
+    # Windows-optimized optional packages (no system library dependencies)
+    optional_packages = [
+        ('reportlab', 'PDF generation (Windows-optimized)'),
+        ('beautifulsoup4', 'HTML parsing for documents'),
+        ('scikit-learn', 'Machine learning features'),
+        ('matplotlib', 'Data visualisation'),
+        ('seaborn', 'Statistical plotting'),
+        ('xlsxwriter', 'Excel file generation'),
+        ('joblib', 'Machine learning model persistence'),
+        ('xgboost', 'Advanced gradient boosting'),
+        ('optuna', 'Hyperparameter optimization'),
+        ('networkx', 'Network analysis'),
+        ('community', 'Community detection algorithms'),
+        ('html2docx', 'HTML to Word conversion'),
+        ('mammoth', 'Document conversion utilities')
+    ]
+    
+    installed_optional = []
+    
+    # Install Windows-optimized optional packages
+    for package, description in optional_packages:
+        try:
+            subprocess.run([
+                sys.executable, '-m', 'pip', 'install', '-q', package,
+                '--disable-pip-version-check'
+            ], capture_output=True, text=True, check=True, timeout=60)
+            installed_optional.append(package)
+            print(f"   ✅ {package} installed ({description})")
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            print(f"   ⚠️  Optional package {package} skipped ({description})")
+    
+    # Windows-specific note about PDF generation
+    print("   📝 Windows PDF Generation: Using reportlab (reliable, no system dependencies)")
+    print("        Advanced PDF features available through reportlab library")
+    
+    if installed_optional:
+        print(f"   🎉 {len(installed_optional)} optional enhancements installed")
+    print()
+
+def check_optional_features():
+    """Check which optional features are available and inform the user (Windows-optimized)."""
+    print("🔍 Checking available Windows-compatible features...")
+    
+    # Windows-friendly features only
+    features = {
+        'PDF Generation': 'reportlab',
+        'Document Processing': 'bs4',  # beautifulsoup4 imports as bs4
+        'Advanced Analytics': 'sklearn',  # scikit-learn imports as sklearn
+        'Data Visualisation': 'matplotlib',
+        'Statistical Plotting': 'seaborn',
+        'Excel Generation': 'xlsxwriter',
+        'YAML Processing': 'yaml',  # PyYAML imports as yaml
+        'Data Processing': 'pandas',
+        'Numerical Computing': 'numpy',
+        'Machine Learning Models': 'joblib',
+        'Gradient Boosting': 'xgboost',
+        'Hyperparameter Tuning': 'optuna',
+        'Network Analysis': 'networkx',
+        'Community Detection': 'community',
+        'HTML to Word': 'html2docx',
+        'Document Conversion': 'mammoth'
+    }
+    
+    available_features = []
+    missing_features = []
+    
+    for feature, package in features.items():
+        try:
+            __import__(package.replace('-', '_'))
+            available_features.append(feature)
+        except ImportError:
+            missing_features.append((feature, package))
+    
+    print(f"   ✅ Available features: {len(available_features)}")
+    for feature in available_features:
+        print(f"      ✓ {feature}")
+    
+    if missing_features:
+        print(f"   ⚠️  Missing features: {len(missing_features)} (install to enable)")
+        for feature, package in missing_features:
+            print(f"      • {feature} (pip install {package})")
+    
+    # Windows-specific notes
+    print("   📝 Windows Notes:")
+    print("      • PDF generation uses reportlab (no system dependencies)")
+    print("      • All selected packages are Windows-compatible")
+    print("      • weasyprint skipped (requires GTK+ system libraries)")
+    print()
 
 def print_welcome_banner():
     """Print a professional welcome banner."""
@@ -115,10 +249,31 @@ if __name__ == '__main__':
     
     # Check and install requirements
     print("🔍 Setting up system requirements...")
-    if not check_and_install_requirements():
-        print("❌ Setup incomplete. Some packages may be missing.")
-        print("💡 The webapp may still work - proceeding with caution...")
+    print("   💡 First-time setup may take 2-3 minutes")
+    print("   💡 Subsequent startups will be much faster")
     print()
+    
+    setup_success = check_and_install_requirements()
+    
+    if not setup_success:
+        print("❌ Setup incomplete. Some packages may be missing.")
+        print("💡 The webapp may still work with basic functionality")
+        print("💡 For full features, manually install missing packages")
+        print()
+        # Give user option to continue or exit
+        try:
+            response = input("Continue with limited functionality? (y/n): ").lower().strip()
+            if response != 'y' and response != 'yes':
+                print("Setup cancelled by user.")
+                sys.exit(0)
+        except KeyboardInterrupt:
+            print("\nSetup cancelled by user.")
+            sys.exit(0)
+    else:
+        print("✅ System requirements setup complete!")
+    
+    # Check and report available Windows-compatible features
+    check_optional_features()
     
     # Create Flask app
     try:
@@ -177,32 +332,41 @@ if __name__ == '__main__':
     print("🟢 Server is now running! You can use the webapp in your browser.")
     print("📌 Keep this window open and minimized if needed.")
     
-    # Windows-specific information about reloading
-    if os.name == 'nt':
-        print("ℹ️  Windows Mode: Auto-reload disabled to prevent socket errors")
-        print("   🔄 To see code changes: Stop (Ctrl+C) and restart this script")
-    else:
-        print("🔄 Auto-reload enabled: Code changes will restart the server automatically")
+    # Information about the clean operation mode
+    print("🌍 Production Mode: Clean console output enabled")
+    print("   ℹ️  Only important messages will be shown during operation")
+    print("   🔄 To see code changes: Stop (Ctrl+C) and restart this script")
+    print("   📊 Server requests will not be logged to keep console clean")
     print()
+    
+    # Configure logging to reduce verbosity during operation
+    import logging
+    
+    # Reduce Flask's default logging verbosity
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    
+    # Set up clean logging for our app
+    app_logger = logging.getLogger('skill_similarity_engine')
+    app_logger.setLevel(logging.INFO)
     
     try:
         # Run the development server with Windows-compatible configuration
         if os.name == 'nt':  # Windows
             # Use more stable configuration for Windows
             app.run(
-                debug=True,           # Enable debug mode for development
+                debug=False,          # Disable debug mode to reduce console output
                 port=5000,
                 host='127.0.0.1',     # Use 127.0.0.1 for Windows compatibility
                 use_reloader=False,   # Disable reloader on Windows to prevent socket errors
                 threaded=True         # Enable threading for better performance
             )
         else:  # Unix/Linux/Mac
-            # Use full-featured configuration for Unix systems
+            # Use production-like configuration for cleaner output
             app.run(
-                debug=True,
+                debug=False,          # Disable debug mode to reduce console output
                 port=5000,
                 host='127.0.0.1',
-                use_reloader=True,
+                use_reloader=False,   # Disable auto-reload for cleaner experience
                 threaded=True
             )
     except KeyboardInterrupt:

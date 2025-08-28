@@ -3,6 +3,30 @@
    NAB-inspired professional theme with Tailwind CSS
    ================================================================= */
 
+/* CSS Reset for Browser Defaults */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100%;
+}
+
+/* Ensure navigation is flush with top */
+nav:first-child {
+    margin-top: 0 !important;
+}
+
+/* Remove any default spacing from first elements */
+body > nav:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
 /* Additional custom styles that complement Tailwind */
 
 /* =================================================================

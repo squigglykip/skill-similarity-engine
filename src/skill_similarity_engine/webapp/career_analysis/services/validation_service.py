@@ -81,6 +81,14 @@ class ValidationService:
             tie_breaking_options = self._validate_tie_breaking_options(form_data.get('tie_breaking_options', {}))
             cleaned_data['tie_breaking_options'] = tie_breaking_options
             
+            # Validate V2 Analytics preferences
+            v2_analytics = self._validate_v2_analytics(form_data.get('v2_analytics', {}))
+            cleaned_data['v2_analytics'] = v2_analytics
+            
+            # Validate primary algorithm selection
+            primary_algorithm = self._validate_primary_algorithm(form_data.get('primary_algorithm', 'enhanced'))
+            cleaned_data['primary_algorithm'] = primary_algorithm
+            
             is_valid = len(errors) == 0
             
             if is_valid:
@@ -222,7 +230,7 @@ class ValidationService:
         """Check if job ID exists in the database using correct table name."""
         try:
             cursor = self.db.execute(
-                "SELECT COUNT(*) as count FROM jobs WHERE JobProfileID = ?",
+                "SELECT COUNT(*) as count FROM core_job_architecture WHERE JobProfileID = ?",
                 (job_id,)
             )
             result = cursor.fetchone()
@@ -236,7 +244,7 @@ class ValidationService:
         try:
             cursor = self.db.execute("""
                 SELECT JobProfileID, JobProfile 
-                FROM jobs 
+                FROM core_job_architecture 
                 ORDER BY JobProfile 
                 LIMIT ?
             """, (limit,))
@@ -247,4 +255,34 @@ class ValidationService:
             ]
         except Exception as e:
             logger.error(f"Error fetching available jobs: {str(e)}")
-            return [] 
+            return []
+    
+    def _validate_v2_analytics(self, v2_analytics: Any) -> Dict[str, bool]:
+        """Validate V2 analytics preferences."""
+        if not isinstance(v2_analytics, dict):
+            return {}
+        
+        # Valid V2 analytics options
+        valid_options = {
+            'defining_skills',
+            'job_family_context', 
+            'movement_patterns',
+            'skills_rarity',
+            'transition_insights',
+            'dual_similarity_analysis'
+        }
+        
+        validated = {}
+        for key, value in v2_analytics.items():
+            if key in valid_options:
+                validated[key] = bool(value)
+        
+        return validated
+    
+    def _validate_primary_algorithm(self, primary_algorithm: Any) -> str:
+        """Validate primary algorithm selection."""
+        if not isinstance(primary_algorithm, str):
+            return 'enhanced'  # Default
+        
+        valid_algorithms = {'enhanced', 'literal'}
+        return primary_algorithm if primary_algorithm in valid_algorithms else 'enhanced' 

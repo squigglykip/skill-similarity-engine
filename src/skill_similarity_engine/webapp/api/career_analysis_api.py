@@ -79,28 +79,46 @@ def api_career_analysis_preview():
 
 @career_analysis_bp.route('/career-analysis-document', methods=['POST'])
 def api_career_analysis_document():
-    """Generate a downloadable document using simplified HTML-to-Word pipeline."""
+    """Generate a downloadable document using simplified HTML-to-PDF/Word pipeline."""
     try:
-        print("Document generation temporarily disabled during V2 migration...")
+        print("Generating document using simplified HTML-to-PDF/Word pipeline...")
         
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
-        output_format = data.get('output_format', 'word')
+        output_format = data.get('output_format', 'pdf')
         job_from = data.get('job_from', 'Unknown')
         
         print(f"Document generation request received for {job_from} (format: {output_format})")
         
-        # TODO: Implement simplified HTML-to-Word pipeline in Phase 3
-        # This will use html2docx to convert the HTML preview directly to Word
-        return jsonify({
-            'success': False,
-            'error': 'Document generation temporarily disabled during V2 migration. Will be restored with simplified HTML-to-Word pipeline.',
-            'status': 'coming_soon',
-            'planned_implementation': 'Phase 3: Simplified Document Generation',
-            'alternative': 'Use HTML preview for now - document export will return soon!'
-        }), 501  # Not Implemented
+        # Import the simplified document service
+        from ..career_analysis.services.simplified_document_service import SimplifiedDocumentService
+        
+        db = get_db()
+        
+        # Generate document using simplified service
+        document_service = SimplifiedDocumentService(db)
+        success, result = document_service.generate_document(data, output_format)
+        
+        if success:
+            # Return the document as a file download
+            from flask import make_response
+            
+            response = make_response(result['content'])
+            response.headers['Content-Type'] = result['content_type']
+            response.headers['Content-Disposition'] = f'attachment; filename="{result["filename"]}"'
+            response.headers['Content-Length'] = len(result['content'])
+            
+            print(f"Successfully generated {result['format']} document: {result['filename']}")
+            return response
+        else:
+            logger.error(f"Document generation failed: {result.get('error', 'Unknown error')}")
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Document generation failed'),
+                'details': result.get('details', '')
+            }), 500
             
     except Exception as e:
         logger.error(f"Unexpected error in document endpoint: {str(e)}", exc_info=True)
@@ -117,6 +135,8 @@ def api_career_analysis_jobs():
         
         # Get all jobs for career analysis selection
         jobs_query = queries.get('jobs', 'get_all_jobs_for_selection')
+        if not jobs_query:
+            raise ValueError("Query 'get_all_jobs_for_selection' not found")
         jobs = db.execute(jobs_query).fetchall()
         
         # Format for dropdown consumption
@@ -141,4 +161,72 @@ def api_career_analysis_jobs():
             'success': False,
             'error': str(e),
             'jobs': []
+        }), 500
+
+
+@career_analysis_bp.route('/career-analysis-html-to-document', methods=['POST'])
+def generate_document_from_html():
+    """
+    Generate Word/PDF document from frontend HTML capture.
+    
+    This endpoint takes the rendered HTML from the frontend preview
+    and converts it directly to Word/PDF format, ensuring 100% consistency
+    between what users see and what they download.
+    
+    Expected payload:
+    {
+        "html": "<div>...rendered preview content...</div>",
+        "format": "pdf" | "word",
+        "metadata": {
+            "job_from": "R0041.4",
+            "analysis_mode": "top_matches",
+            "generated_date": "2024-01-15"
+        }
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        html_content = data.get('html', '')
+        output_format = data.get('format', 'pdf')
+        metadata = data.get('metadata', {})
+        
+        if not html_content:
+            return jsonify({'success': False, 'error': 'No HTML content provided'}), 400
+        
+        print(f"HTML-to-document request: format={output_format}, metadata={metadata}")
+        
+        # Import the HTML document service
+        from ..career_analysis.services.html_document_service import HTMLDocumentService
+        
+        # Generate document using HTML capture
+        html_document_service = HTMLDocumentService()
+        success, result = html_document_service.generate_document_from_html(
+            html_content, output_format, metadata
+        )
+        
+        if success:
+            # Return the document as a file download
+            from flask import make_response
+            
+            response = make_response(result['content'])
+            response.headers['Content-Type'] = result['content_type']
+            response.headers['Content-Disposition'] = f'attachment; filename="{result["filename"]}"'
+            
+            print(f"Successfully generated {result['format']} document: {result['filename']}")
+            return response
+        else:
+            print(f"Document generation failed: {result.get('error', 'Unknown error')}")
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Document generation failed')
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error in HTML-to-document generation: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'HTML document generation failed: {str(e)}'
         }), 500 

@@ -12,11 +12,8 @@ sql_path = Path(__file__).parent.parent / 'sql'
 if str(sql_path) not in sys.path:
     sys.path.append(str(sql_path))
 
-try:
-    from sql import queries
-except ImportError:
-    # Fallback if SQL module not available
-    queries = None
+# SQL queries are embedded directly to avoid import issues
+queries = None
 
 class DataAnalyzer:
     """Analyzes job transition data for Career Transition Analysis Generator."""
@@ -181,7 +178,7 @@ class DataAnalyzer:
                         # Check division filter
                         if filters.get('division_to'):
                             division_check = self.db.execute(
-                                "SELECT 1 FROM positions WHERE JobProfileID = ? AND Division = ?",
+                                "SELECT 1 FROM core_workforce_current WHERE JobProfileID = ? AND Division = ?",
                                 (result['id'], filters['division_to'])
                             ).fetchone()
                             if not division_check:
@@ -190,7 +187,7 @@ class DataAnalyzer:
                         # Check management level filter
                         if filters.get('management_level'):
                             level_check = self.db.execute(
-                                "SELECT 1 FROM jobs WHERE JobProfileID = ? AND ManagementLevel LIKE ?",
+                                "SELECT 1 FROM core_job_architecture WHERE JobProfileID = ? AND ManagementLevel LIKE ?",
                                 (result['id'], f"%{filters['management_level']}%")
                             ).fetchone()
                             if not level_check:
@@ -220,8 +217,8 @@ class DataAnalyzer:
             j.JobProfile as job_title,
             j.JobFunction as job_function,
             js.similarity_score
-        FROM job_similarities js
-        JOIN jobs j ON js.job_to = j.JobProfileID
+        FROM analytics_job_similarities js
+        JOIN core_job_architecture j ON js.job_to = j.JobProfileID
         WHERE js.job_from = ?
           AND js.similarity_score BETWEEN ? AND ?
         """
@@ -230,7 +227,7 @@ class DataAnalyzer:
         
         if filters:
             if filters.get('division_to'):
-                base_query += " AND EXISTS (SELECT 1 FROM positions p WHERE p.JobProfileID = j.JobProfileID AND p.Division = ?)"
+                base_query += " AND EXISTS (SELECT 1 FROM core_workforce_current p WHERE p.JobProfileID = j.JobProfileID AND p.ORG_UNIT_NAME_2 = ?)"
                 params.append(filters['division_to'])
             
             if filters.get('management_level'):
@@ -287,22 +284,22 @@ class DataAnalyzer:
         # Get shared skills
         shared_skills_query = """
         SELECT COUNT(*) as shared_count
-        FROM job_skills js1
-        JOIN job_skills js2 ON js1.Skill_ID = js2.Skill_ID
+        FROM core_job_skill_requirements js1
+        JOIN core_job_skill_requirements js2 ON js1.Skill_ID = js2.Skill_ID
         WHERE js1.JobProfileID = ? AND js2.JobProfileID = ?
         """
         
         # Get skills needed for target job
         target_skills_query = """
         SELECT COUNT(*) as target_skills_count
-        FROM job_skills
+        FROM core_job_skill_requirements
         WHERE JobProfileID = ?
         """
         
         # Get skills from source job
         source_skills_query = """
         SELECT COUNT(*) as source_skills_count
-        FROM job_skills
+        FROM core_job_skill_requirements
         WHERE JobProfileID = ?
         """
         
@@ -343,8 +340,8 @@ class DataAnalyzer:
                         j.JobFunction as job_function,
                         j.JobFunctionID as job_function_id,
                         COUNT(p.JobProfileID) as total_positions
-                    FROM jobs j
-                    LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+                    FROM core_job_architecture j
+                    LEFT JOIN core_workforce_current p ON j.JobProfileID = p.JobProfileID
                     WHERE j.JobProfileID = ?
                     GROUP BY j.JobProfileID, j.JobProfile, j.JobFunction, j.JobFunctionID
                 """, (job_from,)).fetchone()
@@ -353,7 +350,7 @@ class DataAnalyzer:
                 position_results = self.db.execute(positions_query, (job_from,)).fetchall()
             else:
                 position_results = self.db.execute("""
-                    SELECT * FROM positions WHERE JobProfileID = ?
+                    SELECT * FROM core_workforce_current WHERE JobProfileID = ?
                 """, (job_from,)).fetchall()
             
             # Get geographic and divisional distribution
@@ -361,7 +358,7 @@ class DataAnalyzer:
                 SELECT 
                     COALESCE(p.Location, 'Unknown') as location,
                     COUNT(*) as position_count
-                FROM positions p
+                FROM core_workforce_current p
                 WHERE p.JobProfileID = ?
                 GROUP BY p.Location
                 ORDER BY position_count DESC
@@ -369,11 +366,11 @@ class DataAnalyzer:
             
             divisional_results = self.db.execute("""
                 SELECT 
-                    COALESCE(p.Division, 'Unknown') as division,
+                    COALESCE(p.ORG_UNIT_NAME_2, 'Unknown') as division,
                     COUNT(*) as position_count
-                FROM positions p
+                FROM core_workforce_current p
                 WHERE p.JobProfileID = ?
-                GROUP BY p.Division
+                GROUP BY p.ORG_UNIT_NAME_2
                 ORDER BY position_count DESC
             """, (job_from,)).fetchall()
             
@@ -408,7 +405,7 @@ class DataAnalyzer:
                         JobProfile as job_title,
                         JobFunction as job_function,
                         JobFunctionID as job_function_id
-                    FROM jobs
+                    FROM core_job_architecture
                     WHERE JobProfileID = ?
                 """, (job_id,)).fetchone()
             
@@ -492,8 +489,8 @@ class DataAnalyzer:
             # Get skills for the job that might be at risk
             query = """
             SELECT s.Skill_Name
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
+            FROM core_job_skill_requirements js
+            JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID
             WHERE js.JobProfileID = ?
               AND s.Category IN ('Legacy Systems', 'Outdated Technology', 'Manual Processes')
             """
@@ -504,7 +501,7 @@ class DataAnalyzer:
             print(f"Error identifying obsolete skills: {e}")
             return []
     
-    def _get_fallback_analysis(self, job_from: str, job_to: str = None) -> Dict:
+    def _get_fallback_analysis(self, job_from: str, job_to: Optional[str] = None) -> Dict:
         """Provide fallback analysis when main analysis fails."""
         return {
             'job_from': job_from,

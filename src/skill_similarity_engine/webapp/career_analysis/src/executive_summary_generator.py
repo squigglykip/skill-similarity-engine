@@ -82,8 +82,16 @@ class ExecutiveSummaryGenerator:
             return self.template_data  # Fallback to standard template
     
     def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None, 
-                 similarity_range: tuple = (0.4, 0.9), top_n: int = 3, tie_breaking_options: Optional[Dict] = None) -> Dict:
+                 similarity_range: tuple = None, top_n: int = 3, tie_breaking_options: Optional[Dict] = None, 
+                 primary_algorithm: str = 'enhanced') -> Dict:
         """Generate executive summary content for a given source job with mode support."""
+        
+        # FAIL-FAST: Require explicit similarity range from user input
+        if similarity_range is None:
+            raise ValueError("similarity_range is required - no default ranges allowed. Pass explicit tuple from user input.")
+        
+        if not isinstance(similarity_range, tuple) or len(similarity_range) != 2:
+            raise ValueError(f"similarity_range must be a tuple of (min, max), got: {similarity_range}")
         
         # Step 1: Get database-derived values
         db_values = self._get_database_values(job_from)
@@ -108,6 +116,7 @@ class ExecutiveSummaryGenerator:
             elif isinstance(job_to, str) and ',' in job_to:
                 # Multiple targets - comma-separated string
                 job_to_list = [j.strip() for j in job_to.split(',')]
+                print(f"🔍 ExecutiveSummary: Parsed job_to string '{job_to}' into list: {job_to_list}")
                 analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
             else:
                 # Single target
@@ -117,16 +126,19 @@ class ExecutiveSummaryGenerator:
             pathways_data = self._convert_specific_to_pathways(analysis_data)
         else:
             # Default: Top N pathways analysis
-            pathways_data = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options)
+            pathways_data = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm)
             analysis_data = None
         
         # Step 3: Calculate dynamic thresholds and descriptors
-        dynamic_descriptors = self._calculate_dynamic_descriptors(pathways_data, db_values)
+        dynamic_descriptors = self._calculate_dynamic_descriptors(pathways_data, db_values, primary_algorithm)
         
         # Step 4: Populate template variables
         template_variables = self._populate_template_variables(
-            job_from, db_values, pathways_data, dynamic_descriptors
+            job_from, db_values, pathways_data, dynamic_descriptors, primary_algorithm
         )
+        
+        # Add the primary algorithm selection to template variables
+        template_variables['primary_algorithm'] = primary_algorithm
         
         # Add specific analysis context to template variables
         if analysis_data:
@@ -182,22 +194,22 @@ class ExecutiveSummaryGenerator:
             else:
                 # Fallback to direct SQL queries
                 # Reference (1): Total job profiles
-                cursor = self.db.execute("SELECT COUNT(*) as total_job_count FROM jobs")
+                cursor = self.db.execute("SELECT COUNT(*) as total_job_count FROM core_job_architecture")
                 result = cursor.fetchone()
                 values['total_job_count'] = result[0] if result else 0
                 
                 # Reference (14): Active competencies
-                cursor = self.db.execute("SELECT COUNT(DISTINCT Skill_ID) as active_competencies_count FROM job_skills")
+                cursor = self.db.execute("SELECT COUNT(DISTINCT Skill_ID) as active_competencies_count FROM core_job_skill_requirements")
                 result = cursor.fetchone()
                 values['active_competencies_count'] = result[0] if result else 0
                 
                 # Reference (15): Pre-computed pathways
-                cursor = self.db.execute("SELECT COUNT(*) as pathways_count FROM career_pathways")
+                cursor = self.db.execute("SELECT COUNT(DISTINCT job_to) as pathways_count FROM analytics_job_similarities")
                 result = cursor.fetchone()
                 values['pathways_count'] = result[0] if result else 0
                 
-                # Reference (16): Division count
-                cursor = self.db.execute("SELECT COUNT(DISTINCT Division) as division_count FROM positions")
+                # Reference (16): Division count (using ORG_UNIT_NAME_2 as division equivalent)
+                cursor = self.db.execute("SELECT COUNT(DISTINCT ORG_UNIT_NAME_2) as division_count FROM core_workforce_current WHERE ORG_UNIT_NAME_2 IS NOT NULL AND ORG_UNIT_NAME_2 != ''")
                 result = cursor.fetchone()
                 values['division_count'] = result[0] if result else 0
                 
@@ -219,13 +231,13 @@ class ExecutiveSummaryGenerator:
         
         return values
     
-    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None) -> List[Dict]:
+    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None, primary_algorithm: str = 'enhanced') -> List[Dict]:
         """Get top similarity pathways with consistent ordering."""
         
         try:
             # Use centralized pathway ordering for consistency across all sections
             from pathway_ordering_utils import get_consistent_pathways
-            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True, tie_breaking_options=tie_breaking_options)
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm)
             
         except ImportError:
             print("⚠️ PathwayOrderingUtils not available, using fallback method")
@@ -255,10 +267,10 @@ class ExecutiveSummaryGenerator:
                         j.JobFunction as target_job_function,
                         j.ManagementLevel as target_management_level,
                         ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC, js.job_to ASC) as rank
-                    FROM job_similarities js
-                    JOIN jobs j ON js.job_to = j.JobProfileID
+                    FROM analytics_job_similarities js
+                    JOIN core_job_architecture j ON js.job_to = j.JobProfileID
                     WHERE js.job_from = ?
-                      AND js.similarity_score < 1.0  -- Exclude 100% matches
+                      AND js.job_from != js.job_to  -- Exclude self-matches only
                     ORDER BY js.similarity_score DESC, js.job_to ASC  -- Secondary sort for deterministic ordering
                     LIMIT ?
                     """
@@ -304,7 +316,7 @@ class ExecutiveSummaryGenerator:
             # Get source job details
             source_query = """
             SELECT JobProfile, ManagementLevel 
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             source_result = self.db.execute(source_query, (job_from,)).fetchone()
@@ -421,7 +433,7 @@ class ExecutiveSummaryGenerator:
             # Get base job title for logical role grouping
             job_query = """
             SELECT JobProfile, ManagementLevel
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             job_result = self.db.execute(job_query, (target_job_id,)).fetchone()
@@ -438,16 +450,16 @@ class ExecutiveSummaryGenerator:
             # Get divisional deployment for this logical role (base title + management level)
             deployment_query = """
             SELECT 
-                p.Division,
-                COUNT(DISTINCT p."Employee Number") as position_count,
-                COUNT(DISTINCT p.Business_Unit) as business_unit_count
-            FROM positions p
-            JOIN jobs j ON p.JobProfileID = j.JobProfileID
+                p.ORG_UNIT_NAME_2,
+                COUNT(DISTINCT p.employee_number) as position_count,
+                COUNT(DISTINCT p.ORG_UNIT_NAME_3) as business_unit_count
+            FROM core_workforce_current p
+            JOIN core_job_architecture j ON p.JobProfileID = j.JobProfileID
             WHERE (j.JobProfile LIKE ? OR j.JobProfile = ?)
               AND j.ManagementLevel = ?
-              AND p.Division IS NOT NULL
-              AND p.Division != ''
-            GROUP BY p.Division
+              AND p.ORG_UNIT_NAME_2 IS NOT NULL
+              AND p.ORG_UNIT_NAME_2 != ''
+            GROUP BY p.ORG_UNIT_NAME_2
             ORDER BY position_count DESC
             """
             
@@ -518,7 +530,7 @@ class ExecutiveSummaryGenerator:
             SELECT 
                 similarity_score,
                 PERCENT_RANK() OVER (ORDER BY similarity_score) * 100 as percentile_rank
-            FROM job_similarities 
+            FROM analytics_job_similarities 
             WHERE similarity_score > 0.0 AND similarity_score < 1.0
             ORDER BY similarity_score
             """
@@ -566,7 +578,7 @@ class ExecutiveSummaryGenerator:
         try:
             query = """
             SELECT JobProfile, JobFunction, ManagementLevel, JobCategory
-            FROM jobs
+            FROM core_job_architecture
             WHERE JobProfileID = ?
             """
             
@@ -596,7 +608,7 @@ class ExecutiveSummaryGenerator:
                 'job_category': 'Unknown Category'
             }
     
-    def _calculate_dynamic_descriptors(self, top_pathways: List[Dict], db_values: Dict) -> Dict:
+    def _calculate_dynamic_descriptors(self, top_pathways: List[Dict], db_values: Dict, primary_algorithm: str = 'enhanced') -> Dict:
         """Calculate dynamic descriptors based on similarity percentiles."""
         
         if not top_pathways:
@@ -609,8 +621,11 @@ class ExecutiveSummaryGenerator:
                 'data_quality_descriptor': 'limited data with significant estimates'
             }
         
-        # Get highest similarity score from top pathways
-        max_similarity = max(p['similarity_score'] for p in top_pathways) / 100.0
+        # Get highest similarity score from top pathways using the selected algorithm
+        if primary_algorithm == 'enhanced':
+            max_similarity = max(p.get('enhanced_similarity_score', p.get('similarity_score', 0)) for p in top_pathways) / 100.0
+        else:
+            max_similarity = max(p.get('similarity_score', 0) for p in top_pathways) / 100.0
         
         # Get percentile thresholds
         distribution = db_values.get('similarity_distribution', {})
@@ -653,15 +668,20 @@ class ExecutiveSummaryGenerator:
         return explanations.get(confidence_key, 'balanced real data and validated estimates')
     
     def _populate_template_variables(self, job_from: str, db_values: Dict, 
-                                   top_pathways: List[Dict], dynamic_descriptors: Dict) -> Dict:
+                                   top_pathways: List[Dict], dynamic_descriptors: Dict, 
+                                   primary_algorithm: str = 'enhanced') -> Dict:
         """Populate all template variables."""
         
         source_job = db_values['source_job_details']
         
-        # Calculate similarity range from top pathways
+        # Calculate similarity range from top pathways using the selected algorithm
         if top_pathways:
-            min_similarity = min(p['similarity_score'] for p in top_pathways)
-            max_similarity = max(p['similarity_score'] for p in top_pathways)
+            if primary_algorithm == 'enhanced':
+                similarities = [p.get('enhanced_similarity_score', p.get('similarity_score', 0)) for p in top_pathways]
+            else:
+                similarities = [p.get('similarity_score', 0) for p in top_pathways]
+            min_similarity = min(similarities)
+            max_similarity = max(similarities)
         else:
             min_similarity = max_similarity = 0
         
@@ -795,12 +815,21 @@ class ExecutiveSummaryGenerator:
         top_pathways = variables.get('top_pathways', [])
         bold_labels = primary_rec_config.get('bold_labels', ['Move Type:', 'Strategic Context:'])
         
+        # Get the primary algorithm selection
+        primary_algorithm = variables.get('primary_algorithm', 'enhanced')
+        
         # Generate numbered recommendation items
         recommendation_items = []
         
         for i, recommendation in enumerate(top_pathways, 1):
+            # Choose the appropriate similarity score based on algorithm selection
+            if primary_algorithm == 'enhanced' and 'enhanced_similarity_score' in recommendation:
+                similarity_score = recommendation['enhanced_similarity_score']
+            else:
+                similarity_score = recommendation.get('similarity_score', 0)
+            
             # Create main recommendation header (will be bold)
-            header = f"{recommendation.get('target_logical_role', 'Unknown Role')} - {recommendation.get('similarity_score', 0)}% similarity"
+            header = f"{recommendation.get('target_logical_role', 'Unknown Role')} - {similarity_score}% similarity"
             
             # Create detail items with labels that will be bold
             details = []
@@ -872,7 +901,7 @@ class ExecutiveSummaryGenerator:
         for pathway in top_pathways:
             ref_num = pathway.get('similarity_ref')
             if ref_num:
-                job_specific_refs[ref_num] = f"SELECT similarity_score FROM job_similarities WHERE job_from = '{job_from}' AND job_to = '{pathway['target_job_id']}'"
+                job_specific_refs[ref_num] = f"SELECT similarity_score FROM analytics_job_similarities WHERE job_from = '{job_from}' AND job_to = '{pathway['target_job_id']}'"
         
         return {**references, **job_specific_refs}
     

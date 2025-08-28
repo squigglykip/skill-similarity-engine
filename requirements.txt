@@ -1,18 +1,47 @@
-click
-docx
+# Core Flask webapp dependencies
 Flask
 Jinja2
-matplotlib
+
+# Data processing and analysis
 numpy
 pandas
-psutil
-python_docx
-PyYAML
-PyYAML
-Requests
-scikit_learn
 scipy
+matplotlib
 seaborn
-tqdm
-umap_learn
+scikit-learn
+
+# Machine learning and optimization
+joblib
+xgboost
+optuna
+
+# Network analysis
+networkx
+community
+
+# Document processing
+python-docx
+PyYAML
 xlsxwriter
+html2docx
+mammoth
+
+# PDF generation (Windows-friendly)
+reportlab
+
+# HTML parsing
+beautifulsoup4
+
+# Utilities
+click
+requests
+psutil
+tqdm
+
+# Windows-compatible optional packages (uncomment if needed)
+# umap-learn     # Advanced dimensionality reduction
+# weasyprint     # Requires GTK+ system libraries on Windows - skip by default  
+# pypandoc       # Requires pandoc system installation - skip by default
+
+# Deprecated - keeping for backward compatibility
+docx

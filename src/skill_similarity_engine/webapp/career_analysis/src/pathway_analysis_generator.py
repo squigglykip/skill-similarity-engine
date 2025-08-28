@@ -77,9 +77,17 @@ class PathwayAnalysisGenerator:
                 return {}
     
     def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None,
-                 similarity_range: tuple = (0.4, 0.9), include_organisational_deployment: bool = False, top_n: int = 3,
-                 tie_breaking_options: Optional[Dict] = None, output_format: str = 'document') -> Dict:
+                 similarity_range: tuple = None, include_organisational_deployment: bool = False, top_n: int = 3,
+                 tie_breaking_options: Optional[Dict] = None, output_format: str = 'document', 
+                 primary_algorithm: str = 'enhanced') -> Dict:
         """Generate pathway analysis content with mode support."""
+        
+        # FAIL-FAST: Require explicit similarity range from user input
+        if similarity_range is None:
+            raise ValueError("similarity_range is required - no default ranges allowed. Pass explicit tuple from user input.")
+        
+        if not isinstance(similarity_range, tuple) or len(similarity_range) != 2:
+            raise ValueError(f"similarity_range must be a tuple of (min, max), got: {similarity_range}")
         
         # Load appropriate template for mode
         self.template_data = self._load_template(analysis_mode)
@@ -104,6 +112,7 @@ class PathwayAnalysisGenerator:
             elif isinstance(job_to, str) and ',' in job_to:
                 # Multiple targets - comma-separated string
                 job_to_list = [j.strip() for j in job_to.split(',')]
+                print(f"🔍 PathwayAnalysis: Parsed job_to string '{job_to}' into list: {job_to_list}")
                 analysis_data = analyzer.analyze_multiple_transitions(job_from, job_to_list, similarity_range)
             else:
                 # Single target
@@ -119,7 +128,7 @@ class PathwayAnalysisGenerator:
                 opportunities = self._convert_specific_to_opportunities(analysis_data, job_from, include_organisational_deployment)
             
             # Use the same rich content generation as discovery mode
-            content = self._generate_content_sections(opportunities, output_format)
+            content = self._generate_content_sections(opportunities, output_format, primary_algorithm)
             
             # Get section title using template rendering (like Strategic Recommendations)
             section_title = self._get_template_section_title(analysis_data, analysis_mode)
@@ -133,7 +142,7 @@ class PathwayAnalysisGenerator:
             }
         else:
             # Default: Top N pathways analysis
-            top_pathways = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range)
+            top_pathways = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm)
             
             if not top_pathways:
                 return {
@@ -146,12 +155,12 @@ class PathwayAnalysisGenerator:
             opportunities = []
             for i, pathway in enumerate(top_pathways, 1):
                 opportunity_analysis = self._generate_opportunity_analysis(
-                    job_from, pathway, i, include_organisational_deployment
+                    job_from, pathway, i, include_organisational_deployment, primary_algorithm
                 )
                 opportunities.append(opportunity_analysis)
             
             # Generate content sections with pathway count context
-            content = self._generate_content_sections(opportunities, output_format)
+            content = self._generate_content_sections(opportunities, output_format, primary_algorithm)
             
             # Create dynamic section title with template variables
             title_template = Template(f'Pathway Analysis: Top {top_n} Strategic Opportunities')
@@ -165,12 +174,12 @@ class PathwayAnalysisGenerator:
                 'references': self._generate_references()
             }
     
-    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None) -> List[Dict]:
+    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None, primary_algorithm: str = 'enhanced') -> List[Dict]:
         """Get top similarity pathways with consistent ordering across all Career Transition Analysis sections."""
         try:
             # Use centralized pathway ordering for consistency with Executive Summary
             from pathway_ordering_utils import get_consistent_pathways
-            return get_consistent_pathways(self.db, job_from, limit, executive_refs=False, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range)
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=False, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm)
             
         except ImportError:
             print("⚠️ PathwayOrderingUtils not available, using fallback method")
@@ -183,10 +192,10 @@ class PathwayAnalysisGenerator:
                 j.JobFunction as target_job_function,
                 j.ManagementLevel as target_management_level,
                 ROW_NUMBER() OVER (ORDER BY js.similarity_score DESC, js.job_to ASC) as rank
-            FROM job_similarities js
-            JOIN jobs j ON js.job_to = j.JobProfileID
+            FROM analytics_job_similarities js
+JOIN core_job_architecture j ON js.job_to = j.JobProfileID
             WHERE js.job_from = ?
-              AND js.similarity_score < 1.0  -- Exclude 100% matches
+              AND js.job_from != js.job_to  -- Exclude self-matches only
             ORDER BY js.similarity_score DESC, js.job_to ASC  -- Secondary sort for deterministic ordering
             LIMIT ?
             """
@@ -230,7 +239,7 @@ class PathwayAnalysisGenerator:
             # Get source job details
             source_query = """
             SELECT JobProfile, ManagementLevel, JobFunction 
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             source_result = self.db.execute(source_query, (job_from,)).fetchone()
@@ -307,7 +316,7 @@ class PathwayAnalysisGenerator:
             return 1
     
     def _generate_opportunity_analysis(self, job_from: str, pathway: Dict, opportunity_rank: int, 
-                                     include_deployment: bool) -> Dict:
+                                     include_deployment: bool, primary_algorithm: str = 'enhanced') -> Dict:
         """Generate comprehensive analysis for a single opportunity."""
         
         target_job_id = pathway['target_job_id']
@@ -316,7 +325,7 @@ class PathwayAnalysisGenerator:
         analysis = {
             'opportunity_rank': opportunity_rank,
             'pathway_data': pathway,
-            'strategic_positioning': self._get_strategic_positioning_data(job_from, target_job_id, pathway),
+            'strategic_positioning': self._get_strategic_positioning_data(job_from, target_job_id, pathway, primary_algorithm),
             'skills_analysis': self._get_skills_transition_analysis(job_from, target_job_id),
             'business_case': self._get_business_case_data(job_from, target_job_id, pathway),
             'implementation_roadmap': self._get_implementation_roadmap_data(job_from, target_job_id)
@@ -328,7 +337,7 @@ class PathwayAnalysisGenerator:
         
         return analysis
     
-    def _get_strategic_positioning_data(self, job_from: str, target_job_id: str, pathway: Dict) -> Dict:
+    def _get_strategic_positioning_data(self, job_from: str, target_job_id: str, pathway: Dict, primary_algorithm: str = 'enhanced') -> Dict:
         """Get strategic positioning data for the opportunity."""
         try:
             # Get target job function analysis
@@ -340,8 +349,14 @@ class PathwayAnalysisGenerator:
             # Get cross-functional demand analysis
             cross_function_analysis = self._get_cross_functional_demand_analysis(job_from)
             
+            # Choose the appropriate similarity score based on algorithm selection
+            if primary_algorithm == 'enhanced' and 'enhanced_similarity_score' in pathway:
+                similarity_score = pathway['enhanced_similarity_score']
+            else:
+                similarity_score = pathway.get('similarity_score', 0)
+            
             # Determine opportunity classification based on similarity score
-            opportunity_classification = self._get_opportunity_classification(pathway['similarity_score'])
+            opportunity_classification = self._get_opportunity_classification(similarity_score)
             
             # Get move type descriptors
             move_type_description = self._get_move_type_description(pathway['move_type'])
@@ -352,7 +367,7 @@ class PathwayAnalysisGenerator:
                 'opportunity_classification': opportunity_classification,
                 'move_type_description': move_type_description,
                 'move_type_display': move_type_display,
-                'similarity_score': pathway['similarity_score'],
+                'similarity_score': similarity_score,
                 'target_job_function': pathway['target_job_function'],
                 'level_transition_display': pathway['level_transition_display'],
                 'function_analysis': function_analysis,
@@ -368,10 +383,10 @@ class PathwayAnalysisGenerator:
         """Analyze the target job function from database."""
         try:
             # Get function position count and percentage
-            function_count_query = "SELECT COUNT(*) FROM jobs WHERE JobFunction = ?"
+            function_count_query = "SELECT COUNT(*) FROM core_job_architecture WHERE JobFunction = ?"
             function_count = self.db.execute(function_count_query, (job_function,)).fetchone()[0]
             
-            total_jobs_query = "SELECT COUNT(*) FROM jobs"
+            total_jobs_query = "SELECT COUNT(*) FROM core_job_architecture"
             total_jobs = self.db.execute(total_jobs_query).fetchone()[0]
             
             function_percentage = round((function_count / total_jobs) * 100, 1)
@@ -394,11 +409,13 @@ class PathwayAnalysisGenerator:
             }
             
         except Exception as e:
-            print(f"⚠️ Error analyzing function {job_function}: {e}")
+            print(f"🚨 FAIL-FAST: Error analyzing function {job_function}: {e}")
             return {
-                'function_position_count': 50,
-                'function_percentage': 7.0,
-                'function_significance': 'moderate'
+                'function_position_count': None,
+                'function_percentage': None,
+                'function_significance': 'unknown',
+                'function_significance_descriptor': 'Position analysis failed - data unavailable',
+                'calculation_error': str(e)
             }
     
     def _get_skills_overlap_analysis(self, job_from: str, target_job_id: str) -> Dict:
@@ -407,14 +424,14 @@ class PathwayAnalysisGenerator:
             # Get skills overlap count and percentage
             overlap_query = """
             SELECT COUNT(DISTINCT s1.Skill_ID) as shared_skills
-            FROM job_skills s1
-            JOIN job_skills s2 ON s1.Skill_ID = s2.Skill_ID
+            FROM core_job_skill_requirements s1
+            JOIN core_job_skill_requirements s2 ON s1.Skill_ID = s2.Skill_ID
             WHERE s1.JobProfileID = ? AND s2.JobProfileID = ?
             """
             shared_skills = self.db.execute(overlap_query, (job_from, target_job_id)).fetchone()[0]
             
             # Get total skills for target job
-            target_skills_query = "SELECT COUNT(DISTINCT Skill_ID) FROM job_skills WHERE JobProfileID = ?"
+            target_skills_query = "SELECT COUNT(DISTINCT Skill_ID) FROM core_job_skill_requirements WHERE JobProfileID = ?"
             total_target_skills = self.db.execute(target_skills_query, (target_job_id,)).fetchone()[0]
             
             # Calculate overlap percentage
@@ -432,12 +449,15 @@ class PathwayAnalysisGenerator:
             }
             
         except Exception as e:
-            print(f"⚠️ Error analyzing skills overlap: {e}")
+            print(f"🚨 FAIL-FAST: Error analyzing skills overlap for {job_from} -> {target_job_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return {
-                'transferable_skills_count': 15,
-                'total_target_skills': 25,
-                'skills_overlap_percentage': 60.0,
-                'transferability_assessment': 'moderate foundation'
+                'transferable_skills_count': None,
+                'total_target_skills': None,
+                'skills_overlap_percentage': None,
+                'transferability_assessment': 'Skills analysis failed - data unavailable',
+                'calculation_error': str(e)
             }
     
     def _get_cross_functional_demand_analysis(self, job_from: str) -> Dict:
@@ -446,8 +466,8 @@ class PathwayAnalysisGenerator:
             # Get primary skill category for source job
             primary_category_query = """
             SELECT s.Category, COUNT(*) as skill_count
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
+            FROM core_job_skill_requirements js
+            JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID
             WHERE js.JobProfileID = ?
             AND s.Category IS NOT NULL AND s.Category != ''
             GROUP BY s.Category
@@ -460,10 +480,10 @@ class PathwayAnalysisGenerator:
             # Get functions where these skills appear
             functions_query = """
             SELECT DISTINCT j.JobFunction, COUNT(*) as job_count
-            FROM job_skills js1
-            JOIN job_skills js2 ON js1.Skill_ID = js2.Skill_ID
-            JOIN jobs j ON js2.JobProfileID = j.JobProfileID
-            JOIN skills s ON js1.Skill_ID = s.Skill_ID
+            FROM core_job_skill_requirements js1
+            JOIN core_job_skill_requirements js2 ON js1.Skill_ID = js2.Skill_ID
+            JOIN core_job_architecture j ON js2.JobProfileID = j.JobProfileID
+            JOIN core_skills_taxonomy s ON js1.Skill_ID = s.Skill_ID
             WHERE js1.JobProfileID = ? 
             AND s.Category = ?
             AND j.JobFunction IS NOT NULL AND j.JobFunction != ''
@@ -495,9 +515,9 @@ class PathwayAnalysisGenerator:
             # Get transferable skills by category
             transferable_skills_query = """
             SELECT s.Category, GROUP_CONCAT(s.Skill_Name, ', ') as skill_names
-            FROM job_skills js1
-            JOIN job_skills js2 ON js1.Skill_ID = js2.Skill_ID
-            JOIN skills s ON js1.Skill_ID = s.Skill_ID
+            FROM core_job_skill_requirements js1
+            JOIN core_job_skill_requirements js2 ON js1.Skill_ID = js2.Skill_ID
+            JOIN core_skills_taxonomy s ON js1.Skill_ID = s.Skill_ID
             WHERE js1.JobProfileID = ? AND js2.JobProfileID = ?
             AND s.Category IS NOT NULL AND s.Category != ''
             GROUP BY s.Category
@@ -519,11 +539,11 @@ class PathwayAnalysisGenerator:
             # Get required new skills (NO LIMIT - show all skills for complete analysis)
             required_skills_query = """
             SELECT s.Skill_Name, s.Category
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
+            FROM core_job_skill_requirements js
+            JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID
             WHERE js.JobProfileID = ?
             AND js.Skill_ID NOT IN (
-                SELECT Skill_ID FROM job_skills WHERE JobProfileID = ?
+                SELECT Skill_ID FROM core_job_skill_requirements WHERE JobProfileID = ?
             )
             ORDER BY s.Category, s.Skill_Name
             """
@@ -558,7 +578,7 @@ class PathwayAnalysisGenerator:
             # Get skill type counts
             query = """
             SELECT SkillType, COUNT(*) as count
-            FROM skills 
+            FROM core_skills_taxonomy 
             WHERE SkillType IS NOT NULL AND SkillType != ''
             GROUP BY SkillType
             """
@@ -649,10 +669,10 @@ class PathwayAnalysisGenerator:
         try:
             # Get position and division counts
             position_query = """
-            SELECT COUNT(DISTINCT p."Employee Number") as position_count,
-                   COUNT(DISTINCT p.Division) as division_count
-            FROM positions p 
-            JOIN jobs j ON p.JobProfileID = j.JobProfileID
+            SELECT COUNT(DISTINCT p.employee_number) as position_count,
+                   COUNT(DISTINCT p.ORG_UNIT_NAME_2) as division_count
+            FROM core_workforce_current p 
+            JOIN core_job_architecture j ON p.JobProfileID = j.JobProfileID
             WHERE j.JobProfileID = ?
             """
             result = self.db.execute(position_query, (target_job_id,)).fetchone()
@@ -660,8 +680,8 @@ class PathwayAnalysisGenerator:
             # Get geographic spread from actual location data
             location_query = """
             SELECT DISTINCT p.Location
-            FROM positions p 
-            JOIN jobs j ON p.JobProfileID = j.JobProfileID
+            FROM core_workforce_current p 
+            JOIN core_job_architecture j ON p.JobProfileID = j.JobProfileID
             WHERE j.JobProfileID = ? AND p.Location IS NOT NULL AND p.Location != ''
             ORDER BY p.Location
             """
@@ -687,16 +707,17 @@ class PathwayAnalysisGenerator:
                 'target_growth_trajectory': 'Growth trajectory analysis requires historical data'
             }
         except Exception as e:
-            print(f"⚠️ Error getting organisational deployment: {e}")
+            print(f"🚨 FAIL-FAST: Error getting organisational deployment: {e}")
             return {
-                'target_position_count': 0,
-                'target_division_count': 0,
-                'target_geographic_spread': 'Geographic data unavailable',
-                'target_strategic_importance': 'Strategic assessment requires additional data',
-                'target_growth_trajectory': 'Growth analysis requires historical data'
+                'target_position_count': None,
+                'target_division_count': None,
+                'target_geographic_spread': 'Deployment analysis failed - data unavailable',
+                'target_strategic_importance': 'Strategic assessment failed - data unavailable',
+                'target_growth_trajectory': 'Growth analysis failed - data unavailable',
+                'calculation_error': str(e)
             }
     
-    def _generate_content_sections(self, opportunities: List[Dict], output_format: str = 'document') -> Dict:
+    def _generate_content_sections(self, opportunities: List[Dict], output_format: str = 'document', primary_algorithm: str = 'enhanced') -> Dict:
         """Generate content for the pathway analysis section."""
         template_sections = self.template_data.get('pathway_analysis', {})
         opportunity_template = template_sections.get('opportunity_template', {})
@@ -708,7 +729,7 @@ class PathwayAnalysisGenerator:
         try:
             for opportunity in opportunities:
                 # Combine all data for this opportunity
-                opportunity_variables = self._populate_opportunity_variables(opportunity)
+                opportunity_variables = self._populate_opportunity_variables(opportunity, primary_algorithm)
                 
                 # Generate content for this opportunity using Current Role Context pattern
                 opportunity_content = {
@@ -861,16 +882,22 @@ class PathwayAnalysisGenerator:
             
             headers = ["Metric", "Value", "Assessment"]
             
+            # Helper function to format values with null handling
+            def format_metric_value(value, unit, fallback_text="Data unavailable"):
+                if value is None:
+                    return fallback_text
+                return f"{value}{unit}"
+            
             rows = [
-                ["Role Compatibility", f"{variables.get('similarity_score', 0)}%", variables.get('compatibility_assessment', 'Unknown')],
-                ["Skills Match", f"{variables.get('skills_overlap_percentage', 0)}% ready", variables.get('transferability_assessment', 'Unknown')],
-                ["Position Availability", f"{variables.get('function_position_count', 0)} roles", variables.get('function_significance_descriptor', 'Unknown')],
-                ["Development Time", f"{variables.get('total_development_weeks', 0)} weeks", variables.get('development_assessment', 'Unknown')]
+                ["Role Compatibility", format_metric_value(variables.get('similarity_score'), '%', 'Calculation failed'), variables.get('compatibility_assessment', 'Assessment unavailable')],
+                ["Skills Match", format_metric_value(variables.get('skills_overlap_percentage'), '% ready', 'Skills analysis failed'), variables.get('transferability_assessment', 'Assessment unavailable')],
+                ["Position Availability", format_metric_value(variables.get('function_position_count'), ' roles', 'Position data unavailable'), variables.get('function_significance_descriptor', 'Analysis unavailable')],
+                ["Development Time", format_metric_value(variables.get('total_development_weeks'), ' weeks', 'Timeline calculation failed'), variables.get('development_assessment', 'Assessment unavailable')]
             ]
             
             # Add career growth row if organisational deployment is available
             if variables.get('include_organisational_deployment', False):
-                rows.append(["Career Growth", f"{variables.get('target_division_count', 0)} divisions", variables.get('strategic_importance_assessment', 'Unknown')])
+                rows.append(["Career Growth", format_metric_value(variables.get('target_division_count'), ' divisions', 'Division data unavailable'), variables.get('strategic_importance_assessment', 'Assessment unavailable')])
             
             if output_format == 'web':
                 return {
@@ -880,7 +907,7 @@ class PathwayAnalysisGenerator:
                     'metadata': {'table_style': 'compact'}
                 }
             else:
-                return ContentFormatter.create_table(headers, rows, 'compact', output_format)
+                return ContentFormatter.create_table(headers, rows, {'table_style': 'compact', 'output_format': output_format})
             
         except ImportError:
             # Fallback - return text representation
@@ -1045,7 +1072,7 @@ class PathwayAnalysisGenerator:
                 ])
             
             # Use exact same pattern as ContentFormatter.create_skills_analysis_table
-            return ContentFormatter.create_table(headers, rows, 'compact')
+            return ContentFormatter.create_table(headers, rows, {'table_style': 'compact'})
             
         except Exception as e:
             print(f"⚠️ Skills development table generation failed: {e}")
@@ -1130,13 +1157,13 @@ class PathwayAnalysisGenerator:
                 ])
             
             # Use exact same pattern as ContentFormatter.create_skills_analysis_table
-            return ContentFormatter.create_table(headers, rows, 'compact')
+            return ContentFormatter.create_table(headers, rows, {'table_style': 'compact'})
             
         except ImportError:
             # Fallback - return text representation
             return "Table creation failed - ContentFormatter not available"
     
-    def _populate_opportunity_variables(self, opportunity: Dict) -> Dict:
+    def _populate_opportunity_variables(self, opportunity: Dict, primary_algorithm: str = 'enhanced') -> Dict:
         """Populate all template variables for a single opportunity."""
         pathway = opportunity['pathway_data']
         strategic = opportunity['strategic_positioning']
@@ -1145,18 +1172,38 @@ class PathwayAnalysisGenerator:
         roadmap = opportunity['implementation_roadmap']
         
         # Combine all variables
+        # Include both similarity scores for transparency
+        enhanced_similarity_score = pathway.get('enhanced_similarity_score', 0)
+        literal_similarity_score = pathway.get('similarity_score', 0)
+        
+        # DEBUG: (removed print to avoid Flask auto-reload issues)
+        
+        # Choose primary score based on algorithm selection
+        if primary_algorithm == 'enhanced' and 'enhanced_similarity_score' in pathway:
+            primary_similarity_score = enhanced_similarity_score
+        else:
+            primary_similarity_score = literal_similarity_score
+        
         variables = {
             # Basic opportunity data
             'opportunity_rank': opportunity['opportunity_rank'],
             'target_job_title': pathway.get('target_job_title', 'Unknown Role'),
             'target_job_id': pathway.get('target_job_id', 'Unknown ID'),
             'target_job_logical_display_name': pathway.get('target_logical_role', pathway.get('target_job_title', 'Unknown Role')),
-            'similarity_score': pathway.get('similarity_score', 0),
+            
+            # Dual similarity scores for enriched display
+            'similarity_score': primary_similarity_score,  # Primary score (for backward compatibility)
+            'enhanced_similarity_score': enhanced_similarity_score,
+            'literal_similarity_score': literal_similarity_score,
+            'primary_algorithm': primary_algorithm,
+            # Values from pathway_ordering_utils are already percentages, don't multiply again
+            'enhanced_similarity_percentage': round(enhanced_similarity_score, 1),
+            'literal_similarity_percentage': round(literal_similarity_score, 1),
             'move_type_display': self._get_move_type_display(pathway.get('move_type', 'Other')),
-            'opportunity_classification': self._get_opportunity_classification(pathway.get('similarity_score', 0)),
+            'opportunity_classification': self._get_opportunity_classification(primary_similarity_score),
             
             # New assessment variables for tables
-            'compatibility_assessment': self._get_compatibility_assessment(pathway.get('similarity_score', 0)),
+            'compatibility_assessment': self._get_compatibility_assessment(primary_similarity_score),
             'development_assessment': self._get_development_assessment(skills['development_timeline'].get('total_development_weeks', 64)),
             'strategic_importance_assessment': self._get_strategic_importance_assessment(opportunity.get('organisational_deployment', {})),
             
@@ -1271,7 +1318,7 @@ class PathwayAnalysisGenerator:
         pathway.update(self._calculate_move_type(job_from, pathway))
         
         # Generate full opportunity analysis using existing discovery mode logic
-        opportunity = self._generate_opportunity_analysis(job_from, pathway, 1, include_deployment)
+        opportunity = self._generate_opportunity_analysis(job_from, pathway, 1, include_deployment, 'enhanced')
         
         # Add specific analysis data for template variables
         opportunity['specific_analysis_data'] = analysis_data
@@ -1321,7 +1368,7 @@ class PathwayAnalysisGenerator:
         pathway.update(self._calculate_move_type(job_from, pathway))
         
         # Generate rich opportunity analysis using existing discovery mode logic
-        opportunity = self._generate_opportunity_analysis(job_from, pathway, rank, include_deployment)
+        opportunity = self._generate_opportunity_analysis(job_from, pathway, rank, include_deployment, 'enhanced')
         
         # Override some fields with specific transition data if available
         if 'move_classification' in analysis_data:
@@ -1603,11 +1650,11 @@ class PathwayAnalysisGenerator:
             # Create placeholders for the IN clause
             placeholders = ','.join(['?' for _ in skill_names_list])
             query = f"""
-            SELECT DISTINCT s.Skill_Name, s.Info_URL
-            FROM skills s 
+            SELECT DISTINCT s.Skill_Name, s.infoUrl
+            FROM core_skills_taxonomy s 
             WHERE s.Skill_Name IN ({placeholders})
-              AND s.Info_URL IS NOT NULL 
-              AND s.Info_URL != ''
+              AND s.infoUrl IS NOT NULL 
+              AND s.infoUrl != ''
             """
             
             cursor = self.db.execute(query, skill_names_list)

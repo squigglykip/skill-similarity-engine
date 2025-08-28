@@ -52,7 +52,7 @@ class DatabaseReferenceCalculator:
             # Get base job title for logical role grouping (following current_role_context pattern)
             job_query = """
             SELECT JobProfile, ManagementLevel
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             job_result = self.db.execute(job_query, (job_from,)).fetchone()
@@ -69,24 +69,24 @@ class DatabaseReferenceCalculator:
                 # Query positions using the logical role approach
                 like_pattern = f"{base_job_title} - %"
                 source_deployment = self.db.execute("""
-                    SELECT COUNT(DISTINCT p."Employee Number") as position_count,
-                           COUNT(DISTINCT p.Division) as division_count
-                    FROM positions p
-                    JOIN jobs j ON p.JobProfileID = j.JobProfileID
+                    SELECT COUNT(DISTINCT p.employee_number) as position_count,
+                           COUNT(DISTINCT p.ORG_UNIT_NAME_2) as division_count
+                    FROM core_workforce_current p
+                    JOIN core_job_architecture j ON p.JobProfileID = j.JobProfileID
                     WHERE (j.JobProfile LIKE ? OR j.JobProfile = ?)
                       AND j.ManagementLevel = ?
-                      AND p.Division IS NOT NULL
-                      AND p.Division != ''
+                      AND p.ORG_UNIT_NAME_2 IS NOT NULL
+                      AND p.ORG_UNIT_NAME_2 != ''
                 """, (like_pattern, base_job_title, management_level)).fetchone()
             
             # Total job profiles count
-            total_jobs = self.db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+            total_jobs = self.db.execute("SELECT COUNT(*) FROM core_job_architecture").fetchone()[0]
             
-            # Top pathway availability (from career_pathways table)
+            # Top pathway availability (from analytics_job_similarities table)
             pathways = self.db.execute("""
                 SELECT similarity_score
-                FROM career_pathways
-                WHERE source_job_id = ?
+                FROM analytics_job_similarities
+                WHERE job_from = ?
                 ORDER BY similarity_score DESC
                 LIMIT ?
             """, (job_from, top_n)).fetchall()
@@ -117,7 +117,7 @@ class DatabaseReferenceCalculator:
             # Get source job function
             source_job = self.db.execute("""
                 SELECT JobFunction, ManagementLevel
-                FROM jobs
+                FROM core_job_architecture
                 WHERE JobProfileID = ?
             """, (job_from,)).fetchone()
             
@@ -129,8 +129,8 @@ class DatabaseReferenceCalculator:
             # Function position count and percentage
             function_stats = self.db.execute("""
                 SELECT COUNT(*) as function_count,
-                       (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM jobs)) as function_percentage
-                FROM jobs
+                       (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM core_job_architecture)) as function_percentage
+                FROM core_job_architecture
                 WHERE JobFunction = ?
             """, (source_function,)).fetchone()
             
@@ -138,11 +138,11 @@ class DatabaseReferenceCalculator:
             # Get skills from source job and see where they appear
             cross_function_query = """
                 SELECT j.JobFunction, COUNT(*) as job_count
-                FROM jobs j
-                JOIN job_skills js ON j.JobProfileID = js.JobProfileID
+                FROM core_job_architecture j
+                JOIN core_job_skill_requirements js ON j.JobProfileID = js.JobProfileID
                 WHERE js.Skill_ID IN (
                     SELECT Skill_ID 
-                    FROM job_skills 
+                    FROM core_job_skill_requirements 
                     WHERE JobProfileID = ?
                 )
                 AND j.JobFunction != ?
@@ -155,7 +155,7 @@ class DatabaseReferenceCalculator:
             # Management level progression opportunities
             management_levels = self.db.execute("""
                 SELECT DISTINCT ManagementLevel
-                FROM jobs
+                FROM core_job_architecture
                 WHERE JobFunction = ?
                 AND ManagementLevel IS NOT NULL
                 AND ManagementLevel != 'NA'
@@ -188,27 +188,27 @@ class DatabaseReferenceCalculator:
             # These would typically come from external benchmark databases
             
             # Total pathway relationships for context
-            total_pathways = self.db.execute("SELECT COUNT(*) FROM career_pathways").fetchone()[0]
+            total_pathways = self.db.execute("SELECT COUNT(*) FROM analytics_job_similarities").fetchone()[0]
             
             # High similarity pathways (>0.7 similarity)
             high_similarity = self.db.execute("""
                 SELECT COUNT(*) 
-                FROM career_pathways 
+                FROM analytics_job_similarities 
                 WHERE similarity_score > 0.7
             """).fetchone()[0]
             
             # Average similarity across all pathways
             avg_similarity = self.db.execute("""
                 SELECT AVG(similarity_score) 
-                FROM career_pathways
+                FROM analytics_job_similarities
             """).fetchone()[0]
             
             # Cross-family mobility count
             cross_family_mobility = self.db.execute("""
-                SELECT COUNT(DISTINCT cp.source_job_id || '-' || cp.target_job_id)
-                FROM career_pathways cp
-                JOIN jobs j1 ON cp.source_job_id = j1.JobProfileID
-                JOIN jobs j2 ON cp.target_job_id = j2.JobProfileID
+                SELECT COUNT(DISTINCT js.job_from || '-' || js.job_to)
+                FROM analytics_job_similarities js
+                JOIN core_job_architecture j1 ON js.job_from = j1.JobProfileID
+                JOIN core_job_architecture j2 ON js.job_to = j2.JobProfileID
                 WHERE j1.JobFunction != j2.JobFunction
             """).fetchone()[0]
             
@@ -472,7 +472,7 @@ class StrategicRecommendationsGenerator:
                             'content': ContentFormatter.create_table(
                                 headers=headers,
                                 rows=processed_rows,
-                                table_style=table_style
+                                formatting={'table_style': table_style}
                             )
                         }
                     

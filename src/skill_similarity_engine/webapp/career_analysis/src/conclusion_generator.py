@@ -201,13 +201,13 @@ class ConclusionGenerator:
                 source_job_logical_display_name = self._get_job_title_fallback(job_from)
             
             # Get total job count
-            total_jobs = self.db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+            total_jobs = self.db.execute("SELECT COUNT(*) FROM core_job_architecture").fetchone()[0]
             
             # Get pathway count and similarity range with filtering
             similarity_min, similarity_max = similarity_range
             pathways = self.db.execute("""
                 SELECT js.similarity_score
-                FROM job_similarities js
+                FROM analytics_job_similarities js
                 WHERE js.job_from = ?
                   AND js.similarity_score >= ?
                   AND js.similarity_score <= ?
@@ -248,7 +248,7 @@ class ConclusionGenerator:
             # Get source job function
             source_job = self.db.execute("""
                 SELECT JobFunction, ManagementLevel
-                FROM jobs
+                FROM core_job_architecture
                 WHERE JobProfileID = ?
             """, (job_from,)).fetchone()
             
@@ -258,9 +258,9 @@ class ConclusionGenerator:
             # Get pathway progression types
             pathways_query = """
                 SELECT j.JobFunction, j.ManagementLevel, cp.similarity_score
-                FROM career_pathways cp
-                JOIN jobs j ON cp.target_job_id = j.JobProfileID
-                WHERE cp.source_job_id = ?
+                FROM analytics_job_similarities cp
+                JOIN core_job_architecture j ON cp.job_to = j.JobProfileID
+                WHERE cp.job_from = ?
                 ORDER BY cp.similarity_score DESC
                 LIMIT 3
             """
@@ -308,7 +308,7 @@ class ConclusionGenerator:
             # Get position count for pilot sizing
             job_query = """
             SELECT JobProfile, ManagementLevel
-            FROM jobs 
+            FROM core_job_architecture 
             WHERE JobProfileID = ?
             """
             job_result = self.db.execute(job_query, (job_from,)).fetchone()
@@ -323,9 +323,9 @@ class ConclusionGenerator:
                 # Get position count for this logical role
                 like_pattern = f"{base_job_title} - %"
                 position_count = self.db.execute("""
-                    SELECT COUNT(DISTINCT p."Employee Number")
-                    FROM positions p
-                    JOIN jobs j ON p.JobProfileID = j.JobProfileID
+                    SELECT COUNT(DISTINCT p.employee_number)
+                    FROM core_workforce_current p
+                    JOIN core_job_architecture j ON p.JobProfileID = j.JobProfileID
                     WHERE (j.JobProfile LIKE ? OR j.JobProfile = ?)
                       AND j.ManagementLevel = ?
                 """, (like_pattern, base_job_title, management_level)).fetchone()[0]
@@ -445,7 +445,7 @@ class ConclusionGenerator:
     def _get_job_title_fallback(self, job_from: str) -> str:
         """Fallback method to get job title when LogicalRoleManager is not available."""
         try:
-            query = "SELECT JobProfile FROM jobs WHERE JobProfileID = ?"
+            query = "SELECT JobProfile FROM core_job_architecture WHERE JobProfileID = ?"
             result = self.db.execute(query, (job_from,)).fetchone()
             return result[0] if result else job_from
         except:
@@ -480,8 +480,8 @@ class ConclusionGenerator:
             # Get average similarity for strategic priority assessment
             avg_similarity = self.db.execute("""
                 SELECT AVG(similarity_score) 
-                FROM career_pathways 
-                WHERE source_job_id = ?
+                FROM analytics_job_similarities 
+                WHERE job_from = ?
             """, (job_from,)).fetchone()[0]
             
             if avg_similarity and avg_similarity > 0.7:

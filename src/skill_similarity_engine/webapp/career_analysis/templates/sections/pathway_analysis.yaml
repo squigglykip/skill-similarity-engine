@@ -12,8 +12,14 @@ pathway_analysis:
   opportunity_template:
     header: |
       ## Strategic Opportunity {{opportunity_rank}}: {{target_job_logical_display_name}}
-      Target Role: {{target_job_title}} ({{target_job_id}}) | Similarity Score: {{similarity_score}}% | Move Type: {{move_type_display}}
-      Strategic Classification: {{opportunity_classification}}
+      Target: {{target_job_title}} ({{target_job_id}})
+      
+      **Similarity Analysis:**
+      • {{primary_algorithm|title}} (PRIMARY): {{enhanced_similarity_percentage if primary_algorithm == 'enhanced' else literal_similarity_percentage}}% - Strategic value weighted
+      • {{('Literal' if primary_algorithm == 'enhanced' else 'Enhanced')}}: {{literal_similarity_percentage if primary_algorithm == 'enhanced' else enhanced_similarity_percentage}}% - Pure skill overlap
+      
+      Type: {{move_type_display}}
+      {{opportunity_classification}}
 
     opportunity_overview:
       title: "Opportunity Overview"

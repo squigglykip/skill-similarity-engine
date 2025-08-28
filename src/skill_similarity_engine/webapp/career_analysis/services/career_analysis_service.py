@@ -23,10 +23,8 @@ if str(src_path) not in sys.path:
 
 try:
     from executive_summary_generator import ExecutiveSummaryGenerator
-    from current_role_context_generator import CurrentRoleContextGenerator
     from pathway_analysis_generator import PathwayAnalysisGenerator
-    from strategic_recommendations_generator import StrategicRecommendationsGenerator
-    from conclusion_generator import ConclusionGenerator
+    from current_role_context_generator import CurrentRoleContextGenerator
     GENERATORS_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Warning: Could not import generators: {e}")
@@ -41,33 +39,32 @@ except ImportError as e:
             return {"mock": "data", "content": "Mock generator content"}
     
     ExecutiveSummaryGenerator = MockGenerator
-    CurrentRoleContextGenerator = MockGenerator
     PathwayAnalysisGenerator = MockGenerator
-    StrategicRecommendationsGenerator = MockGenerator
-    ConclusionGenerator = MockGenerator
+    CurrentRoleContextGenerator = MockGenerator
 
 logger = logging.getLogger(__name__)
 
 class CareerAnalysisService:
     """
-    Main service for coordinating career analysis generation for web requests.
+    Focused career analysis service generating Introduction + Top N Career Pathways.
     
-    This service replaces the subprocess CLI approach with direct Python calls
-    to the existing generators, providing both web preview and document modes.
+    This service generates streamlined career analysis reports containing:
+    - Introduction (Executive Summary)
+    - Top N Career Pathways (Strategic Opportunities)
+    
+    Leverages existing generator infrastructure with focused output.
     """
     
     def __init__(self, db_connection):
         """Initialize the service with database connection."""
         self.db = db_connection
         
-        # Initialize generators
+        # Initialize focused generators: Introduction + Current Role Context + Top N Career Pathways
         self.executive_generator = ExecutiveSummaryGenerator(db_connection)
-        self.context_generator = CurrentRoleContextGenerator(db_connection)
+        self.current_role_generator = CurrentRoleContextGenerator(db_connection)
         self.pathway_generator = PathwayAnalysisGenerator(db_connection)
-        self.recommendations_generator = StrategicRecommendationsGenerator(db_connection)
-        self.conclusion_generator = ConclusionGenerator(db_connection)
         
-        print("CareerAnalysisService initialized with database connection")
+
     
     def generate_analysis(self, job_from: str, analysis_mode: str = 'top_matches', 
                          output_mode: str = 'web', **kwargs) -> Dict[str, Any]:
@@ -84,7 +81,7 @@ class CareerAnalysisService:
             Dict with sections, metadata, and success status
         """
         try:
-            print(f"Generating {output_mode} analysis for {job_from} in {analysis_mode} mode")
+
             
             # Extract parameters
             job_to = kwargs.get('job_to')
@@ -93,147 +90,114 @@ class CareerAnalysisService:
             top_n = kwargs.get('top_n', 3)
             include_deployment = kwargs.get('include_organisational_deployment', True)  # Default to True for web previews
             tie_breaking_options = kwargs.get('tie_breaking_options', {})
+            primary_algorithm = kwargs.get('primary_algorithm', 'enhanced')  # Default to enhanced algorithm
             
-            # Generate all 5 sections using existing generators
+            # Generate focused sections: Introduction + Current Role Context + Top N Pathways
             sections = {}
             
-            # 1. Executive Summary
-            logger.debug("Generating Executive Summary")
+            # 1. Introduction (Executive Summary)
+            logger.debug("Generating Introduction")
+
             exec_result = self.executive_generator.generate(
                 job_from=job_from,
                 analysis_mode=analysis_mode,
                 job_to=job_to,
                 similarity_range=(similarity_min/100.0, similarity_max/100.0),
                 top_n=top_n,
-                tie_breaking_options=tie_breaking_options
+                tie_breaking_options=tie_breaking_options,
+                primary_algorithm=primary_algorithm
             )
             # Use the section title from the generator, fallback to default if not available
-            exec_title = exec_result.get('section_title', 'Executive Summary')
+            exec_title = exec_result.get('section_title', 'Introduction')
             if not isinstance(exec_title, str):
-                exec_title = 'Executive Summary'
-            sections['executive_summary'] = self._format_section_for_mode(
+                exec_title = 'Introduction'
+            sections['introduction'] = self._format_section_for_mode(
                 exec_result, output_mode, exec_title
             )
+
             
             # 2. Current Role Context
-            print("Generating Current Role Context")
+            logger.debug("Generating Current Role Context")
+
             try:
-                context_result = self.context_generator.generate(
+                current_role_result = self.current_role_generator.generate(
                     job_from=job_from,
-                    include_organisational_deployment=include_deployment
+                    include_organisational_deployment=include_deployment,
+                    primary_algorithm=primary_algorithm
                 )
-                print("Current Role Context generation completed successfully")
-            except Exception as e:
-                logger.error(f"Current Role Context generation failed: {str(e)}")
-                context_result = {'content': {}}
-            
-            try:
-                # Use the section title from the generator, fallback to default if not available
-                context_title = context_result.get('section_title', 'Current Role Context')
-                if not isinstance(context_title, str):
-                    context_title = 'Current Role Context'
+                # Use the section title from the generator
+                current_role_title = current_role_result.get('section_title', 'Current Role Context')
+                if not isinstance(current_role_title, str):
+                    current_role_title = 'Current Role Context'
                 sections['current_role_context'] = self._format_section_for_mode(
-                    context_result, output_mode, context_title
+                    current_role_result, output_mode, current_role_title
                 )
-                print("Current Role Context formatting completed successfully")
+
             except Exception as e:
-                logger.error(f"Current Role Context formatting failed: {str(e)}")
-                # Provide a safe fallback
-                sections['current_role_context'] = {
-                    'title': 'Current Role Context',
-                    'section_key': 'current_role_context',
-                    'subsections': {
-                        'error': {
-                            'title': 'Processing Error',
-                            'content': f'Error formatting current role context: {str(e)}',
-                            'formatting': {},
-                            'type': 'formatted_content'
+                logger.error(f"Current Role Context generation failed: {str(e)}", exc_info=True)
+                print(f"ERROR in Current Role Context generation: {str(e)}")
+                # Continue with other sections even if this fails
+                sections['current_role_context'] = self._format_section_for_mode(
+                    {'content': {'error': f'Failed to generate current role context: {str(e)}'}}, 
+                    output_mode, 'Current Role Context'
+                )
+            
+            # 3. Top N Career Pathways
+            logger.debug("Generating Top N Career Pathways")
+
+            try:
+                pathway_result = self.pathway_generator.generate(
+                    job_from=job_from,
+                    analysis_mode=analysis_mode,
+                    job_to=job_to,
+                    similarity_range=(similarity_min/100.0, similarity_max/100.0),
+                    include_organisational_deployment=include_deployment,
+                    top_n=top_n,
+                    tie_breaking_options=tie_breaking_options,
+                    output_format=output_mode,
+                    primary_algorithm=primary_algorithm
+                )
+
+            except Exception as e:
+                logger.error(f"Top N Career Pathways generation failed: {str(e)}", exc_info=True)
+                print(f"ERROR in Top N Career Pathways generation: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                # Provide fallback data
+                pathway_result = {
+                    'content': {
+                        'opportunities': {
+                            'title': 'Top Career Opportunities',
+                            'subsections': {
+                                'error': {
+                                    'title': 'Analysis Unavailable',
+                                    'content': f'Career pathways analysis could not be completed: {str(e)}',
+                                    'type': 'formatted_content'
+                                }
+                            }
                         }
-                    }
+                    },
+                    'no_results': True
                 }
             
-            # 3. Pathway Analysis
-            logger.debug("Generating Pathway Analysis")
-            pathway_result = self.pathway_generator.generate(
-                job_from=job_from,
-                analysis_mode=analysis_mode,
-                job_to=job_to,
-                similarity_range=(similarity_min/100.0, similarity_max/100.0),
-                include_organisational_deployment=include_deployment,
-                top_n=top_n,
-                tie_breaking_options=tie_breaking_options,
-                output_format=output_mode  # Pass web format to generator (document removed during V2 migration)
-            )
-            
-            # 🚨 EARLY DETECTION: Check if pathway analysis found no opportunities
-            print(f"🔍 DEBUG: Checking pathway result for opportunities...")
-            print(f"🔍 DEBUG: Pathway result type: {type(pathway_result)}")
-            if isinstance(pathway_result, dict):
-                print(f"🔍 DEBUG: Pathway result keys: {list(pathway_result.keys())}")
-                content = pathway_result.get('content', {})
-                if isinstance(content, dict):
-                    print(f"🔍 DEBUG: Pathway result content keys: {list(content.keys())}")
-                else:
-                    print(f"🔍 DEBUG: Pathway content is not a dict: {type(content)}")
-            else:
-                print(f"🔍 DEBUG: Pathway result is not a dict: {pathway_result}")
-            
+            # Check if pathway analysis found opportunities
             if self._has_no_opportunities(pathway_result):
-                print("🚫 No career pathways found within similarity range - returning simplified no-results response")
                 return self._create_no_results_response(job_from, similarity_min, similarity_max, output_mode)
-            else:
-                print("✅ Opportunities found - continuing with full analysis")
             
             # Use the section title from the generator, with intelligent fallback
             pathway_title = pathway_result.get('section_title')
             if not isinstance(pathway_title, str) or not pathway_title:
-                pathway_title = f"Pathway Analysis: Top {top_n} Strategic Opportunities"
+                pathway_title = f"Top {top_n} Career Pathways"
                 if analysis_mode == 'specific' and job_to:
-                    pathway_title = "Strategic Transition Analysis"
-            sections['pathway_analysis'] = self._format_section_for_mode(
+                    pathway_title = "Career Transition Analysis"
+            sections['pathways'] = self._format_section_for_mode(
                 pathway_result, output_mode, pathway_title
-            )
-            
-            # 4. Strategic Recommendations
-            logger.debug("Generating Strategic Recommendations")
-            recommendations_result = self.recommendations_generator.generate(
-                job_from=job_from,
-                analysis_mode=analysis_mode,
-                job_to=job_to,
-                similarity_range=(similarity_min/100.0, similarity_max/100.0),
-                include_organisational_deployment=include_deployment,
-                top_n=top_n
-            )
-            # Use the section title from the generator, fallback to default if not available
-            recommendations_title = recommendations_result.get('section_title', 'Strategic Recommendations')
-            if not isinstance(recommendations_title, str):
-                recommendations_title = 'Strategic Recommendations'
-            sections['strategic_recommendations'] = self._format_section_for_mode(
-                recommendations_result, output_mode, recommendations_title
-            )
-            
-            # 5. Conclusion
-            logger.debug("Generating Conclusion")
-            conclusion_result = self.conclusion_generator.generate(
-                job_from=job_from,
-                analysis_mode=analysis_mode,
-                job_to=job_to,
-                similarity_range=(similarity_min/100.0, similarity_max/100.0),
-                include_organisational_deployment=include_deployment,
-                top_n=top_n
-            )
-            # Use the section title from the generator, fallback to default if not available
-            conclusion_title = conclusion_result.get('section_title', 'Conclusion')
-            if not isinstance(conclusion_title, str):
-                conclusion_title = 'Conclusion'
-            sections['conclusion'] = self._format_section_for_mode(
-                conclusion_result, output_mode, conclusion_title
             )
             
             # Generate metadata
             metadata = self._generate_metadata(job_from, analysis_mode, **kwargs)
             
-            print(f"Successfully generated {output_mode} analysis with {len(sections)} sections")
+
             
             return {
                 'success': True,
@@ -319,26 +283,10 @@ class CareerAnalysisService:
                 logger.debug(f"DEBUG: Content data for {subsection_key}: {content_data}")
                 
                 if isinstance(content_data, list):
-                    # Debug the section matching
-                    print(f"🔍 CHECKING special handling - subsection_key: '{subsection_key}', section_title: '{section_title}'")
-                    print(f"🔍 Content data length: {len(content_data)}")
-                    print(f"🔍 Is opportunities? {subsection_key == 'opportunities'}")
-                    print(f"🔍 Contains pathway? {'pathway' in section_title.lower()}")
-                    print(f"🔍 Contains transition? {'transition' in section_title.lower()}")
-                    
                     # Special handling for pathway analysis opportunities
-                    print(f"🔍 Special handling condition evaluation:")
-                    print(f"   - subsection_key == 'opportunities': {subsection_key == 'opportunities'}")
-                    print(f"   - section_title.lower(): '{section_title.lower()}'")
-                    print(f"   - 'pathway' in section_title.lower(): {'pathway' in section_title.lower()}")
-                    print(f"   - 'transition' in section_title.lower(): {'transition' in section_title.lower()}")
-                    print(f"   - Combined condition: {subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower())}")
                     
                     if subsection_key == 'opportunities' and ('pathway' in section_title.lower() or 'transition' in section_title.lower()):
-                        print(f"🎯 TRIGGERED special handling for pathway analysis opportunities")
-                        print(f"🎯 Content list length: {len(content_data)}")
-                        print(f"🎯 Content data type: {type(content_data)}")
-                        print(f"🎯 First item type: {type(content_data[0]) if content_data else 'EMPTY'}")
+
                         
                         # Convert opportunities list to JSON-serializable format
                         formatted_opportunities = self._format_opportunities_for_web(content_data)
@@ -350,34 +298,26 @@ class CareerAnalysisService:
                             'formatting': {},
                             'type': 'opportunities_list'  # Special type for frontend handling
                         }
-                        print(f"🎯 Stored opportunities as list with {len(formatted_opportunities)} items")
-                        print(f"🎯 First opportunity keys: {list(formatted_opportunities[0].keys()) if formatted_opportunities else 'EMPTY'}")
-                        print(f"🎯 About to continue - skipping normal processing")
+
                         continue  # Skip the normal processing below
                     
                     # 🔧 FIX: Special handling for Core Competency Foundation with mixed content (intro + table)
                     elif subsection_key == 'core_competency_foundation':
-                        print(f"🔧 CHECKING Core Competency Foundation condition")
-                        print(f"🔧 subsection_key: '{subsection_key}'")
-                        print(f"🔧 section_title: '{section_title}'")
-                        print(f"🔧 section_title.lower(): '{section_title.lower()}'")
-                        print(f"🔧 'current role context' in section_title.lower(): {'current role context' in section_title.lower()}")
+
                         
                         if 'current role context' in section_title.lower():
-                            print(f"🔧 TRIGGERED special handling for Core Competency Foundation with structured content")
-                            print(f"🔧 Content list length: {len(content_data)}")
-                            print(f"🔧 Content data items: {[type(item) for item in content_data]}")
+
                             
                             # Keep the content as a structured array instead of converting to text
                             # This preserves the separation between intro paragraph and table
                             structured_content = []
                             for i, item in enumerate(content_data):
-                                print(f"🔧 Processing item {i}: type={type(item)}, keys={list(item.keys()) if isinstance(item, dict) else 'Not dict'}")
+
                                 if isinstance(item, dict):
                                     if item.get('type') == 'structured_table':
                                         # Preserve structured table for frontend
                                         structured_content.append(item)
-                                        print(f"🔧 Preserved structured table with {len(item.get('headers', []))} headers")
+
                                     elif 'text' in item:
                                         # Convert ContentFormatter paragraph to simple text item
                                         structured_content.append({
@@ -385,13 +325,13 @@ class CareerAnalysisService:
                                             'content_type': item.get('content_type', 'paragraph'),
                                             'text': item['text']
                                         })
-                                        print(f"🔧 Preserved paragraph content: {item['text'][:50]}...")
+
                                     else:
                                         structured_content.append(item)
-                                        print(f"🔧 Preserved other dict item with keys: {list(item.keys())}")
+
                                 else:
                                     structured_content.append({'type': 'text', 'text': str(item)})
-                                    print(f"🔧 Converted non-dict item to text: {str(item)[:50]}...")
+
                             
                             subsections[subsection_key] = {
                                 'title': title,
@@ -399,11 +339,8 @@ class CareerAnalysisService:
                                 'formatting': {'content_type': 'structured_mixed'},
                                 'type': 'structured_mixed_content'  # Special type for frontend
                             }
-                            print(f"🔧 Stored Core Competency Foundation as structured content with {len(structured_content)} items")
-                            print(f"🔧 Final subsection type: {subsections[subsection_key]['type']}")
+
                             continue  # Skip normal processing
-                        else:
-                            print(f"🔧 Section title doesn't match - falling through to normal processing")
                     
                     # List of ContentFormatter objects - extract and combine
                     logger.debug(f"DEBUG: Processing ContentFormatter list for {subsection_key}, length: {len(content_data)}")
@@ -667,7 +604,7 @@ class CareerAnalysisService:
         try:
             job_query = self.db.execute("""
                 SELECT JobProfile, Job, ProfileTitleSuffix, ManagementLevel, JobFunction
-                FROM jobs WHERE JobProfileID = ?
+                FROM core_job_architecture WHERE JobProfileID = ?
             """, (job_from,)).fetchone()
             
             if job_query:
@@ -797,25 +734,21 @@ class CareerAnalysisService:
             
             # Check for error subsection (indicates no results)
             if 'error' in content:
-                print("🔍 Found 'error' subsection - no opportunities detected")
                 return True
             
             # Check for empty opportunities list
             opportunities = content.get('opportunities', [])
             if isinstance(opportunities, list):
                 has_opportunities = len(opportunities) > 0
-                print(f"🔍 Found {len(opportunities)} opportunities in list")
                 return not has_opportunities
             elif isinstance(opportunities, dict):
                 # Handle case where opportunities is a dict with content
                 opp_content = opportunities.get('content', [])
                 if isinstance(opp_content, list):
                     has_opportunities = len(opp_content) > 0
-                    print(f"🔍 Found {len(opp_content)} opportunities in dict content")
                     return not has_opportunities
             
             # Default: assume opportunities exist if we can't clearly determine otherwise
-            print("🔍 Could not clearly determine opportunity count - assuming opportunities exist")
             return False
             
         except Exception as e:
@@ -868,7 +801,7 @@ class CareerAnalysisService:
             'status': 'no_opportunities_found'
         }
         
-        print(f"✅ Created no-results response for job {job_from} with range {similarity_min}%-{similarity_max}%")
+
         
         return {
             'success': True,

@@ -5,10 +5,10 @@
 # CRITICAL PARAMETERS - These values are the result of Stratified Optuna Bayesian optimization
 # and are fundamental to the career pathway intelligence algorithms.
 # 
-# AUTO-GENERATED on 2025-08-13 - DO NOT MODIFY manually
+# AUTO-GENERATED on 2025-08-25 - DO NOT MODIFY manually
 # =============================================================================
 
-# Optuna-Optimized Parameters (2025-08-13)
+# Optuna-Optimized Parameters (2025-08-25)
 # Based on stratified dataset optimization with asymmetric Jaccard + corpus normalization
 # NOTE: This file is loaded as core.similarity_parameters by the config manager
 optuna_optimal:
@@ -57,7 +57,7 @@ optuna_optimal:
   
   # Global optimization metadata
   optimization_metadata:
-    optimization_date: "2025-08-13"
+    optimization_date: "2025-08-25"
     optimization_method: "Stratified Optuna TPE Sampler + Median Pruner"
     dataset_size: "Stratified by job size with business constraints"
     objective_function: "Layer-specific smoothness optimization with improvement penalty"
@@ -165,7 +165,7 @@ validation:
 # Configuration Metadata
 metadata:
   version: "3.2"
-  last_updated: "2025-08-13"
+  last_updated: "2025-08-25"
   optimization_source: "Stratified Optuna Bayesian Optimization with Business Constraints"
   critical_for_modules:
     - "similarity/defining_skills.py"

@@ -2,10 +2,10 @@
 -- References (1) through (16) from career_analysis_example_gold_standard.md
 
 -- Reference (1): Total job profiles in database
--- SELECT COUNT(*) FROM jobs
+-- SELECT COUNT(*) FROM core_job_architecture
 CREATE VIEW ref_01_total_job_profiles AS
 SELECT COUNT(*) as total_job_count
-FROM jobs;
+FROM core_job_architecture;
 
 -- Reference (2): Top 3 similarities range calculation
 -- SELECT similarity_score FROM job_similarities WHERE job_from = ? ORDER BY similarity_score DESC LIMIT 3
@@ -68,8 +68,8 @@ SELECT
         THEN 'Lateral - Same_Level'
         ELSE 'Other'
     END as move_type
-FROM jobs source
-CROSS JOIN jobs target
+FROM core_job_architecture source
+CROSS JOIN core_job_architecture target
 WHERE source.JobProfileID != target.JobProfileID;
 
 -- Reference (7): Business Intelligence Specialist similarity
@@ -100,7 +100,7 @@ SELECT DISTINCT
         WHEN ManagementLevel LIKE '%7%' THEN 7
         ELSE 1
     END as level_numeric
-FROM jobs
+FROM core_job_architecture
 WHERE ManagementLevel IS NOT NULL;
 
 -- Reference (12): Objective categorisation methodology
@@ -112,15 +112,15 @@ CREATE VIEW ref_13_confidence_factors AS
 SELECT 
     (SELECT COUNT(DISTINCT Skill_ID) FROM job_skills) as active_competencies,
     (SELECT COUNT(*) FROM career_pathways) as precomputed_pathways,
-    (SELECT COUNT(DISTINCT Division) FROM positions) as division_count,
+    (SELECT COUNT(DISTINCT Division) FROM core_workforce_current) as division_count,
     CASE 
         WHEN (SELECT COUNT(DISTINCT Skill_ID) FROM job_skills) > 2000 AND
              (SELECT COUNT(*) FROM career_pathways) > 8000 AND
-             (SELECT COUNT(DISTINCT Division) FROM positions) >= 6
+             (SELECT COUNT(DISTINCT Division) FROM core_workforce_current) >= 6
         THEN 'HIGH'
         WHEN (SELECT COUNT(DISTINCT Skill_ID) FROM job_skills) > 1000 AND
              (SELECT COUNT(*) FROM career_pathways) > 5000 AND
-             (SELECT COUNT(DISTINCT Division) FROM positions) >= 4
+             (SELECT COUNT(DISTINCT Division) FROM core_workforce_current) >= 4
         THEN 'MEDIUM-HIGH'
         ELSE 'MEDIUM'
     END as confidence_level;
@@ -138,10 +138,10 @@ SELECT COUNT(*) as pathways_count
 FROM career_pathways;
 
 -- Reference (16): Divisional structure count
--- SELECT COUNT(DISTINCT Division) FROM positions
+-- SELECT COUNT(DISTINCT Division) FROM core_workforce_current
 CREATE VIEW ref_16_divisional_structure AS
 SELECT COUNT(DISTINCT Division) as division_count
-FROM positions;
+FROM core_workforce_current;
 
 -- Helper queries for dynamic threshold calculation
 
@@ -160,7 +160,7 @@ SELECT
     COUNT(*) as pay_band_count,
     GROUP_CONCAT(JobProfileID) as all_profiles,
     base_job_title || ' (' || ManagementLevel || ')' as logical_display_name
-FROM jobs 
+FROM core_job_architecture 
 GROUP BY base_job_title, ManagementLevel, JobFamily, JobFunction;
 
 -- Logical role skills aggregation (for future skills analysis)
@@ -176,7 +176,7 @@ SELECT
     AVG(js.Skill_Weight) as avg_skill_weight,
     COUNT(DISTINCT js.JobProfileID) as profiles_with_skill
 FROM logical_roles lr
-JOIN jobs j ON (j.JobProfile LIKE lr.base_job_title || ' - %' OR j.JobProfile = lr.base_job_title)
+JOIN core_job_architecture j ON (j.JobProfile LIKE lr.base_job_title || ' - %' OR j.JobProfile = lr.base_job_title)
     AND j.ManagementLevel = lr.ManagementLevel
 JOIN job_skills js ON j.JobProfileID = js.JobProfileID
 JOIN skills s ON js.Skill_ID = s.Skill_ID
@@ -203,6 +203,6 @@ SELECT
     cp.career_move_type,
     cp.difficulty_score
 FROM career_pathways cp
-JOIN jobs j ON cp.target_job_id = j.JobProfileID
+JOIN core_job_architecture j ON cp.target_job_id = j.JobProfileID
 WHERE cp.similarity_rank <= 12  -- Top 12 pathways per job
 ORDER BY cp.source_job_id, cp.similarity_rank; 

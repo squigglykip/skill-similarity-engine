@@ -69,7 +69,7 @@ class DatabaseReferenceCalculator:
             return result[0] if result else 0
         except Exception:
             # Fallback to direct query if view doesn't exist
-            result = self.db.execute("SELECT COUNT(*) FROM jobs").fetchone()
+            result = self.db.execute("SELECT COUNT(*) FROM core_job_architecture").fetchone()
             return result[0] if result else 0
     
     def ref_02_top_similarities_range(self, job_from: str) -> Tuple[float, float, int]:
@@ -81,7 +81,7 @@ class DatabaseReferenceCalculator:
             COUNT(*) as pathway_count
         FROM (
             SELECT similarity_score 
-            FROM job_similarities 
+            FROM analytics_job_similarities 
             WHERE job_from = ? 
               AND similarity_score < 1.0
             ORDER BY similarity_score DESC 
@@ -99,7 +99,7 @@ class DatabaseReferenceCalculator:
             PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY similarity_score) as p90,
             PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY similarity_score) as p75,
             PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY similarity_score) as p50
-        FROM job_similarities 
+        FROM analytics_job_similarities 
         WHERE similarity_score > 0.0 AND similarity_score < 1.0
         """
         try:
@@ -118,7 +118,7 @@ class DatabaseReferenceCalculator:
         """Manual percentile calculation for SQLite."""
         query = """
         SELECT similarity_score
-        FROM job_similarities 
+        FROM analytics_job_similarities 
         WHERE similarity_score > 0.0 AND similarity_score < 1.0
         ORDER BY similarity_score
         """
@@ -141,7 +141,7 @@ class DatabaseReferenceCalculator:
     def ref_05_specific_similarity(self, job_from: str, job_to: str) -> float:
         """Reference (5+): Specific job similarity score."""
         result = self.db.execute(
-            "SELECT similarity_score FROM job_similarities WHERE job_from = ? AND job_to = ?",
+            "SELECT similarity_score FROM analytics_job_similarities WHERE job_from = ? AND job_to = ?",
             (job_from, job_to)
         ).fetchone()
         return result[0] if result else 0.0
@@ -162,7 +162,7 @@ class DatabaseReferenceCalculator:
             return result[0] if result else 0
         except Exception:
             # Fallback to direct query
-            result = self.db.execute("SELECT COUNT(DISTINCT Skill_ID) FROM job_skills").fetchone()
+            result = self.db.execute("SELECT COUNT(DISTINCT Skill_ID) FROM core_job_skill_requirements").fetchone()
             return result[0] if result else 0
     
     def ref_15_precomputed_pathways(self) -> int:
@@ -182,7 +182,7 @@ class DatabaseReferenceCalculator:
             return result[0] if result else 0
         except Exception:
             # Fallback to direct query
-            result = self.db.execute("SELECT COUNT(DISTINCT Division) FROM positions").fetchone()
+            result = self.db.execute("SELECT COUNT(DISTINCT Division) FROM core_workforce_current").fetchone()
             return result[0] if result else 0
     
     # Top Pathways Analysis
@@ -200,7 +200,7 @@ class DatabaseReferenceCalculator:
             cp.career_move_type,
             cp.difficulty_score
         FROM career_pathways cp
-        JOIN jobs j ON cp.target_job_id = j.JobProfileID
+        JOIN core_job_architecture j ON cp.target_job_id = j.JobProfileID
         WHERE cp.source_job_id = ?
           AND cp.similarity_score < 1.0
         ORDER BY cp.similarity_score DESC, cp.similarity_rank
@@ -241,7 +241,7 @@ class DatabaseReferenceCalculator:
             JobCategory,
             Customer_Facing,
             is_Banker
-        FROM jobs 
+                FROM core_job_architecture
         WHERE JobProfileID = ?
         """
         
@@ -289,7 +289,7 @@ class DatabaseReferenceCalculator:
                     ELSE JobProfile || '|' || ManagementLevel 
                 END
             ) as logical_roles_count
-            FROM jobs
+            FROM core_job_architecture
             """
             result = self.db.execute(query).fetchone()
             return result[0] if result else 0
@@ -308,7 +308,7 @@ class DatabaseReferenceCalculator:
                     ELSE JobProfile || ' (' || ManagementLevel || ')'
                 END as logical_display_name,
                 MIN(JobProfileID) as representative_id
-            FROM jobs 
+            FROM core_job_architecture 
             GROUP BY 
                 CASE 
                     WHEN INSTR(JobProfile, ' - ') > 0 

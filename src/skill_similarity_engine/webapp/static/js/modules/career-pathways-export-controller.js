@@ -189,16 +189,31 @@ SkillEngine.CareerPathwaysExportController = {
      */
     updateExportButtonState() {
         const exportButton = document.getElementById('export-career-csv-btn');
-        if (!exportButton) return;
+        if (!exportButton) {
+            console.warn('⚠️ Export button not found in DOM');
+            return;
+        }
 
         const validation = this.validateExportRequirements();
+        
+        console.log('🔍 Export button validation result:', {
+            isValid: validation.isValid,
+            message: validation.message,
+            selectedJobsSize: SkillEngine.CareerPathwaysController?.state?.selectedJobs?.size || 0,
+            hasTreeData: !!SkillEngine.TreeVisualization?.state?.treeData,
+            treeDataType: typeof SkillEngine.TreeVisualization?.state?.treeData
+        });
         
         if (validation.isValid) {
             exportButton.disabled = false;
             exportButton.title = 'Export career pathways analysis to CSV';
+            exportButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            console.log('✅ Export button enabled');
         } else {
             exportButton.disabled = true;
             exportButton.title = validation.message;
+            exportButton.classList.add('opacity-50', 'cursor-not-allowed');
+            console.log('❌ Export button disabled:', validation.message);
         }
     },
 

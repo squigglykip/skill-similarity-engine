@@ -67,17 +67,17 @@ class EnhancedContentGenerator:
             job_query = """
             SELECT j.JobProfileID, j.JobProfile, j.Job, j.ProfileTitleSuffix,
                    j.JobFunction, j.ManagementLevel, j.JobCategory, j.JobSubFunction,
-                   COUNT(DISTINCT p."Position Number") as total_positions,
-                   COUNT(DISTINCT p.Division) as division_count,
+                   COUNT(DISTINCT p.position_number) as total_positions,
+                   COUNT(DISTINCT p.ORG_UNIT_NAME_2) as division_count,
                    COUNT(DISTINCT p.Location) as location_count,
-                   GROUP_CONCAT(DISTINCT p.Division || ' (' || 
-                       (SELECT COUNT(*) FROM positions p2 WHERE p2.JobProfileID = j.JobProfileID AND p2.Division = p.Division) || 
+                   GROUP_CONCAT(DISTINCT p.ORG_UNIT_NAME_2 || ' (' || 
+                       (SELECT COUNT(*) FROM core_workforce_current p2 WHERE p2.JobProfileID = j.JobProfileID AND p2.ORG_UNIT_NAME_2 = p.ORG_UNIT_NAME_2) || 
                        ')') as division_breakdown,
                    GROUP_CONCAT(DISTINCT p.Location) as location_list,
-                   GROUP_CONCAT(DISTINCT p."Business_Unit") as business_units,
-                   (SELECT COUNT(*) FROM job_skills js WHERE js.JobProfileID = j.JobProfileID) as Skills_Count
-            FROM jobs j
-            LEFT JOIN positions p ON j.JobProfileID = p.JobProfileID
+                   GROUP_CONCAT(DISTINCT p.ORG_UNIT_NAME_3) as business_units,
+                   (SELECT COUNT(*) FROM core_job_skill_requirements js WHERE js.JobProfileID = j.JobProfileID) as Skills_Count
+            FROM core_job_architecture j
+            LEFT JOIN core_workforce_current p ON j.JobProfileID = p.JobProfileID
             WHERE j.JobProfileID = ?
             GROUP BY j.JobProfileID, j.JobProfile, j.Job, j.ProfileTitleSuffix,
                      j.JobFunction, j.ManagementLevel, j.JobCategory, j.JobSubFunction
@@ -93,8 +93,8 @@ class EnhancedContentGenerator:
             skills_query = """
             SELECT s.Category, s.Subcategory, COUNT(*) as skill_count,
                    GROUP_CONCAT(s.Skill_Name) as skills_list
-            FROM job_skills js
-            JOIN skills s ON js.Skill_ID = s.Skill_ID
+            FROM core_job_skill_requirements js
+            JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID
             WHERE js.JobProfileID = ?
             GROUP BY s.Category, s.Subcategory
             ORDER BY skill_count DESC
@@ -186,9 +186,9 @@ class EnhancedContentGenerator:
                     WHEN js1.Skill_ID IS NOT NULL AND js2.Skill_ID IS NULL THEN 'transferable'
                     WHEN js1.Skill_ID IS NULL AND js2.Skill_ID IS NOT NULL THEN 'to_develop'
                 END as skill_relationship
-            FROM skills s
-            LEFT JOIN job_skills js1 ON s.Skill_ID = js1.Skill_ID AND js1.JobProfileID = ?
-            LEFT JOIN job_skills js2 ON s.Skill_ID = js2.Skill_ID AND js2.JobProfileID = ?
+            FROM core_skills_taxonomy s
+            LEFT JOIN core_job_skill_requirements js1 ON s.Skill_ID = js1.Skill_ID AND js1.JobProfileID = ?
+            LEFT JOIN core_job_skill_requirements js2 ON s.Skill_ID = js2.Skill_ID AND js2.JobProfileID = ?
             WHERE js1.Skill_ID IS NOT NULL OR js2.Skill_ID IS NOT NULL
             ORDER BY s.Category, s.Skill_Name
             """

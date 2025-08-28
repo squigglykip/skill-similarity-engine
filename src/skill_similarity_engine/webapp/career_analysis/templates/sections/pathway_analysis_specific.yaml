@@ -28,7 +28,13 @@ pathway_analysis:
     header: |
       {% if analysis_mode == 'specific' and specific_analysis_data.analysis_mode == 'specific_single' %}
       ## Strategic Transition: {{target_job_logical_name}}
-      Target Role: {{target_job_logical_name}} | Similarity Score: {{transition_similarity}}% | Move Type: {{move_classification}}
+      Target: {{target_job_logical_name}}
+      
+      **Similarity Analysis:**
+      • {{primary_algorithm|title}} (PRIMARY): {{enhanced_similarity_percentage if primary_algorithm == 'enhanced' else literal_similarity_percentage}}% - Strategic value weighted  
+      • {{('Literal' if primary_algorithm == 'enhanced' else 'Enhanced')}}: {{literal_similarity_percentage if primary_algorithm == 'enhanced' else enhanced_similarity_percentage}}% - Pure skill overlap
+      
+      Type: {{move_classification}}
       Strategic Classification: {{transition_viability}} Viability
       {% endif %}
 

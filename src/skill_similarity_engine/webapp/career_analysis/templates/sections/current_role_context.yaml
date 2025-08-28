@@ -12,10 +12,10 @@ current_role_context:
     title: "Role Analysis Overview"
     content_type: "paragraph"
     content: |
-      This analysis focuses on **{{source_job_logical_display_name}}** (Job ID: {{source_job_id}}) within NAB's organisational structure. The following assessment provides comprehensive context for strategic career planning and transition analysis.
+      This analysis focuses on **{{source_job_logical_display_name}}** Job Profile (Job ID: {{source_job_id}}) within NAB's organisational structure. The following assessment provides comprehensive context for strategic career planning and transition analysis.
 
   profile_overview:
-    title: "{{source_job_logical_display_name}} Profile"
+    title: "{{source_job_logical_display_name}} Job Profile"
     content_type: "bullet_list"
     bold_labels: ["Organisational Deployment:", "Primary Locations:", "Divisional Distribution:"]
     content: |
@@ -42,7 +42,7 @@ current_role_context:
     content_type: "mixed"
     bold_labels: ["Skills Portfolio Analysis:", "Organisational Context:"]
     bold_sub_labels: ["{{total_skills}} prescribed skills", "Skills overlap with", "{{primary_skill_category}} skills", "{{job_function}} function:", "Cross-functional applications:", "Management level distribution:"]
-    intro_paragraph: "{{source_job_logical_display_name}}s represent {{role_capability_descriptor}} capability within NAB's workforce structure, as evidenced by:"
+    intro_paragraph: "{{source_job_logical_display_name}} Job Profiles represent {{role_capability_descriptor}} capability within NAB's workforce structure, as evidenced by:"
     content: |
       Skills Portfolio Analysis:
       - {{total_skills}} prescribed skills across {{skill_category_count}} categories: {{skill_categories_summary}}
@@ -78,7 +78,7 @@ current_role_context:
 
       results_header:
         type: "paragraph"
-        content: "Results for {{source_job_logical_display_name}}:"
+        content: "Results for {{source_job_logical_display_name}} Job Profile:"
 
       mobility_section:
         type: "mixed"
@@ -106,31 +106,31 @@ current_role_context:
         header: "Strategic Value: {{strategic_value_assessment}} - {{strategic_value_descriptor}}"
         content: |
           - This composite assessment combines all mobility factors to determine workforce planning priority
-          - A {{strategic_value_assessment}} strategic value rating identifies {{source_job_logical_display_name}} positions as {{workforce_planning_priority}}, offering {{investment_return_descriptor}} and {{organisational_resilience_descriptor}}
+          - A {{strategic_value_assessment}} strategic value rating identifies {{source_job_logical_display_name}} Job Profile positions as {{workforce_planning_priority}}, offering {{investment_return_descriptor}} and {{organisational_resilience_descriptor}}
 
       conclusion_paragraph:
         type: "paragraph"
-        content: "Strategic Context Assessment: The combined metrics profile positions {{source_job_logical_display_name}} as a {{workforce_architecture_significance}}. The convergence of {{key_metric_convergence}} indicates {{workforce_agility_potential}}, making this role particularly valuable during organisational transformations, restructures, or capability realignments."
+        content: "Strategic Context Assessment: The combined metrics profile positions {{source_job_logical_display_name}} Job Profile as a {{workforce_architecture_significance}}. The convergence of {{key_metric_convergence}} indicates {{workforce_agility_potential}}, making this Job Profile particularly valuable during organisational transformations, restructures, or capability realignments."
 
 # Reference mapping for dynamic content (extending executive summary references)
 references:
   # Organisational deployment references (17-21)
-  17: "SELECT COUNT(DISTINCT p.\"Employee Number\") as position_count, COUNT(DISTINCT p.Division) as division_count FROM positions p JOIN jobs j ON p.JobProfileID = j.JobProfileID WHERE j.JobProfileID = ?"
-  18: "SELECT City, COUNT(*) as count FROM positions WHERE JobProfileID = ? GROUP BY City ORDER BY count DESC"
-  19: "SELECT Division, COUNT(*) as count FROM positions WHERE JobProfileID = ? GROUP BY Division ORDER BY count DESC"
-  20: "SELECT Business_Unit, COUNT(*) as count FROM positions WHERE JobProfileID = ? AND Division = ? GROUP BY Business_Unit"
-  21: "SELECT COUNT(*) FROM positions WHERE JobProfileID = ? AND Division = ?"
+  17: "SELECT COUNT(DISTINCT p.employee_number) as position_count, COUNT(DISTINCT p.ORG_UNIT_NAME_2) as division_count FROM core_workforce_current p JOIN core_job_architecture j ON p.JobProfileID = j.JobProfileID WHERE j.JobProfileID = ?"
+  18: "SELECT Cty, COUNT(*) as count FROM core_workforce_current WHERE JobProfileID = ? GROUP BY Cty ORDER BY count DESC"
+  19: "SELECT ORG_UNIT_NAME_2, COUNT(*) as count FROM core_workforce_current WHERE JobProfileID = ? GROUP BY ORG_UNIT_NAME_2 ORDER BY count DESC"
+  20: "SELECT ORG_UNIT_NAME_3, COUNT(*) as count FROM core_workforce_current WHERE JobProfileID = ? AND ORG_UNIT_NAME_2 = ? GROUP BY ORG_UNIT_NAME_3"
+  21: "SELECT COUNT(*) FROM core_workforce_current WHERE JobProfileID = ? AND ORG_UNIT_NAME_2 = ?"
   
   # Skills portfolio references (22-31)
-  22: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js WHERE js.JobProfileID = ?"
-  23: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
-  24: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
-  25: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
-  26: "SELECT COUNT(DISTINCT js.Skill_ID) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.SkillCategory = ?"
-  27: "SELECT COUNT(DISTINCT Skill_ID) FROM job_skills"
-  28: "SELECT COUNT(DISTINCT j.JobProfileID) FROM jobs j WHERE EXISTS (SELECT 1 FROM job_skills js1 JOIN job_skills js2 ON js1.Skill_ID = js2.Skill_ID WHERE js1.JobProfileID = ? AND js2.JobProfileID = j.JobProfileID AND js1.JobProfileID != js2.JobProfileID)"
+  22: "SELECT COUNT(DISTINCT js.Skill_ID) FROM core_job_skill_requirements js WHERE js.JobProfileID = ?"
+  23: "SELECT COUNT(DISTINCT js.Skill_ID) FROM core_job_skill_requirements js JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.Category = ?"
+  24: "SELECT COUNT(DISTINCT js.Skill_ID) FROM core_job_skill_requirements js JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.Category = ?"
+  25: "SELECT COUNT(DISTINCT js.Skill_ID) FROM core_job_skill_requirements js JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.Category = ?"
+  26: "SELECT COUNT(DISTINCT js.Skill_ID) FROM core_job_skill_requirements js JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID WHERE js.JobProfileID = ? AND s.Category = ?"
+  27: "SELECT COUNT(DISTINCT Skill_ID) FROM core_job_skill_requirements"
+  28: "SELECT COUNT(DISTINCT j.JobProfileID) FROM core_job_architecture j WHERE EXISTS (SELECT 1 FROM core_job_skill_requirements js1 JOIN core_job_skill_requirements js2 ON js1.Skill_ID = js2.Skill_ID WHERE js1.JobProfileID = ? AND js2.JobProfileID = j.JobProfileID AND js1.JobProfileID != js2.JobProfileID)"
   29: "Transferability assessment derived from skills overlap analysis"
-  30: "SELECT COUNT(*) FROM job_skills js JOIN skills s ON js.Skill_ID = s.Skill_ID WHERE s.SkillCategory = ?"
+  30: "SELECT COUNT(*) FROM core_job_skill_requirements js JOIN core_skills_taxonomy s ON js.Skill_ID = s.Skill_ID WHERE s.Category = ?"
   31: "Demand level assessment derived from skill frequency analysis"
   
   # Organisational context references (32-46)
