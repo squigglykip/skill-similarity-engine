@@ -105,7 +105,9 @@ class CareerAnalysisService:
                 similarity_range=(similarity_min/100.0, similarity_max/100.0),
                 top_n=top_n,
                 tie_breaking_options=tie_breaking_options,
-                primary_algorithm=primary_algorithm
+                primary_algorithm=primary_algorithm,
+                exclude_same_job_id=kwargs.get('exclude_same_job_id', False),
+                exclude_same_job_function=kwargs.get('exclude_same_job_function', False)
             )
             # Use the section title from the generator, fallback to default if not available
             exec_title = exec_result.get('section_title', 'Introduction')

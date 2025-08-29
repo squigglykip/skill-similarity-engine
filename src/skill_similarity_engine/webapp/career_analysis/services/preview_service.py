@@ -162,6 +162,8 @@ class PreviewService:
             'tie_breaking_options': form_data.get('tie_breaking_options', {}),
             'v2_analytics': form_data.get('v2_analytics', {}),
             'primary_algorithm': form_data.get('primary_algorithm', 'enhanced'),
+            'exclude_same_job_id': form_data.get('exclude_same_job_id', False),
+            'exclude_same_job_function': form_data.get('exclude_same_job_function', False),
         }
     
     def _process_content_for_web(self, sections: Dict[str, Any]) -> Dict[str, Any]:

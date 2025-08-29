@@ -27,7 +27,8 @@ class PathwayOrderingManager:
         
     def get_top_pathways_ordered(self, job_from: str, limit: int = 3, executive_refs: bool = True, 
                                 tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None, 
-                                primary_algorithm: str = 'enhanced') -> List[Dict]:
+                                primary_algorithm: str = 'enhanced', exclude_same_job_id: bool = False, 
+                                exclude_same_job_function: bool = False) -> List[Dict]:
         """
         Get top similarity pathways with consistent ordering for all Career Transition Analysis sections.
         
@@ -82,11 +83,16 @@ class PathwayOrderingManager:
               AND {self._get_similarity_filter_column(primary_algorithm)} <= ?  -- Apply similarity maximum from slider
               AND js.job_from != js.job_to  -- Exclude self-matches only
               AND js.enhanced_similarity_score IS NOT NULL  -- V2 analytics validation
+              -- Job filtering logic: exclude same JobID if filter enabled
+              AND (? = 0 OR j.JobID != source_j.JobID)
+              -- Job function filtering logic: exclude same JobFunction if filter enabled
+              AND (? = 0 OR j.JobFunction != source_j.JobFunction)
             {order_clause}
             LIMIT ?
             """
             
-            cursor = self.db.execute(query, (job_from, similarity_min, similarity_max, limit))
+            cursor = self.db.execute(query, (job_from, similarity_min, similarity_max, 
+                                           int(exclude_same_job_id), int(exclude_same_job_function), limit))
             results = cursor.fetchall()
             
             pathways = []
@@ -482,7 +488,8 @@ class PathwayOrderingManager:
 # Convenience function for easy imports
 def get_consistent_pathways(db_connection, job_from: str, limit: int = 3, executive_refs: bool = True, 
                           tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None,
-                          primary_algorithm: str = 'enhanced') -> List[Dict]:
+                          primary_algorithm: str = 'enhanced', exclude_same_job_id: bool = False, 
+                          exclude_same_job_function: bool = False) -> List[Dict]:
     """
     Convenience function to get consistently ordered pathways.
     
@@ -497,7 +504,7 @@ def get_consistent_pathways(db_connection, job_from: str, limit: int = 3, execut
         List of consistently ordered pathway dictionaries
     """
     manager = PathwayOrderingManager(db_connection)
-    return manager.get_top_pathways_ordered(job_from, limit, executive_refs, tie_breaking_options, similarity_range, primary_algorithm)
+    return manager.get_top_pathways_ordered(job_from, limit, executive_refs, tie_breaking_options, similarity_range, primary_algorithm, exclude_same_job_id, exclude_same_job_function)
 
 def get_specific_job_pathways(db_connection, job_from: str, target_job_list: List[str], executive_refs: bool = True) -> List[Dict]:
     """

@@ -228,6 +228,10 @@ def api_d3_tree_data():
     max_results = int(request.args.get('max_results', webapp_config.get_core_performance_config().get('max_results_default', 10)))  # Configurable default
     similarity_method = request.args.get('similarity_method', 'enhanced')  # 'enhanced' or 'literal'
     
+    # Job filtering options
+    exclude_same_job_id = int(request.args.get('exclude_same_job_id', 0))  # Convert to int for SQL
+    exclude_same_job_function = int(request.args.get('exclude_same_job_function', 0))  # Convert to int for SQL
+    
     # Organizational filters (optional)
     division_filter = request.args.get('division', '').strip()
     business_unit_filter = request.args.get('business_unit', '').strip()
@@ -237,13 +241,18 @@ def api_d3_tree_data():
     def build_tree(nodes):
         if not nodes:
             return None
+        
+        print(f"🐛 DEBUG: Building tree from {len(nodes)} nodes")
+        if nodes:
+            print(f"🐛 DEBUG: First node fields: {list(nodes[0].keys())}")
+            print(f"🐛 DEBUG: First node sample: {dict(nodes[0])}")
             
         node_dict = {node['id']: dict(node, children=[]) for node in nodes}
         roots = []
         
         # Build tree structure
         for node in node_dict.values():
-            parent_id = node.get('parent')
+            parent_id = node.get('parent')  # Node structure uses 'parent', not 'parent_id'
             if parent_id and parent_id in node_dict:
                 # Only add if not already in children (deduplicate multiple parent paths)
                 parent_children = node_dict[parent_id]['children']
@@ -285,36 +294,117 @@ def api_d3_tree_data():
             return None
     
     try:
+        # Enhanced job ID validation with proper HTTP status codes
         if not job_ids:
             return jsonify({
                 'success': False,
-                'error': 'No jobs selected',
+                'error': 'No jobs selected. Please provide at least one job ID.',
                 'tree': None,
-                'total_nodes': 0
-            })
+                'total_nodes': 0,
+                'validation_errors': ['jobs parameter is required and cannot be empty']
+            }), 400
+        
+        # Validate job ID format
+        invalid_jobs = []
+        for job_id in job_ids:
+            if not job_id or not job_id.strip():
+                invalid_jobs.append('Empty job ID')
+            elif not job_id.replace('.', '').replace('-', '').replace('_', '').isalnum():
+                invalid_jobs.append(f'Invalid job ID format: {job_id}')
+        
+        if invalid_jobs:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid job ID(s) provided',
+                'tree': None,
+                'total_nodes': 0,
+                'validation_errors': invalid_jobs
+            }), 400
+        
+        # Validate other parameters
+        validation_errors = []
+        
+        if similarity_threshold < 0 or similarity_threshold > 1:
+            validation_errors.append(f'similarity must be between 0 and 1, got {similarity_threshold}')
+        
+        if max_depth < 0 or max_depth > 10:
+            validation_errors.append(f'depth must be between 0 and 10, got {max_depth}')
+        
+        if max_results < 0 or max_results > 50:
+            validation_errors.append(f'max_results must be between 0 and 50, got {max_results}')
+        
+        if similarity_method not in ['enhanced', 'literal']:
+            validation_errors.append(f'similarity_method must be "enhanced" or "literal", got {similarity_method}')
+        
+        if validation_errors:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid parameters provided',
+                'tree': None,
+                'total_nodes': 0,
+                'validation_errors': validation_errors
+            }), 400
         
         db = get_db()
         
-        # Use recursive career pathways query that builds proper multi-level trees
-        # Get the base recursive tree query
-        tree_query = queries.get('career_pathways', 'get_career_tree_recursive')
-        # Modify query based on similarity method
+        # Use appropriate query based on whether job filtering is enabled
+        if exclude_same_job_id or exclude_same_job_function:
+            # Use enhanced query with job filtering support
+            tree_query = queries.get('career_pathways', 'get_career_tree_with_job_filters')  # Enhanced query with job filtering
+            if not tree_query:
+                print("⚠️ Job filtering query not available, using standard query")
+                tree_query = queries.get('career_pathways', 'get_career_tree_fast')
+        else:
+            # Use original query without job filtering parameters
+            tree_query = queries.get('career_pathways', 'get_career_tree_fast')  # Standard query
+        
+        # Modify query based on similarity method and add performance optimizations
         if tree_query and similarity_method == 'literal':
             # Replace enhanced_similarity_score with similarity_score for literal comparison
             tree_query = tree_query.replace('enhanced_similarity_score', 'similarity_score')
+            
+            # Aggressive performance optimization for literal method
+            print("📊 Applying literal similarity performance optimizations...")
+            
+            # More aggressive reduction when filters are enabled (they reduce result sets significantly)
+            if exclude_same_job_id or exclude_same_job_function:
+                # With filters enabled, be even more aggressive
+                if max_results > 3:
+                    print(f"📊 Performance optimization: Reducing max_results from {max_results} to 3 for literal + filters")
+                    max_results = 3
+                
+                # More aggressive threshold increase with filters
+                if similarity_threshold < 0.4:
+                    original_threshold = similarity_threshold
+                    similarity_threshold = max(0.4, similarity_threshold + 0.2)
+                    print(f"📊 Performance optimization: Increasing similarity threshold from {original_threshold} to {similarity_threshold} for literal + filters")
+                
+                # Reduce depth for very complex scenarios
+                if max_depth > 2:
+                    print(f"📊 Performance optimization: Reducing max_depth from {max_depth} to 2 for literal + filters")
+                    max_depth = 2
+            else:
+                # Standard literal optimizations without filters
+                if max_results > 6:
+                    print(f"📊 Performance optimization: Reducing max_results from {max_results} to 6 for literal similarity")
+                    max_results = 6
+                
+                # Increase similarity threshold slightly for literal method to reduce result set
+                if similarity_threshold < 0.3:
+                    original_threshold = similarity_threshold
+                    similarity_threshold = max(0.3, similarity_threshold + 0.1)
+                    print(f"📊 Performance optimization: Increasing similarity threshold from {original_threshold} to {similarity_threshold} for literal method")
         
         if not tree_query:
             # Fallback to older queries if recursive query not available
-            tree_query = queries.get('career_pathways', 'get_career_tree_fast')
+            tree_query = queries.get('d3_visualization', 'get_recursive_job_tree')
             if not tree_query:
-                tree_query = queries.get('d3_visualization', 'get_recursive_job_tree')
-                if not tree_query:
-                    return jsonify({
-                        'success': False,
-                        'error': 'No tree query available - check SQL file structure',
-                        'tree': None,
-                        'total_nodes': 0
-                    }), 500
+                return jsonify({
+                    'success': False,
+                    'error': 'No tree query available - check SQL file structure',
+                    'tree': None,
+                    'total_nodes': 0
+                }), 500
         
         # For the simple query, we support single job only for now
         if len(job_ids) != 1:
@@ -327,24 +417,71 @@ def api_d3_tree_data():
             
         job_id = job_ids[0]
         
-        # Parameters: job_id (root), max_depth, similarity_threshold, max_results, + 8 org filters  
-        params = [job_id, max_depth, similarity_threshold, max_results,
-                  division_filter, division_filter,  # Division filter (check + value)
-                  business_unit_filter, business_unit_filter,  # Business Unit filter (check + value)
-                  location_filter, location_filter,  # Location filter (check + value)  
-                  region_filter, region_filter]  # Region filter (check + value)
+        # Replace job placeholders in query
+        tree_query = tree_query.replace('{job_placeholders}', '?')
+        
+        # Conditionally build parameters based on whether job filtering is enabled
+        if exclude_same_job_id or exclude_same_job_function:
+            # Use enhanced query with job filtering parameters
+            # Parameters: job_id, similarity_threshold, max_depth, exclude_same_job_id, exclude_same_job_function, 
+            #            org_check, 8 org filters, 2 job filters (ranking), max_results = 17 total
+            params = [job_id, similarity_threshold, max_depth, 
+                      exclude_same_job_id, exclude_same_job_function,  # Job filtering logic
+                      division_filter or '',  # Org filter check (empty string if no filter)
+                      division_filter, division_filter,  # Division filter (check + value)
+                      business_unit_filter, business_unit_filter,  # Business Unit filter (check + value)
+                      location_filter, location_filter,  # Location filter (check + value)  
+                      region_filter, region_filter,  # Region filter (check + value)
+                      exclude_same_job_id, exclude_same_job_function,  # Job filtering for ranking
+                      max_results]  # Max results
+        else:
+            # Use clean parameter structure for basic query
+            # Parameters: job_id, similarity_threshold, max_depth, exclude_same_job_id, exclude_same_job_function, 
+            #            similarity_threshold (ROW_NUMBER), max_results
+            params = [job_id, similarity_threshold, max_depth, 
+                      exclude_same_job_id, exclude_same_job_function,  # Career exploration filters
+                      similarity_threshold,  # ROW_NUMBER similarity threshold
+                      max_results]  # ROW_NUMBER limit
+            
         
         # Build filter description for logging
         filters = []
-        if division_filter: filters.append(f"division={division_filter}")
-        if business_unit_filter: filters.append(f"business_unit={business_unit_filter}")
-        if location_filter: filters.append(f"location={location_filter}")
-        if region_filter: filters.append(f"region={region_filter}")
+        if exclude_same_job_id: filters.append("exclude_same_job_id")
+        if exclude_same_job_function: filters.append("exclude_same_job_function")
         filter_desc = f", filters=[{', '.join(filters)}]" if filters else ""
         
         print(f"📊 Query: jobs={job_ids}, similarity>={similarity_threshold}, depth<={max_depth}, max_results<={max_results}, method={similarity_method}{filter_desc}")
+        print(f"📊 Parameters count: {len(params)}, Parameters: {params}")
         
-        tree_data = db.execute(tree_query, params).fetchall()
+        # Performance monitoring and result size protection
+        import time
+        
+        try:
+            start_time = time.time()
+            
+            # Execute query with basic monitoring
+            tree_data = db.execute(tree_query, params).fetchall()
+            
+            execution_time = time.time() - start_time
+            print(f"📊 Query execution time: {execution_time:.2f}s")
+            
+            # Performance warning for slow queries
+            if execution_time > 30:
+                print(f"⚠️  Slow query detected: {execution_time:.2f}s. Consider optimizing parameters.")
+            
+            # Result size protection
+            if len(tree_data) > 1000:
+                print(f"⚠️  Large result set detected: {len(tree_data)} nodes. Truncating to prevent performance issues.")
+                tree_data = tree_data[:1000]  # Limit to 1000 nodes
+                
+        except Exception as e:
+            print(f"❌ Query execution error: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Query execution failed: {str(e)}',
+                'tree': None,
+                'total_nodes': 0
+            }), 500
         
         # 🎯 ORGANIZATIONAL FILTER DEBUGGING
         if filters:
@@ -417,10 +554,9 @@ def api_d3_tree_data():
         for i, node in enumerate(nodes):
             row = tree_data[i]
             if row['parent_id'] and row['level'] > 0:
-                # Find the parent node - look for a node at level-1 with matching job_id
+                # Find the parent node - look for a node with matching job_id (parent_id maps to job_id)
                 for j, potential_parent in enumerate(nodes):
-                    if (potential_parent['job_id'] == str(row['parent_id']) and 
-                        potential_parent['level'] == row['level'] - 1):
+                    if potential_parent['job_id'] == str(row['parent_id']):
                         node['parent'] = potential_parent['id']
                         break
         
@@ -456,7 +592,9 @@ def api_d3_tree_data():
             'max_depth': max_depth,
             'max_results': max_results,
             'tree': tree_root,
-            'total_nodes': len(nodes)
+            'total_nodes': len(nodes),
+            'debug_raw_nodes_count': len(tree_data),
+            'debug_first_few_nodes': [dict(node) for node in tree_data[:3]] if tree_data else []
         })
         
     except Exception as e:

@@ -279,6 +279,10 @@ SkillEngine.TreeVisualization = {
         // Get similarity method from radio buttons
         const similarityMethod = document.querySelector('input[name="similarity-method"]:checked')?.value || 'enhanced';
         
+        // Get job filtering options
+        const excludeSameJobId = document.getElementById('exclude-same-job-id')?.checked || false;
+        const excludeSameJobFunction = document.getElementById('exclude-same-job-function')?.checked || false;
+        
         const filters = {};
         ['division-filter', 'business-unit-filter', 'location-filter', 'region-filter'].forEach(filterId => {
             const element = document.getElementById(filterId);
@@ -288,7 +292,7 @@ SkillEngine.TreeVisualization = {
             }
         });
 
-        return { similarity, depth, maxResults, similarityMethod, filters };
+        return { similarity, depth, maxResults, similarityMethod, excludeSameJobId, excludeSameJobFunction, filters };
     },
 
     /**
@@ -329,6 +333,8 @@ SkillEngine.TreeVisualization = {
                 depth: params.depth,
                 max_results: params.maxResults,
                 similarity_method: params.similarityMethod,
+                exclude_same_job_id: params.excludeSameJobId ? '1' : '0',
+                exclude_same_job_function: params.excludeSameJobFunction ? '1' : '0',
                 ...params.filters
             });
 

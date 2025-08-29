@@ -52,6 +52,76 @@ WHERE js.job_from = ?
 ORDER BY js.enhanced_similarity_score DESC
 LIMIT ?;
 
+-- query_name: get_similar_jobs_with_filters
+-- Get jobs similar to a given job with enhanced similarity threshold and job filtering options
+SELECT 
+    ja.JobProfileID as id,
+    ja.JobProfile as job_title,
+    ja.JobFunction as job_function,
+    ja.JobFunctionID as job_function_id,
+    ja.JobID as job_id,
+    source_ja.JobID as source_job_id,
+    source_ja.JobFunction as source_job_function,
+    js.enhanced_similarity_score as similarity_score,
+    js.rarity_weighted_score,
+    js.shared_defining_skills_count,
+    js.total_skills_compared,
+    CASE 
+        WHEN js.enhanced_similarity_score >= 0.8 THEN 'High'
+        WHEN js.enhanced_similarity_score >= 0.6 THEN 'Medium'
+        ELSE 'Low'
+    END as similarity_category,
+    CASE WHEN ja.JobID = source_ja.JobID THEN 1 ELSE 0 END as same_job_id,
+    CASE WHEN ja.JobFunction = source_ja.JobFunction THEN 1 ELSE 0 END as same_job_function
+FROM analytics_job_similarities js
+INNER JOIN core_job_architecture ja ON js.job_to = ja.JobProfileID
+INNER JOIN core_job_architecture source_ja ON js.job_from = source_ja.JobProfileID
+WHERE js.job_from = ?
+    AND js.enhanced_similarity_score >= ?
+    AND js.enhanced_similarity_score IS NOT NULL  -- FAIL-FAST validation
+    -- Job filtering logic: exclude same JobID if filter enabled
+    AND (? = 0 OR ja.JobID != source_ja.JobID)
+    -- Job function filtering logic: exclude same JobFunction if filter enabled
+    AND (? = 0 OR ja.JobFunction != source_ja.JobFunction)
+ORDER BY js.enhanced_similarity_score DESC
+LIMIT ?;
+
+-- query_name: get_similar_jobs_with_range_and_filters
+-- Get jobs similar to a given job with similarity range and job filtering options
+SELECT 
+    ja.JobProfileID as id,
+    ja.JobProfile as job_title,
+    ja.JobFunction as job_function,
+    ja.JobFunctionID as job_function_id,
+    ja.JobID as job_id,
+    source_ja.JobID as source_job_id,
+    source_ja.JobFunction as source_job_function,
+    js.enhanced_similarity_score as similarity_score,
+    js.similarity_score as literal_similarity_score,
+    js.rarity_weighted_score,
+    js.shared_defining_skills_count,
+    js.total_skills_compared,
+    CASE 
+        WHEN js.enhanced_similarity_score >= 0.8 THEN 'High'
+        WHEN js.enhanced_similarity_score >= 0.6 THEN 'Medium'
+        ELSE 'Low'
+    END as similarity_category,
+    CASE WHEN ja.JobID = source_ja.JobID THEN 1 ELSE 0 END as same_job_id,
+    CASE WHEN ja.JobFunction = source_ja.JobFunction THEN 1 ELSE 0 END as same_job_function
+FROM analytics_job_similarities js
+INNER JOIN core_job_architecture ja ON js.job_to = ja.JobProfileID
+INNER JOIN core_job_architecture source_ja ON js.job_from = source_ja.JobProfileID
+WHERE js.job_from = ?
+    AND js.enhanced_similarity_score >= ?
+    AND js.enhanced_similarity_score <= ?
+    AND js.enhanced_similarity_score IS NOT NULL  -- FAIL-FAST validation
+    -- Job filtering logic: exclude same JobID if filter enabled
+    AND (? = 0 OR ja.JobID != source_ja.JobID)
+    -- Job function filtering logic: exclude same JobFunction if filter enabled
+    AND (? = 0 OR ja.JobFunction != source_ja.JobFunction)
+ORDER BY js.enhanced_similarity_score DESC
+LIMIT ?;
+
 -- query_name: get_job_similarity_stats
 -- Get enhanced similarity statistics for a specific job
 SELECT 

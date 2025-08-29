@@ -83,12 +83,14 @@ class ExecutiveSummaryGenerator:
     
     def generate(self, job_from: str, analysis_mode: str = 'top_matches', job_to: Optional[str] = None, 
                  similarity_range: tuple = None, top_n: int = 3, tie_breaking_options: Optional[Dict] = None, 
-                 primary_algorithm: str = 'enhanced') -> Dict:
+                 primary_algorithm: str = 'enhanced', exclude_same_job_id: bool = False, 
+                 exclude_same_job_function: bool = False) -> Dict:
         """Generate executive summary content for a given source job with mode support."""
         
         # FAIL-FAST: Require explicit similarity range from user input
         if similarity_range is None:
             raise ValueError("similarity_range is required - no default ranges allowed. Pass explicit tuple from user input.")
+        
         
         if not isinstance(similarity_range, tuple) or len(similarity_range) != 2:
             raise ValueError(f"similarity_range must be a tuple of (min, max), got: {similarity_range}")
@@ -126,7 +128,7 @@ class ExecutiveSummaryGenerator:
             pathways_data = self._convert_specific_to_pathways(analysis_data)
         else:
             # Default: Top N pathways analysis
-            pathways_data = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm)
+            pathways_data = self._get_top_pathways(job_from, limit=top_n, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm, exclude_same_job_id=exclude_same_job_id, exclude_same_job_function=exclude_same_job_function)
             analysis_data = None
         
         # Step 3: Calculate dynamic thresholds and descriptors
@@ -231,13 +233,13 @@ class ExecutiveSummaryGenerator:
         
         return values
     
-    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None, primary_algorithm: str = 'enhanced') -> List[Dict]:
+    def _get_top_pathways(self, job_from: str, limit: int = 3, tie_breaking_options: Optional[Dict] = None, similarity_range: Optional[tuple] = None, primary_algorithm: str = 'enhanced', exclude_same_job_id: bool = False, exclude_same_job_function: bool = False) -> List[Dict]:
         """Get top similarity pathways with consistent ordering."""
         
         try:
             # Use centralized pathway ordering for consistency across all sections
             from pathway_ordering_utils import get_consistent_pathways
-            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm)
+            return get_consistent_pathways(self.db, job_from, limit, executive_refs=True, tie_breaking_options=tie_breaking_options, similarity_range=similarity_range, primary_algorithm=primary_algorithm, exclude_same_job_id=exclude_same_job_id, exclude_same_job_function=exclude_same_job_function)
             
         except ImportError:
             print("⚠️ PathwayOrderingUtils not available, using fallback method")

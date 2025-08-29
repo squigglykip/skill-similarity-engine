@@ -42,7 +42,9 @@ SkillEngine.CareerPathwaysDataExtractor = {
             similarityThreshold: 'N/A',
             treeDepth: 'N/A',
             resultsPerLevel: 'N/A',
-            similarityMethod: 'N/A'
+            similarityMethod: 'N/A',
+            excludeSameJobId: false,
+            excludeSameJobFunction: false
         };
 
         // Extract from sliders and controls
@@ -65,6 +67,17 @@ SkillEngine.CareerPathwaysDataExtractor = {
         const similarityMethodRadio = document.querySelector('input[name="similarity-method"]:checked');
         if (similarityMethodRadio) {
             config.similarityMethod = similarityMethodRadio.value.charAt(0).toUpperCase() + similarityMethodRadio.value.slice(1);
+        }
+
+        // Extract job filtering options
+        const excludeSameJobIdCheckbox = document.getElementById('exclude-same-job-id');
+        if (excludeSameJobIdCheckbox) {
+            config.excludeSameJobId = excludeSameJobIdCheckbox.checked;
+        }
+
+        const excludeSameJobFunctionCheckbox = document.getElementById('exclude-same-job-function');
+        if (excludeSameJobFunctionCheckbox) {
+            config.excludeSameJobFunction = excludeSameJobFunctionCheckbox.checked;
         }
 
         return config;

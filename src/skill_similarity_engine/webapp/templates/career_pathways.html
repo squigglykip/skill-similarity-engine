@@ -267,40 +267,44 @@
                 </div>
             </div>
 
-            <!-- Organizational Filters -->
+            <!-- Job Filtering Options -->
             <div class="mt-6 pt-6 border-t border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Organizational Filters</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
-                        <select id="division-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-                            <option value="">All Divisions</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Business Unit</label>
-                        <select id="business-unit-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-                            <option value="">All Business Units</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                        <select id="location-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-                            <option value="">All Locations</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Region</label>
-                        <select id="region-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-                            <option value="">All Regions</option>
-                        </select>
-                    </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-filter text-blue-600 mr-2"></i>
+                    Career Exploration Filters
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                        Cross-functional Discovery
+                    </span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer border border-gray-200">
+                        <input type="checkbox" id="exclude-same-job-id" name="exclude_same_job_id" class="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 rounded">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">Exclude Same Job Levels</div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                Focus on career moves beyond different levels of the same base job
+                            </div>
+                        </div>
+                    </label>
+                    <label class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-purple-50 transition-colors cursor-pointer border border-gray-200">
+                        <input type="checkbox" id="exclude-same-job-function" name="exclude_same_job_function" class="mt-1 mr-3 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500 rounded">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">Cross-Functional Transitions Only</div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                Discover opportunities in different job functions
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                <div class="text-xs text-gray-500 bg-emerald-50 border-l-4 border-emerald-400 pl-4 py-2 rounded-r-lg mt-4">
+                    <i class="fas fa-lightbulb text-emerald-600 mr-1"></i>
+                    <strong>Pro Tip:</strong> Enable these filters to discover unexpected career pathways that might be hidden by similar job matches. Great for exploring cross-functional mobility and diverse career progression options.
                 </div>
             </div>
         </div>
 
         <!-- Step 3: Career Tree Visualization -->
-                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-epilogue font-semibold text-gray-900">Step 3: Career Pathway Tree</h2>
                 <div class="flex gap-2">
@@ -368,7 +372,40 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Organizational Filters -->
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Organizational Filters</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
+                        <select id="division-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="">All Divisions</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Business Unit</label>
+                        <select id="business-unit-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="">All Business Units</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                        <select id="location-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="">All Locations</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                        <select id="region-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="">All Regions</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
+
+
 
         <!-- Step 4: Pathway Analysis -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">

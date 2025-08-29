@@ -45,6 +45,7 @@ WITH RECURSIVE tree_builder AS (
     FROM tree_builder tb
     JOIN analytics_job_similarities js ON tb.id = js.job_from
     JOIN core_job_architecture ja ON js.job_to = ja.JobProfileID
+    JOIN core_job_architecture source_ja ON js.job_from = source_ja.JobProfileID
     LEFT JOIN analytics_movement_patterns mp 
         ON js.job_from = mp.from_job_profile_id 
         AND js.job_to = mp.to_job_profile_id
@@ -53,22 +54,11 @@ WITH RECURSIVE tree_builder AS (
       AND js.enhanced_similarity_score IS NOT NULL  -- FAIL-FAST validation
       AND js.job_to != tb.root_job_id  -- Don't go back to root
       AND js.job_to != tb.id  -- Don't self-reference
-      -- 🎯 ORGANIZATIONAL FILTERS: Applied at Level 1+ to restrict tree expansion
-      AND (
-          -- Level 1: Strict filtering - these jobs MUST match org filters if specified
-          (tb.level = 0 AND (
-              js.job_to IN (
-                  SELECT JobProfileID FROM core_workforce_current 
-                  WHERE (? = '' OR ORG_UNIT_NAME_2 = ?)  -- Division filter
-                    AND (? = '' OR ORG_UNIT_NAME_3 = ?)  -- Business Unit filter
-                    AND (? = '' OR Location = ?)         -- Location filter
-                    AND (? = '' OR Rg = ?)               -- Region filter
-              )
-          ))
-          OR
-          -- Level 2+: Allow any job (they're reachable through filtered Level 1 jobs)
-          (tb.level > 0)
-      )
+      -- 🎯 CAREER EXPLORATION FILTERS: Simple field-based filtering
+      -- Exclude same JobID if filter enabled (exclude_same_job_id=1)
+      AND (? = 0 OR ja.JobID != source_ja.JobID)
+      -- Exclude same JobFunction if filter enabled (exclude_same_job_function=1)  
+      AND (? = 0 OR ja.JobFunction != source_ja.JobFunction)
     -- Limit pathways per node to prevent explosion - use ROW_NUMBER for exact counts
     AND js.job_to IN (
         SELECT job_to
@@ -78,8 +68,9 @@ WITH RECURSIVE tree_builder AS (
             FROM analytics_job_similarities js2 
             WHERE js2.job_from = js.job_from 
               AND js2.enhanced_similarity_score IS NOT NULL
+              AND js2.enhanced_similarity_score >= ?  -- similarity_threshold
         ) ranked
-        WHERE rn <= ?  -- max_results (param 4) - guarantees exactly N rows per parent
+        WHERE rn <= ?  -- max_results - guarantees exactly N rows per parent
     )
 )
 SELECT DISTINCT
@@ -89,6 +80,114 @@ SELECT DISTINCT
     parent_id,
     level,
     category,
+    similarity_score,
+    career_move_type,
+    difficulty_score,
+    shared_skills_count,
+    children_count
+FROM tree_builder
+ORDER BY level, similarity_score DESC, name;
+
+-- query_name: get_career_tree_with_job_filters
+-- Generate D3.js tree data with job filtering options (exclude same JobID/JobFunction)
+-- Enhanced version with cross-functional and cross-job exploration capabilities
+WITH RECURSIVE tree_builder AS (
+    -- Level 0: Root nodes (selected starting jobs) - ALWAYS included regardless of filters
+    SELECT 
+        'root' as node_type,
+        j.JobProfileID as id,
+        j.JobProfile as name,
+        NULL as parent_id,
+        0 as level,
+        j.JobFunction as category,
+        j.JobID as job_id,
+        1.0 as similarity_score,
+        'starting_role' as career_move_type,
+        0.0 as difficulty_score,
+        0 as shared_skills_count,
+        0 as children_count,
+        j.JobProfileID as root_job_id
+    FROM core_job_architecture j
+    WHERE j.JobProfileID IN ({job_placeholders})
+    
+    UNION ALL
+    
+    -- Recursive expansion: Get pathways with job filtering applied
+    SELECT 
+        'similar_job' as node_type,
+        js.job_to as id,
+        ja.JobProfile as name,
+        js.job_from as parent_id,
+        tb.level + 1 as level,
+        ja.JobFunction as category,
+        ja.JobID as job_id,
+        js.enhanced_similarity_score as similarity_score,
+        COALESCE(mp.movement_type, 'lateral') as career_move_type,
+        COALESCE(mp.avg_days_between, 365.0) / 365.0 as difficulty_score,
+        js.shared_defining_skills_count as shared_skills_count,
+        0 as children_count,
+        tb.root_job_id
+    FROM tree_builder tb
+    JOIN analytics_job_similarities js ON tb.id = js.job_from
+    JOIN core_job_architecture ja ON js.job_to = ja.JobProfileID
+    JOIN core_job_architecture source_ja ON js.job_from = source_ja.JobProfileID
+    LEFT JOIN analytics_movement_patterns mp 
+        ON js.job_from = mp.from_job_profile_id 
+        AND js.job_to = mp.to_job_profile_id
+    WHERE js.enhanced_similarity_score >= ?  -- similarity_threshold
+      AND tb.level < ?  -- max_depth
+      AND js.enhanced_similarity_score IS NOT NULL
+      AND js.job_to != tb.root_job_id  -- Don't go back to root
+      AND js.job_to != tb.id  -- Don't self-reference
+      -- NEW: Job filtering logic - exclude same JobID if filter enabled
+      AND (? = 0 OR ja.JobID != source_ja.JobID)
+      -- NEW: Job function filtering logic - exclude same JobFunction if filter enabled
+      AND (? = 0 OR ja.JobFunction != source_ja.JobFunction)
+      -- Organizational filters (optional)
+      AND (
+          -- Level 1: Apply org filters if specified
+          (tb.level = 0 AND (
+              ? = '' OR js.job_to IN (
+                  SELECT JobProfileID FROM core_workforce_current 
+                  WHERE (? = '' OR ORG_UNIT_NAME_2 = ?)  -- Division filter
+                    AND (? = '' OR ORG_UNIT_NAME_3 = ?)  -- Business Unit filter
+                    AND (? = '' OR Location = ?)         -- Location filter
+                    AND (? = '' OR Rg = ?)               -- Region filter
+              )
+          ))
+          OR
+          -- Level 2+: Allow any job that passes job filters
+          (tb.level > 0)
+      )
+    -- Limit pathways per node to prevent explosion
+    AND js.job_to IN (
+        SELECT job_to
+        FROM (
+            SELECT job_to, 
+                   ROW_NUMBER() OVER (PARTITION BY job_from ORDER BY enhanced_similarity_score DESC) as rn
+            FROM analytics_job_similarities js2 
+            WHERE js2.job_from = js.job_from 
+              AND js2.enhanced_similarity_score IS NOT NULL
+              -- Apply same job filters to ranking
+              AND EXISTS (
+                  SELECT 1 FROM core_job_architecture ja2, core_job_architecture source_ja2
+                  WHERE ja2.JobProfileID = js2.job_to 
+                    AND source_ja2.JobProfileID = js2.job_from
+                    AND (? = 0 OR ja2.JobID != source_ja2.JobID)
+                    AND (? = 0 OR ja2.JobFunction != source_ja2.JobFunction)
+              )
+        ) ranked
+        WHERE rn <= ?  -- max_results
+    )
+)
+SELECT DISTINCT
+    node_type,
+    id,
+    name,
+    parent_id,
+    level,
+    category,
+    job_id,
     similarity_score,
     career_move_type,
     difficulty_score,

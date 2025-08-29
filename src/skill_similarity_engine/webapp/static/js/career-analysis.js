@@ -595,6 +595,10 @@ SkillEngine.CareerAnalysis = {
         const primaryAlgorithm = document.querySelector('input[name="primary_algorithm"]:checked')?.value;
         formData.primary_algorithm = primaryAlgorithm || 'enhanced'; // Default to enhanced
 
+        // Add Job Filtering Options
+        formData.exclude_same_job_id = document.getElementById('excludeSameJobId')?.checked || false;
+        formData.exclude_same_job_function = document.getElementById('excludeSameJobFunction')?.checked || false;
+
         // Add V2 Analytics preferences
         formData.v2_analytics = {
             defining_skills: document.getElementById('include-defining-skills')?.checked || false,
